@@ -1,6 +1,10 @@
 """Điểm vào headless: python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out out.jsonl
 
 Mã thoát: 0 bình thường; 2 tham số/đầu vào sai (kiểm TRƯỚC khi ghi đầu ra); 1 lỗi chạy/ghi.
+
+v1.1 (TICKET-02 mục 4.1, TV3 sửa khung — lý do: thêm `--mode day` và `--days`): `--days` chỉ dùng với day,
+số nguyên 1..5 (mặc định 1); day tự bàn giao kho trong bộ nhớ nên `--inventory`/`--inventory-out` vẫn chỉ dành
+cho quan/gather độc lập.
 """
 
 import argparse
@@ -33,7 +37,7 @@ def _int(name):
 
 def main(argv=None) -> int:
     p = _Parser(prog="chonoi.headless")
-    p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])  # `day` có từ v1.1
+    p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])
     p.add_argument("--seed", required=True, type=_int("seed"))
     p.add_argument("--ticks", required=True, type=_int("ticks"))
     p.add_argument("--out", required=True)
@@ -42,15 +46,19 @@ def main(argv=None) -> int:
     p.add_argument("--inventory")
     p.add_argument("--inventory-out", dest="inventory_out")
     p.add_argument("--snapshot-every", dest="snapshot_every", type=_int("snapshot-every"), default=10)
+    p.add_argument("--days", type=_int("days"))
     a = p.parse_args(argv)
     try:
-        if a.mode == "day":
-            raise BadInput("--mode day chưa hỗ trợ ở contract v1.0 (có từ v1.1)")
+        if a.days is not None and a.mode != "day":
+            raise BadInput("--days chỉ dùng với --mode day")
+        days = 1 if a.days is None else a.days
+        if not (1 <= days <= 5):
+            raise BadInput("--days phải là số nguyên trong [1, 5]")
         if a.ticks < 0:
             raise BadInput("--ticks phải >= 0")
         if a.snapshot_every <= 0:
             raise BadInput("--snapshot-every phải > 0")
-        if a.inventory and a.mode != "quan":
+        if a.inventory and a.mode != "quan":  # day bàn giao trong bộ nhớ
             raise BadInput("--inventory chỉ dùng với quan")
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
@@ -66,12 +74,15 @@ def main(argv=None) -> int:
         inventory = read_inventory(a.inventory) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
+        if a.mode == "day":
+            from .sim.day import DaySession
+            DaySession(tuning, scenario, a.seed, days)  # kiểm cấu hình/fixture lúc khởi tạo, trước khi ghi đầu ra
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2
     try:
         run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out)
+            inventory=inventory, inventory_out=a.inventory_out, days=days)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

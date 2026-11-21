@@ -38,10 +38,16 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, plan_dishes=None):
+        """`plan_dishes` (chỉ dùng trong `--mode day`, TICKET-02 mục 2 / v1.1 mục 4.5): id món trong kế hoạch Ngày.
+        Có thì khách chỉ chọn trong các món đó (lọc kế hoạch TRƯỚC khi lọc nguyên liệu khả dụng), và món của
+        khách/bếp/tay dựng sẵn phải thuộc kế hoạch (mã 2). Quán chạy riêng để None: dùng cả thực đơn."""
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
+        self.plan_dishes = None if plan_dishes is None else sorted(plan_dishes)
+        if self.plan_dishes is not None and not set(self.plan_dishes) <= set(self.menu):
+            raise BadInput(f"kế hoạch có món ngoài thực đơn: {sorted(set(self.plan_dishes) - set(self.menu))}")
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -67,6 +73,7 @@ class QuanSim:
         self.customers = [self._customer_from_scenario(c) for c in scenario.get("customers", [])]
         for e in self.customers:
             ids.reserve(e["id"])
+        self._check_plan_dishes()
         self._check_reserved_within_stock()
         self.money = 0
         self.earned = 0
@@ -201,10 +208,26 @@ class QuanSim:
         occupied = {c["table_id"] for c in self.customers}
         return next((tb for tb in sort_by_id(self.tables) if tb["id"] not in occupied), None)
 
+    def menu_candidates(self) -> list:
+        """Id món khách được gọi, theo mã Unicode: trong day chỉ các món của kế hoạch Ngày."""
+        return list(self.plan_dishes) if self.plan_dishes is not None else sorted(self.menu)
+
+    def _check_plan_dishes(self):
+        """Trong day: món của khách, bếp và tay dựng sẵn phải thuộc kế hoạch Ngày (mâu thuẫn -> mã 2)."""
+        if self.plan_dishes is None:
+            return
+        used = [(f"customers.{c['id']}", c["dish_id"]) for c in self.customers]
+        used += [(f"stoves.{s['id']}.dish", s["dish"]["dish_id"]) for s in self.stoves if s.get("dish")]
+        if self.hand:
+            used.append(("hand", self.hand["dish_id"]))
+        for where, dish_id in used:
+            if dish_id not in self.plan_dishes:
+                raise BadInput(f"{where}: món {dish_id} không thuộc kế hoạch Ngày {self.plan_dishes}")
+
     def _choose_dish(self):
         """Chọn đều theo seed trong các món đủ nguyên liệu khả dụng; duyệt id món theo mã Unicode."""
         avail = self.available_stock()
-        cookable = [d for d in sorted(self.menu) if recipe_fits(self.menu[d]["recipe"], avail)]
+        cookable = [d for d in self.menu_candidates() if recipe_fits(self.menu[d]["recipe"], avail)]
         if not cookable:
             return None
         return cookable[self.rng.get(CUSTOMER_DISH_STREAM).randrange(len(cookable))]
@@ -233,10 +256,15 @@ class QuanSim:
 
     # --- Lát 4 (TV3): bếp ------------------------------------------------------------
     def _tick_stoves(self, events):
-        """Món ready ở ĐẦU bước tăng tuổi; món đang nấu giảm timer, về 0 thì ready + dish_ready (theo id)."""
+        """Món ready ở ĐẦU bước tăng tuổi; món đang nấu giảm timer, về 0 thì ready + dish_ready (theo id).
+        Mở rộng burn (burn_s hữu hạn): tuổi món > burn ticks thì cháy (xem _burn); đúng burn ticks vẫn bưng được."""
+        burn = self.t.get("burn_s")
+        burn_ticks = None if burn is None else to_ticks(burn)
         for s in self.stoves:  # self.stoves đã sắp theo id
             if s["state"] == "ready":
                 s["ready_ticks"] += 1
+                if burn_ticks is not None and s["ready_ticks"] > burn_ticks:
+                    self._burn(s, events)
             elif s["state"] == "cooking":
                 s["cook_ticks_left"] = max(0, s["cook_ticks_left"] - 1)
                 if s["cook_ticks_left"] == 0:
@@ -245,6 +273,20 @@ class QuanSim:
                     d = s["dish"]
                     events.append(("dish_ready", {"stove_id": s["id"], "order_id": d["order_id"],
                                                   "dish_id": d["dish_id"]}))
+
+    def _burn(self, s, events):
+        """Món cháy: bỏ món (nguyên liệu đã dùng mất), bếp rảnh ngay; thử giữ lại ngay nguyên liệu cho đơn từ kho
+        khả dụng: đủ -> reserved (giữ order_tick), thiếu -> unfulfillable (khách chờ tới hết kiên nhẫn)."""
+        d = s["dish"]
+        s.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
+        c = next(x for x in self.customers if x["id"] == d["order_id"])
+        recipe = self._recipe(c["dish_id"])
+        if recipe_fits(recipe, self.available_stock()):
+            c.update(order_status="reserved", reserved=recipe)
+        else:
+            c.update(order_status="unfulfillable", reserved={})
+        events.append(("dish_burnt", {"stove_id": s["id"], "order_id": d["order_id"], "dish_id": d["dish_id"],
+                                      "order_status": c["order_status"]}))
 
     def _tick_eating(self):
         for c in self.customers:
