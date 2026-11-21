@@ -90,16 +90,30 @@ class GatherMonstersTests(unittest.TestCase):
             self.assertEqual(snaps[1]["monsters"][0]["state"], "chase")
             self.assertLess(snaps[1]["monsters"][0]["pos"][1], 24.0)
 
-            # Ở mặt nước dù gần theo x cũng không bị rượt
-            sc_surf = write_json(w.path("sc2.json"), {"gather": {
-                "player": {"pos": [60, 0]},
+            # Ở độ sâu d < 10 (d = 9.5) dù cách M1 <= 16m vẫn không bị rượt
+            sc_shallow = write_json(w.path("sc3.json"), {"gather": {
+                "player": {"pos": [60, 9.5]},
                 "random_fish": False,
             }})
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "5",
-                                     "--scenario", sc_surf, "--snapshot-every", "1", "--out", w.path("o2.jsonl"))
+                                     "--scenario", sc_shallow, "--snapshot-every", "1", "--out", w.path("o3.jsonl"))
             self.assertEqual(code, 0, err)
-            snaps2 = snapshots(read_jsonl(w.path("o2.jsonl")))
-            self.assertEqual(snaps2[1]["monsters"][0]["state"], "patrol")
+            snaps3 = snapshots(read_jsonl(w.path("o3.jsonl")))
+            self.assertEqual(snaps3[1]["monsters"][0]["state"], "patrol")
+
+    def test_coincident_center_recoils_plus_x(self):
+        with Workdir() as w:
+            # Người chơi trùng tâm M1 [60, 24] -> recoil theo hướng +x
+            sc = write_json(w.path("sc.json"), {"gather": {
+                "player": {"pos": [60, 24], "hp": 3},
+                "random_fish": False,
+            }})
+            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "5",
+                                     "--scenario", sc, "--snapshot-every", "1", "--out", w.path("o.jsonl"))
+            self.assertEqual(code, 0, err)
+            snaps = snapshots(read_jsonl(w.path("o.jsonl")))
+            self.assertEqual(snaps[1]["monsters"][0]["state"], "recoil")
+            self.assertGreater(snaps[2]["monsters"][0]["pos"][0], snaps[1]["monsters"][0]["pos"][0])
 
 
 if __name__ == "__main__":

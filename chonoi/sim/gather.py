@@ -368,8 +368,9 @@ class GatherSim:
             return
         species = m_cfg["species"]
         bx = self.t["bounds"]["x"]
-        underwater = not at_surface
 
+        # 1. Di chuyển từng Cá Sấu (recoil hoặc patrol/chase)
+        hit_candidates = []
         for m in sort_by_id(self.monsters):
             sp = species[m["kind"]]
             depths = sp["depths"]
@@ -384,12 +385,13 @@ class GatherSim:
                     m["state"] = "patrol"
                 continue
 
+            in_zone = self.pos[1] >= depths[0]
             dist = math.dist(m["pos"], self.pos)
             if m["state"] == "patrol":
-                if underwater and dist <= sp["detect_radius"]:
+                if in_zone and dist <= sp["detect_radius"]:
                     m["state"] = "chase"
             elif m["state"] == "chase":
-                if not underwater or dist > sp["exit_radius"]:
+                if not in_zone or dist > sp["exit_radius"]:
                     m["state"] = "patrol"
 
             if m["state"] == "chase":
@@ -399,25 +401,32 @@ class GatherSim:
                 if self._step_monster_toward(m, wp, sp["patrol_speed"], depths):
                     m["wp_idx"] = (m["wp_idx"] + 1) % len(m["waypoints"])
 
-            if underwater and self.invuln_ticks == 0 and math.dist(m["pos"], self.pos) <= sp["hit_radius"]:
-                self.hp = max(0, self.hp - 1)
-                self.invuln_ticks = m_cfg["invuln_ticks"]
-                drop_n = math.floor(len(self.hold) * m_cfg["loss_ratio"])
-                lost = [self.hold.pop() for _ in range(drop_n)]
-                events.append(("monster_hit", {
-                    "monster_id": m["id"], "kind": m["kind"], "hp": self.hp, "lost": lost,
-                }))
-                dx, dy = m["pos"][0] - self.pos[0], m["pos"][1] - self.pos[1]
-                norm = math.hypot(dx, dy)
-                m["recoil_dir"] = [dx / norm, dy / norm] if norm > 1e-9 else [-1.0, 0.0]
-                m["state"] = "recoil"
-                m["recoil_ticks"] = sp["recoil_ticks"]
-                if self.hp == 0:
-                    faint_lost = list(reversed(self.hold))
-                    self.hold.clear()
-                    events.append(("faint", {"cause": "monster", "lost": faint_lost, "hp": 0}))
-                    self._finish("fainted", events)
-                    return
+            if in_zone and self.invuln_ticks == 0:
+                d_after = math.dist(m["pos"], self.pos)
+                if d_after <= sp["hit_radius"]:
+                    hit_candidates.append((d_after, id_key(m["id"]), m, sp))
+
+        # 2. Tối đa một hit mỗi bước: chọn con gần nhất, hòa theo id
+        if not hit_candidates:
+            return
+        _, _, m, sp = min(hit_candidates, key=lambda item: (item[0], item[1]))
+        self.hp = max(0, self.hp - 1)
+        self.invuln_ticks = m_cfg["invuln_ticks"]
+        drop_n = math.floor(len(self.hold) * m_cfg["loss_ratio"])
+        lost = [self.hold.pop() for _ in range(drop_n)]
+        events.append(("monster_hit", {
+            "monster_id": m["id"], "kind": m["kind"], "hp": self.hp, "lost": lost,
+        }))
+        dx, dy = m["pos"][0] - self.pos[0], m["pos"][1] - self.pos[1]
+        norm = math.hypot(dx, dy)
+        m["recoil_dir"] = [dx / norm, dy / norm] if norm > 1e-9 else [1.0, 0.0]
+        m["state"] = "recoil"
+        m["recoil_ticks"] = sp["recoil_ticks"]
+        if self.hp == 0:
+            faint_lost = list(reversed(self.hold))
+            self.hold.clear()
+            events.append(("faint", {"cause": "monster", "lost": faint_lost, "hp": 0}))
+            self._finish("fainted", events)
 
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
