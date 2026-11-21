@@ -64,15 +64,16 @@ def main(argv=None) -> int:
         if len(set(paths)) != len(paths):
             raise BadInput("các đường dẫn đầu vào/đầu ra phải khác nhau")
         contract = load_contract()
+        cver = contract.get("contract_version", "1.1")
         tuning = contract["tuning"]
-        scenario = load_scenario(a.scenario, a.mode, tuning)
+        scenario = load_scenario(a.scenario, a.mode, tuning, contract_version=cver)
         frames = load_frames(a.inputs)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        inventory = read_inventory(a.inventory, contract_version=cver) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
         if a.mode == "quan":
-            eff_stock = inventory if inventory is not None else scenario.get("stock", {})
-            validate_quan_stock(scenario, eff_stock, tuning)
+            eff_stock = inventory if inventory is not None else scenario.get("stock", [] if cver >= "1.2" else {})
+            validate_quan_stock(scenario, eff_stock, tuning, contract_version=cver)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

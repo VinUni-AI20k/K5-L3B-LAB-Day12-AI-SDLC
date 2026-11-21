@@ -99,3 +99,22 @@ Mỗi dòng event: `{"type":"event","tick":<k+1>,"phase":"gather"|"quan","name":
 - **Events mới v1.1**: `monster_hit`, `fish_spawned`, `faint` (`cause: "monster"`), `day_start`, `day_plan`, `phase_start`, `paused`, `resumed`, `bought`, `buy_failed`, `shop_end`.
 - **Snapshot mới v1.1**: thêm `state: "paused"`, `monsters[]` trong `gather`; chế độ `day` thêm `day`, `day_plan`, `upgrades`, `active_upgrades` và `days_completed` trong dòng `end`.
 
+---
+
+## 7. Nâng cấp Contract v1.2 (Phase 3 — Độ tươi & Kho cá thể, `Ticket03.md`)
+> **BREAKING CHANGE**: Thay kho đếm `{"items":{kind: qty}}` bằng **kho cá thể** `{"items":[{"id":"I1","kind":"ca_linh","fresh":100}]}`. Khi bật `contract_version: "1.2"`, file kho đếm trả mã thoát **`2`**.
+
+- **Manifest (`tuning.freshness`)**: `{"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30}`.
+- **Helper chuẩn dùng chung (`chonoi/freshness.py`)**: `FRESH_SCALE = 240` (`-2` đơn vị/tick ở `gather`, `-1` đơn vị/tick ở `quan`), so ngưỡng `< 30` trước làm tròn, `calc_fresh_base_price` tính `floor(list_price * avg_fresh / 100)` bằng số nguyên.
+- **ID cá thể**: Cấp `I1, I2, …` tăng liên tục xuyên pha và Ngày qua `IdAllocator` (`ids.new("I")`); LIFO khi rơi hàng vẫn theo thứ tự vào giỏ.
+- **Schema `snapshot` & `scenario` v1.2**:
+  - `gather.hold`, `quan.stock`, `shop.stock`, `gather_end.data.inventory.items`: mảng cá thể `[{id, kind, fresh}]` (`hold` theo thứ tự vào giỏ, kho xuất theo `id`).
+  - `customers[].reserved`: mảng `id` cá thể chưa ươn (`fresh >= 30`), không dùng chung giữa các đơn, khớp công thức món.
+  - `cook_started.data.items`: mảng cá thể sắp theo `(kind, id_key(id))`.
+  - `monster_hit.data.lost` / `faint.data.lost`: mảng cá thể theo thứ tự bỏ LIFO.
+- **Event mới v1.2**: `spoiled` → `{"item_id": str, "kind": str, "location": "hold"|"stock"}` (phát đúng 1 lần theo `id` khi đi từ `≥ 30` xuống `< 30`).
+- **Giữ chỗ & Giá**:
+  - Giữ các cá thể khả dụng **tươi nhất**, hòa theo `id`. Khi cá thể đang giữ vừa ươn → nhả toàn bộ phần giữ của đơn và thử giữ lại 1 lần theo `(order_tick, id_key(table_id))`; thiếu → `unfulfillable`.
+  - Khi bắt đầu nấu: tiêu đúng các `id` đang giữ, chốt `base_price = floor(giá niêm yết × avg_fresh / 100)`; boa `floor(base_price × 0.2)` áp trên giá đã chốt.
+
+
