@@ -1,0 +1,7 @@
+Gather 1280x720 for 15s: 60.1 FPS
+Quán 1280x720 for 15s: 60.1 FPS
+1-day fixture PASS: menu, intro, pause clock, blur, 2 stoves, 4 customers, buy outcomes, summary
+5-day fixture PASS: upgrade effective next day, M2, summary, menu return, 390px
+Faint fixture PASS: empty inventory displayed and passed to Quán
+Fixture Shop timeout PASS: server snapshot transitions at deadline
+Standalone Phase 1 browser regression PASS; no uncaught JavaScript errors or HTTP failures.

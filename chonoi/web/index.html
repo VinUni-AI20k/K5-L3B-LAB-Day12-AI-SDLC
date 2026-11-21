@@ -128,6 +128,34 @@
   .ticket b, .stove b { color: var(--ink); }
   .ticket .meter-line { display: inline-flex; margin-left: 6px; }
   #hand { color: #784320; }
+  .flow {
+    color: var(--ink); background: var(--panel); border: 4px solid var(--wood);
+    border-radius: 5px; box-shadow: 0 4px #221b16;
+    padding: clamp(16px, 4vw, 44px); max-width: 760px; margin-inline: auto;
+  }
+  .flow h2 { font: bold clamp(26px, 5vw, 42px)/1.1 Cambria, serif; margin: 4px 0 12px; }
+  .flow h3 { font-size: 17px; margin: 0 0 6px; }
+  .flow section { margin-block: 14px; }
+  .flow ul { padding-left: 22px; margin: 4px 0; }
+  .flow .subtle { color: var(--muted); }
+  .flow .actions, .pause-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+  .flow .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr)); gap: 8px; }
+  .fact, .upgrade { border: 1px solid var(--edge); background: #ffefc8; padding: 9px 11px; }
+  .fact b, .upgrade b { display: block; }
+  .upgrade { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+  .shop-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(238px, 100%), 1fr)); gap: 9px; margin-block: 14px; }
+  @media (min-width: 741px) {
+    [data-day][data-mode="gather"] canvas { height: clamp(300px, calc(100svh - 310px), 620px); }
+    [data-day][data-mode="quan"] canvas { height: clamp(282px, calc(100svh - 408px), 585px); }
+  }
+  .pause-actions { justify-content: center; }
+  #action-status, #overlay-status { color: var(--warning); }
+  #goal-line { margin-top: 4px; color: var(--muted); font-size: 14px; }
+  .hit-feedback { box-shadow: inset 0 0 0 4px #b93c31; position: absolute; inset: 0; pointer-events: none; }
+  .hit-feedback[hidden] { display: none; }
+  @media (min-width: 1120px) {
+    [data-day][data-mode="quan"] #tickets { flex: 2 1 435px; }
+  }
   @media (741px <= width <= 1100px) {
     [data-mode="quan"] canvas { height: clamp(310px, calc(100svh - 364px), 585px); }
   }
@@ -158,7 +186,11 @@
       <h1>Quán Ăn Chợ Nổi</h1>
     </div>
     <button id="restart" type="button">Chơi lại</button>
+    <button id="pause" type="button" hidden>Tạm dừng</button>
   </header>
+  <section id="flow" class="flow" aria-labelledby="flow-title" hidden>
+    <div id="flow-content"></div><p role="status" id="action-status"></p>
+  </section>
   <div class="game" id="game">
     <header class="hud">
       <div class="season">
@@ -169,10 +201,16 @@
     </header>
     <div class="scene">
       <canvas id="world" aria-label="Cảnh chơi của Út Sen">Cảnh chơi cần trình duyệt hỗ trợ Canvas.</canvas>
+      <span class="hit-feedback" id="hit-feedback" aria-hidden="true" hidden></span>
       <div class="overlay" id="overlay">
         <div class="result">
           <h2 id="result-title" role="status">Đang tải…</h2>
           <p id="result-text">Đang lấy trạng thái buổi chơi.</p>
+          <div class="pause-actions" id="pause-actions" hidden>
+            <button type="button" data-action="resume">Tiếp tục</button>
+            <button type="button" data-action="menu">Về menu</button>
+          </div>
+          <p id="overlay-status" role="status"></p>
           <button id="result-restart" type="button" hidden>Chơi lại</button>
         </div>
       </div>
@@ -190,10 +228,12 @@
           <span><kbd>WASD</kbd><kbd>↑↓←→</kbd> Di chuyển</span>
           <span><kbd>E</kbd> <span id="interact-key">Tương tác</span></span>
           <span id="catch-key" hidden><kbd>Space</kbd> Bắt cá</span>
-          <span><kbd>R</kbd> Chơi lại</span>
+          <span id="restart-key"><kbd>R</kbd> Chơi lại</span>
+          <span id="pause-key" hidden><kbd>P</kbd><kbd>Esc</kbd> Tạm dừng</span>
         </div>
       </div>
       <p id="hold-summary" hidden></p>
+      <p id="goal-line" hidden></p>
       <div class="orders" id="orders" hidden>
         <div id="tickets"></div><div id="kitchen"></div><p id="hand"></p>
       </div>
@@ -207,26 +247,32 @@ const $ = id => document.getElementById(id);
 const canvas = $("world");
 const screen = canvas.getContext("2d", { alpha: false });
 const art = document.createElement("canvas");
-const ctx = art.getContext("2d", { alpha: false });
+let ctx = art.getContext("2d", { alpha: false });
+const terrain = document.createElement("canvas");
+let terrainKey = "", paintPending = true;
+const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 const stamps = [];
 const labels = [];
 const itemNames = {
-  ca_loc: "cá lóc", ca_linh: "cá linh", bong_sung: "bông súng", bong_dien_dien: "bông điên điển"
+  ca_loc: "cá lóc", ca_linh: "cá linh", bong_sung: "bông súng", bong_dien_dien: "bông điên điển", ca_keo: "cá kèo", keo_neo: "kèo nèo"
 };
 const itemColors = {
-  ca_loc: "#a9be86", ca_linh: "#d8dfce", bong_sung: "#eda0aa", bong_dien_dien: "#f4cf62"
+  ca_loc: "#a9be86", ca_linh: "#d8dfce", bong_sung: "#eda0aa", bong_dien_dien: "#f4cf62", ca_keo: "#b6a580", keo_neo: "#9ac48e"
 };
 const dishes = {
   ca_loc_nuong_trui: "Cá lóc nướng trui",
   goi_bong_sung: "Gỏi bông súng",
-  lau_ca_linh_dien_dien: "Lẩu cá linh bông điên điển"
+  lau_ca_linh_dien_dien: "Lẩu cá linh bông điên điển",
+  canh_chua_ca_loc_bong_dien_dien: "Canh chua cá lóc bông điên điển",
+  ca_keo_nuong_muoi_ot: "Cá kèo nướng muối ớt",
+  lau_mam_mien_tay: "Lẩu mắm miền Tây"
 };
 const reasons = { docked: "Đã cập bến", time: "Hết giờ", fainted: "Út Sen bị ngất" };
 const known = (map, key) => Object.hasOwn(map, key) ? map[key] : undefined;
 const itemName = key => known(itemNames, key) ?? key;
 const dishName = value => {
   const id = typeof value === "string" ? value : value?.dish_id;
-  return known(dishes, id) ?? (typeof id === "string" ? id : "Chưa rõ món");
+  return (record(value) ? value.label : null) ?? known(dishes, id) ?? (typeof id === "string" ? id : "Chưa rõ món");
 };
 const num = Number.isFinite;
 const position = p => Array.isArray(p) && p.length === 2 && p.every(num);
@@ -237,8 +283,8 @@ const escapeHTML = value => String(value).replace(/[&<>"']/g, c => (
 ));
 const number = value => num(value) ? value.toLocaleString("vi-VN") : "—";
 // LiveGame advances at 60 Hz. meta only contains the current mode's tuning.
-const TICK_HZ = 60;
-const seconds = ticks => num(ticks) ? Math.ceil(Math.max(0, ticks) / TICK_HZ) : null;
+const tickRate = () => num(day?.tick_hz) && day.tick_hz > 0 ? day.tick_hz : 60;
+const seconds = ticks => num(ticks) ? Math.ceil(Math.max(0, ticks) / tickRate()) : null;
 const duration = ticks => {
   const s = seconds(ticks);
   return s === null ? "—" : [Math.floor(s / 60), s % 60].map(v => String(v).padStart(2, "0")).join(":");
@@ -261,7 +307,10 @@ function setHTML(id, value) {
   htmlCache.set(id, value);
 }
 
-let snap = null, problem = "", restartPending = false, epoch = 0;
+let snap = null, day = null, problem = "", restartPending = false, epoch = 0;
+let actionPending = false, actionError = "", exited = false, hitUntil = 0;
+let previousPose = null, poseAt = 0, poseMs = 0;
+const stages = ["menu", "day_intro", "gather", "evening_intro", "quan", "day_result", "shop", "summary"];
 let eventWindow = [], messages = [], messageTimer = 0;
 const held = new Set();
 const movement = {
@@ -269,7 +318,7 @@ const movement = {
   a: "left", arrowleft: "left", d: "right", arrowright: "right"
 };
 let writes = Promise.resolve(), lastInput = "", needsRelease = false, releasePending = false;
-const canPlay = () => snap && !snap.finished && !snap.error && !problem && !restartPending && !needsRelease;
+const canPlay = () => snap && !snap.finished && !snap.error && !problem && !restartPending && !actionPending && !needsRelease && !day?.paused;
 const neutral = { move: [0, 0], interact: false, catch: false };
 
 async function request(path, body) {
@@ -326,7 +375,10 @@ addEventListener("keydown", event => {
   if (event.defaultPrevented || event.ctrlKey || event.altKey || event.metaKey) return;
   const key = event.key.toLowerCase();
   if (key === " " && event.target.closest?.("button")) return;
-  if (key === "r") {
+  if (day && (key === "escape" || key === "p") && (day.can_pause || day.paused)) {
+    event.preventDefault();
+    if (!event.repeat) dayAction(day.paused ? "resume" : "pause");
+  } else if (key === "r" && !day) {
     if (!event.repeat) restart();
   } else if (isGameKey(key) && canPlay()) {
     event.preventDefault();
@@ -343,12 +395,50 @@ addEventListener("blur", release);
 document.addEventListener("visibilitychange", () => { if (document.hidden) release(); });
 document.addEventListener("focusin", event => { if (event.target.closest("button")) release(); });
 for (const id of ["restart", "result-restart"]) $(id).addEventListener("click", restart);
+$("pause").addEventListener("click", () => dayAction("pause"));
+for (const id of ["flow", "pause-actions"]) $(id).addEventListener("click", event => {
+  const button = event.target.closest("button[data-action]");
+  if (button) dayAction(button.dataset.action, button.dataset.upgrade);
+});
+async function dayAction(action, upgrade) {
+  if (!day || actionPending) return;
+  if (action === "exit" || action === "return") {
+    exited = action === "exit";
+    render();
+    return;
+  }
+  if (problem || day.error) return;
+  const running = snap && !day.paused && !snap.finished;
+  actionPending = true;
+  actionError = "";
+  epoch += 1;
+  held.clear();
+  lastInput = "";
+  render();
+  await writes;
+  try {
+    if (running) {
+      needsRelease = true;
+      await request("/input", JSON.stringify(neutral));
+      needsRelease = false;
+    }
+    const result = await request("/action", JSON.stringify({ action, upgrade_id: upgrade }));
+    if (result.ok === false) throw new Error("Lệnh chưa được chấp nhận.");
+    acceptState(await request("/state"));
+  } catch (error) {
+    actionError = "Không thực hiện được thao tác. Vui lòng thử lại.";
+  } finally {
+    actionPending = false;
+    render();
+  }
+}
 
 function resetMessages() {
   clearTimeout(messageTimer);
   messageTimer = 0;
   eventWindow = [];
   messages = [];
+  hitUntil = 0;
   setText("notice", "");
 }
 async function restart() {
@@ -375,13 +465,16 @@ async function restart() {
 
 function eventMessage({ name, data }) {
   const d = data ?? {};
-  const source = list(snap.nodes).concat(list(snap.fish)).find(e => e.id === (d.node_id ?? d.fish_id));
+  const source = list(snap?.nodes).concat(list(snap?.fish)).find(e => e.id === (d.node_id ?? d.fish_id));
   const kind = d.kind ?? source?.kind;
-  const count = d.count ?? d.qty ?? d.amount;
+  const count = d.count ?? d.qty ?? d.amount ?? d.quantity;
   switch (name) {
     case "gather": return kind ? `Đã hái ${itemName(kind)}` : "Đã hái nguyên liệu";
     case "fish_caught": return `Đã bắt ${kind ? itemName(kind) : "cá"}${num(count) ? " ×" + count : ""}`;
     case "hold_full": return "Giỏ không đủ chỗ";
+    case "crocodile_hit":
+      hitUntil = performance.now() + 450;
+      return "Cá sấu tấn công · Kiểm tra Máu và giỏ";
     case "oxygen_empty": return "Hết oxy — nổi lên ngay!";
     case "choke": return num(d.damage) ? `Bị ngạt — mất ${d.damage} Máu` : "Bị ngạt — mất 1 Máu";
     case "dish_ready": return "Món đã xong";
@@ -394,6 +487,7 @@ function eventMessage({ name, data }) {
       patience: "Khách đã hết kiên nhẫn và rời quán",
       timeout: "Khách đã hết kiên nhẫn và rời quán",
       no_dish: "Khách rời quán vì chưa có món phù hợp",
+      closing: "Khách rời quán khi hết buổi",
       time: "Khách rời quán khi hết buổi"
     }, d.reason) ?? "Khách đã rời quán";
     default: return "";
@@ -419,26 +513,47 @@ function consumeEvents(events) {
   if (messages.length && !messageTimer) nextMessage();
 }
 
+function acceptState(state) {
+  if (!["gather", "quan", "day"].includes(state?.mode)) throw new Error("Snapshot không hợp lệ");
+  const nextDay = state.mode === "day" ? state : null;
+  if (nextDay && !stages.includes(nextDay.screen)) throw new Error("Màn chơi không hợp lệ");
+  const playing = !nextDay || ["gather", "quan"].includes(nextDay.screen);
+  const nextSnap = !nextDay ? state : playing && record(nextDay.snapshot) ?
+    { ...nextDay.snapshot, mode: nextDay.screen, events: nextDay.events, error: nextDay.error } : null;
+  const changed = day?.screen !== nextDay?.screen || day?.day !== nextDay?.day ||
+    snap?.mode !== nextSnap?.mode || (num(snap?.tick) && num(nextSnap?.tick) && nextSnap.tick < snap.tick);
+  if (changed) {
+    resetMessages();
+    actionError = "";
+    held.clear();
+    lastInput = "";
+    if (nextSnap) needsRelease = true;
+  }
+  const now = performance.now();
+  if (changed || nextDay?.paused || day?.paused || nextSnap?.error || nextSnap?.finished) previousPose = null;
+  else if (nextDay && num(nextSnap?.tick) && nextSnap.tick !== snap?.tick && snap) {
+    previousPose = snap;
+    poseMs = Math.min(100, Math.max(1, now - poseAt));
+  }
+  if (changed || nextSnap?.tick !== snap?.tick) poseAt = now;
+  snap = nextSnap;
+  day = nextDay;
+  problem = "";
+  if (state.error || snap?.finished || day?.paused) {
+    held.clear();
+    lastInput = "";
+  }
+  consumeEvents(list(state.events));
+  if (snap && needsRelease && !snap.finished && !snap.error && !day?.paused) sendInput(true);
+  render();
+}
+
 async function poll() {
   const generation = epoch;
-  if (!restartPending) {
+  if (!restartPending && !actionPending) {
     try {
       const state = await request("/state");
-      if (generation === epoch && !restartPending) {
-        if (!["gather", "quan"].includes(state?.mode)) throw new Error("Snapshot không hợp lệ");
-        const rewound = num(snap?.tick) && state.tick < snap.tick;
-        if (rewound) resetMessages();
-        if (!snap || rewound) needsRelease = true;
-        snap = state;
-        if (state.error || state.finished) {
-          held.clear();
-          lastInput = "";
-        }
-        problem = "";
-        consumeEvents(list(state.events));
-        if (needsRelease && !state.finished && !state.error) sendInput(true);
-        render();
-      }
+      if (generation === epoch && !restartPending && !actionPending) acceptState(state);
     } catch (error) {
       if (generation === epoch) {
         const releaseNow = canPlay();
@@ -447,7 +562,7 @@ async function poll() {
       }
     }
   }
-  setTimeout(poll, 50);
+  setTimeout(poll, 33);
 }
 
 function near(a, b, radius) {
@@ -458,7 +573,7 @@ function gatherHint(s) {
   const m = s.meta ?? {};
   if (!position(p?.pos)) return "";
   const cooldown = p.catch_cd_ticks > 0 ?
-    `Hồi bắt · ${number(Math.ceil(p.catch_cd_ticks * 10 / TICK_HZ) / 10)}s` : "";
+    `Hồi bắt · ${number(Math.ceil(p.catch_cd_ticks * 10 / tickRate()) / 10)}s` : "";
   const withCooldown = hint => cooldown ? hint + "  |  " + cooldown : hint;
   const free = Array.isArray(s.hold) && num(s.hold_capacity) ? s.hold_capacity - s.hold.length : null;
   const surface = typeof p.at_surface === "boolean" ? p.at_surface :
@@ -492,13 +607,20 @@ function holdSummary(hold) {
   for (const item of hold) counts.set(item, (counts.get(item) ?? 0) + 1);
   return Array.from(counts, ([item, count]) => `${capitalize(String(itemName(item)))} ×${count}`).join(" · ");
 }
+function itemList(items, empty) {
+  if (!record(items)) return "<p>Đang chờ dữ liệu.</p>";
+  const rows = Object.entries(items).filter(([, n]) => num(n) && n > 0);
+  return rows.length ? "<ul>" + rows.map(([key, n]) => `<li>${escapeHTML(capitalize(itemName(key)))} ×${number(n)}</li>`).join("") + "</ul>" :
+    `<p>${empty}</p>`;
+}
 function renderGather(s) {
   const p = s.player ?? {};
   const low = num(p.oxygen_ticks) && p.oxygen_max_ticks > 0 && p.oxygen_ticks <= p.oxygen_max_ticks / 4;
   const oxy = `<div class="metric${low ? " danger" : ""}"><span${low ? ' class="danger"' : ""}>${low ? "Oxy thấp — nổi lên!" : "Oxy"}</span>
     <div class="meter-line">${meter(p.oxygen_ticks, p.oxygen_max_ticks, "Oxy")}<strong>${countdown(p.oxygen_ticks)}${num(p.oxygen_max_ticks) ? " / " + countdown(p.oxygen_max_ticks) : ""}</strong></div></div>`;
   setHTML("metrics", metric("Còn lại", duration(s.time_left_ticks)) + oxy +
-    metric("Máu", number(p.hp) + (num(p.hp_max) ? " / " + number(p.hp_max) : "")));
+    metric("Máu", number(p.hp) + (num(p.hp_max) ? " / " + number(p.hp_max) : "")) +
+    (day ? metric("Độ sâu", position(p.pos) ? number(Math.round(p.pos[1] * 10) / 10) + " m" : "—") : ""));
   const hold = list(s.hold);
   const capacity = Number.isInteger(s.hold_capacity) && s.hold_capacity >= 0 ? s.hold_capacity : null;
   setText("hold-title", `Giỏ · ${Array.isArray(s.hold) ? hold.length : "—"}/${capacity ?? "—"}`);
@@ -509,7 +631,13 @@ function renderGather(s) {
       return `<span class="slot filled">${icon ? `<img alt="" src="${icon}">` : "?"}</span>`;
     }).join(""));
   setText("hold-summary", holdSummary(s.hold));
-  setText("hint", canPlay() ? gatherHint(s) : "");
+  const targets = record(day?.needed) ? Object.entries(day.needed).filter(([, count]) => num(count) && count > 0) : [];
+  $("goal-line").hidden = !targets.length;
+  setText("goal-line", targets.length ? "Mục tiêu · " + targets.map(([id, n]) =>
+    `${capitalize(itemName(id))} ${hold.filter(k => k === id).length}/${number(n)}`).join(" · ") : "");
+  const chasing = list(s.monsters).some(m => m.state === "chase");
+  setText("hint", canPlay() ? [chasing ? "Cá sấu đang đuổi!" : "", day?.fixture ? "Bản thử · E kết thúc ca" : gatherHint(s)]
+    .filter(Boolean).join(" · ") : "");
 }
 function renderQuan(s) {
   setHTML("metrics", metric("Còn lại", duration(s.time_left_ticks)) +
@@ -517,7 +645,8 @@ function renderQuan(s) {
     metric("Uy tín", number(s.reputation)));
   const customers = list(s.customers);
   const stockKnown = record(s.stock) && Array.isArray(s.customers) && customers.every(c => record(c.reserved));
-  setHTML("stock", "<h2>Kho khả dụng</h2>" + Object.entries(itemNames).map(([id, label]) => {
+  setHTML("stock", "<h2>Kho khả dụng</h2>" + Object.entries(itemNames).filter(([id]) =>
+    day || !["ca_keo", "keo_neo"].includes(id) || Object.hasOwn(s.stock ?? {}, id)).map(([id, label]) => {
     const reserved = customers.map(c => c.reserved?.[id] ?? 0);
     const total = Object.hasOwn(s.stock ?? {}, id) ? s.stock[id] : 0;
     const available = stockKnown && num(total) && reserved.every(num) ?
@@ -525,9 +654,11 @@ function renderQuan(s) {
     return `<span id="stock-${id}"><i aria-hidden="true" style="--item:${itemColors[id]}"></i>${capitalize(label)} <b>${number(available)}</b></span>`;
   }).join(""));
   setHTML("tickets", "<h2>Đơn hàng</h2>" + (customers.length ? customers.map(c => {
-    const state = known({ waiting: "Đang chờ", assigned: "Đã nhận đơn", eating: "Đang ăn" }, c.state) ?? "Chưa rõ trạng thái";
+    const state = c.state === "eating" ? "Đang ăn" : known({
+      reserved: "Đã giữ nguyên liệu", assigned: "Đã nhận đơn", unfulfillable: "Thiếu nguyên liệu"
+    }, c.order_status) ?? known({ waiting: "Đang chờ", assigned: "Đã nhận đơn" }, c.state) ?? "Chưa rõ trạng thái";
     const waiting = c.state === "waiting" || c.state === "assigned";
-    const patienceMax = num(c.patience_max_ticks) ? c.patience_max_ticks : s.meta?.patience_s * TICK_HZ;
+    const patienceMax = num(c.patience_max_ticks) ? c.patience_max_ticks : s.meta?.patience_s * tickRate();
     const patience = waiting && num(c.patience_ticks_left) ?
       `<span class="meter-line${patienceMax > 0 && c.patience_ticks_left <= patienceMax / 4 ? " danger" : ""}">
         ${meter(c.patience_ticks_left, patienceMax, "Kiên nhẫn")}${countdown(c.patience_ticks_left)}</span>` : "";
@@ -543,18 +674,100 @@ function renderQuan(s) {
     return `<p class="stove"><b>${escapeHTML(stove.id ?? "—")}</b> · ${state}${dish}</p>`;
   }).join("") || '<p class="stove">Đang chờ dữ liệu bếp</p>'));
   setText("hand", s.hand === null ? "Tay trống" : s.hand === undefined ? "Món đang cầm · —" : "Đang cầm · " + dishName(s.hand));
-  setText("hint", "");
+  setText("hint", canPlay() && day?.fixture ? "Bản thử · E kết thúc ca" : "");
+}
+const flowTitles = {
+  menu: "Bắt đầu chuyến chợ", day_intro: "Thực đơn Má Tư", evening_intro: "Chuẩn bị mở quán",
+  day_result: "Kết quả trong ngày", shop: "Ghé hàng nâng cấp", summary: "Kết thúc chuyến chợ"
+};
+let lastFlow = "";
+function flowButton(action, label, disabled = false, upgrade = null, accessibleLabel = "") {
+  return `<button type="button" data-action="${action}"${upgrade === null ? "" : ` data-upgrade="${escapeHTML(upgrade)}"`}
+    ${accessibleLabel ? `aria-label="${escapeHTML(accessibleLabel)}"` : ""}${actionPending || disabled ? " disabled" : ""}>${label}</button>`;
+}
+function resultFacts(result) {
+  if (!record(result)) return "<p>Đang chờ kết quả từ máy chủ.</p>";
+  return '<div class="facts">' + [
+    ["Đã phục vụ", result.served], ["Khách bỏ đi", result.left], ["Doanh thu (nghìn)", result.earned],
+    ["Tiền boa (nghìn)", result.tips], ["Số dư (nghìn)", result.money], ["Uy tín", result.reputation]
+  ].map(([label, value]) => `<div class="fact">${label}<b>${number(value)}</b></div>`).join("") + "</div>";
+}
+function dishesList(items, empty) {
+  if (!Array.isArray(items)) return "<p>Đang chờ dữ liệu.</p>";
+  return items.length ? "<ul>" + items.map(d =>
+    `<li>${escapeHTML(dishName(d))}${num(d?.servings) ? " · " + number(d.servings) + " suất" : ""}</li>`).join("") + "</ul>" : `<p>${empty}</p>`;
+}
+function renderDay() {
+  const stage = exited ? "exited" : day.screen;
+  const status = problem || (day.error ? "Máy chủ báo lỗi." : actionError);
+  let title = known(flowTitles, stage) ?? "Hẹn gặp lại", body = "", buttons = "";
+  if (day.paused) {
+    title = "Đã tạm dừng";
+    body = "<p>Đồng hồ sẽ chạy lại khi bạn tiếp tục.</p>";
+    buttons = flowButton("resume", "Tiếp tục") + flowButton("menu", "Về menu");
+  } else if (stage === "menu") {
+    body = "<p>Thu nguyên liệu buổi sáng, mở quán khi trời tối.</p>";
+    buttons = flowButton("start", "Chơi") + flowButton("exit", "Thoát");
+  } else if (stage === "exited") {
+    body = "<p>Bạn có thể đóng tab này hoặc quay lại menu.</p>";
+    buttons = flowButton("return", "Mở menu");
+  } else if (stage === "day_intro") {
+    body = dishesList(day.menu, "Chưa có món trong kế hoạch.") +
+      '<section><h3>Nguyên liệu cần thu</h3>' + itemList(day.needed, "Chưa có mục tiêu nguyên liệu.") + "</section>";
+    buttons = flowButton("continue", "Ra bến");
+  } else if (stage === "evening_intro") {
+    body = (day.gather_reason === "fainted" ? "<p>Út Sen bị ngất. Giỏ đã rỗng.</p>" : "") +
+      '<section><h3>Kho mang về</h3>' + itemList(day.inventory, "Kho trống.") + "</section>" +
+      '<section><h3>Món có thể nấu</h3>' + dishesList(day.cookable, "Chưa đủ nguyên liệu.") + "</section>";
+    buttons = flowButton("continue", "Mở quán");
+  } else if (stage === "day_result" || stage === "summary") {
+    body = resultFacts(day.result);
+    buttons = stage === "summary" ? flowButton("menu", "Về menu") : flowButton("continue", "Ghé cửa hàng");
+  } else if (stage === "shop") {
+    const shop = day.shop ?? {};
+    body = `<p>Có ${number(shop.money)} nghìn đồng · Còn <span id="shop-clock"></span></p>
+      <section><h3>Cấp đã mua</h3><p>Bình oxy ${number(shop.upgrades?.oxygen)} · Máu ${number(shop.upgrades?.hp)}</p></section>
+      <p class="subtle">Nâng cấp áp dụng từ ngày kế tiếp.</p><div class="shop-options">` +
+      list(shop.options).filter(o => typeof o?.id === "string").map(o =>
+        `<div class="upgrade"><div><b>${escapeHTML(o.label ?? o.id)} · cấp ${number(o.level)}</b>${number(o.price)} nghìn đồng</div>
+          ${flowButton("buy", "Mua", o.enabled === false, o.id, `Mua ${o.label ?? o.id} cấp ${number(o.level)}`)}</div>`).join("") +
+      `</div><p role="status">${escapeHTML(shop.message ?? "")}</p>`;
+    buttons = flowButton("shop_done", "Rời cửa hàng");
+  }
+  setText("action-status", status);
+  setHTML("flow-content", `<p class="subtle">${day.fixture ? "Bản thử giao diện · " : ""}Ngày ${number(day.day)}/${number(day.days)}</p>
+    <h2 id="flow-title" tabindex="-1">${title}</h2>${body}<div class="actions">${buttons}</div>`);
+  if ($("shop-clock")) setText("shop-clock", countdown(day.shop?.time_left_ticks));
+  const view = day.paused ? "pause" : stage;
+  if (lastFlow !== view) $("flow-title")?.focus();
+  lastFlow = view;
 }
 function render() {
   const mode = snap?.mode;
   const gather = mode === "gather";
+  const flow = day && !["gather", "quan"].includes(day.screen);
+  $("flow").hidden = !flow;
+  $("game").hidden = Boolean(flow);
+  $("restart").hidden = Boolean(day);
+  $("pause").hidden = !day?.can_pause || Boolean(day?.paused);
+  $("pause").disabled = actionPending || Boolean(problem) || Boolean(day?.error);
+  $("restart-key").hidden = Boolean(day);
+  $("pause-key").hidden = !day?.can_pause;
+  if (flow) {
+    renderDay();
+    return;
+  }
+  lastFlow = "";
+  $("goal-line").hidden = true;
   $("game").dataset.mode = mode ?? "";
+  $("game").toggleAttribute("data-day", Boolean(day));
   $("basket").hidden = $("hold-summary").hidden = $("catch-key").hidden = !gather;
   $("stock").hidden = $("orders").hidden = mode !== "quan";
   $("restart").disabled = $("result-restart").disabled = restartPending;
   setText("season-mark", gather ? "☀" : mode === "quan" ? "☾" : "·");
   setText("season", gather ? "Buổi sáng" : mode === "quan" ? "Buổi tối" : "Chợ Nổi");
-  setText("activity", gather ? "Lặn và hái" : mode === "quan" ? "Mở quán trên bè" : "Đang kết nối");
+  const activity = gather ? "Lặn và hái" : mode === "quan" ? "Mở quán trên bè" : "Đang kết nối";
+  setText("activity", day ? `Ngày ${number(day.day)}/${number(day.days)} · ${activity}` : activity);
   setText("interact-key", gather ? "Hái / cập bến" : mode === "quan" ? "Bếp / bàn" : "Tương tác");
   if (gather) renderGather(snap);
   else if (mode === "quan") renderQuan(snap);
@@ -566,6 +779,7 @@ function render() {
   let title = "", detail = "", replay = false;
   if (restartPending) title = "Đang mở lại buổi chơi…";
   else if (problem) { title = problem; detail = "Giao diện sẽ thử kết nối lại."; replay = true; }
+  else if (day?.paused) { title = "Đã tạm dừng"; detail = "Chọn tiếp tục hoặc về menu."; }
   else if (!snap) { title = "Đang tải…"; detail = "Đang lấy trạng thái buổi chơi."; }
   else if (snap.error) { title = "Máy chủ báo lỗi"; detail = "Xem terminal chạy game để biết chi tiết."; replay = true; }
   else if (snap.finished) {
@@ -579,9 +793,17 @@ function render() {
   setText("result-title", title);
   setText("result-text", detail);
   $("result-text").hidden = !detail;
-  $("result-restart").hidden = !replay;
+  $("result-restart").hidden = !replay || Boolean(day);
+  const wasPaused = !$("pause-actions").hidden;
+  $("pause-actions").hidden = !day?.paused || Boolean(problem);
+  for (const button of $("pause-actions").querySelectorAll("button")) button.disabled = actionPending;
+  setText("overlay-status", title ? actionError : "");
+  if (!title && actionError) setText("hint", actionError);
   $("overlay").hidden = !title;
-  draw();
+  if (!actionPending && !$("pause-actions").hidden && (!wasPaused || document.activeElement === document.body)) {
+    $("pause-actions").querySelector("button").focus();
+  }
+  paintPending = true;
 }
 
 function ellipse(x, y, rx, ry, color, angle = 0) {
@@ -690,6 +912,35 @@ const tiles = {
     "bbBwwAwwA.",
     "b..bbAAAb.",
     ".....bb..."
+  ]),
+  ca_keo: tile([
+    ".....hhhh............",
+    "..h.hhsyyyysshhhh....",
+    ".hshtysynyysyywwkhh..",
+    "hhssyysysytyyynwskhh.",
+    ".hh.hhtsssssyyshhhh..",
+    ".......hhhhhhhh......"
+  ]),
+  keo_neo: tile([
+    ".......A.......",
+    "......AgA......",
+    ".....ggfgA.....",
+    ".....fffgg.....",
+    "...gg..f...gg..",
+    "..gfgd.f..gffd.",
+    ".gfffdf.fgffdd.",
+    "...ddddfdddd...",
+    "......ddd......"
+  ]),
+  crocodile: tile([
+    "...........d.d.d...............",
+    "..........ddfdffdd.............",
+    "d......dddfgfgfgfddd.ddd.......",
+    "dd...dddfffgfgfgfffddYfddddddd.",
+    ".ddddddfggffffggfffgfffgfffffk.",
+    "..ddddfffffggfgffgffffffwwwfwd.",
+    ".....ddddddddddddddddddddddddd.",
+    "..........ddd..ddd............."
   ]),
   fry: tile([
     "B..AA..",
@@ -919,6 +1170,12 @@ function plant(at, size, node) {
     rect(-10, 0, 18, 4, "#6f7547");
   });
 }
+let visualBlend = 1;
+function visualPos(entity, key) {
+  if (visualBlend === 1) return entity.pos;
+  const earlier = list(previousPose?.[key]).find(old => old.id === entity.id);
+  return position(earlier?.pos) ? earlier.pos.map((v, i) => v + (entity.pos[i] - v) * visualBlend) : entity.pos;
+}
 function paintFish(fish, x, y, size) {
   const heading = num(fish.heading_deg) ? fish.heading_deg : 0;
   const angle = Math.round(heading / 90) * Math.PI / 2;
@@ -937,7 +1194,7 @@ function drawGather(w, h, map, spriteCellHeight) {
   const size = unitSize(w);
   const surface = at([m.bounds.x[0], 0])[1];
   const horizon = Math.min(h - 12, Math.max(1, surface));
-  gatherLandscape(w, h, horizon, top + height);
+  paintTerrain(w, h, map, horizon, () => gatherLandscape(w, h, horizon, top + height));
   if (position(m.dock_pos)) {
     const pt = at(m.dock_pos);
     dock(pt, size);
@@ -951,8 +1208,17 @@ function drawGather(w, h, map, spriteCellHeight) {
   }
   for (const f of list(snap.fish)) {
     if (!position(f.pos)) continue;
-    const [x, y] = at(f.pos);
+    const [x, y] = at(visualPos(f, "fish"));
     paintFish(f, x, y, size);
+  }
+  for (const monster of list(snap.monsters)) {
+    if (!position(monster.pos)) continue;
+    const [x, y] = at(visualPos(monster, "monsters"));
+    const angle = num(monster.heading_deg) ? Math.round(monster.heading_deg / 90) * Math.PI / 2 : 0;
+    stamp(tiles.crocodile, x, y, angle);
+    const state = known({ chase: "Đang đuổi", patrol: "Tuần tra", recoil: "Lùi lại" }, monster.state);
+    const height = (Math.abs(Math.sin(angle)) > .5 ? tiles.crocodile.width : tiles.crocodile.height) * spriteCellHeight;
+    label(state ? "Cá sấu · " + state : "Cá sấu", x, y + height / 2 + 13);
   }
   const p = snap.player;
   if (position(p?.pos)) {
@@ -1095,8 +1361,7 @@ function stovePaint(stove) {
   }
 }
 function drawQuan(w, h, map, spriteCellHeight) {
-  nightRiver(w, h, map);
-  raft(map);
+  paintTerrain(w, h, map, null, () => { nightRiver(w, h, map); raft(map); });
   const size = unitSize(w);
   const { at } = map;
   const customers = list(snap.customers);
@@ -1136,6 +1401,26 @@ function drawQuan(w, h, map, spriteCellHeight) {
     label("Út Sen", x, y - tiles.sen.height * spriteCellHeight / 2 - 13);
   }
 }
+function paintTerrain(w, h, map, horizon, paint) {
+  const key = JSON.stringify([snap.mode, w, h, art.width, art.height, map.left, map.top, map.width, map.height, horizon]);
+  if (key !== terrainKey) {
+    if (terrain.width !== art.width) terrain.width = art.width;
+    if (terrain.height !== art.height) terrain.height = art.height;
+    const scene = ctx;
+    ctx = terrain.getContext("2d", { alpha: false });
+    ctx.setTransform(scene.getTransform());
+    try {
+      paint();
+      terrainKey = key;
+    } finally {
+      ctx = scene;
+    }
+  }
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(terrain, 0, 0);
+  ctx.restore();
+}
 function draw() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
   if (!w || !h) return;
@@ -1167,8 +1452,21 @@ function draw() {
   drawLabels(w, h);
 }
 
-new ResizeObserver(draw).observe(canvas);
-addEventListener("resize", draw);
+function invalidate() { paintPending = true; }
+function frame(now) {
+  const playing = day && snap && !day.paused && !snap.finished && !snap.error && !problem && !document.hidden;
+  if (paintPending || playing) {
+    paintPending = false;
+    visualBlend = playing && previousPose && !reducedMotion.matches ?
+      Math.max(0, Math.min(1, (now - poseAt) / poseMs)) : 1;
+    $("hit-feedback").hidden = !playing || reducedMotion.matches || now >= hitUntil;
+    draw();
+  }
+  requestAnimationFrame(frame);
+}
+new ResizeObserver(invalidate).observe(canvas);
+addEventListener("resize", invalidate);
+requestAnimationFrame(frame);
 poll();
 </script>
 </body>
