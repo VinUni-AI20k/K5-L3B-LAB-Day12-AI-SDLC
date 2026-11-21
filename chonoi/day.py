@@ -25,7 +25,8 @@ Gợi ý dựng (xem docs/contracts/README.md, mục v1.1):
 
 import copy
 
-from .ids import IdAllocator
+from . import fresh
+from .ids import IdAllocator, sort_by_id
 from .rng import Streams
 from .runner import PauseGate, score_of
 from .scenario import effective_day_plan
@@ -71,12 +72,27 @@ class DaySession:
         """day_start -> day_plan -> phase_start(gather), cùng tick. Cấp vừa mua có hiệu lực từ Ngày này."""
         self.day += 1
         self.active_upgrades = dict(self.upgrades)
-        self.sim = GatherSim(self.tuning, copy.deepcopy(self._gather_tpl), self.streams, self.ids,
+        self.sim = GatherSim(self.tuning, self._gather_for_day(), self.streams, self.ids,
                              day=self.day, active_upgrades=self.active_upgrades)
         p = self._plan()
         return [(self.day, "day_start", {}),
                 (self.day, "day_plan", {"dishes": p["dishes"], "ingredients": p["ingredients"]}),
                 (self.day, "phase_start", {})]
+
+    def _gather_for_day(self):
+        """Mẫu gather của Ngày này. v1.2: Ngày đầu giữ nguyên id trong mẫu `gather.hold`; các Ngày kế cấp id mới
+        theo thứ tự mảng (một IdAllocator cho cả lượt), kind và fresh ban đầu như mẫu (Ticket-03 mục 1)."""
+        tpl = copy.deepcopy(self._gather_tpl)
+        if fresh.enabled(self.tuning) and self.day > 1 and tpl.get("hold"):
+            tpl["hold"] = [{"id": self.ids.new("I"), "kind": h["kind"], "fresh": h["fresh"]} for h in tpl["hold"]]
+        return tpl
+
+    def _handover(self, sim):
+        """Kho bàn giao trong bộ nhớ, cùng tick chuyển pha. v1.2: chính các cá thể trong giỏ (giữ nguyên u, không
+        hao thêm, không qua số thực); v1.1: dict đếm."""
+        if fresh.enabled(self.tuning):
+            return [dict(it) for it in sort_by_id(sim.hold)]
+        return sim.inventory_items()
 
     def _carry(self):
         return {"money": self.money, "earned": self.earned, "reputation": self.reputation}
@@ -90,7 +106,7 @@ class DaySession:
         if sim.phase == "gather":
             # kể cả fainted: kho bàn giao rỗng; QuanSim kiểm mâu thuẫn kho/khách lúc mở quán (BadInput -> mã 2)
             self.sim = QuanSim(self.tuning, copy.deepcopy(self._quan_tpl), self.streams, self.ids,
-                               inventory=sim.inventory_items(), plan_dishes=list(self._plan()["dishes"]),
+                               inventory=self._handover(sim), plan_dishes=list(self._plan()["dishes"]),
                                carry=self._carry())
             return [(self.day, "phase_start", {})]
         if sim.phase == "quan":
