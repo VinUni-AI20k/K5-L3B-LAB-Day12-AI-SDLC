@@ -101,6 +101,12 @@ class DayIntegration(unittest.TestCase):
         for k in ('player','fish','monsters','time_left_ticks','phase_tick','sim_tick'):
             self.assertEqual(before[k],after[k],k)
 
+    def test_quan_template_outside_day_plan_is_rejected_at_handoff(self):
+        self.sc['quan']['customers'] = [{'id':'C1','table_id':'T1',
+            'dish_id':'lau_mam','order_status':'unfulfillable','reserved':{}}]
+        s=self.session()
+        with self.assertRaises(BadInput):s.step(LiveInputs().advance())
+
     def test_fainted_still_opens_quan_with_empty_inventory(self):
         self.sc['gather']={'player':{'pos':[60,20],'hp':1},'hold':['ca_loc'], 'random_fish':False,
           'monsters':[{'id':'M1','kind':'ca_sau','pos':[60,20.5],'waypoints':[[60,20.5],[64,20.5]]}]}

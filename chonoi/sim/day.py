@@ -107,6 +107,8 @@ class DaySim:
             self.active = QuanSim(self.tuning, deepcopy(self.scenario.get("quan", {})),
                                   self.streams, self.ids, inventory=self.stock,
                                   plan_dishes=self.day_plan["dishes"], carry=self._carry())
+            if any(c["dish_id"] not in self.day_plan["dishes"] for c in self.active.customers):
+                raise BadInput("day.quan: món fixture phải thuộc kế hoạch Ngày")
             self._orders = {c["id"]: c["dish_id"] for c in self.active.customers}
             self.phase = "quan"
         else:

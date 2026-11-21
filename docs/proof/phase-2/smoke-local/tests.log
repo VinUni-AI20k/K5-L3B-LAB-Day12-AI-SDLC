@@ -9,6 +9,7 @@ test_live_menu_intros_shop_and_summary (test_day_p2.DayIntegration.test_live_men
 test_pause_stops_shop_buy_and_all_gameplay_resume_same_step (test_day_p2.DayIntegration.test_pause_stops_shop_buy_and_all_gameplay_resume_same_step) ... ok
 test_phase_event_context_inventory_and_reset (test_day_p2.DayIntegration.test_phase_event_context_inventory_and_reset) ... ok
 test_phase_snapshot_and_one_shot_buy_in_headless (test_day_p2.DayIntegration.test_phase_snapshot_and_one_shot_buy_in_headless) ... ok
+test_quan_template_outside_day_plan_is_rejected_at_handoff (test_day_p2.DayIntegration.test_quan_template_outside_day_plan_is_rejected_at_handoff) ... ok
 test_scenario_validation_and_plan_override (test_day_p2.DayIntegration.test_scenario_validation_and_plan_override) ... ok
 test_shop_auto_close_after_600_active_steps (test_day_p2.DayIntegration.test_shop_auto_close_after_600_active_steps) ... ok
 test_shop_buy_pending_active_and_failures (test_day_p2.DayIntegration.test_shop_buy_pending_active_and_failures) ... ok
@@ -170,6 +171,6 @@ test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 162 tests in 15.229s
+Ran 163 tests in 18.156s
 
 OK

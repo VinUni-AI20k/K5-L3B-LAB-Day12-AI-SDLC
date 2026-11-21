@@ -27,7 +27,7 @@ Fixture UI rút thời lượng gather/quan còn 1 tick và khai tiền đầu k
 `test_smoke_p1.py` bỏ giả định day bị từ chối: day nay là mode lõi v1.1. Bỏ giả định attack đúng kiểu phải báo mã 2: mục 4.2 yêu cầu bỏ qua khi mở rộng chưa bật. Giữ kiểm mode `river`, nút lạ `jump` và toàn bộ test luật cũ khác. Unit loader mặc định v1.0 vẫn giữ hành vi cũ; CLI v1.1 truyền buttons rõ ràng.
 
 ## Kết quả lần kiểm cuối
-162 test: OK. Smoke tích hợp kho, tất định 1 Ngày, nâng cấp 2 Ngày: OK. Chi tiết thời gian và SHA-256 ở `smoke-local/summary.json`.
+163 test: OK. Smoke tích hợp kho, tất định 1 Ngày, nâng cấp 2 Ngày: OK. Chi tiết thời gian và SHA-256 ở `smoke-local/summary.json`.
 
 ## Lệnh lặp lại
 ```bash
