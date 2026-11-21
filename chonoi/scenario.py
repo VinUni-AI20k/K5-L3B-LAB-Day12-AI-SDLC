@@ -11,8 +11,10 @@ from .errors import BadInput
 from .inventory import KINDS_P1, validate_items
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
-GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
-                      "invuln_ticks", "catch_cd_ticks"}
+GATHER_PLAYER_KEYS = {
+    "pos", "vel", "heading_deg", "hp", "oxygen_ticks",
+    "zero_oxy_ticks", "catch_cd_ticks",
+}
 NODE_KINDS = ("bong_dien_dien", "bong_sung")
 FISH_KINDS = ("ca_linh", "ca_loc")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
@@ -107,7 +109,7 @@ def _validate_gather(b, tuning):
         raise BadInput("player.vel phải là [x, d]")
     if "heading_deg" in p and not _num(p["heading_deg"]):
         raise BadInput("player.heading_deg phải là số")
-    for key in ("invuln_ticks", "catch_cd_ticks", "zero_oxy_ticks", "oxygen_ticks", "hp"):
+    for key in ("catch_cd_ticks", "zero_oxy_ticks", "oxygen_ticks", "hp"):
         if key in p:
             _nonneg_int(f"player.{key}", p[key])
     omax = int(round(g["oxygen_max_s"] * 60))
@@ -118,8 +120,10 @@ def _validate_gather(b, tuning):
     if "zero_oxy_ticks" in p:
         pos = p.get("pos", g["start_pos"])
         oxy = p.get("oxygen_ticks", omax)
-        if p["zero_oxy_ticks"] > 59:
-            raise BadInput("player.zero_oxy_ticks phải trong [0, 59]")
+        # Fixture bắt đầu trước mốc mất Máu kế tiếp, theo cùng interval với sim.
+        limit = g["choke_interval_ticks"] - 1
+        if p["zero_oxy_ticks"] > limit:
+            raise BadInput(f"player.zero_oxy_ticks phải trong [0, {limit}]")
         if p["zero_oxy_ticks"] > 0 and not (oxy == 0 and pos[1] > g["surface_depth"]):
             raise BadInput("player.zero_oxy_ticks > 0 chỉ khi oxy = 0 và đang dưới nước")
     for n in b.get("nodes", []):
