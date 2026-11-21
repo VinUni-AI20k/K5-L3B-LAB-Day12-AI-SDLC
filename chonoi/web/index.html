@@ -331,6 +331,14 @@ function panel(x, y, w, h) {
   ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(x, y, w, h);
   ctx.strokeStyle = "rgba(255,255,255,.2)"; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
 }
+function angryBadge(x, y, withLabel) {
+  // Phase 4 TV3: cảnh báo "khách sắp giận" (kiên nhẫn < 25%) — nền đỏ, viền + chữ trắng
+  // (tương phản cao, chữ ≥ 18 px) để đọc được cả khi ca quán đang bận.
+  ctx.fillStyle = "#ff1744"; ctx.fillRect(x, y, 26, 24);
+  ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2; ctx.strokeRect(x + 1, y + 1, 24, 22); ctx.lineWidth = 1;
+  text("!", x + 13, y + 19, { size: 18, bold: true, align: "center", color: "#ffffff" });
+  if (withLabel) text("khách sắp giận", x + 32, y + 19, { size: 18, bold: true, color: "#ff1744" });
+}
 function btn(id, label, x, y, w, h, opt) {
   const o = opt || {};
   ctx.fillStyle = o.fill || "#2a4a5c";
@@ -828,6 +836,7 @@ function drawQuan(w, h) {
       if (pl !== undefined && pm > 0 && c.state !== "eating") {
         const low = pl / pm < 0.25;
         bar(cx - 0.8 * s, cy + 0.65 * s, 1.6 * s, 8, pl / pm, low ? "#ff1744" : "#e57373");
+        if (low) angryBadge(cx + 0.55 * s, cy - 1.2 * s, true);
       }
     }
   });

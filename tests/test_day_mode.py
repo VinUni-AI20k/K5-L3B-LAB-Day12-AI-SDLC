@@ -15,6 +15,12 @@ from helpers import ROOT, Workdir, events, frames, headless_cmd, read_jsonl, sna
 FIXTURE = os.path.join(ROOT, "tests", "fixtures", "contract-v1.1-day.json")
 REAL = os.path.join(ROOT, "game.contract.json")
 
+# Lịch khách của ca quan trong fixture v1.1: first_customer_tick + k * customer_interval_s*60
+_Q = json.load(open(FIXTURE, encoding="utf-8"))["tuning"]["quan"]
+Q_FIRST = _Q["first_customer_tick"]
+Q_INTERVAL = int(round(_Q["customer_interval_s"] * 60))
+Q_LAST_DUE = Q_FIRST + ((int(round(_Q["duration_s"] * 60)) - Q_FIRST) // Q_INTERVAL) * Q_INTERVAL
+
 
 def run(*args, contract=FIXTURE):
     env = dict(os.environ, CHONOI_CONTRACT=contract)

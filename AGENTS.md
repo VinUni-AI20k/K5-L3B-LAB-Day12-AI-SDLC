@@ -20,6 +20,16 @@
   - `scenario.py`: khối `day {money,earned,reputation,upgrades,day_plan}`, `gather.monsters[]`, `fish[].age_ticks`; cấm `quan.stock`/`quan.reputation` khi chạy day.
   - `live.py`: `--mode day`, `set_input` nhận `pause`/`shop_done`/`buy`, `meta` theo pha + `menu`, `day_plan`, `shop`, `upgrades`; snapshot thêm `paused`.
   - Mới: `chonoi/sim/day.py` (DaySim), `chonoi/sim/shop.py` (ShopSim). Gọi GatherSim/QuanSim qua giao diện hiện có; ngữ cảnh Ngày tạm truyền bằng bản sao tuning (cấp oxy/Máu, lọc menu theo kế hoạch, spawns theo `from_day`) tới khi có T246/T230.
+- **File khung đã sửa cho v1.1 (TV3, TICKET-02 Phase 2 — T230)**, lý do: `KINDS_P1` chặn `ca_keo`/`keo_neo` có trong menu v1.1:
+  - `inventory.py`: thêm `menu_kinds(menu)` — dải nguyên liệu suy ra từ công thức menu (v1.0 = 4 loại, v1.1 = 6 loại), thay hard-code.
+  - `scenario.py`: `gather.hold`, `quan.stock`, `customers[].reserved` kiểm theo `menu_kinds(tuning["menu"])` (v1.0 giữ nguyên hành vi).
+  - `headless.py`, `live.py`: `--inventory` đọc kho theo `menu_kinds` (1 dòng mỗi file; v1.0 không đổi).
+  - `sim/quan.py` (luật của TV3): `QuanSim(..., plan_dishes=None)` — DaySim truyền kế hoạch Ngày qua `_kwargs_for`; `None` = như Phase 1.
+- **sim/scenario cho v1.2 (TV3, TICKET-03 Phase 3)**: `sim/quan.py` kho cá thể + hao tươi (nội bộ
+  `fresh_units` 240/điểm, quán −1 đơn vị/tick, spoiled theo id, giữ chỗ/thử giữ lại theo id cá thể);
+  `scenario.py`: `_validate_quan` nhận `quan.stock` mảng {id,kind,fresh} và `reserved` mảng id
+  (tồn tại, fresh ≥ spoiled_below, không dùng chung, đủ công thức; thiếu -> tự cấp tươi nhất,
+  mâu thuẫn -> mã 2). Kho đếm v1.0/v1.1 ở mode quan vẫn hợp lệ.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).

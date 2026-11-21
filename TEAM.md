@@ -6,8 +6,8 @@
 |---|---|---|---|---|
 | | | `sim/gather` (lát 1: oxy, ngạt, Máu, giỏ) | Integrator | TV2 |
 | | | `sim/gather` (lát 2: hái, bắt cá, bến, kho) | | TV1 |
-| | | `sim/quan` (khách, giữ chỗ, uy tín) | | TV4 |
-| | | `sim/quan` (bếp, bưng, tiền, boa) | | TV3 |
+| Đỗ Quốc Khánh | dqk2210 | `sim/quan` (khách, giữ chỗ, uy tín) | | TV4 |
+|Đỗ Quốc Khánh | dqk2210 | `sim/quan` (bếp, bưng, tiền, boa) | | TV3 |
 | | | `qa` (test, verification, harness AI) | QA lead | TV6 |
 | thanhhale288 | thanhhale288 | `client/ui` (`chonoi/web/`) | PO · Scrum/Release | TV5 |
 
