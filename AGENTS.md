@@ -26,4 +26,5 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- **pre-push-check** (`.agents/skills/pre-push-check/`): dùng trước mọi lần push, trước khi tag phase-N, và sau khi agent sửa code. Chạy unit test + tất định headless (gather/quan, cùng seed so byte) + exit 2 khi đầu vào sai. Lệnh: `.agents/skills/pre-push-check/check.sh [--save docs/proof/phase-<n>]` (env `SEED`, mặc định 1).
+- (skill thứ 2: TODO)
