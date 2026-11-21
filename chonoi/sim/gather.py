@@ -34,7 +34,7 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids):
+    def __init__(self, tuning, scenario, streams, ids, individual_items=False):
         t = tuning["gather"]
         self.t = t
         self.rng = streams
@@ -54,6 +54,16 @@ class GatherSim:
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         self.tick = int(scenario.get("tick", 0))
+        self.freshness = tuning.get("freshness", {})
+        self.individual_items = (isinstance(self.hold[0], dict) if self.hold
+                                 else individual_items and bool(self.freshness))
+        if self.individual_items:
+            self.hold = [dict(item) for item in self.hold]
+            for item in self.hold:
+                ids.reserve(item["id"])
+        self.current_cfg = t.get("current") if scenario.get("random_current", True) else None
+        self.current_direction = scenario.get("current_direction")
+        self.current = None
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
@@ -145,7 +155,12 @@ class GatherSim:
 
     # --- giao diện cho runner -------------------------------------------------
     def inventory_items(self) -> dict:
-        return hold_to_items(self.hold)
+        return sort_by_id(self.hold) if self.individual_items else hold_to_items(self.hold)
+
+    def _collect(self, kind, quantity):
+        for _ in range(quantity):
+            self.hold.append({"id": self.ids.new("I"), "kind": kind,
+                              "fresh": self.freshness["initial"]} if self.individual_items else kind)
 
     def snapshot(self) -> dict:
         return {
@@ -155,6 +170,7 @@ class GatherSim:
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
             "hold": self.hold, "hold_count": len(self.hold),
+            "current": self.current,
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
@@ -181,11 +197,31 @@ class GatherSim:
                     events.append(("node_regrown", {"node_id": n["id"]}))
         # Phase 2: update fish before player interaction
         self.tick += 1
+        if self.individual_items:
+            for item in sort_by_id(self.hold):
+                before = item["fresh"]
+                item["fresh"] = max(0, round(before - self.freshness["gather_decay_per_s"] / TICK, 12))
+                threshold = self.freshness["spoiled_below"]
+                if item["fresh"] < threshold <= before:
+                    events.append(("spoiled", {"item_id": item["id"], "kind": item["kind"], "location": "hold"}))
+        cfg = self.current_cfg
+        if cfg:
+            offset = self.tick % cfg["interval_ticks"]
+            if offset == cfg["interval_ticks"] - cfg["warning_ticks"]:
+                self.flow_direction = self.current_direction or self.rng.get("current").choice([-1, 1])
+                events.append(("current_warning", {"direction": self.flow_direction}))
+            if self.tick >= cfg["interval_ticks"] and offset < cfg["duration_ticks"]:
+                self.current = {"direction": self.flow_direction, "ticks_left": cfg["duration_ticks"] - offset}
+            else:
+                self.current = None
         self._update_fish(events)
 
         # 2. Movement, oxygen and drowning
         was_surface = self._at_surface()
         self._move(inp)
+        if self.current and self.pos[1] >= cfg["min_depth"]:
+            lo, hi = self.t["bounds"]["x"]
+            self.pos[0] = max(lo, min(hi, self.pos[0] + self.current["direction"] * cfg["speed"] / TICK))
         at_surface = self._at_surface()
 
         if was_surface and not at_surface:
@@ -259,7 +295,7 @@ class GatherSim:
                             "free": free,
                         }))
                     else:
-                        self.hold.extend([node["kind"]] * quantity)
+                        self._collect(node["kind"], quantity)
                         node["regrow_ticks"] = int(
                             round(self.t["regrow_s"] * TICK)
                         )
@@ -299,7 +335,7 @@ class GatherSim:
                         "free": free,
                     }))
                 else:
-                    self.hold.extend([fish["kind"]] * quantity)
+                    self._collect(fish["kind"], quantity)
                     self.fish.remove(fish)
                     self.catch_cd_ticks = int(
                         round(self.t["catch_cooldown_s"] * TICK)
