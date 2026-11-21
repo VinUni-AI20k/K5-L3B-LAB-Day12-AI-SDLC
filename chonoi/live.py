@@ -189,12 +189,13 @@ class _Handler(BaseHTTPRequestHandler):
                 self._send(404, b'{"error":"thieu index.html"}')
         elif path.startswith("/assets/"):
             self._send_asset(path[len("/assets/"):])
-        elif path == "/day.js":  # Shop + màn chuyển pha của mode day (file tĩnh, tên cố định)
+        elif path in ("/day.js", "/scene.js"):  # day.js: Shop + màn chuyển pha; scene.js: cảnh nền (tên cố định)
+            name = path[1:]
             try:
-                with open(os.path.join(WEB_DIR, "day.js"), "rb") as f:
+                with open(os.path.join(WEB_DIR, name), "rb") as f:
                     self._send(200, f.read(), "text/javascript; charset=utf-8")
             except OSError:
-                self._send(404, b'{"error":"thieu day.js"}')
+                self._send(404, json.dumps({"error": "thieu " + name}).encode("utf-8"))
         else:
             self._send(404, b'{"error":"khong co"}')
 

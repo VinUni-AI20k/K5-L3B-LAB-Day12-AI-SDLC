@@ -60,7 +60,9 @@ python3 -m chonoi.live --mode gather --inventory-out kho.json    # chơi buổi 
 **Sáng tạo của nhóm:**
 - **Đồ họa SVG tự tạo (21 hình)** trong `chonoi/web/assets/`: Út Sen (áo bà ba, khăn rằn, kính lặn, giỏ lưới), cá linh / lóc / kèo, Cá Sấu Năm Chèo, bông điên điển / súng, kèo nèo, bến, bếp, bàn, khách đội nón lá, 6 món ăn, 3 biểu tượng cảnh báo. Sinh bằng `python3 tools/gen_assets.py`.
 - **SFX tự tạo (24 hiệu ứng)** bằng Web Audio (`chonoi/web/assets/sfx.js`), kèm **phụ đề** cho mọi hiệu ứng, hiện cả khi tắt tiếng. Phím **M** tắt/bật tiếng, **V** ẩn/hiện phụ đề.
-- Không dùng asset ngoài (xem `CREDITS.md`). Client tự về hình khối cũ nếu asset chưa tải.
+- **Cảnh nền theo PRD-0 mục 3** (`chonoi/web/scene.js`, vẽ bằng code): buổi sáng là mặt cắt sông **phù sa** nhiều lớp (trời hồng bình minh, bờ dừa nước, nhà sàn, tia nắng xiên, bụi phù sa, bong bóng, lục bình trôi, rễ dừa nước, đáy bùn có rong lay); **camera zoom bám theo Út Sen** (sông rộng hơn màn hình theo cả chiều ngang lẫn chiều sâu, có bản đồ nhỏ góc phải dưới và thước độ sâu); buổi tối là **nhà bè nhìn isometric 2.5D** trên sông đêm (sàn gạch bông, khu bếp gạch nung + quầy, hai vách tre có cửa sổ nhìn ra sông, dây đèn vàng, ghế đẩu quanh bàn tròn, bong bóng gọi món, chậu bông giấy, khói bếp); phím di chuyển xoay 45° cho khớp góc nhìn (luật không đổi). Phần tĩnh vẽ một lần vào canvas phụ nên bench vẫn ~60 FPS. Nhãn gỡ lỗi (F1/N1/M1, log sự kiện) ẩn mặc định, phím **I** để hiện.
+- **Giao diện mode `day` "Sạp đêm chợ nổi"** (`chonoi/web/day.js`): Shop, màn chuyển pha, tạm dừng, tổng kết theo phong cách pixel.
+- Không dùng asset ngoài (xem `CREDITS.md`). Client tự về hình khối cũ nếu asset chưa tải (thiếu `scene.js` thì cảnh nền về như cũ).
 - **Tắt ở headless:** asset chỉ nằm ở client; `runner`, `headless`, `sim/` không đọc chúng.
 - **Bằng chứng lõi vẫn đúng:** `tests/test_assets.py` (12 test: SVG hợp lệ và khớp script sinh, đủ asset cho mọi món/loài trong dữ liệu, tên sự kiện SFX khớp sim, route `/assets/` chặn truy cập ra ngoài, headless không nhắc tới asset). Toàn bộ suite 245 test OK; headless cùng seed vẫn giống từng byte.
 
