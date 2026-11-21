@@ -1,3 +1,4 @@
+from pathlib import Path
 """Smoke test Phase 1 (công khai), kiểu HỘP ĐEN: chỉ chạy `headless_cmd` trong game.contract.json và đọc JSONL/file kho.
 Vì vậy chạy được với BẤT KỲ ngôn ngữ nào nhóm chọn, miễn đúng Test Contract. Nhóm viết thêm test cho luật của mình.
 
@@ -42,7 +43,12 @@ class Contract(unittest.TestCase):
             for key in ("oxygen_ticks", "hp", "oxygen_max_ticks", "hp_max", "at_surface"):
                 self.assertIn(key, s["player"])
             self.assertEqual(s["hold_capacity"], tuning_gather()["hold_capacity"])
-            self.assertEqual(len(s["fish"]), 6)
+            self.assertEqual(
+            len(s["fish"]),
+            json.loads(
+                Path("game.contract.json").read_text(encoding="utf-8")
+            )["tuning"]["gather"]["fish_initial"]
+        )
             self.assertTrue(all(n["pos"][1] == 0 for n in s["nodes"]))
 
     def test_con_02_deterministic_bytes(self):
