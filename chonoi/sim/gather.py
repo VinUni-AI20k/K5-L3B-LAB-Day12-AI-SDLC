@@ -7,12 +7,10 @@ Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` đ�
 cập bến (`interact` trong vùng bến -> `gather_end` reason `docked`), xuất kho, snapshot đầy đủ trường gather.
 
 Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gather"):
-  TODO(nhóm, lát 1): bơi + oxy + biên + giỏ
-      - oxy: dưới nước (d > surface_depth) trừ 1 tick/tick, mặt nước hồi oxygen_refill_per_tick, kẹp [0, max]
-      - ngạt: oxy = 0 và đang dưới nước -> đếm zero_oxy_ticks, đủ choke_interval_ticks thì -1 Máu (choke)
-      - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
-      - sự kiện dive / surface / oxygen_empty / choke / faint
-      - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
+  ĐÃ LÀM (lát 1): bơi + oxy + biên + giỏ
+      - dive/surface khi đổi phía biên mặt nước; oxy theo d cuối bước (mặt nước hồi,
+        dưới nước trừ 1); đếm zero_oxy_ticks, đủ choke_interval_ticks -> choke (-1 Máu);
+        Máu 0 -> bỏ giỏ LIFO, faint + gather_end("fainted") kho rỗng.
   TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
       - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
       - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
@@ -107,22 +105,47 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-        # 2. bơi + chặn mép
+        # 2. bơi + chặn mép; so phân vùng đầu/cuối bước -> dive / surface
+        was_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
-        # 3. interact: bến trước, rồi hái
+        now_surface = self._at_surface()
+        if now_surface != was_surface:
+            events.append(("dive" if not now_surface else "surface", {"pos": list(self.pos)}))
+        # 3. oxy theo d CUỐI bước: mặt nước hồi + reset ngạt, dưới nước trừ 1
+        if now_surface:
+            self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + int(self.t["oxygen_refill_per_tick"]))
+            self.zero_oxy_ticks = 0
+        else:
+            if self.oxygen_ticks > 0:
+                self.oxygen_ticks -= 1
+                if self.oxygen_ticks == 0:
+                    events.append(("oxygen_empty", {"oxygen_ticks": 0}))
+            if self.oxygen_ticks == 0:
+                # mỗi bước dưới nước kết thúc với oxy 0 (kể cả bước vừa chạm 0) tăng đếm
+                self.zero_oxy_ticks += 1
+                if self.zero_oxy_ticks >= int(self.t["choke_interval_ticks"]):
+                    self.zero_oxy_ticks = 0
+                    self.hp -= 1
+                    events.append(("choke", {"hp": self.hp}))
+                    if self.hp <= 0:
+                        # Máu 0: bỏ giỏ LIFO, faint rồi gather_end kho rỗng, dừng bước
+                        lost = []
+                        while self.hold:
+                            lost.append(self.hold.pop())
+                        events.append(("faint", {"cause": "choke", "lost": lost, "hp": self.hp}))
+                        self._finish("fainted", events)
+                        return events
+        # 4. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
                 self._finish("docked", events)
                 return events
             # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
             #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
-        # 4. bắt cá
+        # 5. bắt cá
         if inp.pressed("catch"):
             pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
-        # 5. hết giờ
+        # 6. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events
