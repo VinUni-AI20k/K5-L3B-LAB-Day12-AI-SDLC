@@ -11,6 +11,10 @@ export class PreviewAdapter {
       get("../../docs/contracts/inventory.sample.json"),
     ]);
     this.tuning = contract.tuning;
+    if (!Array.isArray(this.tuning.gather.fish_initial)) {
+      const { tuning: sample } = await get("./phase2.preview.json");
+      this.tuning = { ...this.tuning, gather: { ...this.tuning.gather, fish_initial: sample.gather.fish_initial } };
+    }
     this.sampleItems = inventory.items;
     this.serial = 0;
     return this.tuning;

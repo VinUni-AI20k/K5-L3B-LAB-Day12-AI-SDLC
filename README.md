@@ -20,7 +20,7 @@ git clone <fork-của-nhóm> && cd <fork-của-nhóm>
 python3 -m chonoi.live --mode gather
 ```
 
-Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Chọn **Chơi** để xem vòng 5 ngày của Phase 2 bằng snapshot mẫu. **Chơi trọn ngày**, **Chỉ chơi buổi sáng** và **Chỉ chơi buổi tối** gọi live adapter với preset Gather và Quán hiện tại. [Báo cáo nghiệm thu Phase 2](docs/verification/phase-2.md)
+Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Chọn **Chơi** để xem vòng 5 ngày *Mùa Nước Nổi*. Bản xem dùng snapshot mẫu v1.2. **Chơi trọn ngày**, **Chỉ chơi buổi sáng** và **Chỉ chơi buổi tối** dùng sim hiện tại.
 
 ## Điều khiển
 
@@ -51,12 +51,15 @@ Khi cần kiểm tra UI riêng, chạy `python3 -m http.server 8000 --bind 127.0
 
 Để xem UI Phase 2 độc lập, đổi URL thành `http://127.0.0.1:8000/chonoi/web/?preview=2`. Chọn **Chơi**, nhấn **E** hoặc **Space** để duyệt cảnh sông và nhấn **E** để duyệt ca tối. Phiên này dùng tình huống đã dựng sẵn. Trên PowerShell có thể chạy máy chủ bằng `python -m chonoi.live --mode gather`.
 
+Đổi thành `http://127.0.0.1:8000/chonoi/web/?preview=3` để xem UI Phase 3 độc lập. Trong Ngày 1, nhấn **E**, **Space**, rồi **E** để xem hàng ươn trong giỏ và bàn giao kho. Mở quán rồi nhấn **E** để xem một nguyên liệu đang giữ chỗ tụt dưới 30% và bàn báo **Hết hàng tươi!**. [Checklist UI Phase 3](docs/verification/phase-3.md)
+
 ## Sáng tạo của nhóm
 
 - Sông Chín Khúc có trời hồng, bờ dừa nước, nhà sàn và bọt khí khi Út Sen bơi dưới nước. Camera cuộn ngang theo nhân vật.
 - Nhà bè Má Tư có sàn gỗ, đèn dây đung đưa và khói khi bếp đang nấu. Út Sen mặc áo bà ba, quàng khăn rằn và mang giỏ lưới.
 - Thông báo dùng giọng Nam Bộ. Cạn oxy hiện cảnh báo, ngạt làm viền đỏ và rung nhẹ, khách boa làm thông báo thanh toán sáng lên. Đồ họa và hiệu ứng do client vẽ từ snapshot và event. [Bằng chứng UI](docs/proof/phase-1/client-ui.md)
 - Phase 2 chia sông thành ba tầng màu, thêm vạch nước sâu và cá sấu Năm Chèo với phản hồi riêng khi đuổi hoặc bị choáng. Nhà bè có ánh đèn dây, khói trên hai bếp và lời thoại ngắn của khách. [Checklist UI Phase 2](docs/verification/phase-2.md)
+- *Mùa Nước Nổi* thêm lá, hạt phù sa và bọt nước màu vàng ở sông. Giỏ dùng vạch xanh hoặc vàng theo độ tươi, và gạch chéo các ô ươn.
 
 ## Tự do sáng tạo
 

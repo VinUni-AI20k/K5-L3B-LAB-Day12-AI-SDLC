@@ -105,7 +105,7 @@ function highlight(ctx, action, x, y, scale, w, h, v2) {
     { color: "#302419", background: "#f4bd70", size: v2 ? 18 : 11 });
 }
 
-function worldGather(ctx, w, h, state, action, t, hz, v2) {
+function worldGather(ctx, w, h, state, action, t, hz, v2, floodSeason) {
   const { meta, player } = state;
   const [[left, right], [surface, bottom]] = [meta.bounds.x, meta.bounds.d];
   const depth = bottom - surface;
@@ -122,7 +122,7 @@ function worldGather(ctx, w, h, state, action, t, hz, v2) {
   shore(ctx, w, h, horizon, viewX * scale, t);
   const tiers = v2 && Number.isFinite(meta.danger_depth) && Number.isFinite(meta.deep_depth)
     ? [y(meta.danger_depth), y(meta.deep_depth)] : undefined;
-  river(ctx, w, h, horizon, y(bottom), viewX * scale, t, tiers);
+  river(ctx, w, h, horizon, y(bottom), viewX * scale, t, tiers, floodSeason);
   const tag = { size: v2 ? 18 : 11 };
   if (tiers) {
     ctx.strokeStyle = "#e1b1e9b8";
@@ -188,7 +188,7 @@ function worldGather(ctx, w, h, state, action, t, hz, v2) {
     if (motion > .1) {
       for (let i = 0; i < 4; i++) {
         const life = (t + i / 4) % 1;
-        ring(ctx, p[0] + Math.sin(i + t * 5) * 7, p[1] - 7 - life * 31, 2 + life * 3, "#dcf3de8a");
+        ring(ctx, p[0] + Math.sin(i + t * 5) * 7, p[1] - 7 - life * 31, 2 + life * 3, floodSeason ? "#ffe1a591" : "#dcf3de8a");
       }
     }
   }
@@ -204,7 +204,7 @@ function worldQuan(ctx, w, h, state, action, t, v2) {
   const scale = Math.min((w - 2 * pad) / (right - left), (h - 1.5 * pad) / (north - south));
   const width = (right - left) * scale;
   const height = (north - south) * scale;
-  const ox = (w - width) / 2;
+  const ox = (w - width) / 2 - (Array.isArray(state.stock) && w > 640 ? 34 : 0);
   const oy = (h - height) / 2;
   const x = (pos) => ox + (pos - left) * scale;
   const y = (pos) => oy + (north - pos) * scale;
@@ -223,6 +223,9 @@ function worldQuan(ctx, w, h, state, action, t, v2) {
     tableArt(ctx, tx, ty, scale, customer);
     label(ctx, "Bàn " + table.id, tx, ty + .65 * scale + 12, tag);
     if (v2 && customer?.state === "eating") label(ctx, "Ngon quá!", tx, ty - 37, { ...tag, background: "#754b33" });
+    if (Array.isArray(state.stock) && customer?.order_status === "unfulfillable") {
+      label(ctx, "Hết hàng tươi!", clamp(tx, 76, w - 76), ty - 38, { ...tag, size: 18, background: "#613732" });
+    }
   }
 
   highlight(ctx, action, x, y, scale, w, h, v2);
@@ -258,8 +261,9 @@ export function createRenderer(cover, canvas) {
       if (frame) {
         const { ctx, w, h } = frame;
         const t = reducedMotion.matches ? 0 : time;
-        const v2 = Boolean(tuning.shop);
-        if (current.mode === "gather") worldGather(ctx, w, h, current, action, t, tuning.tick_hz, v2);
+        const floodSeason = Boolean(tuning.freshness) || Array.isArray(current.stock) || typeof current.hold?.[0] === "object";
+        const v2 = Boolean(tuning.shop) || floodSeason;
+        if (current.mode === "gather") worldGather(ctx, w, h, current, action, t, tuning.tick_hz, v2, floodSeason);
         else worldQuan(ctx, w, h, current, action, t, v2);
         dirty = false;
       }
