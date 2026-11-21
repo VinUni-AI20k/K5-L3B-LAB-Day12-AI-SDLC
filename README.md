@@ -40,7 +40,7 @@ python3 tools/check_determinism.py                                              
 
 Các lệnh khai trong [`game.contract.json`](game.contract.json) (`build_cmd`, `run_cmd`, `headless_cmd`). Chi tiết khung kỹ thuật: [`docs/STARTER.md`](docs/STARTER.md); hướng dẫn cho agent AI: [`AGENTS.md`](AGENTS.md).
 
-Đo hiệu năng vẽ cảnh lặn trong 10 giây bằng `python3 -m chonoi.bench --out bench.json`. Lệnh phát lại snapshot Gather seed 1 và ghi số đo của bộ vẽ phần mềm Python ở 1280×720. FPS của giao diện trình duyệt cần đo riêng. Xem [cách đo và kết quả](docs/proof/phase-4/p4-03-bench.md).
+Đo hiệu năng vẽ cảnh lặn (làm nóng 3 giây rồi đo 30 giây) bằng `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json`. Lệnh phát lại snapshot Gather và ghi số đo của bộ vẽ phần mềm Python ở 1280×720. FPS của giao diện trình duyệt cần đo riêng. Xem [cách đo và kết quả](docs/proof/phase-4/p4-03-bench.md).
 
 ## Cấu trúc
 

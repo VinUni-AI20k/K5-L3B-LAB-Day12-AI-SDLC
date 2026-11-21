@@ -72,7 +72,7 @@ class GatherRaster:
         self.rect(snapshot["player"]["pos"], 15, 21, DIVER)
 
 
-def benchmark(seconds, seed):
+def benchmark(seconds, seed, warmup=0.0):
     load_start = perf_counter_ns()
     contract = load_contract()
     tuning = contract["tuning"]
@@ -92,9 +92,17 @@ def benchmark(seconds, seed):
             session.step(inp)
             snapshots.append(session.snapshot())
 
+    frames = cycle(snapshots)
+    if warmup > 0:  # làm nóng: vẽ nhưng không tính vào số đo
+        warm_start = perf_counter_ns()
+        for snapshot in frames:
+            raster.render(snapshot)
+            if (perf_counter_ns() - warm_start) / 1_000_000_000 >= warmup:
+                break
+
     frame_times = []
     start = previous = perf_counter_ns()
-    for snapshot in cycle(snapshots):
+    for snapshot in frames:
         raster.render(snapshot)
         now = perf_counter_ns()
         frame_times.append(now - previous)
@@ -131,14 +139,18 @@ def write_report(path, report):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--seconds", type=float, default=10, help="số giây đo FPS (mặc định: 10)")
-    parser.add_argument("--seed", type=int, default=1, help="seed của cảnh lặn (mặc định: 1)")
+    parser.add_argument("--duration", "--seconds", dest="seconds", type=float, default=30,
+                        help="số giây đo FPS, sau khi làm nóng (mặc định: 30)")
+    parser.add_argument("--warmup", type=float, default=3, help="số giây làm nóng không tính vào số đo (mặc định: 3)")
+    parser.add_argument("--seed", type=int, default=42, help="seed của cảnh lặn (mặc định: 42)")
     parser.add_argument("--out", type=Path, default=Path("bench.json"))
     args = parser.parse_args(argv)
     if not math.isfinite(args.seconds) or args.seconds <= 0:
-        parser.error("--seconds phải là số hữu hạn lớn hơn 0")
+        parser.error("--duration phải là số hữu hạn lớn hơn 0")
+    if not math.isfinite(args.warmup) or args.warmup < 0:
+        parser.error("--warmup phải là số hữu hạn không âm")
     try:
-        report = benchmark(args.seconds, args.seed)
+        report = benchmark(args.seconds, args.seed, args.warmup)
         write_report(args.out, report)
     except BadInput as exc:
         parser.error(str(exc))
