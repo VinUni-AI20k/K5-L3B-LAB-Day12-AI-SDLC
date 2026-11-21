@@ -17,13 +17,27 @@ def _between(name, v, lo, hi):
         raise BadInput(f"tuning.{name} phải trong [{lo}, {hi}], đang là {v!r}")
 
 
+def validate_contract(c: dict):
+    if not isinstance(c, dict):
+        raise BadInput("contract phải là object")
+    validate_tuning(c.get("tuning"))
+    ver = c.get("contract_version")
+    if ver == "1.3":
+        bench = c.get("bench_cmd")
+        if not isinstance(bench, str) or not bench.strip():
+            raise BadInput("contract v1.3 yêu cầu bench_cmd là chuỗi không rỗng")
+        soak = c.get("soak_cmd")
+        if not isinstance(soak, str) or not soak.strip():
+            raise BadInput("contract v1.3 yêu cầu soak_cmd là chuỗi không rỗng")
+
+
 def load_contract(path=DEFAULT_PATH) -> dict:
     try:
         with open(path, encoding="utf-8") as f:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    validate_contract(c)
     return c
 
 

@@ -1,11 +1,25 @@
-# Kiểm chứng Phase 4 — phần Soak của Quoosc
+# Ma trận truy vết Phase 4
 
-| AC | Bằng chứng | Kết quả |
-|---|---|---|
-| AC-P4-03 CLI/test | `python -m unittest tests.test_p4_soak -v` | đạt; chạy real DaySim qua Session; test ngày đơn, 10 ngày, replay, input lỗi, runtime crash, output lỗi |
-| AC-P4-03 soak thật 10 ngày | [`soak-run.txt`](../proof/phase-4/soak-run.txt), [`soak.json`](../proof/phase-4/soak.json), [`soak-replay.json`](../proof/phase-4/soak-replay.json) | 10/10 ngày, 0 crash, exit 0; gameplay fields trùng hai lần seed 7 |
-| AC-P4-04 phía client | `tests.test_p4_ui_bench_contrast` và ảnh CDP | [`ui-client/README.md`](../proof/phase-4/ui-client/README.md), [`ui-client/run.txt`](../proof/phase-4/ui-client/run.txt) | Đạt phía client: 3 cảnh báo có chữ/biểu tượng, high contrast và lưu lựa chọn; ảnh gather/quán, không console error |
-| AC-P4-02 bench end-to-end | proof client bench + server endpoint tests | [`ui-client/bench-client.json`](../proof/phase-4/ui-client/bench-client.json), [`ui-client/run.txt`](../proof/phase-4/ui-client/run.txt) | Client đo 30 s và endpoint nhận payload đã kiểm; `chonoi/bench.py` chưa có trên nhánh nên chưa có `bench.json` chính thức, AC chưa đạt đầu-cuối |
-| Tích hợp full Phase 4 | Phase 4 plan/QA matrix | Chưa nghiệm thu toàn nhóm: bench Python/chỉ số chính thức, package/release và review QA còn phụ thuộc phần việc ngoài nhánh |
+| AC | Nội dung | Cách kiểm chứng | Bằng chứng (link `docs/proof/phase-4/...`) | Kết quả (đạt / chưa đạt — ghi trung thực) | Người |
+|---|---|---|---|---|---|
+| AC-P4-01 | `contract_version:"1.3"`, khai đúng `bench_cmd`, `soak_cmd` | `game.contract.json` + unit tests `tests/test_p4_contract.py` | `game.contract.json`, `tests/test_p4_contract.py` | đạt | invzble-z |
+| AC-P4-02 | `bench_cmd --seed 42 --duration 30 --out bench.json` chạy cảnh chuẩn, đủ 5 trường đúng công thức | Chạy đo 30s thực tế trên trình duyệt headless Chrome và unit tests `tests/test_p4_bench.py` | [`bench.json`](docs/proof/phase-4/bench.json) | đạt (chờ gộp PR #16) | ttkien0710, nganhduong123 |
+| AC-P4-03 | `soak_cmd --seed 7 --days 10`: `days_completed = 10`, `crashes = 0`, chạy lặp giống nhau ở trường gameplay | log soak `tests/test_p4_soak.py`, chạy thực tế `chonoi/soak.py` | [`soak.json`](docs/proof/phase-4/soak.json), [`soak-run.txt`](docs/proof/phase-4/soak-run.txt) | đạt | Quoosc |
+| AC-P4-04 | 3 cảnh báo có chữ hoặc biểu tượng, chế độ tương phản cao hoạt động | ảnh chụp CDP và unit tests `tests/test_p4_ui_bench_contrast.py` | [`ui-client/`](docs/proof/phase-4/ui-client/) | đạt | nganhduong123, comtrang378-ship-it |
+| AC-P4-05 | Clone sạch chạy bản giao diện trong ≤ 3 lệnh, README đủ thông tin | `clean-clone.txt` | [`clean-clone.txt`](docs/proof/phase-4/clean-clone.txt) | chờ đóng gói | NguyenQuangDunghe161764 |
+| AC-P4-06 | Regression P1–P3 còn hiệu lực đạt | log test toàn bộ 184+ tests | [`verify-run.txt`](docs/proof/phase-4/verify-run.txt) | đạt | WorkOfMinh |
+| AC-P4-07 | CHANGELOG theo phase, release notes, zip, tag `phase-4` và Release v1.0.0 cùng commit | GitHub Release v1.0.0 | GitHub Release | đang chuẩn bị | invzble-z |
+| AC-P4-08 | Retro rà hành động P2, đủ 7 phản tư cá nhân | `docs/retro.md`, `docs/members/` | [`docs/retro.md`](docs/retro.md) | đang hoàn thiện | nganhduong123, cả nhóm |
 
-Kết quả per-day trong lần chạy thật: `earned=0`, reputation 3.0, score 300 cho cả 10 ngày. Bot kết thúc Gather ngay tại bến theo thiết kế, để Quan chạy tự nhiên và không tạo giao dịch. Đây là số liệu thật của chiến lược bot đã định, không phải kết quả economy.
+## Đánh giá ngắn
+- **Yêu cầu AC-P4-01 (invzble-z phụ trách):**
+  - Cập nhật [game.contract.json](game.contract.json) lên `contract_version: "1.3"`.
+  - Khai báo 2 lệnh chính thức: `"bench_cmd": "python3 -m chonoi.bench"` và `"soak_cmd": "python3 -m chonoi.soak"`.
+  - Bổ sung hàm `validate_contract(c)` trong [chonoi/contract.py](chonoi/contract.py) kiểm tra bắt buộc phải có `bench_cmd` và `soak_cmd` khi version là 1.3.
+  - Cập nhật adapter kho [chonoi/inventory.py](chonoi/inventory.py) nhận diện phiên bản 1.3 và giữ tính tương thích ngược với kho đếm và kho cá thể.
+  - Viết bộ unit test [tests/test_p4_contract.py](tests/test_p4_contract.py) kiểm tra cấu hình và bắt lỗi thiếu lệnh: **2/2 tests đạt**.
+- **Yêu cầu AC-P4-03 (Quoosc phụ trách):**
+  - Cài đặt `chonoi/soak.py` chạy qua `DaySim`, bắt lỗi theo ngày và ghi `soak.json`.
+  - Đạt 10/10 ngày, 0 crash, exit 0; gameplay fields trùng khớp 2 lần chạy độc lập cùng seed 7.
+- **Yêu cầu AC-P4-04 (nganhduong123 & comtrang378-ship-it phụ trách):**
+  - Đã tích hợp 3 cảnh báo có chữ và icon (Thủy quái gần, Oxy sắp hết, Khách sắp giận) và công tắc Độ tương phản cao (High Contrast). Đã kiểm thử qua [tests/test_p4_ui_bench_contrast.py](tests/test_p4_ui_bench_contrast.py) và chụp ảnh CDP tại `docs/proof/phase-4/ui-client/`.

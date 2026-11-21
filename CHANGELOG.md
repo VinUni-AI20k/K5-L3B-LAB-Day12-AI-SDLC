@@ -2,7 +2,16 @@
 
 > Nháp do PO (nganhduong123) viết ở Phase 3, Integrator (invzble-z) duyệt và chốt khi gắn tag. Mỗi mục ghi theo phase và `contract_version`.
 
-## Unreleased — Phase 3, Contract v1.2 "Mùa Nước Nổi" (đang làm)
+## Unreleased — Phase 4, Contract v1.3 "Phát hành v1.0.0" (đang làm)
+
+### Thêm
+- **Manifest v1.3 (AC-P4-01)**: Nâng `contract_version: "1.3"`, khai báo `bench_cmd: "python3 -m chonoi.bench"` và `soak_cmd: "python3 -m chonoi.soak"`.
+- Bổ sung hàm `validate_contract(c)` trong `chonoi/contract.py` kiểm tra bắt buộc phải có `bench_cmd` và `soak_cmd`.
+- Bộ test đơn vị `tests/test_p4_contract.py` kiểm tra cấu hình Contract v1.3.
+- Client web & live server: 3 cảnh báo bằng chữ và biểu tượng (Thủy quái gần, Oxy sắp hết, Khách sắp giận) và chế độ Độ tương phản cao (High Contrast, phím H).
+- ADR 0003: Bench có render, bot soak và bản đóng gói v1.0.0.
+
+## Phase 3 — Contract v1.2 "Mùa Nước Nổi"
 
 ### ⚠️ Breaking change
 - **File kho đổi schema.** Kho đếm `{"items":{"ca_linh":3}}` thành kho cá thể `{"items":[{"id":"I1","kind":"ca_linh","fresh":100}]}`, xuất theo id. Khi `contract_version` là `"1.2"`, file kho đếm, id trùng hoặc rỗng, kind lạ, `fresh` ngoài [0,100] đều trả **mã 2**.
