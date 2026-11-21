@@ -4,6 +4,8 @@
 
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
+- Contract 1.3 khai `bench_cmd` và `soak_cmd` ở gốc `game.contract.json`; bộ kiểm nối `--seed`, `--duration`, `--out` (bench) và `--seed`, `--days`, `--out` (soak)
+- Bench: `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json` (làm nóng 3 s, cảnh lặn 1280×720)
 - Soak 10 Ngày: `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json` (thoát 1 nếu sim ném lỗi)
 - Kiểm tất định: `python3 tools/check_determinism.py` (cùng seed, output giống từng byte)
 - Smoke Phase 1 (hộp đen, 27 mục): `python3 tools/smoke_phase1.py`; Phase 2: `python3 tools/smoke_phase2.py` (cả hai chạy contract 1.1 sinh từ `game.contract.json`); Phase 3, contract 1.2 và kho cá thể: `python3 tools/smoke_phase3.py`
