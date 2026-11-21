@@ -4,10 +4,10 @@
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
-| | | `sim/gather` | | |
-| | | `sim/quan` | | |
-| | | `client/ui` | | |
-| | | `qa` | | |
+| (tên 1) | (handle 1) | `sim/gather` lát 1: oxy, ngạt, Máu, ngất, giỏ | Integrator | (tên 2) |
+| (tên 2) | (handle 2) | `sim/gather` lát 2: hái, bắt cá, cập bến, kho | Scrum/Release | (tên 1) |
+| (tên 3) | (handle 3) | `sim/quan` lát 3 + 4: khách, bếp, tiền, uy tín | PO | (tên 4) |
+| (tên 4) | (handle 4) | `client/ui` + `qa` | QA lead | (tên 3) |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 
