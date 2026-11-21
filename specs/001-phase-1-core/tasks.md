@@ -64,11 +64,11 @@
 
 > Chỉ sửa `chonoi/web/` (và đọc `chonoi/live.py`). Chỉ đọc snapshot/event theo `contracts/sim-ui.md`; không chứa luật. Không đồ họa thật ở P1.
 
-- [ ] T028 [P] [US7] [client/ui] (TV6) HUD gather: oxy, Máu, `zero_oxy_ticks`/cảnh báo ngạt, giỏ 12 ô với món trên cùng (LIFO), hồi chiêu bắt — `chonoi/web/index.html`
-- [ ] T029 [P] [US7] [client/ui] (TV6) Vẽ nút (ready/đang mọc + đếm ngược) và đàn cá; vùng bến — `chonoi/web/index.html`
-- [ ] T030 [P] [US7] [client/ui] (TV6) HUD quan: khách (món, thanh kiên nhẫn, đang ăn), bếp (state, đếm ngược), tay, stock, tiền/`shift_earned`, uy tín — `chonoi/web/index.html`
-- [ ] T031 [P] [US7] [client/ui] (TV6) Nhật ký sự kiện: thêm `gather`, `fish_caught`, `node_regrown` vào danh sách hiển thị; nhãn tiếng Việt — `chonoi/web/index.html`
-- [ ] T032 [US7] [client/ui] (TV6) Kiểm tay bằng `python3 -m chonoi.live --mode gather|quan`, chụp ảnh vào `docs/proof/phase-1/`; `tests/test_live.py` vẫn xanh
+- [x] T028 [P] [US7] [client/ui] (TV6) HUD gather: oxy, Máu, `zero_oxy_ticks`/cảnh báo ngạt, giỏ 12 ô với món trên cùng (LIFO), hồi chiêu bắt — `chonoi/web/index.html`
+- [x] T029 [P] [US7] [client/ui] (TV6) Vẽ nút (ready/đang mọc + đếm ngược) và đàn cá; vùng bến — `chonoi/web/index.html`
+- [x] T030 [P] [US7] [client/ui] (TV6) HUD quan: khách (món, thanh kiên nhẫn, đang ăn), bếp (state, đếm ngược), tay, stock, tiền/`shift_earned`, uy tín — `chonoi/web/index.html`
+- [x] T031 [P] [US7] [client/ui] (TV6) Nhật ký sự kiện: thêm `gather`, `fish_caught`, `node_regrown` vào danh sách hiển thị; nhãn tiếng Việt — `chonoi/web/index.html`
+- [x] T032 [US7] [client/ui] (TV6) Kiểm tay bằng `python3 -m chonoi.live --mode gather|quan`, chụp ảnh vào `docs/proof/phase-1/`; `tests/test_live.py` vẫn xanh
 
 ## Phase 10: Polish / kiểm chứng (0:45–1:00)
 
