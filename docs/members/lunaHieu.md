@@ -5,3 +5,10 @@
 - **Kết quả kiểm chứng:** Lượt chạy toàn suite có 47 test, 46 đạt, 1 thất bại (`$LASTEXITCODE = 1`); 14/15 test Lát 2 đạt. Output thật ở [`../proof/phase-1/gather-collection-test.txt`](../proof/phase-1/gather-collection-test.txt).
 - **Cần phối hợp:** Người 1 xử lý `choke`/`faint`, lưu `lost` theo LIFO và xóa giỏ trước `gather_end`. Chạy lại suite sau khi tích hợp.
 - **AI sai ở đâu:** Codex từng thêm helper `_nearest()` ngoài hai khối TODO được giao; tôi phát hiện qua `git diff` và đã hoàn tác trước khi triển khai. Tôi học được cách chốt ranh giới sửa file và kiểm chứng cả event, file kho lẫn mã thoát.
+
+## Phase 2 — P2-02: Monster, HP & Survival
+
+- **Tôi đã làm:** Viết [đặc tả P2-02](../plan/phase-2.md); tách logic Cá Sấu Năm Chèo vào `chonoi/sim/monsters.py`, nối hook vào Gather, bổ sung validation `gather.monsters[]` và test `tests/test_monster_survival.py`. Hỗ trợ spawn theo ngày, tuần tra/đuổi, hit rơi đồ LIFO, recoil, ngất, snapshot và trần oxy/HP theo `active_upgrades`.
+- **Tôi đã review:** In toàn bộ `git diff` tracked và đối chiếu trực tiếp các điểm biên: recoil bắt đầu bước sau, tick hết recoil không hit, tách `lost` của hit và ngất, snapshot quái sắp ID. Test Phase 1 về bất tử/ngạt được cập nhật vì luật v1.1 quy định ngạt xuyên bất tử và không làm rơi hàng.
+- **Kết quả kiểm chứng:** Toàn suite **80/80 đạt, exit 0**; [ma trận AC](../verification/phase-2.md) và [output test thật](../proof/phase-2/monster-survival-test.txt). Chưa commit nhánh `feat/p2-monster-survival`.
+- **Cần phối hợp:** Người 1 cập nhật manifest v1.1; Người 3 truyền `day`/`active_upgrades` từ vòng ngày và kiểm snapshot chung. Sau khi ghép, chạy lại toàn suite và kiểm tra conflict ở `gather.py`/`scenario.py`.

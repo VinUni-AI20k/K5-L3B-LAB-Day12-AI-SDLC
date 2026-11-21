@@ -1,0 +1,90 @@
+test_catch_cooldown_available_at_t_plus_l (test_gather_collection.GatherCollection.test_catch_cooldown_available_at_t_plus_l) ... ok
+test_catch_nearest_and_invalid_phase_or_range (test_gather_collection.GatherCollection.test_catch_nearest_and_invalid_phase_or_range) ... ok
+test_catch_underwater_radius_tie_yield_and_edge (test_gather_collection.GatherCollection.test_catch_underwater_radius_tie_yield_and_edge) ... ok
+test_dock_precedes_harvest_at_boundary (test_gather_collection.GatherCollection.test_dock_precedes_harvest_at_boundary) ... ok
+test_fainted_clears_hold_before_inventory_written (test_gather_collection.GatherCollection.test_fainted_clears_hold_before_inventory_written)
+Ph\u1ee5 thu\u1ed9c L�t 1: �\u1ec3 th\u1ea5t b\u1ea1i th\u1eadt �\u1ebfn khi Ng�\u1eddi 1 ho�n thi\u1ec7n ng\u1ea5t. ... ok
+test_fish_hold_full_never_takes_partial_or_fallback (test_gather_collection.GatherCollection.test_fish_hold_full_never_takes_partial_or_fallback) ... ok
+test_harvest_edge_radius_and_numeric_id_tie (test_gather_collection.GatherCollection.test_harvest_edge_radius_and_numeric_id_tie) ... ok
+test_harvest_full_does_not_change_node_or_try_another (test_gather_collection.GatherCollection.test_harvest_full_does_not_change_node_or_try_another) ... ok
+test_harvest_nearest_and_surface_only (test_gather_collection.GatherCollection.test_harvest_nearest_and_surface_only) ... ok
+test_headless_inventory_round_trip_into_quan (test_gather_collection.GatherCollection.test_headless_inventory_round_trip_into_quan) ... ok
+test_last_tick_harvest_catch_and_dock (test_gather_collection.GatherCollection.test_last_tick_harvest_catch_and_dock) ... ok
+test_node_not_ready_cannot_be_harvested (test_gather_collection.GatherCollection.test_node_not_ready_cannot_be_harvested) ... ok
+test_node_yield_comes_from_tuning (test_gather_collection.GatherCollection.test_node_yield_comes_from_tuning) ... ok
+test_regrown_node_can_be_harvested_same_tick (test_gather_collection.GatherCollection.test_regrown_node_can_be_harvested_same_tick) ... ok
+test_tick_limit_neither_creates_nor_overwrites_inventory (test_gather_collection.GatherCollection.test_tick_limit_neither_creates_nor_overwrites_inventory) ... ok
+test_gi\u1ecf_day_12_chap_nhan_va_tren_12_tu_choi (test_gather_sinh_ton.Hold.test_gi\u1ecf_day_12_chap_nhan_va_tren_12_tu_choi) ... ok
+test_het_gio_ghi_kho_theo_so_luong_trong_gio (test_gather_sinh_ton.Hold.test_het_gio_ghi_kho_theo_so_luong_trong_gio) ... ok
+test_ngat_gi\u1ecf_day_mat_het (test_gather_sinh_ton.Hold.test_ngat_gi\u1ecf_day_mat_het) ... ok
+test_snapshot_giu_thu_tu_nhat_lifo (test_gather_sinh_ton.Hold.test_snapshot_giu_thu_tu_nhat_lifo) ... ok
+test_dive_khi_roi_mat_nuoc (test_gather_sinh_ton.Survival.test_dive_khi_roi_mat_nuoc) ... ok
+test_hoi_oxy_reset_bo_dem_ngat (test_gather_sinh_ton.Survival.test_hoi_oxy_reset_bo_dem_ngat) ... ok
+test_invuln_khong_chan_ngat_theo_contract_v11 (test_gather_sinh_ton.Survival.test_invuln_khong_chan_ngat_theo_contract_v11) ... ok
+test_mau_ve_0_ngat_xiu_mat_gio (test_gather_sinh_ton.Survival.test_mau_ve_0_ngat_xiu_mat_gio) ... ok
+test_ngat_mat_1_mau_dung_choke_interval (test_gather_sinh_ton.Survival.test_ngat_mat_1_mau_dung_choke_interval) ... ok
+test_oxy_giam_moi_tick_duoi_nuoc (test_gather_sinh_ton.Survival.test_oxy_giam_moi_tick_duoi_nuoc) ... ok
+test_oxy_hoi_moi_tick_o_mat_nuoc_va_kep_max (test_gather_sinh_ton.Survival.test_oxy_hoi_moi_tick_o_mat_nuoc_va_kep_max) ... ok
+test_oxygen_empty_dung_dung_mot_lan (test_gather_sinh_ton.Survival.test_oxygen_empty_dung_dung_mot_lan) ... ok
+test_surface_khi_noi_len (test_gather_sinh_ton.Survival.test_surface_khi_noi_len) ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_active_upgrade_limits_and_day_spawn (test_monster_survival.MonsterSurvival.test_active_upgrade_limits_and_day_spawn) ... ok
+test_chase_detection_and_exit_thresholds (test_monster_survival.MonsterSurvival.test_chase_detection_and_exit_thresholds) ... ok
+test_choke_before_monster_hit_and_choke_ignores_invuln (test_monster_survival.MonsterSurvival.test_choke_before_monster_hit_and_choke_ignores_invuln) ... ok
+test_headless_fixture_and_deterministic_bytes (test_monster_survival.MonsterSurvival.test_headless_fixture_and_deterministic_bytes) ... ok
+test_hit_at_post_move_radius_edge_and_depth_gate (test_monster_survival.MonsterSurvival.test_hit_at_post_move_radius_edge_and_depth_gate) ... ok
+test_hit_nearest_numeric_id_lifo_and_one_per_tick (test_monster_survival.MonsterSurvival.test_hit_nearest_numeric_id_lifo_and_one_per_tick) ... ok
+test_invulnerability_ends_at_t_plus_90 (test_monster_survival.MonsterSurvival.test_invulnerability_ends_at_t_plus_90) ... ok
+test_monster_faint_loses_remaining_hold_and_inventory_empty (test_monster_survival.MonsterSurvival.test_monster_faint_loses_remaining_hold_and_inventory_empty) ... ok
+test_monster_hit_reports_player_position_after_movement (test_monster_survival.MonsterSurvival.test_monster_hit_reports_player_position_after_movement) ... ok
+test_patrol_reaches_waypoint_then_targets_other_on_next_step (test_monster_survival.MonsterSurvival.test_patrol_reaches_waypoint_then_targets_other_on_next_step) ... ok
+test_recoil_60_steps_coincident_direction_and_boundary (test_monster_survival.MonsterSurvival.test_recoil_60_steps_coincident_direction_and_boundary) ... ok
+test_recoil_finishing_tick_cannot_hit (test_monster_survival.MonsterSurvival.test_recoil_finishing_tick_cannot_hit) ... ok
+test_scenario_validation_bad_monsters_exit_2_before_output (test_monster_survival.MonsterSurvival.test_scenario_validation_bad_monsters_exit_2_before_output) ... ok
+test_spawn_days_override_and_snapshot_order (test_monster_survival.MonsterSurvival.test_spawn_days_override_and_snapshot_order) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_closing_releases_reserved_order_without_penalty_or_new_customer (test_quan_customers.QuanCustomersTest.test_closing_releases_reserved_order_without_penalty_or_new_customer) ... ok
+test_customer_fixture_conflicts_fail_before_output (test_quan_customers.QuanCustomersTest.test_customer_fixture_conflicts_fail_before_output) ... ok
+test_expiry_refunds_only_held_stock_and_releases_table (test_quan_customers.QuanCustomersTest.test_expiry_refunds_only_held_stock_and_releases_table) ... ok
+test_headless_customer_reserves_from_inventory_at_scheduled_tick (test_quan_customers.QuanCustomersTest.test_headless_customer_reserves_from_inventory_at_scheduled_tick) ... ok
+test_seeded_orders_are_byte_stable (test_quan_customers.QuanCustomersTest.test_seeded_orders_are_byte_stable) ... ok
+test_two_tables_cannot_reserve_the_same_ingredient (test_quan_customers.QuanCustomersTest.test_two_tables_cannot_reserve_the_same_ingredient) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+V� d\u1ee5 smoke test trong PRD-0 m\u1ee5c G: c\u1eadp b\u1ebfn \u1edf tick 0, qu�n �\u1ecdc kho ��ng n\u1ed9i dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+B\u1ecf 6 tick t�ng t\u1ed1c r\u1ed3i �o 60 tick: qu\xe3ng \u2248 swim_speed � 1 s (�0.1). Ngang, xu\u1ed1ng, ch�o (kh�ng nhanh h�n). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Ch\u1eb7n t\u1eebng m�p c\u1ee7a v�ng n�\u1edbc, k\u1ec3 c\u1ea3 d kh�ng �m (kh�ng bay l�n kh\u1ecfi m\u1eb7t n�\u1edbc) v� ��y d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+�\u1ea3o t\u1eeb +speed sang -speed: v\u1eadn t\u1ed1c ch\u1ea1m m\u1ee5c ti�u sau t\u1ed1i �a ramp_max_ticks tick k\u1ec3 t\u1eeb l�c �\u1ed5i input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 80 tests in 15.694s
+
+OK

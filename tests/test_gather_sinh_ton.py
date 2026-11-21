@@ -87,11 +87,12 @@ class Survival(unittest.TestCase):
             self.assertEqual(p[30]["zero_oxy_ticks"], 0)
             self.assertEqual(p[30]["hp"], 3)
 
-    def test_invuln_chan_ngat(self):
+    def test_invuln_khong_chan_ngat_theo_contract_v11(self):
+        # Contract v1.1: bất tử chỉ chặn monster_hit; ngạt vẫn trừ Máu.
         with Workdir() as w:
             rows = run_gather(w, {"player": {"pos": [50, 10], "oxygen_ticks": 0, "invuln_ticks": 1000}}, 62)
-            self.assertEqual(by_tick(rows)[62]["hp"], 3)
-            self.assertEqual(events(rows, "choke"), [])
+            self.assertEqual(by_tick(rows)[62]["hp"], 2)
+            self.assertEqual(len(events(rows, "choke")), 1)
 
     def test_mau_ve_0_ngat_xiu_mat_gio(self):
         with Workdir() as w:

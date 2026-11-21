@@ -49,7 +49,7 @@ Quán độc lập có 2 bếp B1/B2, 4 bàn T1–T4 và 6 món theo TICKET-02. 
 
 Chạy kiểm chứng bằng `python3 tools/verify_p2_04.py --integration-ref origin/lehuyanh`. Verifier chạy toàn suite, ca 4 khách có thao tác thực, so JSONL/file kho từng byte và ghép thử với Day Loop của người 3 trong thư mục tạm. Bằng chứng tại `docs/proof/phase-2/`, chi tiết tại [`docs/notes/P2-04.md`](docs/notes/P2-04.md).
 
-**Trạng thái nhánh:** Quán PASS; Day Loop/Shop và Gather v1.1 còn chờ tích hợp từ các thành viên. `contract_version:1.1` là đích hợp đồng; nhánh này chưa hoàn thành toàn bộ Test Contract v1.1. `--mode day --days 1` chưa chạy trực tiếp trên nhánh này; các lượt day đã kiểm chứng dùng bản xuất riêng của `origin/lehuyanh` (`380e679`) ghép phần P2-04.
+**Trạng thái sau merge `origin/main@c8430b1`:** đã tích hợp Day Loop/Shop/Gather/Monster. 37 test Quán/Day/tích hợp pass; `--mode day --days 1` chạy trực tiếp đủ 22200 tick. Bằng chứng: `docs/proof/phase-2/restaurant-main-merge.txt`. Không chạy lại toàn suite trong lượt merge này.
 
 ## Tự do sáng tạo
 

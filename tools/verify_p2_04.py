@@ -178,7 +178,7 @@ def main():
     PROOF.mkdir(parents=True, exist_ok=True)
     REPORT.update(base_commit=subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip(),
                   branch=subprocess.check_output(["git", "branch", "--show-current"], cwd=ROOT, text=True).strip(),
-                  python=sys.version, current_branch_day="PARTIAL: P2-03 is not integrated on this branch")
+                  python=sys.version, current_branch_day="P2-03 integrated; checked by current-day-probe")
     paths = ["game.contract.json", "chonoi/sim/quan.py", "chonoi/sim/kitchen.py", "chonoi/inventory.py",
              "chonoi/scenario.py", "tests/test_restaurant_expansion.py", "tests/test_quan_integration.py",
              "tests/fixtures/p2_04_quan.json", "tests/fixtures/p2_04_inputs.json", "tools/verify_p2_04.py"]
@@ -204,10 +204,11 @@ def main():
     stock = cli(ROOT, "inventory-quan", "quan", 0, "--inventory", PROOF / "P2-04-inventory-a.json")[0]["stock"]
     assert stock == {k: 1 for k in kinds}
     REPORT["inventory"] = {"deterministic_bytes": True, "stock": stock}
-    cli(ROOT, "current-day-probe", "day", 22200, "--days", "1", expected=2)
+    day = cli(ROOT, "current-day-probe", "day", 22200, "--days", "1")
+    assert day[-1]["reason"] == "days_complete" and day[-1]["days_completed"] == 1
     if args.integration_ref:
         isolated_day(args.integration_ref, service, controls)
-    REPORT["overall"] = "PARTIAL: restaurant PASS; current branch awaits P2-03 integration"
+    REPORT["overall"] = "PASS restaurant/day checks; full Phase 2 DoD not assessed"
     print("P2-04: restaurant PASS; 4 dishes paid, money=480, reputation=3.8, score=780.", flush=True)
     print("Day integration: " + REPORT.get("day_integration", {}).get("status", "not requested"), flush=True)
 
