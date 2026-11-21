@@ -1,0 +1,38 @@
+# Lát 3 (C) phase 2 - test trên nhánh p2/thedlcrimson/day-loop @ b6b580a
+# Lệnh: PYTHONPATH=tests:. python3 -m unittest tests.test_lat3_p2 tests.test_lat3_day_scenario tests.test_lat3_day -v
+test_ke_hoach_co_mon_ngoai_menu_bao_loi (tests.test_lat3_p2.PlanDishes.test_ke_hoach_co_mon_ngoai_menu_bao_loi) ... ok
+test_khong_gioi_han_so_suat (tests.test_lat3_p2.PlanDishes.test_khong_gioi_han_so_suat) ... ok
+test_loc_theo_ke_hoach_truoc_kho (tests.test_lat3_p2.PlanDishes.test_loc_theo_ke_hoach_truoc_kho) ... ok
+test_mon_ngoai_ke_hoach_khong_cuu_no_dish (tests.test_lat3_p2.PlanDishes.test_mon_ngoai_ke_hoach_khong_cuu_no_dish) ... ok
+test_quan_rieng_dung_ca_6_mon (tests.test_lat3_p2.PlanDishes.test_quan_rieng_dung_ca_6_mon) ... ok
+test_cam_quan_stock_va_reputation (tests.test_lat3_day_scenario.DayScenario.test_cam_quan_stock_va_reputation) ... ok
+test_cap_nang_cap_theo_shop (tests.test_lat3_day_scenario.DayScenario.test_cap_nang_cap_theo_shop) ... ok
+test_day_plan_sai_bao_loi (tests.test_lat3_day_scenario.DayScenario.test_day_plan_sai_bao_loi) ... ok
+test_day_plan_tinh_lai_ingredients (tests.test_lat3_day_scenario.DayScenario.test_day_plan_tinh_lai_ingredients) ... ok
+test_ke_hoach_hieu_luc_ghi_de_theo_ngay (tests.test_lat3_day_scenario.DayScenario.test_ke_hoach_hieu_luc_ghi_de_theo_ngay) ... ok
+test_khoi_la_va_truong_la (tests.test_lat3_day_scenario.DayScenario.test_khoi_la_va_truong_la) ... ok
+test_quan_stock_van_hop_le_khi_chay_quan (tests.test_lat3_day_scenario.DayScenario.test_quan_stock_van_hop_le_khi_chay_quan) ... ok
+test_tien_dau_ky (tests.test_lat3_day_scenario.DayScenario.test_tien_dau_ky) ... ok
+test_uy_tin_trong_khoang (tests.test_lat3_day_scenario.DayScenario.test_uy_tin_trong_khoang) ... ok
+test_vi_du_tren_board_hop_le (tests.test_lat3_day_scenario.DayScenario.test_vi_du_tren_board_hop_le) ... ok
+test_cap_ben_mang_hang_vao_quan_khach_goi_mon_ke_hoach (tests.test_lat3_day.DayLoop.test_cap_ben_mang_hang_vao_quan_khach_goi_mon_ke_hoach) ... ok
+test_hai_ngay_ngay_2_mo_ngay_khi_shop_dong (tests.test_lat3_day.DayLoop.test_hai_ngay_ngay_2_mo_ngay_khi_shop_dong) ... ok
+test_het_tick_truoc_khi_xong_ngay (tests.test_lat3_day.DayLoop.test_het_tick_truoc_khi_xong_ngay) ... ok
+test_mot_ngay_khong_input_dung_thu_tu_pha_va_tick (tests.test_lat3_day.DayLoop.test_mot_ngay_khong_input_dung_thu_tu_pha_va_tick) ... ok
+test_mua_nang_cap_hieu_luc_tu_ngay_ke (tests.test_lat3_day.DayLoop.test_mua_nang_cap_hieu_luc_tu_ngay_ke) ... ok
+test_pause_dung_dong_ho_shop (tests.test_lat3_day.DayLoop.test_pause_dung_dong_ho_shop) ... ok
+test_snapshot_doi_pha_ghi_pha_moi_phase_tick_0 (tests.test_lat3_day.DayLoop.test_snapshot_doi_pha_ghi_pha_moi_phase_tick_0) ... ok
+test_buy_truoc_shop_done_cung_buoc (tests.test_lat3_day.Shop.test_buy_truoc_shop_done_cung_buoc) ... ok
+test_da_toi_da (tests.test_lat3_day.Shop.test_da_toi_da) ... ok
+test_du_dung_gia_van_mua (tests.test_lat3_day.Shop.test_du_dung_gia_van_mua) ... ok
+test_tu_dong_sau_600_buoc_va_snapshot_kho_du (tests.test_lat3_day.Shop.test_tu_dong_sau_600_buoc_va_snapshot_kho_du) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 2.071s
+
+OK
+
+# Toàn bộ test: PYTHONPATH=tests:. python3 -m unittest discover -s tests
+FAIL: test_contract_v10_required_fields_and_ranges (test_e_qa_p1.ContractTuningRangesTest.test_contract_v10_required_fields_and_ranges)
+Ran 149 tests in 19.695s
+FAILED (failures=1)
