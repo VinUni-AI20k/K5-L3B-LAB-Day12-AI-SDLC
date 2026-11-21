@@ -71,6 +71,8 @@ Tài liệu nhóm Math: [Kế hoạch](docs/plan/) · [Ma trận kiểm chứng]
 |---|---|---|---|
 | HUD độ tươi: thanh màu dưới từng ô giỏ, gạch chéo hàng ươn, kho ghi độ tươi thấp nhất | 3 | Chỉ ở giao diện (`chonoi/web`), headless không đổi | Toàn bộ test headless xanh |
 | Chế độ tương phản cao lưu lựa chọn giữa các lần mở (localStorage) | 4 | Chỉ ở giao diện | Toàn bộ test headless xanh |
+| Chế độ demo "Má Tư đi chợ": `python3 -m chonoi.live --mode day --demo`, tối nào kho cũng có thêm đủ nguyên liệu theo kế hoạch để luôn có khách | 4 | Chỉ bật bằng cờ `--demo` của cửa sổ chơi; headless/`DaySession` mặc định tắt | Toàn bộ test headless xanh |
+| Màn Kết quả Ngày (trong Shop) và Tổng kết sau Ngày cuối: khách phục vụ/bỏ đi, tiền, boa, uy tín, món bán chạy | 4 | Số liệu tính ở cửa sổ chơi, không thêm vào JSONL | Toàn bộ test headless xanh |
 
 ## Tự do sáng tạo
 
