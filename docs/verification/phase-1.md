@@ -1,6 +1,6 @@
 # Ma trận truy vết Phase 1
 
-Kiểm chứng mới nhất được thực hiện sau khi đồng bộ main `dd090f6` vào Quoosc. Bộ xác minh Phase 1 đạt 9/9 bước; full suite có 216 tests, không fail/error/expected failure. Log mới nhất: [verify-run.txt](../proof/phase-1/verify-run.txt).
+Kiểm chứng mới nhất được thực hiện sau khi hòa nhập `origin/main` (`726d101`) vào `main` tại `d754125`. Bộ xác minh Phase 1 đạt 9/9 bước; full suite có 225 tests, không fail/error/expected failure. Log mới nhất: [verify-run.txt](../proof/phase-1/verify-run.txt).
 
 | AC | Cách kiểm chứng | Bằng chứng | Kết quả |
 |---|---|---|---|
@@ -15,7 +15,7 @@ Kiểm chứng mới nhất được thực hiện sau khi đồng bộ main `dd
 
 ## Đánh giá
 
-- Full suite sau cập nhật: 216 tests, tất cả pass, không còn expected failures; [log](../proof/phase-4/q3-full-regression.txt).
+- Full suite sau cập nhật: 225 tests, tất cả pass; bộ xác minh đạt 9/9 bước, gồm headless deterministic cho Gather/Quán; [log](../proof/phase-1/verify-run.txt).
 - Root contract v1.3 được chuyển vào tuning; file inventory count bị từ chối theo schema v1.3. Test legacy chỉ dùng version 1.1 tường minh.
 - `inventory.json` cục bộ được bảo toàn nguyên byte trong lúc kiểm thử; đây là dữ liệu người dùng, không nằm trong diff.
 - Ticket PRD-0/Test Contract gốc không có trong checkout. Kết quả kỹ thuật không thay cho xác nhận PO/giảng viên các semantics chưa có nguồn chuẩn.
