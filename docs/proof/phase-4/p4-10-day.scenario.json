@@ -1,0 +1,17 @@
+{
+  "day": {
+    "money": 160,
+    "earned": 160
+  },
+  "gather": {
+    "player": {"pos": [5, 2]},
+    "hold": [{"id": "I1", "kind": "bong_sung", "fresh": 100}],
+    "fish": [{"id": "F1", "kind": "ca_loc", "pos": [5, 2], "heading_deg": 0}],
+    "random_fish": false,
+    "time_left_ticks": 1200
+  },
+  "quan": {
+    "player": {"pos": [2, 8]},
+    "time_left_ticks": 2700
+  }
+}
