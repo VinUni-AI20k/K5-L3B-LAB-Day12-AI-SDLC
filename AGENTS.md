@@ -26,4 +26,7 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `run-checks` (`.agents/skills/run-checks/`): trước khi merge vào `main` và trước khi gắn tag. Chạy `python3 tools/run_checks.py` (unittest · tất định 2 lần · smoke gather→kho→quan · check_team); `--proof` ghi `docs/proof/phase-1/`.
+- `implement-slice` (`.agents/skills/implement-slice/`): khi giao agent làm lát 1–4. Chỉ sửa hàm của lát, đỏ→xanh bằng test hộp đen `@pending` của lát (`QA_STRICT=1`).
+- Test hộp đen PRD-0: `tests/test_gather_p1.py`, `tests/test_quan_p1.py`; test chờ lát mang `@pending` (skip mặc định, `QA_STRICT=1` để chạy). Ma trận AC: `docs/verification/phase-1.md`.
+- Windows: `python3` có thể trỏ sai → `export CHONOI_HEADLESS_CMD="python -m chonoi.headless"` và `PYTHONPATH="tests;."`.
