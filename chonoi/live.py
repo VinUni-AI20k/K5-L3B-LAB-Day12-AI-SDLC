@@ -2,10 +2,12 @@
 
     python3 -m chonoi.live --mode gather|quan [--seed N] [--port 8000]
 
-Máy chủ HTTP nhỏ (ThreadingHTTPServer) phục vụ `chonoi/web/index.html` và hai API:
+Máy chủ HTTP nhỏ phục vụ client và các API live:
+    GET  /config -> tuning đọc từ game.contract.json
     GET  /state  -> snapshot JSON hiện tại (cùng trường như dòng snapshot của headless) + `meta` + `events`
     POST /input  -> {"move": [a, b], "interact": bool, "catch": bool}   (trạng thái phím đang giữ)
     POST /restart -> chơi lại từ đầu (cùng seed, cùng scenario)
+    POST /play -> chọn day, gather, quan hoặc menu; POST /continue -> bàn giao kho sáng sang tối
 
 Mô phỏng chạy 60 tick/s trong một luồng nền, dùng CÙNG lớp sim như headless (qua `runner.Session`).
 Client chỉ ĐỌC snapshot và tự bỏ qua trường chưa có, nên luật do nhóm viết thêm trường nào cũng không vỡ.
@@ -21,37 +23,78 @@ import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from .contract import load_contract
+from .contract import DEFAULT_PATH, load_contract
 from .errors import BadInput
-from .inputs import LiveInputs
+from .inputs import BUTTONS_V10, InputState, normalize
 from .inventory import read_inventory
 from .runner import Session
 from .scenario import load_scenario
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
-TICK_S = 1.0 / 60.0
+SAMPLE_INVENTORY = os.path.join(os.path.dirname(DEFAULT_PATH), "docs", "contracts", "inventory.sample.json")
+WEB_FILES = {"index.html": "text/html", "styles.css": "text/css",
+             **dict.fromkeys(("app.js", "adapter.js", "scenes.js", "art.js", "preview.js"), "text/javascript")}
 MAX_BODY = 4096
 RECENT_EVENTS = 40
+
+
+class _TickInputs:
+    """Nhận trạng thái phím từ HTTP và cấp một xung cho mỗi cạnh lên ở tick live."""
+
+    def __init__(self):
+        self.move = (0.0, 0.0)
+        self.down = dict.fromkeys(BUTTONS_V10, False)
+        self.pending = dict.fromkeys(BUTTONS_V10, 0)
+        self.pulses = set()
+
+    def set(self, move, **buttons):
+        if move is not None:
+            self.move = normalize(move)
+        for name, down in buttons.items():
+            if down and not self.down[name]:
+                self.pending[name] += 1
+            self.down[name] = down
+
+    def advance(self):
+        # Kể cả hai cú bấm đến giữa cùng hai tick, mỗi xung vẫn có một tick nhả sau nó.
+        self.pulses = {name for name in BUTTONS_V10 if self.pending[name] and name not in self.pulses}
+        for name in self.pulses:
+            self.pending[name] -= 1
+        return InputState(self.move, {name: name in self.pulses for name in BUTTONS_V10}, self.pulses)
 
 
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None):
-        self._args = (mode, tuning, scenario, seed, inventory)
-        self.mode = mode
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, *, autoplay=True):
         self.tuning = tuning
-        self.inventory_out = inventory_out
+        self.seed = seed
+        self._launch_mode = mode
+        self._launch_scenario = scenario
+        self._launch_inventory = inventory
+        self._browser_inventory_path = inventory_out or "inventory.json"
+        self._session_id = 0
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread = None
-        self._reset()
+        self._begin(mode, mode, scenario, inventory, inventory_out)
+        self.active = autoplay
 
-    def _reset(self):
-        self.session = Session(*self._args)
-        self.inputs = LiveInputs()
+    @property
+    def mode(self):
+        return self.session.mode
+
+    def _begin(self, play_mode, mode, scenario, inventory, inventory_out):
+        self.session = Session(mode, self.tuning, scenario, self.seed, inventory)
+        self._phase_args = (play_mode, mode, scenario, inventory, inventory_out)
+        self.play_mode = play_mode
+        self.inventory_out = inventory_out
+        self.active = True
+        self._session_id += 1
+        self.inputs = _TickInputs()
         self.events = []
         self._saved = False
+        self._inventory_error = None
         self.error = None
 
     # --- luồng nền ----------------------------------------------------------------
@@ -66,8 +109,9 @@ class LiveGame:
 
     def _loop(self):
         nxt = time.perf_counter()
+        tick_s = 1.0 / self.tuning["tick_hz"]
         while not self._stop.is_set():
-            nxt += TICK_S
+            nxt += tick_s
             with self._lock:
                 try:
                     self._tick_once()
@@ -84,18 +128,23 @@ class LiveGame:
 
     def _tick_once(self):
         s = self.session
-        if s.done:
+        if not self.active or s.done:
             return
         for row in s.step(self.inputs.advance()):
             self.events.append(row)
         del self.events[:-RECENT_EVENTS]
-        if s.done and not self._saved:
+        if self.mode == "gather" and s.done and self.inventory_out:
+            self._save_inventory()
+
+    def _save_inventory(self):
+        try:
+            self.session.write_inventory_if_done(self.inventory_out)
+        except OSError as e:
+            self._inventory_error = str(e)
+            sys.stderr.write(f"lỗi ghi kho: {e}\n")
+        else:
             self._saved = True
-            if self.inventory_out:
-                try:
-                    s.write_inventory_if_done(self.inventory_out)
-                except OSError as e:
-                    sys.stderr.write(f"lỗi ghi kho: {e}\n")
+            self._inventory_error = None
 
     # --- API cho handler -----------------------------------------------------------
     def state_json(self) -> bytes:
@@ -106,6 +155,9 @@ class LiveGame:
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None
             snap["error"] = self.error
+            snap["session_id"] = self._session_id
+            snap["inventory_saved"] = self._saved
+            snap["inventory_file"] = os.path.basename(self.inventory_out) if self.inventory_out else None
             return json.dumps(snap, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
     def set_input(self, body: dict):
@@ -116,7 +168,7 @@ class LiveGame:
             if not ok:
                 raise ValueError("move phải là [a, b] trong [-1, 1]")
         buttons = {}
-        for b in ("interact", "catch"):
+        for b in BUTTONS_V10:
             if b in body:
                 if not isinstance(body[b], bool):
                     raise ValueError(f"{b} phải là boolean")
@@ -126,7 +178,39 @@ class LiveGame:
 
     def restart(self):
         with self._lock:
-            self._reset()
+            self._begin(*self._phase_args)
+
+    def play(self, choice):
+        if choice not in ("day", "gather", "quan", "menu"):
+            raise ValueError("Chế độ chơi phải là day, gather, quan hoặc menu.")
+        with self._lock:
+            if choice == "menu":
+                self.active = False
+                return
+            mode = "gather" if choice == "day" else choice
+            scenario = self._launch_scenario if mode == self._launch_mode else {}
+            if mode == "gather":
+                self._begin(choice, mode, scenario, None, self._browser_inventory_path)
+            else:
+                inventory = self._launch_inventory
+                if inventory is None and "stock" not in scenario:
+                    path = self._browser_inventory_path
+                    inventory = read_inventory(path if os.path.exists(path) else SAMPLE_INVENTORY)
+                self._begin(choice, mode, scenario, inventory, None)
+
+    def continue_day(self):
+        with self._lock:
+            if (self.play_mode != "day" or not self.active or self.mode != "gather"
+                    or not any(row["name"] == "gather_end" for row in self.events)):
+                raise ValueError("Cần hoàn thành buổi sáng trong chế độ Chơi trọn ngày.")
+            if not self._saved:
+                self._save_inventory()
+            if not self._saved:
+                raise OSError(f"Chưa ghi được kho: {self._inventory_error}")
+            inventory = read_inventory(self.inventory_out)
+            if inventory != self.session.sim.inventory_items():
+                raise BadInput("File kho đã thay đổi sau khi chốt buổi sáng.")
+            self._begin("day", "quan", {}, inventory, None)
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -148,10 +232,12 @@ class _Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/state":
             self._send(200, self.game.state_json())
-        elif path in ("/", "/index.html"):
+        elif path == "/config":
+            self._send(200, json.dumps(self.game.tuning, ensure_ascii=False).encode("utf-8"))
+        elif (name := "index.html" if path == "/" else path.removeprefix("/")) in WEB_FILES:
             try:
-                with open(os.path.join(WEB_DIR, "index.html"), "rb") as f:
-                    self._send(200, f.read(), "text/html; charset=utf-8")
+                with open(os.path.join(WEB_DIR, name), "rb") as f:
+                    self._send(200, f.read(), f"{WEB_FILES[name]}; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
         else:
@@ -168,18 +254,26 @@ class _Handler(BaseHTTPRequestHandler):
             return
         raw = self.rfile.read(n) if n else b""
         try:
-            if path == "/input":
+            if path in ("/input", "/play"):
                 body = json.loads(raw.decode("utf-8") or "{}")
                 if not isinstance(body, dict):
                     raise ValueError("body phải là object")
-                self.game.set_input(body)
+                if path == "/input":
+                    self.game.set_input(body)
+                else:
+                    self.game.play(body.get("mode"))
+            elif path == "/continue":
+                self.game.continue_day()
             elif path == "/restart":
                 self.game.restart()
             else:
                 self._send(404, b'{"error":"khong co"}')
                 return
-        except (ValueError, UnicodeDecodeError) as e:
+        except (ValueError, BadInput) as e:
             self._send(400, json.dumps({"error": str(e)}).encode("utf-8"))
+            return
+        except OSError as e:
+            self._send(500, json.dumps({"error": str(e)}).encode("utf-8"))
             return
         self._send(200, b'{"ok":true}')
 
@@ -214,7 +308,7 @@ class LiveServer:
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(prog="chonoi.live", description="Chơi trực tiếp trên trình duyệt (starter).")
+    p = argparse.ArgumentParser(prog="chonoi.live", description="Chơi Quán Ăn Chợ Nổi trên trình duyệt.")
     p.add_argument("--mode", required=True, choices=["gather", "quan"])
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--port", type=int, default=8000, help="0 = cổng ngẫu nhiên")
@@ -233,7 +327,7 @@ def main(argv=None) -> int:
         inventory = read_inventory(a.inventory) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, autoplay=False)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
@@ -242,7 +336,7 @@ def main(argv=None) -> int:
         sys.stderr.write(f"không mở được cổng {a.port}: {e}\n")
         return 1
     server.start()
-    print(f"Mở trình duyệt tại {server.url}  (chế độ {a.mode}, seed {a.seed}). Ctrl+C để dừng.", flush=True)
+    print(f"Open {server.url} ({a.mode}, seed {a.seed}). Ctrl+C to stop.", flush=True)
     try:
         while True:
             time.sleep(0.5)

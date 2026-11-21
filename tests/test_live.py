@@ -1,10 +1,12 @@
 """Test cửa sổ chơi trực tiếp (chonoi.live). Chỉ dành cho starter Python: nhóm đổi ngôn ngữ thì xóa file này."""
 
 import json
+import tempfile
 import time
 import unittest
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 from chonoi.contract import load_contract
 from chonoi.live import LiveGame, LiveServer
@@ -56,6 +58,52 @@ class LiveServerTest(unittest.TestCase):
             server.stop()
         self.assertFalse(server.game._thread.is_alive())
         self.assertFalse(server._thread.is_alive())
+
+
+class BrowserSessionTest(unittest.TestCase):
+    def test_button_edges_become_one_tick_pulses(self):
+        game = LiveGame("gather", load_contract()["tuning"], {}, 1)
+        game.set_input({"move": [1, 1], "interact": True, "catch": True})
+        game.set_input({"interact": True})
+        game.set_input({"interact": False})
+        game.set_input({"interact": True})
+        states = [game.inputs.advance() for _ in range(4)]
+        self.assertEqual([state.held for state in states], [
+            {"interact": True, "catch": True},
+            {"interact": False, "catch": False},
+            {"interact": True, "catch": False},
+            {"interact": False, "catch": False},
+        ])
+        for state in states:
+            self.assertAlmostEqual(sum(component ** 2 for component in state.move), 1)
+            for name, held in state.held.items():
+                self.assertEqual(state.pressed(name), held)
+
+    def test_browser_day_hands_off_the_finalized_inventory(self):
+        with tempfile.TemporaryDirectory() as directory:
+            inventory = Path(directory) / "inventory.json"
+            game = LiveGame("gather", load_contract()["tuning"], {"hold": ["ca_loc", "bong_sung", "bong_sung"]}, 42,
+                            inventory_out=inventory, autoplay=False)
+            game.play("day")
+            with self.assertRaises(ValueError):
+                game.continue_day()
+            self.assertFalse(inventory.exists())
+
+            game.set_input({"interact": True})
+            game._tick_once()
+            morning = json.loads(game.state_json())
+            stored = json.loads(inventory.read_text(encoding="utf-8"))
+            self.assertTrue(morning["inventory_saved"])
+            self.assertEqual(morning["events"][-1]["data"]["inventory"], stored)
+            game.continue_day()
+
+            evening = json.loads(game.state_json())
+            self.assertEqual(evening["mode"], "quan")
+            self.assertEqual(evening["tick"], 0)
+            self.assertEqual(evening["stock"], {"bong_sung": 2, "ca_loc": 1})
+            self.assertGreater(evening["session_id"], morning["session_id"])
+            game.restart()
+            self.assertEqual(json.loads(game.state_json())["stock"], evening["stock"])
 
 
 if __name__ == "__main__":
