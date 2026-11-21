@@ -30,3 +30,5 @@
 - Điều cần chỉnh cho Phase 2:
   - Bổ sung bằng chứng chạy headless thực tế vào `docs/proof/phase-1/`.
   - Tách test lát thành file theo quy tắc 1 file test/lát nếu đội phân công cần.
+| Q3: customers, reservation, patience | 23 outcome tests; deterministic replay; invalid input rejected before output; gather/quan headless evidence | `docs/proof/phase-1/q3/README.md`, `tests/test_p1_q3.py` | PASS provisional; official acceptance mapping pending PRD/Test Contract |
+| Q4 integration review | Happy path and orphan-dish lifecycle review | `docs/proof/phase-1/q3/q4-review.md` | Happy path passed; Q4-F1 remains open |

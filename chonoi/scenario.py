@@ -184,13 +184,16 @@ def _validate_quan(b, tuning):
         for key in ("order_tick", "patience_ticks_left", "eat_ticks_left"):
             if key in c:
                 _nonneg_int(f"customers.{c['id']}.{key}", c[key])
-        reserved = c.get("reserved", menu[dish_id]["recipe"])
+        # Ordered/eating customers have already transferred the recipe to cooking.
+        reserved = c.get("reserved", {} if state in ("ordered", "eating") else menu[dish_id]["recipe"])
         if not isinstance(reserved, dict):
             raise BadInput(f"customers.{c['id']}.reserved phải là object")
         try:
             reserved = validate_items(reserved)
         except BadInput as e:
             raise BadInput(f"customers.{c['id']}.reserved: {e}")
+        if state in ("ordered", "eating") and reserved:
+            raise BadInput(f"customers.{c['id']}: khách đã nấu không giữ nguyên liệu thô")
         for kind, amount in reserved.items():
             reserved_totals[kind] = reserved_totals.get(kind, 0) + amount
     if "stock" in b:
