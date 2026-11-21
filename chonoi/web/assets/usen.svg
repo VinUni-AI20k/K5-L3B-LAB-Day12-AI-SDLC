@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64"><defs><pattern id="r" width="8" height="8" patternUnits="userSpaceOnUse"><rect width="8" height="8" fill="#f4efe2"/><rect width="4" height="4" fill="#22252c"/><rect x="4" y="4" width="4" height="4" fill="#22252c"/></pattern></defs>
+<rect x="3" y="27" width="20" height="24" rx="8" fill="#a87b45" stroke="#6f4b25" stroke-width="2"/>
+<path d="M6 33h14M6 39h14M6 45h14M10 28v22M16 28v22" stroke="#6f4b25" stroke-width="1.2" fill="none"/>
+<path d="M22 40c0-9 20-10 22 0l2 16H20z" fill="#2d3a5a"/>
+<path d="M30 38l8 6-8 6" stroke="#3f5080" stroke-width="2" fill="none"/>
+<circle cx="38" cy="22" r="12" fill="#e8b48a"/>
+<path d="M25 20c3-12 22-12 25 0v3H25z" fill="url(#r)" stroke="#22252c" stroke-width="1.2"/>
+<path d="M26 19l-9-4 3 7z" fill="url(#r)" stroke="#22252c" stroke-width="1"/>
+<circle cx="45" cy="24" r="5.5" fill="#8ed8e8" stroke="#3d3d3d" stroke-width="2"/>
+<path d="M27 24h12" stroke="#3d3d3d" stroke-width="2"/>
+<circle cx="46.5" cy="23" r="1.4" fill="#fff"/>
+<path d="M42 31q4 2 8 0" stroke="#b5654a" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+<ellipse cx="46" cy="46" rx="6" ry="3" fill="#e8b48a" transform="rotate(20 46 46)"/>
+</svg>
