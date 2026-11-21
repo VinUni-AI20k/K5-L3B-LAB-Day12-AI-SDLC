@@ -65,15 +65,17 @@ class GatherSim:
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
-        if "fish" in scenario:
-            src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
-            src_fish = t["fish_initial"]
-        else:
-            src_fish = []
+        self.random_fish = scenario.get("random_fish", True)
+        initial_fish = t["fish_initial"]
+        self.fish_swim = self.random_fish and isinstance(initial_fish, int)
+        defaults = initial_fish if self.random_fish and isinstance(initial_fish, list) else []
+        src_fish = scenario.get("fish", defaults)
         self.fish_spawn_ticks = 0
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0), "move_ticks": 0} for f in src_fish]
+                      "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)} for f in src_fish]
+        if self.fish_swim and "fish" not in scenario:
+            for _ in range(initial_fish):
+                self._spawn_fish()
         self.monsters = init_monsters(t, scenario, day=day)
         for coll in (self.nodes, self.fish, self.monsters):
             for e in coll:
@@ -100,8 +102,7 @@ class GatherSim:
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
-                     for f in sort_by_id(self.fish)],
+            "fish": sort_by_id(self.fish),
             "monsters": monster_snapshot(self.monsters),
         }
 
@@ -199,16 +200,17 @@ class GatherSim:
                         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
                         events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"],
                                                        "yield": amount}))
-        # 5. hết giờ trước khi cá thường bơi và sinh đàn
+        # 5. xét hết giờ trước khi cá thường bơi và sinh đàn
         if self.time_left_ticks <= 0:
             self._finish("time", events)
-            return events
-        # 6. cá bơi và sinh đàn mới (sau khi người chơi đã bắt theo vị trí trước khi cá bơi)
-        self._move_fish()
-        self.fish_spawn_ticks += 1
-        if self.fish_spawn_ticks >= int(self.t["fish_spawn_ticks"]):
-            self.fish_spawn_ticks = 0
-            self._spawn_fish()
+        elif self.fish_swim:
+            self._move_fish()
+            self.fish_spawn_ticks += 1
+            if self.fish_spawn_ticks == self.t["fish_spawn_ticks"]:
+                self.fish_spawn_ticks = 0
+                fish = self._spawn_fish()
+                if fish is not None:
+                    events.append(("fish_spawned", {k: fish[k] for k in ("id", "kind", "pos")}))
         return events
 
     # --- tiện ích ---------------------------------------------------------------
@@ -241,39 +243,50 @@ class GatherSim:
                 self.vel[i] = min(0.0, self.vel[i])
 
     def _move_fish(self):
-        speed = float(self.t["fish_speed"])
-        turn_ticks = int(self.t["fish_turn_ticks"])
+        distance = self.t["fish_speed"] / TICK
+        turn_ticks = self.t["fish_turn_ticks"]
         rng = self.rng.get("fish_swim")
-        bounds = self.t["bounds"]
         for fish in sort_by_id(self.fish):
-            fish["move_ticks"] += 1
-            if fish["move_ticks"] >= turn_ticks:
-                fish["move_ticks"] = 0
-                fish["heading_deg"] = rng.random() * 360.0
-            angle = math.radians(fish["heading_deg"])
-            fish["pos"][0] += math.cos(angle) * speed / TICK
-            fish["pos"][1] += math.sin(angle) * speed / TICK
-            if fish["pos"][0] <= bounds["x"][0] or fish["pos"][0] >= bounds["x"][1]:
-                fish["pos"][0] = min(bounds["x"][1], max(bounds["x"][0], fish["pos"][0]))
-                fish["heading_deg"] = (180.0 - fish["heading_deg"]) % 360.0
-            if fish["pos"][1] <= self.t["surface_depth"] or fish["pos"][1] >= bounds["d"][1]:
-                fish["pos"][1] = min(bounds["d"][1], max(self.t["surface_depth"] + 1e-9, fish["pos"][1]))
-                fish["heading_deg"] = (-fish["heading_deg"]) % 360.0
+            fish["age_ticks"] += 1
+            heading = fish["heading_deg"]
+            if fish["age_ticks"] % turn_ticks == 0:
+                heading = rng.random() * 360
+            angle = math.radians(heading)
+            x, d = fish["pos"]
+            x, reflect_x = self._reflect(x, math.cos(angle) * distance, self.t["fish_x"])
+            d, reflect_d = self._reflect(d, math.sin(angle) * distance, self.t["fish_depths"][fish["kind"]])
+            if reflect_x:
+                heading = (180 - heading) % 360
+            if reflect_d:
+                heading = -heading % 360
+            fish.update(pos=[x, d], heading_deg=heading)
+
+    @staticmethod
+    def _reflect(position, delta, bounds):
+        lo, hi = bounds
+        next_pos = min(max(position, lo), hi) + delta
+        if next_pos <= lo and delta < 0:
+            return 2 * lo - next_pos, True
+        if next_pos >= hi and delta > 0:
+            return 2 * hi - next_pos, True
+        return next_pos, False
 
     def _spawn_fish(self):
-        if len(self.fish) >= int(self.t["fish_max"]):
-            return
+        if len(self.fish) >= self.t["fish_max"]:
+            return None
+        clearance = self.t["fish_spawn_clearance"]
+        spots = {}
+        for kind, depths in sorted(self.t["fish_spawn_depths"].items()):
+            available = [(x, d) for x in self.t["fish_spawn_x"] for d in depths
+                         if all(math.dist((x, d), fish["pos"]) > clearance for fish in self.fish)]
+            if available:
+                spots[kind] = available
+        if not spots:
+            return None
         rng = self.rng.get("fish_spawn")
-        b = self.t["bounds"]
-        roll = rng.random()
-        weights = self.t["fish_spawn_weights"]
-        if roll < weights["ca_linh"]:
-            kind = "ca_linh"
-        elif roll < weights["ca_linh"] + weights["ca_loc"]:
-            kind = "ca_loc"
-        else:
-            kind = "ca_keo"
-        pos = [b["x"][0] + rng.random() * (b["x"][1] - b["x"][0]),
-               self.t["surface_depth"] + 0.1 + rng.random() * (b["d"][1] - self.t["surface_depth"] - 0.1)]
-        self.fish.append({"id": self.ids.new("F"), "kind": kind, "pos": pos,
-                          "heading_deg": rng.random() * 360.0, "move_ticks": 0})
+        kinds = list(spots)
+        kind = rng.choices(kinds, weights=[self.t["fish_weights"][key] for key in kinds])[0]
+        fish = {"id": self.ids.new("F"), "kind": kind, "pos": list(rng.choice(spots[kind])),
+                "heading_deg": rng.random() * 360, "age_ticks": 0}
+        self.fish.append(fish)
+        return fish

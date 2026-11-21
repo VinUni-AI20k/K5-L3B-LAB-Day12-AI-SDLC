@@ -12,6 +12,8 @@
 | 1 | Người 3 | Codex | Đối chiếu tài liệu PRD-0, sửa logic và chạy lại test | Chưa có số liệu | Bản đầu ghi tồn khả dụng vào snapshot và cho khách rời trước tương tác. PRD-0 mục D–F xác nhận snapshot ghi tồn vật lý và khách rời sau tương tác. |
 | 2 | lunaHieu | Gemini Web UI (tên model chưa được cung cấp) | Chốt đặc tả P2-02 từ TICKET-02/Test Contract v1.1, giới hạn phạm vi module quái và review diff/test trước commit. | Ước tính thô 10.000–20.000 token; chưa có thống kê từ Web UI hoặc số chi phí xác nhận. | So yêu cầu với `docs/plan/phase-2.md`, diff tracked và bốn điểm biên recoil/hit/faint/snapshot; không đoán tên model. |
 | 2 | lunaHieu | Codex (GPT-6) | Đọc spec và repo, triển khai `monsters.py`, hook Gather, validation scenario, test P2-02; chạy 80 test và lưu bằng chứng; lập ma trận AC. | Ước tính thô 20.000–40.000 token; không phải số đo từ ứng dụng hoặc hóa đơn. | Bộ test đầu phát hiện sai lệch số học khi chạm waypoint; review toàn suite phát hiện test Phase 1 trái luật ngạt v1.1. Sửa logic và cập nhật kỳ vọng test có lý do, rồi chạy lại 80/80. |
+| 2 | Người 3 | Codex | Tích hợp bếp P1-04, triển khai Day/Shop/pause, kế hoạch D1–D5 và test hồi quy | Không đo | Ba kỳ vọng P1 cần cập nhật theo v1.1: số đàn lấy từ manifest, `day` đã hợp lệ và `attack` đúng kiểu được bỏ qua khi tắt mở rộng. |
+| 2 | Người 3 | Codex | Ghép P2-03 và P2-01 trên main | Không đo | Đồng bộ cấu hình cá theo Ticket-02 mục 4.1, dùng `age_ticks` và miền bơi theo loài. |
 
 Các khoảng token là ước tính theo lượng trao đổi, không phải số token đo từ ứng dụng hoặc hóa đơn. Thông tin Gemini Phase 1 do `lunaHieu` cung cấp; cập nhật tên model và số liệu Phase 2 khi có thống kê thực tế.
 

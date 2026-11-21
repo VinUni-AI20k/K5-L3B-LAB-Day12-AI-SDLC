@@ -1,6 +1,5 @@
 """Phase 2, P2-01: cá bơi, đổi hướng, phản xạ mép, sinh đàn, bắt cá, deterministic."""
 
-import copy
 import math
 import unittest
 
@@ -37,7 +36,7 @@ class GatherFish(unittest.TestCase):
         self.assertEqual(s.sim.fish[0]["heading_deg"], 45)
         self.run_ticks(s, 1)
         self.assertNotEqual(s.sim.fish[0]["heading_deg"], 45)
-        self.assertEqual(s.sim.fish[0]["move_ticks"], 0)
+        self.assertEqual(s.sim.fish[0]["age_ticks"], 120)
 
     def test_doi_huong_theo_seed_va_deterministic(self):
         block = {"fish": [{"id": "F1", "kind": "ca_loc", "pos": [30, 10], "heading_deg": 45}]}
@@ -51,30 +50,41 @@ class GatherFish(unittest.TestCase):
         self.assertNotEqual(a.sim.fish[0]["heading_deg"], c.sim.fish[0]["heading_deg"])
 
     def test_phan_xa_mep_phai(self):
-        bx = self.g["bounds"]["x"][1]
+        bx = self.g["fish_x"][1]
         s = self.session({"fish": [{"id": "F1", "kind": "ca_linh", "pos": [bx - 0.01, 10], "heading_deg": 0}]})
         self.run_ticks(s, 1)
         f = s.sim.fish[0]
-        self.assertEqual(f["pos"][0], bx)
+        self.assertAlmostEqual(f["pos"][0], bx + 0.01 - self.g["fish_speed"] / self.tuning["tick_hz"])
         self.assertAlmostEqual(f["heading_deg"], 180.0, places=6)
 
-    def test_phan_xa_mat_nuoc(self):
-        s = self.session({"fish": [{"id": "F1", "kind": "ca_linh", "pos": [30, 0.51], "heading_deg": 270}]})
+    def test_phan_xa_mep_nong_cua_loai(self):
+        shallow = self.g["fish_depths"]["ca_linh"][0]
+        s = self.session({"fish": [{"id": "F1", "kind": "ca_linh", "pos": [30, shallow + 0.01],
+                                    "heading_deg": 270}]})
         self.run_ticks(s, 1)
         f = s.sim.fish[0]
-        self.assertGreater(f["pos"][1], self.g["surface_depth"])
+        self.assertAlmostEqual(f["pos"][1], shallow - 0.01 + self.g["fish_speed"] / self.tuning["tick_hz"])
         self.assertAlmostEqual(f["heading_deg"], 90.0, places=6)
 
     def test_sinh_dan_dung_chu_ky_360_tick(self):
         s = self.session({"fish": []})
         self.run_ticks(s, self.g["fish_spawn_ticks"] - 1)
         self.assertEqual(len(s.sim.fish), 0)
-        self.run_ticks(s, 1)
+        rows = self.run_ticks(s, 1)
         self.assertEqual(len(s.sim.fish), 1)
         new = s.sim.fish[0]
         self.assertTrue(new["id"].startswith("F"))
         self.assertIn(new["kind"], ("ca_linh", "ca_loc", "ca_keo"))
-        self.assertGreater(new["pos"][1], self.g["surface_depth"])
+        self.assertIn(new["pos"][0], self.g["fish_spawn_x"])
+        self.assertIn(new["pos"][1], self.g["fish_spawn_depths"][new["kind"]])
+        self.assertEqual(new["age_ticks"], 0)
+        self.assertEqual([row["name"] for row in rows], ["fish_spawned"])
+
+    def test_random_fish_false_keeps_fixture_still_and_prevents_spawns(self):
+        fish = {"id": "F1", "kind": "ca_linh", "pos": [30, 5], "heading_deg": 0, "age_ticks": 119}
+        s = self.session({"random_fish": False, "fish": [fish]})
+        self.assertEqual(self.run_ticks(s, self.g["fish_spawn_ticks"]), [])
+        self.assertEqual(s.sim.fish, [fish])
 
     def test_tran_12_dan(self):
         fish = [{"id": f"F{i}", "kind": "ca_linh", "pos": [10 + i, 10], "heading_deg": 0} for i in range(1, 13)]
@@ -90,7 +100,7 @@ class GatherFish(unittest.TestCase):
             s.sim.fish = []
             s.sim._spawn_fish()
             counts[s.sim.fish[0]["kind"]] += 1
-        for kind, w in self.g["fish_spawn_weights"].items():
+        for kind, w in self.g["fish_weights"].items():
             self.assertAlmostEqual(counts[kind] / n, w, delta=0.03, msg=kind)
 
     def test_bat_ca_keo_nhan_dung_yield(self):
