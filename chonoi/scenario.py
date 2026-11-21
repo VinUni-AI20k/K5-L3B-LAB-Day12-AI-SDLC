@@ -8,7 +8,7 @@ phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 m
 import json
 
 from .errors import BadInput
-from .inventory import KINDS_P1, validate_items
+from .inventory import KINDS_ALL, KINDS_P1, validate_items
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
@@ -91,10 +91,28 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
-            raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
+        if not isinstance(h, list):
+            raise BadInput("hold phải là mảng")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
+        seen_ids = set()
+        for it in h:
+            if isinstance(it, str):
+                if it not in KINDS_ALL:
+                    raise BadInput(f"nguyên liệu lạ trong hold: {it}")
+            elif isinstance(it, dict):
+                if not isinstance(it.get("id"), str) or not it["id"]:
+                    raise BadInput("cá thể hold cần id (chuỗi khác rỗng)")
+                if it["id"] in seen_ids:
+                    raise BadInput(f"id trùng trong hold: {it['id']}")
+                seen_ids.add(it["id"])
+                if it.get("kind") not in KINDS_ALL:
+                    raise BadInput(f"nguyên liệu lạ trong hold: {it.get('kind')}")
+                fr = it.get("fresh")
+                if isinstance(fr, bool) or not isinstance(fr, (int, float)) or not (0 <= fr <= 100):
+                    raise BadInput(f"fresh trong hold phải trong [0, 100]: {fr!r}")
+            else:
+                raise BadInput("phần tử hold phải là string hoặc object cá thể")
     p = b.get("player", {})
     if not isinstance(p, dict):
         raise BadInput("player phải là object")

@@ -1,17 +1,19 @@
-"""Buổi sáng — Lặn & Hái (`gather`). Hỗ trợ Contract v1.0 và v1.1.
+"""Buổi sáng — Lặn & Hái (`gather`). Hỗ trợ Contract v1.0, v1.1 và v1.2.
 
 Mặt cắt dòng sông nhìn NGANG: vị trí [x, d] (x sang phải, d độ sâu hướng xuống, d=0 là mặt nước).
 move = [x, d]: thành phần thứ hai DƯƠNG = bơi xuống.
 
 Lát 1: bơi, oxy, dive/surface, ngạt (choke), faint, giỏ LIFO.
-Lát 2: hái nút mặt nước (N1..N6), bắt cá dưới nước (linh, lóc, kèo), cá bơi và sinh cá theo lịch, cập bến, ghi kho.
+Lát 2: hái nút mặt nước (N1..N6), bắt cá dưới nước (linh, lóc, kèo), cá bơi và sinh cá theo lịch,
+       độ tươi giỏ, cá thể I1..In, hao tươi 0.5/s, ươn < 30 (spoiled), cập bến, xuất kho cá thể.
 
-Thứ tự xử lý mỗi bước (PRD Phase 2 mục 4.5):
+Thứ tự xử lý mỗi bước (PRD Phase 3 mục 1 & Phase 2 mục 4.5):
   1. Giảm đồng hồ, timer, nút mọc lại, giảm cooldown và bất tử.
+     Hao tươi hàng có sẵn trong giỏ (0.5/s kẹp đáy 0), phát `spoiled` khi vượt ngưỡng < 30.
   2. Bơi + chặn biên, so vị trí đầu/cuối → dive/surface.
   3. Tính oxy theo d cuối bước → oxygen_empty, choke, faint.
-  4. interact: bến trước → docked; ngoài bến + mặt nước → hái.
-  5. catch: dưới nước + hết hồi → bắt cá (theo vị trí cá trước khi bơi).
+  4. interact: bến trước → docked; ngoài bến + mặt nước → hái (cá thể mới fresh=100).
+  5. catch: dưới nước + hết hồi → bắt cá (theo vị trí cá trước khi bơi, cá thể mới fresh=100).
   6. Hết giờ → time.
   7. Nếu còn giờ: cá bơi, sinh cá theo lịch (phase_tick = 360*k).
 """
@@ -60,6 +62,13 @@ class GatherSim:
         self.ids = ids
         self.phase_tick = int(scenario.get("phase_tick", 0))
         self.random_fish = bool(scenario.get("random_fish", True))
+
+        # Xác định phiên bản contract để tương thích cả v1.0/v1.1 và v1.2
+        self.contract_version = str(scenario.get("contract_version") or tuning.get("contract_version") or "1.0")
+        raw_hold = scenario.get("hold", [])
+        if raw_hold and isinstance(raw_hold[0], dict):
+            self.contract_version = "1.2"
+
         p = scenario.get("player", {})
         self.pos = [float(c) for c in p.get("pos", t["start_pos"])]
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
@@ -72,7 +81,26 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.hold = list(scenario.get("hold", []))   # LIFO: cuối mảng = mới nhất
+
+        # Giỏ cá thể: mỗi phần tử là dict {id, kind, fresh}
+        self.hold = []
+        for item in raw_hold:
+            if isinstance(item, dict):
+                iid = str(item["id"])
+                ids.reserve(iid)
+                self.hold.append({
+                    "id": iid,
+                    "kind": str(item["kind"]),
+                    "fresh": float(item.get("fresh", 100.0)),
+                })
+            else:
+                iid = ids.new("I")
+                self.hold.append({
+                    "id": iid,
+                    "kind": str(item),
+                    "fresh": 100.0,
+                })
+
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
 
         # Nút hái
@@ -160,33 +188,41 @@ class GatherSim:
             })
         return initial_fish
 
-    # --- giao diện cho runner ---------------------------------------------------
-    def inventory_items(self) -> dict:
+    # --- giao diện cho runner & inventory ---------------------------------------
+    def inventory_items(self):
+        if self.contract_version == "1.2":
+            return sort_by_id(self.hold)
         return hold_to_items(self.hold)
 
     def snapshot(self) -> dict:
+        if self.contract_version == "1.2":
+            hold_snap = [{"id": it["id"], "kind": it["kind"], "fresh": it["fresh"]} for it in self.hold]
+        else:
+            hold_snap = [it["kind"] for it in self.hold]
+
         return {
             "player": {"pos": self.pos, "vel": self.vel, "heading_deg": self.heading,
                        "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": list(self.hold), "hold_count": len(self.hold),
+            "hold": hold_snap,
+            "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
             "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"],
-                       "age_ticks": f.get("age_ticks", 0)}
-                      for f in sort_by_id(self.fish)],
+                      "age_ticks": f.get("age_ticks", 0)}
+                     for f in sort_by_id(self.fish)],
         }
 
-    # --- một bước (PRD-0 mục F & Phase 2 mục 4.5) -------------------------------
+    # --- một bước (PRD Phase 3 mục 1 & Phase 2 mục 4.5) -------------------------
     def step(self, inp):
         events = []
         self.phase_tick += 1
 
-        # ── 1. Đồng hồ, timer, nút mọc lại ─────────────────────────────────────
+        # ── 1. Đồng hồ, timer, nút mọc lại, hao tươi giỏ ───────────────────────
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
@@ -195,6 +231,26 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+
+        # Hao tươi hàng có sẵn trong giỏ (0.5/s kẹp đáy 0)
+        fresh_cfg = self.t.get("freshness", {})
+        decay = float(fresh_cfg.get("gather_decay_per_s", 0.5)) / TICK
+        spoiled_below = float(fresh_cfg.get("spoiled_below", 30.0))
+        spoiled_items = []
+
+        for it in self.hold:
+            was = it["fresh"]
+            now = max(0.0, was - decay)
+            it["fresh"] = now
+            if was >= spoiled_below and now < spoiled_below:
+                spoiled_items.append(it)
+
+        for it in sort_by_id(spoiled_items):
+            events.append(("spoiled", {
+                "item_id": it["id"],
+                "kind": it["kind"],
+                "location": "hold",
+            }))
 
         # ── 2. Bơi + chặn biên, ghi nhận vị trí trước để so dive/surface ───────
         was_surface = self._at_surface()
@@ -231,7 +287,8 @@ class GatherSim:
                         # Faint: bỏ giỏ theo LIFO (mảng đảo ngược), kho rỗng
                         lost = list(reversed(self.hold))
                         self.hold.clear()
-                        events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
+                        lost_payload = lost if self.contract_version == "1.2" else [it["kind"] for it in lost]
+                        events.append(("faint", {"cause": "choke", "lost": lost_payload, "hp": 0}))
                         self._finish("fainted", events)
                         return events
 
@@ -256,7 +313,12 @@ class GatherSim:
                         }))
                     else:
                         for _ in range(amount):
-                            self.hold.append(node["kind"])
+                            new_id = self.ids.new("I")
+                            self.hold.append({
+                                "id": new_id,
+                                "kind": node["kind"],
+                                "fresh": 100.0,
+                            })
                         node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
                         events.append(("gather", {
                             "node_id": node["id"],
@@ -285,7 +347,12 @@ class GatherSim:
                     else:
                         # Đủ chỗ: thêm toàn bộ yield, xóa đàn, đặt cooldown
                         for _ in range(yield_count):
-                            self.hold.append(fish["kind"])
+                            new_id = self.ids.new("I")
+                            self.hold.append({
+                                "id": new_id,
+                                "kind": fish["kind"],
+                                "fresh": 100.0,
+                            })
                         self.fish.remove(fish)
                         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
                         events.append(("fish_caught", {
@@ -447,7 +514,10 @@ class GatherSim:
     def _finish(self, reason, events):
         self.done = True
         self.reason = reason
-        inv = {"items": {}} if reason == "fainted" else {"items": self.inventory_items()}
+        if self.contract_version == "1.2":
+            inv = {"items": []} if reason == "fainted" else {"items": self.inventory_items()}
+        else:
+            inv = {"items": {}} if reason == "fainted" else {"items": self.inventory_items()}
         events.append(("gather_end", {"reason": reason, "inventory": inv}))
 
     def _move(self, inp):
