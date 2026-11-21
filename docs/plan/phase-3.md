@@ -64,16 +64,16 @@ Test Contract **v1.2** · hạn tag `phase-3` 2:30. Chia việc theo vai trong [
 ## 3. Việc từng người (đánh dấu `[x]`, ghi commit/PR) — mã AC theo `docs/verification/phase-3.md` của Tiệp
 
 ### s0ra1n0 — lát 1, Integrator → **lát 0 v1.2**
-- [ ] **Ngay:** chạy lại `verify.py --phase 2` trên `main`, cập nhật `docs/verification/phase-2.md`, đẩy tag **`phase-2`** (đã trễ hạn 1:55 — ghi trung thực)
-- [ ] **Lát 0 v1.2, merge chậm nhất phút 15** (nhánh `feat/p3-lat0`):
-  - [ ] `game.contract.json`: `contract_version: "1.2"`, `tuning.freshness`
-  - [ ] `chonoi/items.py` (mục 2A) + unit test
-  - [ ] `inventory.py` đọc/ghi kho cá thể, kho đếm cũ → mã 2; `contract.py` kiểm `freshness`
-  - [ ] `scenario.py`: `gather.hold`, `quan.stock` là mảng cá thể, `reserved` là mảng id; id trùng / trỏ hàng ươn / sai công thức / dùng chung → mã 2 (phần chung; phần khách để lát 3)
-  - [ ] Sửa test cũ dùng kho đếm (danh sách ở AC-P3-19 của Tiệp), ghi lý do trong commit
-- [ ] Sau lát 0: `lost` của `faint` / `monster_hit` là mảng cá thể (LIFO)
-- [ ] Nợ P2 nếu còn thời gian: I-1 burn (`contract.py` nhận `burn_s` hữu hạn khi bật `burn`)
-- AC: P3-05 (phần `lost`), P3-06, P3-07, P3-17 (phần adapter), P3-21. Cuối phase đẩy tag `phase-3`.
+- [x] **Ngay:** chạy lại `verify.py --phase 2` trên `main`, cập nhật `docs/verification/phase-2.md`, đẩy tag **`phase-2`** (đã trễ hạn 1:55 — ghi trung thực)
+- [x] **Lát 0 v1.2** (nhánh `feat/p3-lat0`, PR #18 `4f33304`):
+  - [x] `game.contract.json`: `contract_version: "1.2"`, `tuning.freshness` — bật ở PR #21 (trongnghia2304) khi lát 2/3/4 xong; lát 0 rẽ nhánh theo `tuning.freshness`
+  - [x] `chonoi/items.py` (mục 2A) + unit test (`tests/test_lat0_v12.py`)
+  - [x] `inventory.py` đọc/ghi kho cá thể, kho đếm cũ → mã 2; `contract.py` kiểm `freshness`
+  - [x] `scenario.py`: `gather.hold`, `quan.stock` là mảng cá thể, `reserved` là mảng id; id trùng / trỏ hàng ươn / sai công thức / dùng chung → mã 2 (phần chung; phần khách để lát 3)
+  - [ ] Sửa test cũ dùng kho đếm — **còn nợ**: PR #21 ghim 12 module chạy v1.1 qua `tests/legacy_v11.py` (AC-P3-19 đạt một phần)
+- [x] Sau lát 0: `lost` của `faint` / `monster_hit` là mảng cá thể (LIFO)
+- [x] Nợ P2: I-1 burn (xong ở Phase 2) (`contract.py` nhận `burn_s` hữu hạn khi bật `burn`)
+- AC: P3-05 (phần `lost`), P3-06, P3-07, P3-17 (phần adapter), P3-21. Cuối phase đẩy tag `phase-3` (`verify.py --phase 3` 4/4 đạt ở `0d89857`).
 
 ### mhoo40 — lát 2 (giỏ cá thể)
 - Làm ngay: [ ] đọc `tests/test_fresh_p3.py` (`Threshold`, `SpoiledOnce`, `GatherDecay`, `GatherIds`, `PauseFresh`), code trước theo chữ ký `items.py` đã chốt

@@ -16,10 +16,9 @@ from chonoi.rng import Streams
 from chonoi.scenario import load_scenario
 from chonoi.sim.gather import GatherSim
 from helpers import Workdir, events, read_jsonl, run_headless, snapshots, write_json
-from legacy_v11 import setUpModule, tearDownModule  # noqa: F401  v1.2: fixture kho đếm chạy trên manifest v1.1 tạm, xem tests/legacy_v11.py
+from qa_helpers import mk_hold
 
 TUNING = load_contract()["tuning"]
-TUNING.pop("freshness", None)  # v1.2: đọc lúc import (trước setUpModule) -> giữ luật v1.1 cho fixture kho đếm
 G = TUNING["gather"]
 
 
@@ -35,8 +34,8 @@ def gather_rows(w, block=None, seed=1, ticks=0, out="o.jsonl"):
 class ContractV11(unittest.TestCase):
     def test_so_chuan_v11(self):
         with open("game.contract.json", encoding="utf-8") as f:
-            # Ticket-03 thay contract_version 1.1 -> 1.2; số chuẩn v1.1 bên dưới giữ nguyên ở v1.2
-            self.assertEqual(json.load(f)["contract_version"], "1.2")
+            # Ticket-03: 1.1 -> 1.2; Ticket-04: 1.2 -> 1.3. Số chuẩn v1.1 bên dưới giữ nguyên ở v1.2/v1.3
+            self.assertEqual(json.load(f)["contract_version"], "1.3")
         self.assertEqual(G["fish_initial"], 8)
         self.assertEqual(G["fish_yield"], {"ca_linh": 3, "ca_loc": 1, "ca_keo": 2})
         self.assertEqual([n["id"] for n in G["nodes"]], ["N1", "N2", "N3", "N4", "N5", "N6"])
@@ -141,18 +140,22 @@ class Monsters(unittest.TestCase):
 class KindsAndScenario(unittest.TestCase):
     def test_kind_moi_qua_kho_va_gio(self):
         with Workdir() as w:
-            sc = write_json(w.path("sc.json"), {"gather": {"hold": ["ca_keo", "keo_neo", "ca_keo"]}})
+            sc = write_json(w.path("sc.json"), {"gather": {"hold": mk_hold(["ca_keo", "keo_neo", "ca_keo"])}})
             inp = write_json(w.path("in.json"), {"frames": [{"tick": 0, "interact": True}]})
             inv = w.path("kho.json")
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "1", "--scenario", sc, "--inputs", inp,
                                      "--inventory-out", inv, "--out", w.path("g.jsonl"))
             self.assertEqual(code, 0, err)
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"ca_keo": 2, "keo_neo": 1}})
+                saved = json.load(f)
+            # v1.2: kind mới đi qua kho cá thể, giữ id; cập bến ở bước 1 nên đã hao 1 bước (99.992)
+            self.assertEqual(saved, {"items": [{"id": "I1", "kind": "ca_keo", "fresh": 99.992},
+                                               {"id": "I2", "kind": "keo_neo", "fresh": 99.992},
+                                               {"id": "I3", "kind": "ca_keo", "fresh": 99.992}]})
             code, err = run_headless("--mode", "quan", "--seed", "1", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], {"ca_keo": 2, "keo_neo": 1})
+            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], saved["items"])
 
     def test_fish_age_ticks_va_truong_la(self):
         with Workdir() as w:
@@ -167,10 +170,12 @@ class KindsAndScenario(unittest.TestCase):
     def test_scenario_day(self):
         with Workdir() as w:
             ok = write_json(w.path("d.json"), {"day": {"money": 200, "earned": 200, "upgrades": {"oxygen": 1}},
-                                               "gather": {"hold": ["ca_loc"], "random_fish": False}})
+                                               "gather": {"hold": mk_hold(["ca_loc"]), "random_fish": False}})
             d = load_scenario(ok, "day", TUNING)
-            self.assertEqual((d["day"]["money"], d["gather"]["hold"], d["quan"]), (200, ["ca_loc"], {}))
-            for bad in ({"quan": {"stock": {"ca_loc": 1}}}, {"quan": {"reputation": 3}},
+            self.assertEqual((d["day"]["money"], d["gather"]["hold"], d["quan"]),
+                             (200, [{"id": "I1", "kind": "ca_loc", "fresh": 100.0}], {}))
+            for bad in ({"quan": {"stock": mk_hold(["ca_loc"])}}, {"quan": {"reputation": 3}},
+                        {"gather": {"hold": ["ca_loc"]}},  # v1.2: giỏ dạng kind cũ -> mã 2
                         {"day": {"money": 300, "earned": 200}}, {"day": {"money": 5}},
                         {"day": {"upgrades": {"oxygen": 3}}}, {"day": {"lives": 1}},
                         {"day": {"day_plan": [{"day": 1, "dishes": {"pho": 1}}]}},

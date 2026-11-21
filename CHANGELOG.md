@@ -44,9 +44,10 @@ Test cũ bị thay bởi luật mới sẽ liệt kê (kèm lý do) ở `docs/ve
 
 **Bật v1.2 (trongnghia2304):**
 - `game.contract.json`: `contract_version: "1.2"`, thêm `tuning.freshness`. Bộ chấm và CI đọc thẳng file này, không cần `CHONOI_CONTRACT`.
-- **Test cũ dùng fixture kho đếm** chạy trên manifest v1.1 tạm qua `tests/legacy_v11.py` (Ticket-03 mục 3: "hỗ trợ hai phiên bản nội bộ trong lúc chuyển"); code vẫn nhận v1.1. Các module đang ghim (12):
-  `test_smoke_p1`, `test_gather_p1`, `test_quan_p1`, `test_gather_lat1`, `test_gather_lat1_p2`, `test_lat2`, `test_p2_lat2_fish`,
-  `test_quan_lat3`, `test_quan_lat4`, `test_quan_p2`, `test_lat0_v11`, `test_python_starter_units`.
+- **Test cũ dùng fixture kho đếm** chạy trên manifest v1.1 tạm qua `tests/legacy_v11.py` (Ticket-03 mục 3: "hỗ trợ hai phiên bản nội bộ trong lúc chuyển"); code vẫn nhận v1.1. Lúc gắn tag `phase-3` ghim 12 module; **sau tag** s0ra1n0 đã chuyển 5 module của mình sang kho cá thể
+  (`test_smoke_p1`, `test_gather_lat1`, `test_gather_lat1_p2`, `test_lat0_v11`, `test_python_starter_units`: fixture `mk_hold`,
+  kỳ vọng `lost` / `gather_end.inventory` / file kho là mảng cá thể đã hao đúng số bước, file kho đếm cũ -> mã 2).
+  Còn ghim (7): `test_gather_p1`, `test_lat2`, `test_p2_lat2_fish`, `test_quan_p1`, `test_quan_lat3`, `test_quan_lat4`, `test_quan_p2`.
   Lý do: luật các test này bảo vệ (bơi, oxy, Cá Sấu, cá bơi, khách, bếp) không đổi ở v1.2; chỉ dạng kho đổi.
   Chủ mỗi file chuyển fixture sang kho cá thể (có thể dùng `mk_hold` / `mk_stock` như `test_day_p2`) rồi bỏ dòng `from legacy_v11 import ...`.
 - Test đổi vì luật mới: `test_lat0_v11.test_so_chuan_v11` kiểm `contract_version` `"1.1"` → `"1.2"` (số chuẩn giữ nguyên).
