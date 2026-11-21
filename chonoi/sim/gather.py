@@ -3,7 +3,7 @@
 Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` độ sâu hướng xuống, d = 0 là mặt nước).
 `move = [x, d]`: thành phần thứ hai DƯƠNG = bơi xuống. Hướng mặt là góc từ +x, dương = xuống.
 
-Thứ tự mỗi bước: bộ đếm và mọc lại, bơi và oxy, cập bến và hết giờ.
+Thứ tự mỗi bước: bộ đếm và mọc lại, bơi và oxy, cập bến hoặc hái, bắt cá, hết giờ.
 Khi ngất, bước kết thúc ngay và kho bàn giao rỗng.
 """
 
@@ -104,12 +104,17 @@ class GatherSim:
         if self.done:
             return events
 
-        # 3. interact: cập bến
+        # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-        # 4. hết giờ
+            if at_surface:
+                self._harvest(events)
+        # 4. bắt cá
+        if inp.pressed("catch") and not at_surface and self.catch_cd_ticks == 0:
+            self._catch(events)
+        # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events
@@ -136,6 +141,47 @@ class GatherSim:
                 self.hold.clear()
                 events.append(("faint", {}))
                 self._finish("fainted", events)
+
+    def _harvest(self, events):
+        ready = (node for node in self.nodes if node["regrow_ticks"] == 0)
+        node = self._nearest_in_range(ready, self.t["interact_radius"])
+        if node is None:
+            return
+        kind = node["kind"]
+        if not self._store_in_hold(kind, self.t["node_yield"]):
+            events.append(("hold_full", {"source": "node"}))
+            return
+        node["regrow_ticks"] = round(self.t["regrow_s"] * self.tick_hz)
+        events.append(("gather", {"node_id": node["id"], "kind": kind}))
+
+    def _catch(self, events):
+        fish = self._nearest_in_range(self.fish, self.t["catch_radius"])
+        if fish is None:
+            return
+        kind = fish["kind"]
+        if not self._store_in_hold(kind, self.t["fish_yield"][kind]):
+            events.append(("hold_full", {"source": "fish"}))
+            return
+        self.fish.remove(fish)
+        self.catch_cd_ticks = round(self.t["catch_cooldown_s"] * self.tick_hz)
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": kind}))
+
+    def _nearest_in_range(self, entities, radius):
+        # Sắp theo id trước để khoảng cách bằng nhau luôn chọn id nhỏ hơn.
+        selected = None
+        nearest_distance = radius
+        for entity in sort_by_id(entities):
+            distance = math.dist(self.pos, entity["pos"])
+            if distance < nearest_distance or (selected is None and distance == nearest_distance):
+                selected = entity
+                nearest_distance = distance
+        return selected
+
+    def _store_in_hold(self, kind, count):
+        if len(self.hold) + count > self.t["hold_capacity"]:
+            return False
+        self.hold.extend([kind] * count)
+        return True
 
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:
