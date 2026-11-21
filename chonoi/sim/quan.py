@@ -1,14 +1,12 @@
 """Buổi tối — Mở Quán. KHUNG: đi lại, chặn biên, đồng hồ, kho nạp từ file/scenario.
 
-Nhóm viết tiếp (PRD-0 mục F, Quán):
-  TODO(nhóm, lát 3): khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, kiên nhẫn,
-                     bỏ đi (customer_left), no_dish, vòng đời khách.
-  Lát 4 (chur04): quan_service.py xử lý timer, bếp, bưng, phục vụ, tiền và dọn đơn.
+Lát 3 (nhungvo631-stack): quan_customers.py xử lý lịch sinh khách, chọn món đủ kho, giữ chỗ và no_dish.
+Lát 4 (chur04): quan_service.py xử lý timer, bếp, bưng, phục vụ, tiền và dọn đơn.
 """
 
 from ..ids import sort_by_id
 from .ramp import ramp_velocity
-from . import quan_service
+from . import quan_customers, quan_service
 
 TICK = 60.0
 
@@ -41,7 +39,6 @@ class QuanSim:
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        # Lát 3 có thể dùng phần chuẩn hóa này và thêm kiểm schema/lịch khách.
         self.customers = [dict(c) for c in scenario.get("customers", [])]
         for stove in self.stoves:
             if isinstance(stove["dish"], dict):
@@ -49,6 +46,7 @@ class QuanSim:
         quan_service.prepare_customers(self)
         for e in self.customers:
             ids.reserve(e["id"])
+        self.customer_spawner = quan_customers.CustomerSpawner(self, scenario)
         self.money = 0
         self.earned = 0
         self.shift_earned = 0
@@ -73,7 +71,8 @@ class QuanSim:
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in sort_by_id(self.stoves)],
-            "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in sort_by_id(self.tables)],
+            "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])}
+                       for tb in sort_by_id(self.tables)],
             "customers": sort_by_id(self.customers),
         }
 
@@ -94,8 +93,8 @@ class QuanSim:
             self.reason = "time"
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
-        # TODO(nhóm, lát 3): nếu còn giờ, sinh khách theo phase_tick ở CUỐI bước.
-        # Giữ một nơi giảm timer/rời bàn (quan_service) để không xử lý hai lần.
+        else:
+            self.customer_spawner.step(events)
         return events
 
     def _move(self, inp):
