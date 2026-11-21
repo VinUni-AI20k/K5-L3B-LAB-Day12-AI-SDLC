@@ -10,10 +10,10 @@
 - [x] T300 [qa] (TV6) Dẫn phân tích tác động; ghi quyết định schema v1.2, thứ tự tích hợp, cách chuyển (đọc 2 phiên bản, bật v1.2 khi hai đầu sẵn sàng) vào `docs/clarify.md` hoặc `docs/adr/0001-kho-ca-the.md`
 
 ## Phase 1 — Adapter / schema (làm trước, chặn mọi lát) — TV1 (+TV6 khung)
-- [ ] T301 [US1] [adapter] (TV1) `chonoi/inventory.py`: `read_inventory` chọn schema theo `contract_version`; v1.2: mảng cá thể, kiểm id duy nhất/khác rỗng, kind 6 loại, fresh hữu hạn [0,100]; kho đếm/sai → `BadInput` (mã 2)
-- [ ] T302 [US1] [adapter] (TV1) `write_inventory` v1.2: sắp theo id, fresh float đầy đủ, file tạm + `os.replace`; ngất → `{"items":[]}`
-- [ ] T303 [P] [US1] [adapter] (TV1) `chonoi/contract.py` validate `freshness {initial, gather_decay_per_s, quan_decay_per_s, spoiled_below}` + kiểm `decay×240/tick_hz` nguyên; `game.contract.json` thêm `freshness` (đổi `"1.2"` ở T340)
-- [ ] T304 [P] [US1] [adapter] (TV1) `docs/contracts/` mục v1.2 từ `specs/003-freshness/contracts/*.md`; báo nhóm schema đã chốt (handoff cho TV2/TV3/TV4/Cursor)
+- [x] T301 [US1] [adapter] (TV1) `chonoi/inventory.py`: `read_inventory` chọn schema theo `contract_version`; v1.2: mảng cá thể, kiểm id duy nhất/khác rỗng, kind 6 loại, fresh hữu hạn [0,100]; kho đếm/sai → `BadInput` (mã 2)
+- [x] T302 [US1] [adapter] (TV1) `write_inventory` v1.2: sắp theo id, fresh float đầy đủ, file tạm + `os.replace`; ngất → `{"items":[]}`
+- [x] T303 [P] [US1] [adapter] (TV1) `chonoi/contract.py` validate `freshness {initial, gather_decay_per_s, quan_decay_per_s, spoiled_below}` + kiểm `decay×240/tick_hz` nguyên; `game.contract.json` thêm `freshness` (đổi `"1.2"` ở T340)
+- [x] T304 [P] [US1] [adapter] (TV1) `docs/contracts/` mục v1.2 từ `specs/003-freshness/contracts/*.md`; báo nhóm schema đã chốt (handoff cho TV2/TV3/TV4/Cursor)
 - [ ] T305 [US1] [adapter] (TV6, agent khung) `chonoi/scenario.py`: `gather.hold`, `quan.stock` mảng cá thể; `customers[].reserved` mảng id; id vật lý duy nhất giữa nơi chứa; reserved trỏ cá thể chưa ươn, đủ công thức, không dùng chung → sai mã 2
 - [ ] T306 [P] [US1] [adapter] (TV6, agent khung) `chonoi/headless.py` + `runner.py`: đọc/ghi kho theo version; bộ cấp id cá thể `ItemIds` toàn cục truyền cho sim; `write_inventory_if_done` dùng v1.2
 - [ ] T307 [P] [US1] [qa] (TV5) Test AC-P3-01…05 (kho đếm → 2, id trùng, fresh ngoài miền, ghi nguyên tử một lần, ngất rỗng, tick_limit giữ đích)
@@ -35,7 +35,7 @@
 - [ ] T325 [P] [US3] [qa] (TV5) Test AC-P3-11…17; đổi test boa/giá cũ (giá theo tươi) có lý do
 
 ## Phase 4 — day — TV6 (agent khung)
-- [ ] T330 [US4] [sim/day] (TV6) Bàn giao `gather_end → quan` cùng tick, không hao thêm, quán chạy từ bước sau — `chonoi/runner.py` / `chonoi/sim/day.py`
+- [x] T330 [US4] [sim/day] (TV6) Bàn giao `gather_end → quan` cùng tick, không hao thêm, quán chạy từ bước sau — `chonoi/runner.py` / `chonoi/sim/day.py`
 - [ ] T331 [US4] [sim/day] (TV6) Id tăng xuyên Ngày; Ngày đầu giữ id mẫu `gather.hold`, Ngày kế cấp id mới theo thứ tự mảng (kind/fresh ban đầu); Shop `stock` cá thể không hao
 - [ ] T332 [P] [US4] [qa] (TV5) Test AC-P3-19…21 (smoke day nhiều Ngày, pause/Shop không hao)
 
@@ -49,7 +49,7 @@
 - [ ] T342 [qa] (TV5) Smoke 2 tiến trình + `day`; regression P1–P2 còn hiệu lực (AC-P3-22); tất định `cmp` (AC-P3-23)
 - [ ] T343 [P] [qa] (TV5) `CHANGELOG.md`: breaking change kho cá thể, schema mới, cách cập nhật fixture (hold/stock/reserved/inventory); test đổi + lý do
 - [ ] T344 [qa] (TV5) `docs/verification/phase-3.md` AC-P3-01…23 → bằng chứng → kết quả; skill nhóm #2
-- [ ] T345 [P] [qa] (TV6) Standup phút 20, retro (bài học đổi kho), `docs/ai-usage-log.md`, `docs/clarify.md`
+- [x] T345 [P] [qa] (TV6) Standup phút 20, retro (bài học đổi kho), `docs/ai-usage-log.md`, `docs/clarify.md`
 - [ ] T346 [qa] (TV1) Tag `phase-3` sau khi TV5 báo xanh (trước 2:30)
 
 ## Mở rộng P3 — tùy chọn, sau lõi

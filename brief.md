@@ -1,8 +1,9 @@
-# Brief Phase 2 & Phase 3 — chia việc theo người
+# Brief Phase 2 · 3 · 4 — chia việc theo người
 
-> Người viết: TV6 (thanhhale288, PO · Scrum/Release). Cập nhật: 2026-11-21, sau sync `main` @ `2fd94cf`.
-> Đề đầy đủ (chép từ lab board để AI đọc được): [`docs/prd/phase-2-ticket-02.md`](docs/prd/phase-2-ticket-02.md), [`docs/prd/phase-3-ticket-03.md`](docs/prd/phase-3-ticket-03.md).
-> Spec & task chi tiết: [`specs/002-day-loop/tasks.md`](specs/002-day-loop/tasks.md) (45 task), [`specs/003-freshness/tasks.md`](specs/003-freshness/tasks.md) (30 task). Research: [`docs/research/phase-2.md`](docs/research/phase-2.md), [`docs/research/phase-3.md`](docs/research/phase-3.md). Quyết định đổi kho: [`docs/adr/0001-kho-ca-the-v1-2.md`](docs/adr/0001-kho-ca-the-v1-2.md).
+> Người viết: TV6 (thanhhale288, PO · Scrum/Release). Cập nhật: 2026-11-21 — thêm **Phase 4 / TICKET-04** từ lab board.
+> Đề đầy đủ (chép từ lab board để AI đọc được): [`docs/prd/phase-2-ticket-02.md`](docs/prd/phase-2-ticket-02.md), [`docs/prd/phase-3-ticket-03.md`](docs/prd/phase-3-ticket-03.md), [`docs/prd/phase-4-ticket-04.md`](docs/prd/phase-4-ticket-04.md).
+> Spec & task: [`specs/002-day-loop/tasks.md`](specs/002-day-loop/tasks.md), [`specs/003-freshness/tasks.md`](specs/003-freshness/tasks.md), [`specs/004-release/tasks.md`](specs/004-release/tasks.md) (P4). Research: [`docs/research/phase-2.md`](docs/research/phase-2.md), [`docs/research/phase-3.md`](docs/research/phase-3.md). ADR kho: [`docs/adr/0001-kho-ca-the-v1-2.md`](docs/adr/0001-kho-ca-the-v1-2.md).
+> Board: [Chợ Nổi Lab `#phase-4`](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg#phase-4).
 
 ## Ai là ai
 
@@ -23,7 +24,9 @@
 
 **Phase 3 — TICKET-03 "Mùa Nước Nổi" (Contract v1.2, hạn tag `phase-3` 2:30) — đổi yêu cầu.** Kho thành **cá thể** `{"items":[{"id":"I1","kind":"ca_linh","fresh":100}]}`; kho đếm cũ → **mã 2**. Độ tươi: giỏ −0.5/s, kho quán −0.25/s, `fresh < 30` là ươn (vẫn chiếm ô, không nấu, phát `spoiled` đúng 1 lần). Giữ chỗ theo id (tươi nhất trước). Giá = `floor(giá × fresh trung bình / 100)`. Ghi file kho nguyên tử.
 
-**Mở rộng:** nhóm 6 người cần **≥ 2 mục** trong cả buổi lab, khai trong `extensions` + README. Đề xuất: `burn` (TV4) và `snake` (TV2), làm sau lõi.
+**Phase 4 — TICKET-04 "Phát hành v1.0.0" (Contract v1.3, hạn tag `phase-4` + Release `v1.0.0` 3:00).** 30 phút (2:30–3:00). Lõi: (1) **benchmark có render** — `<bench_cmd> --seed 42 --duration 30 --out bench.json`, cảnh gather (độ tươi + cá + Cá Sấu + FX), Út Sen đứng yên ở bến, 1280×720, warm-up 3 s / đo 30 s, JSON 5 trường `avg_fps,p1_low_fps,frames,measured_s,load_ms` (mốc kỹ thuật avg≥60 / 1%low≥30 / load≤10s); (2) **cảnh báo** chữ/icon: thủy quái gần, oxy sắp hết, khách sắp giận + chế độ tương phản cao; (3) **đóng gói** — clone sạch ≤ 3 lệnh, README đủ lệnh, artifact Release, `contract_version:"1.3"` + `bench_cmd`/`soak_cmd` ở gốc (gameplay vẫn v1.2). Soak (GV chạy): `<soak_cmd> --seed 7 --days 10 --out soak.json`, 10 Ngày headless `gather→quan→shop`, đạt khi `days_completed=days` và `crashes=0`. Mở rộng P4: `leaderboard`, phụ đề SFX (+ sáng tạo). Retro rà hành động P2; mỗi người `docs/members/<handle>.md`; demo sau 3:00 (&lt;5 phút).
+
+**Mở rộng:** nhóm 6 người cần **≥ 2 mục** trong cả buổi lab, khai trong `extensions` + README. Đề xuất: `burn` (TV4), `snake` (TV2), `leaderboard` / phụ đề SFX (P4) — làm sau lõi.
 
 ## Hiện trạng `main` (`2fd94cf`, 60 test OK)
 
@@ -40,8 +43,8 @@
 
 ### TV1 — thanhanbk02
 - [ ] **Gắn `phase-1` ngay** (quá hạn), rồi `phase-2` trước 1:55 sau khi TV5 báo xanh.
-- [ ] T210/T211: dán JSON tuning v1.1 từ [`docs/research/phase-2.md`](docs/research/phase-2.md) vào `game.contract.json` (`contract_version:"1.1"`), cập nhật `contract.py`/`inventory.py` (thêm `ca_keo`, `keo_neo`, `fish_initial: 8`). **Việc này mở khóa mode `day`.**
-- [ ] Lát 1: số chuẩn + cá bơi/sinh (`fish_speed`, `fish_spawn_ticks` 360, trần 12).
+- [x] T210/T211: dán JSON tuning v1.1 từ [`docs/research/phase-2.md`](docs/research/phase-2.md) vào `game.contract.json` (`contract_version:"1.1"`), cập nhật `contract.py`/`inventory.py` (thêm `ca_keo`, `keo_neo`, `fish_initial: 8`). **Việc này mở khóa mode `day`.**
+- [x] Lát 1: số chuẩn + cá bơi/sinh (`fish_speed`, `fish_spawn_ticks` 360, trần 12).
 
 ### TV2 — Hải Đăng
 - [ ] Lát 2: Cá Sấu patrol/chase/recoil, hit, rơi LIFO `floor(n/2)`, bất tử 90 tick, ngất (`faint` có `cause:"monster"`, `lost`, `hp:0`).
@@ -88,8 +91,8 @@
 | QA | `tests/`, `docs/verification/phase-3.md`, `docs/proof/phase-3/`, `CHANGELOG.md` | regression P1–P2 | **TV5** |
 
 ### TV1
-- [ ] T301–T304: schema kho v1.2 trong `inventory.py` (đọc theo `contract_version`, kho đếm → mã 2), thêm `tuning.freshness` `{initial:100, gather_decay_per_s:0.5, quan_decay_per_s:0.25, spoiled_below:30}` (JSON sẵn trong [`docs/research/phase-3.md`](docs/research/phase-3.md)).
-- [ ] Đổi `contract_version:"1.2"` khi gather + quan sẵn sàng. Gắn `phase-3` trước 2:30.
+- [x] T301–T304: schema kho v1.2 trong `inventory.py` (đọc theo `contract_version`, kho đếm → mã 2), thêm `tuning.freshness` `{initial:100, gather_decay_per_s:0.5, quan_decay_per_s:0.25, spoiled_below:30}` (JSON sẵn trong [`docs/research/phase-3.md`](docs/research/phase-3.md)).
+- [ ] Đổi `contract_version:"1.2"` khi gather + quan sẵn sàng. Gắn `phase-3` trước 2:30. (chưa: giỏ vẫn là tên loại, quán vẫn giữ theo số lượng)
 
 ### TV2
 - [ ] Cá thể trong giỏ, id `I1, I2…` tăng xuyên pha/Ngày; hao từ bước sau khi lấy; `spoiled` đúng 1 lần theo id.
@@ -115,16 +118,67 @@
 - [x] Cursor: T336 (nguyên liệu món đang nấu, giá chốt).
 - [ ] Dẫn standup phút 20, retro bài học đổi kho, nhật ký AI.
 
+## Chia việc Phase 4 (TICKET-04 — 2:30–3:00, ưu tiên tag + Release)
+
+Chi tiết task: [`specs/004-release/tasks.md`](specs/004-release/tasks.md) · PRD: [`docs/prd/phase-4-ticket-04.md`](docs/prd/phase-4-ticket-04.md).
+
+| Vai P4 (kiêm được) | Người gợi ý | Việc chính |
+|---|---|---|
+| Đóng gói | TV1 | Clone sạch ≤ 3 lệnh, README, artifact Release (T420–T421) |
+| Bench/QA | TV5 (+TV2 hỗ trợ bench cảnh) | `bench_cmd` / `soak_cmd`, regression, `docs/verification/phase-4.md`, proof (T411–T412, T422–T423, T430–T431) |
+| Release/Integrator | TV1 | `contract_version:"1.3"`, `bench_cmd`/`soak_cmd`, CHANGELOG, tag `phase-4` + Release `v1.0.0` (T410, T432, T450–T451) |
+| Điều phối retro + UI + demo | TV6 | Cảnh báo + tương phản cao (T413); retro P2→P4 (T440); standup; demo (T470); clarify / ai-usage-log |
+
+### TV1 — Integrator / Đóng gói / Release
+- [ ] T410: `bench_cmd` + `soak_cmd` đã khai và chạy được. `contract_version:"1.3"` chờ sau `"1.2"` (gameplay giữ v1.2).
+- [x] T420: README (env, điều khiển, test, headless, bench); clone sạch UI ≤ 3 lệnh.
+- [x] T421: gói nguồn chạy được `dist/chonoi-v1.0.0.zip` (giải nén rồi `python3 -m chonoi.live --mode day`).
+- [ ] T432, T450–T451: CHANGELOG và CREDITS đã rà; release notes nháp ở `docs/release-notes-v1.0.0.md`. Chưa tag `phase-4`, chưa công bố Release.
+
+### TV2 — hỗ trợ bench / mở rộng
+- [ ] Hỗ trợ TV5 dựng cảnh bench (gather + Cá Sấu + FX, player đứng yên ở bến) nếu cần.
+- [ ] (sau lõi) T462: hoàn thiện mở rộng `snake` (hoặc mục đã chọn) + `extensions` + test.
+
+### TV3 / TV4 — ổn định quán + mở rộng
+- [ ] Giữ `quan` xanh trên `main` (regression P3); hỗ trợ smoke day nếu TV5 kêu.
+- [ ] (sau lõi) T462: `burn` (TV4) hoặc mục đã chọn + bằng chứng.
+
+### TV5 — Bench/QA / Soak
+- [ ] T411–T412: implement/chạy bench → `docs/proof/phase-4/bench.json` (5 trường đúng công thức).
+- [ ] T422–T423: `soak_cmd` sẵn sàng (đủ schema `soak.json`); smoke ngắn; GV sẽ chạy 10 Ngày.
+- [ ] T430–T431, T442, T452: regression P1–P3; ma trận AC-P4; standup phút 20; xác nhận DoD trước khi TV1 gắn tag.
+
+### TV6 — UI cảnh báo, retro, demo
+- [x] T400: phân công P4 ghi trong brief + standup.
+- [x] T413: cảnh báo thủy quái / oxy thấp / khách giận + tương phản cao (`?demo=warn`, `?demo=warnq`, phím C).
+- [x] T433, T440: clarify #46 + ai-usage-log P4; retro cuối (rà hành động P2, shortlog, 1 lỗi AI).
+- [x] T441 (riêng TV6): `docs/members/thanhhale288.md`.
+- [ ] T470: dẫn demo (&lt;5 phút) hoặc video **sau 3:00** — chưa tới giờ.
+- [ ] (sau lõi) T461: phụ đề SFX nếu còn giờ.
+
+### Mọi người
+- [ ] T441: `docs/members/<handle>.md` ≤ 200 từ + dẫn commit.
+- [ ] Có mặt phút 20 standup; hỗ trợ lát trễ khi đã xong phần mình.
+
+### Lịch gợi ý trong 30 phút
+| Phút | Việc |
+|---|---|
+| 0–15 | Bench + cảnh báo/tương phản + clone sạch + regression + chuẩn bị Release **song song** |
+| 15–25 | Retro + members; phút 20 standup; pair smoke bản tích hợp |
+| 25–30 | Chốt commit/artifact/tag/`v1.0.0` — hạn **3:00** |
+
 ## Điểm đồng bộ & git
 
 - **Handoff P3:** TV1 chốt schema kho → TV2, TV3, TV4, TV6 mới đổi code theo schema.
-- **File dễ conflict:** `gather.py` (TV1 + TV2), `quan.py` (TV3 + TV4), `scenario.py` (TV3 + TV6). Mỗi người một hàm riêng, `git pull --rebase` trước khi sửa, commit nhỏ, gộp branch sớm.
-- **Chỉ TV1** sửa `game.contract.json`, `docs/contracts/` và gắn tag (sau khi TV5 báo xanh).
-- **TV6 giữ** `docs/clarify.md`, `docs/standup.md`, `docs/ai-usage-log.md`. Câu hỏi đề gửi PO.
+- **Handoff P4:** TV5 báo bench + regression xanh → TV1 mới gắn `phase-4` / Release `v1.0.0`.
+- **File dễ conflict:** `gather.py` (TV1 + TV2), `quan.py` (TV3 + TV4), `scenario.py` (TV3 + TV6), `game.contract.json` / README (TV1). Mỗi người một hàm riêng, `git pull --rebase` trước khi sửa, commit nhỏ, gộp branch sớm.
+- **Chỉ TV1** sửa `game.contract.json`, `docs/contracts/` và gắn tag / công bố Release (sau khi TV5 báo xanh).
+- **TV6 giữ** `docs/clarify.md`, `docs/standup.md`, `docs/ai-usage-log.md`, điều phối retro/demo. Câu hỏi đề gửi PO.
 - **Mỗi người tự làm:** dòng của mình trong `TEAM.md`, `docs/members/<handle>.md`, ≥ 3 commit có nội dung bằng tài khoản của mình.
 
 ## Rủi ro & câu hỏi còn mở
 
-- 🔴 Chưa có tag nào; contract còn v1.0; quán chưa chạy trong `step`. Test ẩn kiểm lại phase trước.
-- 🟡 Hai branch quán chưa gộp, đụng `scenario.py`.
+- 🔴 Chưa có tag nào; contract còn v1.0 trên một số máy / cần lên v1.2 rồi v1.3 trước Release. Test ẩn kiểm lại phase trước.
+- 🟡 P4 chỉ 30 phút — ưu tiên `bench_cmd` + đóng gói + tag/Release; mở rộng (`leaderboard`, SFX) chỉ sau lõi.
+- 🟡 `load_ms` có trong ví dụ JSON board nhưng bảng công thức a11y chỉ nêu rõ 4 trường kia — implement theo 5 trường ví dụ; nếu lệch hỏi PO/#clarify.
 - Hỏi Anh Năm: #30 (ngất do ngạt có `lost`/`hp`?), #32 (`extensions` mảng hay object), #33 (đàn bị bắt biến mất?), #34 (`freshness` ở `tuning` hay gốc), #37, #40, #42 — xem [`docs/clarify.md`](docs/clarify.md).

@@ -21,8 +21,8 @@ from .inventory import menu_kinds, validate_items
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks", "monsters"}  # monsters: v1.1
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "invuln_ticks", "catch_cd_ticks"}
-NODE_KINDS = ("bong_dien_dien", "bong_sung")
-FISH_KINDS = ("ca_linh", "ca_loc")
+NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")  # keo_neo: v1.1, TV1
+FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")  # ca_keo: v1.1, TV1
 QUAN_PLAYER_KEYS = {"pos", "vel"}
 DAY_KEYS = {"money", "earned", "reputation", "upgrades", "day_plan"}  # v1.1
 MONSTER_KEYS = {"id", "kind", "pos", "waypoints", "target_idx", "state", "state_ticks_left", "recoil_dir"}

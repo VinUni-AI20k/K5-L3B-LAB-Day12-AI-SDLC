@@ -44,7 +44,8 @@ class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
     def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, days=1, contract=None):
-        self._args = (mode, tuning, scenario, seed, inventory, days)
+        version = (contract or {}).get("contract_version", "1.0")
+        self._args = (mode, tuning, scenario, seed, inventory, days, version)
         self.buttons, self.strings = buttons_for(contract) if contract is not None else (BUTTONS_V10, ())
         self.mode = mode
         self.tuning = tuning
@@ -267,7 +268,7 @@ def main(argv=None) -> int:
         if a.mode == "day" and missing_day_keys(tuning):
             raise BadInput(f"--mode day: contract chưa có khóa {', '.join(missing_day_keys(tuning))} (chờ TV1)")
         scenario = load_scenario(a.scenario, a.mode, tuning)
-        inventory = read_inventory(a.inventory, kinds=menu_kinds(tuning["menu"])) if a.inventory else None
+        inventory = read_inventory(a.inventory, version=contract["contract_version"]) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, days=days, contract=contract)
