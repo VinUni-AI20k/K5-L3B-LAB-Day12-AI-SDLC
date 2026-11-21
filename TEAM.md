@@ -2,15 +2,15 @@
 
 **Tên nhóm:** NhomF7  **Số người:** 7  (khớp `team_size` trong `game.contract.json`; đề ghi 4–6 người, xem `docs/clarify.md` #1)
 
-| Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
-|---|---|---|---|---|
-| invzble-z (chủ repo, điền tên thật) | invzble-z | `docs/contracts/`, `game.contract.json`, khung `step()` | Integrator (gộp, gắn tag, Release) | QA (WorkOfMinh) |
-| Nguyễn Anh Dương | nganhduong123 | `docs/`, `.agents/skills/`, `AGENTS.md` | PO | Integrator (invzble-z) |
-| Nguyễn Anh Tú | comtrang378-ship-it | `sim/gather` lát 1: oxy, ngạt, Máu, ngất | Dev | gather lát 2 (NguyenQuangDunghe161764) |
-| Nguyễn Quang Dũng | NguyenQuangDunghe161764 | `sim/gather` lát 2: hái, bắt cá, giỏ | Dev | gather lát 1 (comtrang378-ship-it) |
-| Trần Quốc | Quoosc | `sim/quan` lát 3: khách, giữ chỗ, kiên nhẫn | Dev | quan lát 4 (ttkien0710) |
-| Trần Trung Kiên | ttkien0710 | `sim/quan` lát 4: bếp, bưng, phục vụ, tiền | Dev | quan lát 3 (Quoosc) |
-| WorkOfMinh (điền tên thật) | WorkOfMinh | `qa`: test hộp đen theo AC, `scenario.py`, proof | QA lead + Scrum | PO (nganhduong123) |
+| Thành viên | MSSV | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
+|---|---|---|---|---|---|
+| Nguyễn Khắc Bào | 2A202604072 | invzble-z | `docs/contracts/`, `game.contract.json`, khung `step()` | Integrator (gộp, gắn tag, Release) | QA (WorkOfMinh) |
+| Nguyễn Ánh Dương | 2A202604087 | nganhduong123 | `docs/`, `.agents/skills/`, `AGENTS.md` | PO | Integrator (invzble-z) |
+| Nguyễn Anh Tú | 2A202604088 | comtrang378-ship-it | `sim/gather` lát 1: oxy, ngạt, Máu, ngất | Dev | gather lát 2 (NguyenQuangDunghe161764) |
+| Nguyễn Quang Dũng | 2A202604031 | NguyenQuangDunghe161764 | `sim/gather` lát 2: hái, bắt cá, giỏ | Dev | gather lát 1 (comtrang378-ship-it) |
+| Phạm Trấn Quốc | 2A202604113 | Quoosc | `sim/quan` lát 3: khách, giữ chỗ, kiên nhẫn | Dev | quan lát 4 (ttkien0710) |
+| Trần Trung Kiên | 2A202604014 | ttkien0710 | `sim/quan` lát 4: bếp, bưng, phục vụ, tiền | Dev | quan lát 3 (Quoosc) |
+| Hoàng Minh | 2A202604103 | WorkOfMinh | `qa`: test hộp đen theo AC, `scenario.py`, proof | QA lead + Scrum | PO (nganhduong123) |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 
