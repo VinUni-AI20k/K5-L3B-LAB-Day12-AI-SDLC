@@ -1,6 +1,6 @@
 # TICKET-02 — Phase 2 (chép từ lab board, bản text thô để agent đọc)
 
-> Nguồn: https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg#phase-2 — trích tự động từ cây accessibility, một số ký tự trong code block (\"...\") bị cắt; đối chiếu bản gốc khi cần.
+> Nguồn: https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg#phase-2 — trích tự động từ cây accessibility (đã sửa lỗi cắt chuỗi có dấu nháy). Bảng bị tách thành từng ô theo hàng; đối chiếu bản gốc khi cần.
 
 # TICKET-02 — Một ngày ở chợ nổi (Phase 2)
 55 phút
@@ -368,13 +368,16 @@ Settings & âm thanh
 Âm lượng Master/Music/SFX lưu được giữa các lần mở game.
 ## 4. Test Contract v1.1 — Thay đổi từ v1.0
 ### 4.1. CLI và manifest
-<headless_cmd> --mode gather|quan|day --seed <int>\n  [--scenario <file.json>] [--inputs <file.json>]\n  [--inventory <file.json>] [--inventory-out <file.json>]\n  [--days <N>] --ticks <N> --out <file.jsonl> [--snapshot-every <N>]\n
+<headless_cmd> --mode gather|quan|day --seed <int>
+  [--scenario <file.json>] [--inputs <file.json>]
+  [--inventory <file.json>] [--inventory-out <file.json>]
+  [--days <N>] --ticks <N> --out <file.jsonl> [--snapshot-every <N>]
 --days
  chỉ với 
 , số nguyên từ 1 đến 5, mặc định 1. 
  tự bàn giao theo schema kho đếm ở v1.0, có thể truyền trong bộ nhớ. Hai cờ file kho vẫn dành cho hai mode độc lập.
 Đặt 
-contract_version: \
+contract_version: "1.1"
 , dùng số chuẩn và dữ liệu mục 1–2. Bảng dưới liệt kê các khóa thêm hoặc đổi.
 PHẠM VI
 KHÓA
@@ -512,10 +515,10 @@ random_ho:false
 quan.stoves[].ready_ticks
  dựng tuổi món chín.
 Ví dụ mở một Ngày đã có tiền và kho mang về. Tương tác lúc ở bến sẽ đóng ca sáng ngay.
-{\
+{"day":{"money":200,"earned":200},"gather":{"hold":["ca_loc","bong_sung","bong_sung"],"random_fish":false}}
 ### 4.4. Output
 Snapshot thêm 
-state:\
+state:"paused"
 . Gather thêm 
 monsters[]
 player.invuln_ticks
@@ -550,9 +553,9 @@ id,kind,pos khi sinh theo lịch.
 id,kind,pos
  khi sinh theo lịch.
 faint
-Thêm cause:\
+Thêm cause:"monster" nếu do bị chạm, lost liệt kê phần giỏ còn lại, hp:0.
 Thêm 
-cause:\
+cause:"monster"
  nếu do bị chạm, 
  liệt kê phần giỏ còn lại, 
 hp:0
@@ -607,12 +610,13 @@ action
 sell
 ), 
 kind,price,money
+{"type":"event","tick":0,"phase":"gather","day":1,"name":"day_plan","data":{"dishes":{"ca_loc_nuong_trui":3,"goi_bong_sung":3},"ingredients":{"ca_loc":3,"bong_sung":6}}}
 Dòng 
 end
  của 
 days_completed
  (số Shop đã đóng). Hoàn thành đủ Ngày thì 
-reason:\
+reason:"days_complete"
 ### 4.5. Thứ tự xử lý bổ sung
 Gather.
  Đồng hồ, cooldown, giảm bất tử và hồi nút → bơi, oxy, ngạt → Lao nếu có, cập nhật quái theo id rồi xét tối đa một hit → tương tác (bến trước hái) → bắt cá theo vị trí cá trước khi bơi, rồi ảnh nếu có → xét hết giờ. Nếu còn giờ thì cá bơi, sinh thêm theo lịch, rồi cập nhật Cá Hô nếu bật. Khi Máu về 0, xử lý 
@@ -699,22 +703,16 @@ Ghi lý do nếu test cũ cần cập nhật vì luật mới. Trong
 docs/clarify.md
 docs/ai-usage-log.md
 ## Định nghĩa hoàn thành (DoD)
-  [in:contract_version:\]
-contract_version:\
+contract_version:"1.1"
 , tuning chuẩn, đủ 6 nguyên liệu và 6 món theo dữ liệu. Cá bơi/sinh, Cá Sấu, Máu/ngất, 2 bếp/4 bàn hoạt động đúng.
-  [in:Chơi trọn vòng ngày với menu, pause và HUD. -]
  Chơi trọn vòng ngày với menu, pause và HUD. 
 --mode day
  công bố đúng kế hoạch D1–D5, chốt Ngày khi Shop đóng và áp đúng cấp 
  từ Ngày kế.
-  [in:Smoke tích hợp có bằng chứng. Regression P1 c]
  Smoke tích hợp có bằng chứng. Regression P1 còn hiệu lực đạt với số chuẩn, test thay đổi có ghi lý do. 
  và bằng chứng khớp commit gắn tag.
-  [in:Công việc các lát đã tích hợp trong fork chun]
  Công việc các lát đã tích hợp trong fork chung, có bằng chứng đóng góp của từng người. Ghi chép làm rõ, nhật ký AI và retro đã cập nhật.
-  [in:Nếu làm mở rộng, README khai mục đã làm và có]
  Nếu làm mở rộng, README khai mục đã làm và có test/bằng chứng.
-  [in:Đẩy phase-2 trỏ tới commit bàn giao trên main]
  Đẩy 
  trỏ tới commit bàn giao trên 
 main
