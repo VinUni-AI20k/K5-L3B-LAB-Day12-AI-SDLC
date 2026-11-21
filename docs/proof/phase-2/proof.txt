@@ -1,0 +1,68 @@
+## 1. Smoke tích hợp gather --inventory-out -> quan --inventory (v1.1, 6 loại) — 2026-11-21 10:39 · commit 37f371d+dirty
+$ python3 -m chonoi.headless --mode gather --seed 42 --scenario docs/proof/phase-2/dock.json --inputs docs/proof/phase-2/dock-inputs.json --ticks 5 --out docs/proof/phase-2/integration-gather.jsonl --inventory-out docs/proof/phase-2/integration-kho.json
+exit=0
+$ cat docs/proof/phase-2/integration-kho.json
+{"items":{"bong_sung":2,"ca_keo":2,"ca_linh":1,"ca_loc":1,"keo_neo":1}}
+$ python3 -m chonoi.headless --mode quan --seed 42 --inventory docs/proof/phase-2/integration-kho.json --ticks 0 --out docs/proof/phase-2/integration-quan.jsonl
+exit=0
+quan snapshot tick 0 stock = {"bong_sung": 2, "ca_keo": 2, "ca_linh": 1, "ca_loc": 1, "keo_neo": 1} | kho = {"bong_sung": 2, "ca_keo": 2, "ca_linh": 1, "ca_loc": 1, "keo_neo": 1}
+INTEGRATION OK
+
+## 2. day --days 1 (không input, không pause): trọn vòng 22.200 tick + thời gian chạy
+$ python3 -m chonoi.headless --mode day --days 1 --seed 7 --ticks 30000 --out /var/folders/5v/rm619yyn52s4nd_sz61wfznc0000gn/T/tmp.Zxyl6VVORg/day1.jsonl --snapshot-every 600
+exit=0
+elapsed_s = 0.36 (yêu cầu <= 20)
+rows: 63 events: {'day_start': 1, 'day_plan': 1, 'phase_start': 3, 'fish_spawned': 4, 'gather_end': 1, 'no_dish': 12, 'quan_end': 1, 'shop_end': 1}
+   0 gather 1 day_start {}
+   0 gather 1 phase_start {}
+   10800 gather 1 gather_end {"reason": "time", "inventory": {"items": {}}}
+   10800 quan 1 phase_start {}
+   21600 quan 1 quan_end {"reason": "time", "money": 0, "earned": 0, "shift_earned": 0, "reputation": 3.0}
+   21600 shop 1 phase_start {}
+   22200 shop 1 shop_end {"reason": "time"}
+end: {"type": "end", "ticks": 22200, "sim_tick": 22200, "mode": "day", "state": "finished", "reason": "days_complete", "money": 0, "earned": 0, "reputation": 3.0, "score": 300, "days_completed": 1}
+BYTE-IDENTICAL OK (day 1, seed 7)
+
+## 3. Nhiều Ngày: mua oxygen + hp ở Shop Ngày 1 -> chỉ áp dụng từ Ngày 2
+$ python3 -m chonoi.headless --mode day --days 2 --seed 7 --scenario docs/proof/phase-2/multiday-scenario.json --inputs docs/proof/phase-2/multiday-inputs.json --ticks 50000 --out /var/folders/5v/rm619yyn52s4nd_sz61wfznc0000gn/T/tmp.Zxyl6VVORg/multi.jsonl --snapshot-every 600
+exit=0
+rows: 130 events: {'day_start': 2, 'day_plan': 2, 'phase_start': 6, 'fish_spawned': 8, 'gather_end': 2, 'no_dish': 24, 'quan_end': 2, 'bought': 2, 'buy_failed': 1, 'shop_end': 2}
+   0 gather 1 day_start {}
+   0 gather 1 phase_start {}
+   10800 gather 1 gather_end {"reason": "time", "inventory": {"items": {}}}
+   10800 quan 1 phase_start {}
+   21600 quan 1 quan_end {"reason": "time", "money": 450, "earned": 450, "shift_earned": 0, "reputation": 3.0}
+   21600 shop 1 phase_start {}
+   21601 shop 1 bought {"upgrade": "oxygen", "level": 1, "price": 200, "money": 250}
+   21602 shop 1 bought {"upgrade": "hp", "level": 1, "price": 250, "money": 0}
+   21603 shop 1 buy_failed {"action": "oxygen", "reason": "funds"}
+   21603 shop 1 shop_end {"reason": "done"}
+   21603 gather 2 day_start {}
+   21603 gather 2 phase_start {}
+   32403 gather 2 gather_end {"reason": "time", "inventory": {"items": {}}}
+   32403 quan 2 phase_start {}
+   43203 quan 2 quan_end {"reason": "time", "money": 0, "earned": 450, "shift_earned": 0, "reputation": 3.0}
+   43203 shop 2 phase_start {}
+   43803 shop 2 shop_end {"reason": "time"}
+end: {"type": "end", "ticks": 43803, "sim_tick": 43803, "mode": "day", "state": "finished", "reason": "days_complete", "money": 0, "earned": 450, "reputation": 3.0, "score": 750, "days_completed": 2}
+Ngày 1 gather: tick=0 day=1 phase=gather phase_tick=0 money=450 upgrades={} active={} oxygen_max_ticks=1800 hp_max=3
+Ngày 1 shop (mở): tick=21600 day=1 phase=shop phase_tick=0 money=450 upgrades={} active={} oxygen_max_ticks=None hp_max=None
+bought: tick=21601 day=1 phase=shop {'upgrade': 'oxygen', 'level': 1, 'price': 200, 'money': 250}
+bought: tick=21602 day=1 phase=shop {'upgrade': 'hp', 'level': 1, 'price': 250, 'money': 0}
+Ngày 2 gather: tick=21603 day=2 phase=gather phase_tick=0 money=0 upgrades={'hp': 1, 'oxygen': 1} active={'hp': 1, 'oxygen': 1} oxygen_max_ticks=2700 hp_max=4
+UPGRADE-NEXT-DAY OK
+
+## 4. Pause trong gather của day (pause ở bước 101, resume ở bước 401): mọi mốc lùi đúng 300 tick, sim_tick vẫn 22.200
+$ python3 -m chonoi.headless --mode day --days 1 --seed 7 --inputs docs/proof/phase-2/pause-inputs.json --ticks 30000 --out /var/folders/5v/rm619yyn52s4nd_sz61wfznc0000gn/T/tmp.Zxyl6VVORg/pause.jsonl --snapshot-every 600
+exit=0
+rows: 68 events: {'day_start': 1, 'day_plan': 1, 'phase_start': 3, 'paused': 1, 'resumed': 1, 'fish_spawned': 4, 'gather_end': 1, 'no_dish': 12, 'quan_end': 1, 'shop_end': 1}
+   0 gather 1 day_start {}
+   0 gather 1 phase_start {}
+   101 gather 1 paused {}
+   401 gather 1 resumed {}
+   11100 gather 1 gather_end {"reason": "time", "inventory": {"items": {}}}
+   11100 quan 1 phase_start {}
+   21900 quan 1 quan_end {"reason": "time", "money": 0, "earned": 0, "shift_earned": 0, "reputation": 3.0}
+   21900 shop 1 phase_start {}
+   22500 shop 1 shop_end {"reason": "time"}
+end: {"type": "end", "ticks": 22500, "sim_tick": 22200, "mode": "day", "state": "finished", "reason": "days_complete", "money": 0, "earned": 0, "reputation": 3.0, "score": 300, "days_completed": 1}

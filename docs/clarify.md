@@ -10,3 +10,36 @@
 | C-06 | 2026-11-21 Phase 1 | Bếp idle mà không có đơn reserved, hoặc tay đang cầm món mà bấm vào bếp ready? | Bỏ lượt, không event (mục F.3 "không tương tác được thì bỏ lượt"). | Nhóm |
 | C-07 | 2026-11-21 Phase 1 | `invuln_ticks` (có trong khung) có chặn ngạt không? | Không — v1.0 không nhắc bất tử; chỉ đếm lùi, không ảnh hưởng luật. | Nhóm |
 | C-08 | 2026-11-21 Phase 1 | Cộng dồn uy tín 0.2 bằng số thực có thể ra 3.9999… làm `floor` sai | Làm tròn 9 chữ số sau mỗi lần đổi uy tín rồi kẹp theo tuning. | Nhóm |
+
+## Phase 2 (Test Contract v1.1)
+
+### Lát 1–2: số chuẩn, cá bơi/sinh, Cá Sấu (agent A, `chonoi/sim/gather.py`)
+
+| # | Ngày giờ | Câu hỏi | Trả lời / giả định | Ai quyết |
+|---|---|---|---|---|
+| C-P2-A01 | 2026-11-21 Phase 2 | Cá đổi hướng thế nào? | Hướng mới = `rng("fish_turn").random() * 360`, duyệt cá theo id, đổi khi `(age_ticks + 1) % 120 == 0` TRƯỚC khi di chuyển. | Nhóm |
+| C-P2-A02 | 2026-11-21 Phase 2 | Phản xạ mép? | Lật phần vượt theo từng trục và đổi dấu thành phần vận tốc đó; hướng tính lại bằng `atan2` mod 360; chạm góc đảo cả hai. | Nhóm |
+| C-P2-A03 | 2026-11-21 Phase 2 | Chọn loài / điểm khi sinh? | Loài: `rng("fish_spawn").random() * Σ trọng số` trên các loài còn điểm hợp lệ, theo thứ tự khóa trong contract; điểm: `randrange` trên `fish_spawn_x × depths` của loài; hướng `random() * 360`. 8 đàn đầu ca dùng cùng thủ tục, không phát `fish_spawned`, id `F1..`. | Nhóm |
+| C-P2-A04 | 2026-11-21 Phase 2 | Lịch sinh và scenario `fish`? | Sinh khi `phase_tick % 360 == 0` và chỉ khi `random_fish` true; khai `fish` (kể cả `[]`) khi cờ true thì thay đàn đầu ca, vẫn bơi/sinh. | Nhóm |
+| C-P2-A05 | 2026-11-21 Phase 2 | Kiểm vị trí cá trong scenario? | `random_fish` true: cá phải nằm trong `fish_x` và dải độ sâu của loài, sai → mã 2; false: chỉ cần ở dưới nước. | Nhóm |
+| C-P2-A06 | 2026-11-21 Phase 2 | Cá Sấu quyết trạng thái theo vị trí nào? | Theo vị trí người chơi SAU khi di chuyển; quái di chuyển theo trạng thái mới ngay bước đó; chase dừng tại người chơi không vượt; dung sai chạm waypoint 1e-9; ngưỡng độ sâu = `depths[0]` của loài. | Nhóm |
+| C-P2-A07 | 2026-11-21 Phase 2 | Bất tử 90 tính thế nào? | Giảm bất tử đầu bước: hit ở bước t đặt 90 → bảo vệ các bước t+1…t+89. | Nhóm |
+| C-P2-A08 | 2026-11-21 Phase 2 | Hết recoil? | Quái hết recoil ở bước k chuyển patrol sau khi di chuyển và không được xét hit ở bước k; phát hiện/hit lại từ k+1; recoil giữ `target_idx`. | Nhóm |
+| C-P2-A09 | 2026-11-21 Phase 2 | Kiểm `gather.monsters[]` trong scenario? | Không recoil: `state_ticks_left` 0 và `recoil_dir` null; recoil: `state_ticks_left > 0` và `recoil_dir` đơn vị (dung sai 1e-6); pos/waypoints trong map + dải loài; `player.invuln_ticks ≤ 90`. | Nhóm |
+| C-P2-A10 | 2026-11-21 Phase 2 | Dữ liệu `monster_hit` / `faint` do quái? | `monster_hit.lost` liệt kê kind bị rơi theo LIFO, `pos` = vị trí người chơi; `faint` do quái: `lost` = phần giỏ còn lại theo LIFO. | Nhóm |
+
+### Lát 3–4: quán, pause, vòng Ngày, Shop (agent B)
+
+| # | Ngày giờ | Câu hỏi | Trả lời / giả định | Ai quyết |
+|---|---|---|---|---|
+| C-P2-B01 | 2026-11-21 Phase 2 | Event tick 0 của `day` (day_start, day_plan, phase_start) ghi trước hay sau snapshot tick 0? | Ghi TRƯỚC snapshot tick 0, giống thứ tự "event rồi snapshot" của mọi tick. | Nhóm |
+| C-P2-B02 | 2026-11-21 Phase 2 | Bước resume có nhận cạnh hành động / `buy` cùng frame không? | Có: bước có cạnh `pause` lần hai phát `resumed` rồi chạy gameplay đầy đủ với input của frame đó. Cạnh hành động trong các bước còn pause bị bỏ (chốt vẫn cập nhật nên giữ nút qua pause không tạo cạnh mới). | Nhóm |
+| C-P2-B03 | 2026-11-21 Phase 2 | `phase_tick` / `sim_tick` trong snapshot? | `sim_tick` = số bước gameplay (không tính bước pause); mode độc lập `phase_tick = sim_tick`; `day`: số bước gameplay từ đầu pha hiện tại (0 ở snapshot đổi pha). Snapshot luôn được ghi ở tick đổi pha (ngoài `--snapshot-every`). | Nhóm |
+| C-P2-B04 | 2026-11-21 Phase 2 | Mẫu `gather`/`quan` trong scenario `day` áp cho Ngày nào? | Áp cho MỌI Ngày ("mẫu khởi tạo mỗi Ngày"): giỏ mỗi Ngày dựng lại từ `gather.hold` (mặc định rỗng), khách mẫu dựng lại mỗi tối. Món của khách mẫu phải thuộc kế hoạch của mọi Ngày sẽ chạy (kiểm trước khi ghi đầu ra → mã 2). | Nhóm (cần hỏi PO) |
+| C-P2-B05 | 2026-11-21 Phase 2 | Mâu thuẫn chỉ phát hiện được trên kho thực lúc mở quán (vd. khách mẫu giữ chỗ vượt kho) | Thoát mã 2 và XÓA file đầu ra đã ghi dở (không thể biết kho thực trước khi chạy gather). | Nhóm |
+| C-P2-B06 | 2026-11-21 Phase 2 | `buy` `weapon`/`net`/`buy:<kind>`/`sell:<kind>` khi chưa bật mở rộng | `buy_failed {action, reason:"unknown"}` (lệnh không hỗ trợ). `buy` ngoài Shop (gather/quan) bị bỏ qua, không event. Nút `attack`/`photo` boolean được nhận và bỏ qua. | Nhóm |
+| C-P2-B07 | 2026-11-21 Phase 2 | Thứ tự kiểm `buy_failed` | `unknown` → `max_level` (không còn cấp kế) → `funds` (giá > money). Đủ đúng giá vẫn mua. | Nhóm |
+| C-P2-B08 | 2026-11-21 Phase 2 | `day.upgrades` trong scenario là cấp đã mua hay đang áp dụng? | Là cấp đã mua; Ngày 1 được dựng nên chép sang `active_upgrades` ngay → có hiệu lực từ Ngày 1. | Nhóm |
+| C-P2-B09 | 2026-11-21 Phase 2 | Id khách / cá qua nhiều Ngày | Một `IdAllocator` và một `Streams` cho cả lượt: id khách tiếp tục tăng qua Ngày (`order_id` duy nhất trong file), luồng RNG nối tiếp. | Nhóm |
+| C-P2-B10 | 2026-11-21 Phase 2 | Snapshot `day` có thêm gì ngoài khóa bắt buộc? | Thêm `days_completed` (số Shop đã đóng) cho HUD; `day_plan` trong snapshot = `{dishes, ingredients}` của Ngày hiện tại. | Nhóm |
+| C-P2-B11 | 2026-11-21 Phase 2 | DayIntro 4 s / EveningIntro có chiếm tick headless? | Không: chỉ là màn UI; headless một Ngày = 10.800 + 10.800 + 600 = 22.200 tick đúng mốc tối đa của ticket. | Nhóm |

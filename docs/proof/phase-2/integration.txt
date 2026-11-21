@@ -1,0 +1,2 @@
+quan snapshot tick 0 stock = {"bong_sung": 2, "ca_keo": 2, "ca_linh": 1, "ca_loc": 1, "keo_neo": 1} | kho = {"bong_sung": 2, "ca_keo": 2, "ca_linh": 1, "ca_loc": 1, "keo_neo": 1}
+INTEGRATION OK

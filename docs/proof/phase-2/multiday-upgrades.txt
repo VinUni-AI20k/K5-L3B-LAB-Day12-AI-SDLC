@@ -1,0 +1,6 @@
+Ngày 1 gather: tick=0 day=1 phase=gather phase_tick=0 money=450 upgrades={} active={} oxygen_max_ticks=1800 hp_max=3
+Ngày 1 shop (mở): tick=21600 day=1 phase=shop phase_tick=0 money=450 upgrades={} active={} oxygen_max_ticks=None hp_max=None
+bought: tick=21601 day=1 phase=shop {'upgrade': 'oxygen', 'level': 1, 'price': 200, 'money': 250}
+bought: tick=21602 day=1 phase=shop {'upgrade': 'hp', 'level': 1, 'price': 250, 'money': 0}
+Ngày 2 gather: tick=21603 day=2 phase=gather phase_tick=0 money=0 upgrades={'hp': 1, 'oxygen': 1} active={'hp': 1, 'oxygen': 1} oxygen_max_ticks=2700 hp_max=4
+UPGRADE-NEXT-DAY OK
