@@ -58,6 +58,14 @@ File kho chỉ chứa khóa `"items"` ánh xạ 4 loại nguyên liệu (`ca_loc
 
 Xem chi tiết hợp đồng tại [`docs/contracts/README.md`](docs/contracts/README.md) và ví dụ mẫu tại [`docs/contracts/inventory.sample.json`](docs/contracts/inventory.sample.json).
 
+## Mở rộng đã làm (Ticket-02 mục 3)
+
+| Mã | Mở rộng | Người làm | Bằng chứng |
+|---|---|---|---|
+| `snake` | Rắn Hổ Mây: M3 từ Ngày 1, tuần tra [72,14] ↔ [76,14] trong d ∈ [8,20], patrol 1.0 m/s, chase 3.5 m/s, phát hiện ≤ 8 m, rời chase khi > 16 m hoặc người chơi lên d < 8; luật chạm, rơi đồ, bất tử, recoil dùng chung với Cá Sấu | LeBao403 | [`tests/test_p2_snake.py`](tests/test_p2_snake.py), [`docs/proof/phase-2/monsters-snake-tests.txt`](docs/proof/phase-2/monsters-snake-tests.txt) |
+
+Mã đã khai ở `extensions` tại gốc [`game.contract.json`](game.contract.json). `chonoi/contract.py` từ chối manifest nếu khai `snake` mà thiếu dữ liệu rắn, hoặc có dữ liệu rắn mà không khai.
+
 ## Sáng tạo của nhóm (tắt ở headless)
 
 Phần mở rộng hiển thị chỉ chạy ở client trình duyệt [`chonoi/web/index.html`](chonoi/web/index.html) (và route static `/assets/` trong [`chonoi/live.py`](chonoi/live.py)), hoàn toàn không tác động đến `chonoi.headless`:

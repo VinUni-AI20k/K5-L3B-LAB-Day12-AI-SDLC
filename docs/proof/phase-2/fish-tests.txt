@@ -1,0 +1,52 @@
+# Bằng chứng lát 1 Phase 2 (B): 8 đàn đầu ca, cá bơi, cá sinh, cá kèo, nút kèo nèo (Ticket-02 mục 1.1)
+# Chạy trên main tại commit 56ebbd3 (đã gồm PR #14, code B: 10f565d)
+# Lệnh: PYTHONPATH=tests:. python3 -m unittest discover -s tests -p test_p2_fish.py -v   (PowerShell: $env:PYTHONPATH = "tests;.")
+
+test_cham_goc_dao_ca_hai_thanh_phan (test_p2_fish.CaBoi.test_cham_goc_dao_ca_hai_thanh_phan) ... ok
+test_di_dung_fish_speed (test_p2_fish.CaBoi.test_di_dung_fish_speed) ... ok
+test_di_theo_huong_xuong_la_d_duong (test_p2_fish.CaBoi.test_di_theo_huong_xuong_la_d_duong) ... ok
+test_di_toi_dung_mep_chua_vuot_thi_chua_dao (test_p2_fish.CaBoi.test_di_toi_dung_mep_chua_vuot_thi_chua_dao) ... ok
+test_doi_huong_dung_buoc_boi_thu_120_truoc_khi_di (test_p2_fish.CaBoi.test_doi_huong_dung_buoc_boi_thu_120_truoc_khi_di) ... ok
+test_khong_ra_khoi_dai_x_va_do_sau_trong_ca_dai (test_p2_fish.CaBoi.test_khong_ra_khoi_dai_x_va_do_sau_trong_ca_dai) ... ok
+test_moi_luong_rieng_cung_seed_cung_quy_dao (test_p2_fish.CaBoi.test_moi_luong_rieng_cung_seed_cung_quy_dao) ... ok
+test_phan_xa_o_dai_do_sau_cua_loai (test_p2_fish.CaBoi.test_phan_xa_o_dai_do_sau_cua_loai) ... ok
+test_phan_xa_o_mep_x (test_p2_fish.CaBoi.test_phan_xa_o_mep_x) ... ok
+test_ca_moi_tuoi_0_va_boi_tu_buoc_sau (test_p2_fish.CaSinh.test_ca_moi_tuoi_0_va_boi_tu_buoc_sau) ... ok
+test_chuan_hoa_lai_trong_so_khi_loai_het_diem (test_p2_fish.CaSinh.test_chuan_hoa_lai_trong_so_khi_loai_het_diem)
+Chiếm hết điểm của cá linh và cá lóc: chỉ còn cá kèo được sinh. ... ok
+test_diem_sinh_cach_moi_dan_dang_song_hon_clearance (test_p2_fish.CaSinh.test_diem_sinh_cach_moi_dan_dang_song_hon_clearance) ... ok
+test_het_diem_hop_le_bo_luot (test_p2_fish.CaSinh.test_het_diem_hop_le_bo_luot) ... ok
+test_khong_sinh_o_buoc_cuoi_het_gio (test_p2_fish.CaSinh.test_khong_sinh_o_buoc_cuoi_het_gio)
+Hết giờ ở đúng tick 360: gather_end, không bơi, không sinh thêm. ... ok
+test_khong_sinh_qua_fish_max (test_p2_fish.CaSinh.test_khong_sinh_qua_fish_max) ... ok
+test_sinh_dung_tick_360_khi_con_cho_roi_moi_360 (test_p2_fish.CaSinh.test_sinh_dung_tick_360_khi_con_cho_roi_moi_360) ... ok
+test_8_dan_o_8_diem_sinh_chuan_khac_nhau (test_p2_fish.DauCa.test_8_dan_o_8_diem_sinh_chuan_khac_nhau) ... ok
+test_cung_seed_cung_dan_khac_seed_khac (test_p2_fish.DauCa.test_cung_seed_cung_dan_khac_seed_khac) ... ok
+test_khai_fish_thay_dan_ban_dau_van_boi_va_sinh (test_p2_fish.DauCa.test_khai_fish_thay_dan_ban_dau_van_boi_va_sinh) ... ok
+test_random_fish_false_ca_fixture_dung_yen (test_p2_fish.DauCa.test_random_fish_false_ca_fixture_dung_yen) ... ok
+test_random_fish_false_khong_ca_khong_boi_khong_sinh (test_p2_fish.DauCa.test_random_fish_false_khong_ca_khong_boi_khong_sinh) ... ok
+test_ca_boi_va_sinh_o_tick_360 (test_p2_fish.Headless.test_ca_boi_va_sinh_o_tick_360) ... ok
+test_cung_seed_hai_buoc_snapshot_khac_nhau_cho_ket_qua_cuoi_giong_nhau (test_p2_fish.Headless.test_cung_seed_hai_buoc_snapshot_khac_nhau_cho_ket_qua_cuoi_giong_nhau) ... ok
+test_random_fish_false_khong_sinh (test_p2_fish.Headless.test_random_fish_false_khong_sinh) ... ok
+test_tat_dinh_tung_byte (test_p2_fish.Headless.test_tat_dinh_tung_byte) ... ok
+test_tick_0_co_8_dan_voi_age_0 (test_p2_fish.Headless.test_tick_0_co_8_dan_voi_age_0) ... ok
+test_bat_ca_keo_cho_2 (test_p2_fish.LoaiMoi.test_bat_ca_keo_cho_2) ... ok
+test_hai_nut_keo_neo_n5_va_n6 (test_p2_fish.LoaiMoi.test_hai_nut_keo_neo_n5_va_n6) ... ok
+test_bat_ca_theo_vi_tri_truoc_khi_boi (test_p2_fish.ThuTuStep.test_bat_ca_theo_vi_tri_truoc_khi_boi)
+Cá ở đúng mép tầm bắt (2.0) nhưng đang bơi ra xa: vẫn bắt được vì bắt xét TRƯỚC khi cá bơi. ... ok
+test_ca_boi_ngay_buoc_dau_neu_khong_bi_bat (test_p2_fish.ThuTuStep.test_ca_boi_ngay_buoc_dau_neu_khong_bi_bat) ... ok
+
+----------------------------------------------------------------------
+Ran 30 tests in 1.406s
+
+OK
+
+# Smoke headless (seed 1, 1200 tick, gather mặc định): cá sinh đúng lịch 360 bước
+#   python3 -m chonoi.headless --mode gather --seed 1 --ticks 1200 --out out.jsonl
+#   tick 360  fish_spawned {"id":"F9","kind":"ca_loc","pos":[30.0,10.0]}
+#   tick 720  fish_spawned {"id":"F10","kind":"ca_linh","pos":[15.0,5.0]}
+#   tick 1080 fish_spawned {"id":"F11","kind":"ca_loc","pos":[15.0,10.0]}
+# Tick 0: 8 đàn F1..F8 ở 8 điểm sinh chuẩn, age_ticks 0.
+#
+# Toàn bộ test trên cùng commit: 200 test, 199 xanh. 1 đỏ là tests/test_e_qa_p1.py (của E, còn khẳng định
+# contract_version "1.0"), không liên quan lát cá.

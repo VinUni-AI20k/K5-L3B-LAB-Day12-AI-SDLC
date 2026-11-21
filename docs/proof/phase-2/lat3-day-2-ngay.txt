@@ -1,0 +1,50 @@
+# Lát 3 (C): --mode day 2 Ngày, nhánh p2/thedlcrimson/day-loop @ b6b580a
+# python3 -m chonoi.headless --mode day --days 2 --seed 42 --scenario sc.json --inputs in.json --ticks 44400 --out day.jsonl --snapshot-every 600
+# sc.json: {"day": {"money": 450, "earned": 450}, "gather": {"hold": ["ca_loc", "ca_loc", "bong_sung", "bong_sung"], "random_fish": false}}
+# in.json: {"frames": [{"tick": 0, "interact": true}, {"tick": 10801, "buy": "oxygen"}, {"tick": 10802, "buy": "weapon"}, {"tick": 10803, "shop_done": true}]}
+# mã thoát 0, thời gian chạy 0.51 s cho 2 Ngày
+# Event chính (tick, phase, day, name, data):
+0 gather 1 day_start {}
+0 gather 1 day_plan {"dishes": {"ca_loc_nuong_trui": 3, "goi_bong_sung": 3}, "ingredients": {"ca_loc": 3, "bong_sung": 6}}
+0 gather 1 phase_start {}
+1 gather 1 gather_end {"reason": "docked", "inventory": {"items": {"bong_sung": 2, "ca_loc": 2}}}
+1 quan 1 phase_start {}
+121 quan 1 customer_arrived {"order_id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+1021 quan 1 customer_arrived {"order_id": "C2", "table_id": "T2", "dish_id": "goi_bong_sung"}
+1921 quan 1 customer_arrived {"order_id": "C3", "table_id": "T3", "dish_id": "ca_loc_nuong_trui"}
+2821 quan 1 no_dish {}
+3721 quan 1 customer_arrived {"order_id": "C4", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+4621 quan 1 customer_arrived {"order_id": "C5", "table_id": "T2", "dish_id": "goi_bong_sung"}
+5521 quan 1 customer_arrived {"order_id": "C6", "table_id": "T3", "dish_id": "ca_loc_nuong_trui"}
+6421 quan 1 no_dish {}
+7321 quan 1 customer_arrived {"order_id": "C7", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+8221 quan 1 customer_arrived {"order_id": "C8", "table_id": "T2", "dish_id": "goi_bong_sung"}
+9121 quan 1 customer_arrived {"order_id": "C9", "table_id": "T3", "dish_id": "ca_loc_nuong_trui"}
+10021 quan 1 no_dish {}
+10801 quan 1 quan_end {"reason": "time", "money": 450, "earned": 450, "shift_earned": 0, "reputation": 0}
+10801 shop 1 phase_start {}
+10802 shop 1 bought {"upgrade": "oxygen", "level": 1, "price": 200, "money": 250}
+10803 shop 1 buy_failed {"action": "weapon", "reason": "unknown"}
+10804 shop 1 shop_end {"reason": "done"}
+10804 gather 2 day_start {}
+10804 gather 2 day_plan {"dishes": {"ca_loc_nuong_trui": 2, "lau_ca_linh_dien_dien": 2}, "ingredients": {"ca_loc": 2, "ca_linh": 6, "bong_dien_dien": 2}}
+10804 gather 2 phase_start {}
+21604 gather 2 gather_end {"reason": "time", "inventory": {"items": {"bong_sung": 2, "ca_loc": 2}}}
+21604 quan 2 phase_start {}
+21724 quan 2 customer_arrived {"order_id": "C10", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+22624 quan 2 customer_arrived {"order_id": "C11", "table_id": "T2", "dish_id": "ca_loc_nuong_trui"}
+23524 quan 2 no_dish {}
+24424 quan 2 no_dish {}
+25324 quan 2 customer_arrived {"order_id": "C12", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+26224 quan 2 customer_arrived {"order_id": "C13", "table_id": "T2", "dish_id": "ca_loc_nuong_trui"}
+27124 quan 2 no_dish {}
+28024 quan 2 no_dish {}
+28924 quan 2 customer_arrived {"order_id": "C14", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+29824 quan 2 customer_arrived {"order_id": "C15", "table_id": "T2", "dish_id": "ca_loc_nuong_trui"}
+30724 quan 2 no_dish {}
+31624 quan 2 no_dish {}
+32404 quan 2 quan_end {"reason": "time", "money": 250, "earned": 450, "shift_earned": 0, "reputation": 0}
+32404 shop 2 phase_start {}
+33004 shop 2 shop_end {"reason": "time"}
+# Snapshot đầu tiên của Ngày 2: {"tick": 11400, "phase": "gather", "phase_tick": 596, "money": 250, "earned": 450, "upgrades": {"oxygen": 1}, "active_upgrades": {"oxygen": 1}} oxygen_max_ticks 2700
+# Dòng end: {"type": "end", "ticks": 33004, "sim_tick": 33004, "mode": "day", "state": "finished", "reason": "days_complete", "money": 250, "earned": 450, "reputation": 0, "score": 450, "days_completed": 2}

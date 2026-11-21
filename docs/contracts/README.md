@@ -96,7 +96,7 @@ Món trên bếp hoặc trên tay là payload `{order_id, dish_id, base_price}`.
 
 ### 5.1. Manifest
 
-- `contract_version: "1.1"`. `extensions` ở gốc manifest là mảng mã mở rộng đang bật (`weapon`, `net`, `snake`, `burn`, `vendor`, `ca_ho`), hiện là `[]`.
+- `contract_version: "1.1"`. `extensions` ở gốc manifest là mảng mã mở rộng đang bật (`weapon`, `net`, `snake`, `burn`, `vendor`, `ca_ho`), hiện là `["snake"]` (Rắn Hổ Mây: `monsters.species.ran` + spawn M3, LeBao403). `contract.validate_extensions` kiểm mã khai khớp dữ liệu.
 - Số chuẩn và dữ liệu theo Ticket-02 mục 1, 2: `gather.fish_initial` là số (8), các khóa cá bơi/sinh, `gather.monsters`, nút N5/N6 kèo nèo, `quan` có B1-B2 và T1-T4, 6 món, `day_plan` (5 Ngày, `ingredients` = tổng công thức × suất), `shop`.
 - `chonoi/contract.py` kiểm toàn bộ khi nạp; sai thì mã 2. Hàm dùng chung: `plan_ingredients(menu, dishes)`, `upgrade_value(tuning, kind, level, base)`, `extensions(contract)`.
 
@@ -131,7 +131,7 @@ Thứ tự trong `GatherSim.step` (mục 4.5): đồng hồ, cooldown, bất t�
 
 | Sự kiện | `data` | Ai phát |
 |---|---|---|
-| `monster_hit` | `monster_id`, `hp`, `lost` (LIFO), `pos` (người chơi) | A, `_update_monsters` |
+| `monster_hit` | `monster_id`, `hp`, `lost` (LIFO), `pos` (người chơi) | A, `_update_monsters` (Cá Sấu và Rắn) |
 | `faint` | thêm `cause: "monster"`; `lost` là phần giỏ còn lại; `hp: 0` | A |
 | `fish_spawned` | `id`, `kind`, `pos` | B, `_spawn_fish` |
 | `paused`, `resumed` | `{}` | runner (`PauseGate`) |
@@ -153,3 +153,11 @@ Trong day, vỏ event có thêm `day`; snapshot mọi pha có `day`, `day_plan`,
 - Nút `attack`, `photo` khi chưa bật mở rộng vẫn là trường lạ (mã 2) như smoke P1.
 - `--mode day` tạm thời trả mã 2 cho tới khi `DaySession` (C) xong. `ShopSim` và phần kiểm giá trị khối `day` là khung cho C.
 - Test cũ sửa theo luật v1.1 trong nền (A sửa, ghi lý do trong commit, chủ test review lại): `test_smoke_p1` (6 thành `fish_initial` = 8 đàn), `test_lat3_khach.test_het_ban_trong_thi_bo_luot` (4 bàn nên lấp đủ T1-T4), `test_lat4_quan.test_ngoai_ban_kinh_khong_lam_gi` (B2 ở [5, 8] nên đứng lệch theo trục z).
+
+### 5.7. Quái (đã làm, LeBao403)
+
+`GatherSim._update_monsters` viết theo loài, dùng chung cho Cá Sấu (`ca_sau`) và Rắn Hổ Mây (`ran`):
+
+- Mỗi bước duyệt quái theo id. `recoil`: lùi `recoil_dist / recoil_ticks` mét theo `recoil_dir` rồi chặn; hết đếm thì về `patrol`, xét phát hiện và chạm từ bước kế. `patrol`/`chase`: đổi trạng thái theo người chơi (vào `chase` khi người chơi ở d >= `depths[0]` và cách <= `detect_radius`; về `patrol` khi cách > `exit_radius` hoặc người chơi lên d < `depths[0]`), rồi đi `patrol_speed` về waypoint (tới nơi đổi `target_idx` cho bước sau) hoặc `chase_speed` về phía người chơi. Chặn theo biên map và dải `depths` của loài.
+- Sau khi cả hai đã di chuyển: tối đa một hit, con gần nhất (hòa id), không ở recoil, trong `hit_radius`, người chơi ở d >= `depths[0]` và `invuln_ticks == 0`. Hit: -1 Máu, bỏ `floor(len(hold) × loss_ratio)` theo LIFO, `invuln_ticks = 90`, `monster_hit`, con đó vào `recoil` 60 bước từ bước sau với hướng xa người chơi (trùng tâm dùng +x).
+- Máu 0 do quái: `faint{cause: "monster", lost: phần giỏ còn lại theo LIFO, hp: 0}` rồi `gather_end(fainted)`. Ngạt xét trước quái trong cùng tick.

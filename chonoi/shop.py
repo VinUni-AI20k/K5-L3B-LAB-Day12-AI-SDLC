@@ -33,9 +33,40 @@ class ShopSim:
         self.reason = None
 
     def snapshot(self) -> dict:
-        """TODO(C): stock dư (bỏ mục bằng 0), upgrades, ... theo Ticket-02 mục 4.4."""
-        return {}
+        """Ticket-02 mục 4.4: Shop có `stock` dư từ ca quán (bỏ mục bằng 0). `upgrades` do DaySession thêm."""
+        return {"stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}}
 
     def step(self, inp):
-        """TODO(C): buy -> shop_done -> hết giờ (shop_end), theo luật ở docstring module. Trả list (name, data)."""
-        return []
+        """Một bước Shop: một `buy` -> cạnh `shop_done` -> hết giờ. Trả list (name, data)."""
+        events = []
+        self.phase_tick += 1
+        self.time_left_ticks = max(0, self.time_left_ticks - 1)
+        if inp.buy is not None:
+            self._buy(inp.buy, events)
+        if inp.pressed("shop_done"):
+            self._close("done", events)
+        elif self.time_left_ticks <= 0:
+            self._close("time", events)
+        return events
+
+    def _buy(self, action, events):
+        levels = self.t["upgrades"].get(action)
+        if levels is None:  # lệnh lạ, buy:/sell: của Chợ hoặc mở rộng chưa bật
+            events.append(("buy_failed", {"action": action, "reason": "unknown"}))
+            return
+        level = self.upgrades.get(action, 0)
+        if level >= len(levels):
+            events.append(("buy_failed", {"action": action, "reason": "max_level"}))
+            return
+        price = levels[level]["price"]
+        if self.money < price:  # đủ đúng giá vẫn mua
+            events.append(("buy_failed", {"action": action, "reason": "funds"}))
+            return
+        self.money -= price  # earned và điểm giữ nguyên
+        self.upgrades[action] = level + 1
+        events.append(("bought", {"upgrade": action, "level": level + 1, "price": price, "money": self.money}))
+
+    def _close(self, reason, events):
+        self.done = True
+        self.reason = reason
+        events.append(("shop_end", {"reason": reason}))
