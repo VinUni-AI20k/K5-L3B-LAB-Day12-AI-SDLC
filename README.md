@@ -48,7 +48,12 @@ python3 -m chonoi.live --mode gather --inventory-out kho.json    # chơi buổi 
   - Test: `tests/test_quan_lat4.py::test_burn_*`, `tests/test_lat0_v11.py::test_burn_chi_hop_le_khi_bat_extension`.
   - Bằng chứng: [`docs/proof/phase-2/final-run.md`](docs/proof/phase-2/final-run.md).
 
-**Sáng tạo của nhóm:** chưa có (làm lõi đúng trước).
+**Sáng tạo của nhóm:**
+- **Đồ họa SVG tự tạo (21 hình)** trong `chonoi/web/assets/`: Út Sen (áo bà ba, khăn rằn, kính lặn, giỏ lưới), cá linh / lóc / kèo, Cá Sấu Năm Chèo, bông điên điển / súng, kèo nèo, bến, bếp, bàn, khách đội nón lá, 6 món ăn, 3 biểu tượng cảnh báo. Sinh bằng `python3 tools/gen_assets.py`.
+- **SFX tự tạo (24 hiệu ứng)** bằng Web Audio (`chonoi/web/assets/sfx.js`), kèm **phụ đề** cho mọi hiệu ứng, hiện cả khi tắt tiếng. Phím **M** tắt/bật tiếng, **V** ẩn/hiện phụ đề.
+- Không dùng asset ngoài (xem `CREDITS.md`). Client tự về hình khối cũ nếu asset chưa tải.
+- **Tắt ở headless:** asset chỉ nằm ở client; `runner`, `headless`, `sim/` không đọc chúng.
+- **Bằng chứng lõi vẫn đúng:** `tests/test_assets.py` (12 test: SVG hợp lệ và khớp script sinh, đủ asset cho mọi món/loài trong dữ liệu, tên sự kiện SFX khớp sim, route `/assets/` chặn truy cập ra ngoài, headless không nhắc tới asset). Toàn bộ suite 245 test OK; headless cùng seed vẫn giống từng byte.
 
 ---
 

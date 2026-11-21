@@ -11,6 +11,7 @@
 </head>
 <body>
 <canvas id="c"></canvas>
+<script src="/assets/sfx.js"></script>
 <script>
 "use strict";
 /*
@@ -54,11 +55,14 @@ async function flush() {
 function keyName(e) { return e.key.length === 1 ? e.key.toLowerCase() : e.key.toLowerCase(); }
 addEventListener("keydown", (e) => {
   const k = keyName(e);
+  if (HAS_SFX) SFX.unlock();  // trình duyệt chỉ cho phát âm sau thao tác của người dùng
   if (e.repeat) { if (k === " " || k.startsWith("arrow")) e.preventDefault(); return; }
   if (MOVE_KEYS[k]) { down.add(MOVE_KEYS[k]); e.preventDefault(); }
   else if (k === "e") down.add("interact");
   else if (k === " ") { down.add("catch"); e.preventDefault(); }
   else if (k === "r") { fetch("/restart", { method: "POST" }); lastSent = ""; down.clear(); }
+  else if (k === "m" && HAS_SFX) SFX.toggleMute();
+  else if (k === "v") captionsOn = !captionsOn;
   pushInput();
 });
 addEventListener("keyup", (e) => {
@@ -76,6 +80,7 @@ async function poll() {
     const r = await fetch("/state", { cache: "no-store" });
     snap = await r.json();
     offline = false;
+    processSfx();
   } catch (e) { offline = true; }
   setTimeout(poll, 16);
 }
@@ -85,6 +90,56 @@ poll();
 const KIND_COLOR = { ca_loc: "#7c9a52", ca_linh: "#d6e6f2", ca_keo: "#d9a066", bong_dien_dien: "#f2c230", bong_sung: "#e8799c", keo_neo: "#8fcf6b" };
 const KIND_NAME = { ca_loc: "cá lóc", ca_linh: "cá linh", ca_keo: "cá kèo", bong_dien_dien: "điên điển", bong_sung: "bông súng", keo_neo: "kèo nèo" };
 const kc = (k) => KIND_COLOR[k] || "#bbbbbb";
+// ---- Sprite SVG tự tạo (tools/gen_assets.py). Chưa tải xong thì trả false và nơi gọi vẽ hình khối cũ. ----
+const SPRITE_NAMES = ["usen", "ca_linh", "ca_loc", "ca_keo", "ca_sau", "bong_dien_dien", "bong_sung", "keo_neo", "dock", "stove", "table",
+  "customer", "warn_monster", "warn_oxygen", "warn_angry", "dish_ca_loc_nuong_trui", "dish_goi_bong_sung", "dish_lau_ca_linh_dien_dien",
+  "dish_canh_chua_ca_loc", "dish_ca_keo_nuong", "dish_lau_mam"];
+const SPRITES = {};
+SPRITE_NAMES.forEach((n) => { const im = new Image(); im.src = "/assets/" + n + ".svg"; SPRITES[n] = im; });
+// Vẽ sprite tâm (cx, cy), cỡ w×h. o.rot: xoay (rad); o.flipX/o.flipY: lật quanh tâm.
+function sprite(name, cx, cy, w, h, o) {
+  const im = SPRITES[name];
+  if (!im || !im.complete || im.naturalWidth === 0) return false;
+  o = o || {};
+  ctx.save(); ctx.translate(cx, cy);
+  if (o.rot) ctx.rotate(o.rot);
+  ctx.scale(o.flipX ? -1 : 1, o.flipY ? -1 : 1);
+  ctx.drawImage(im, -w / 2, -h / 2, w, h);
+  ctx.restore();
+  return true;
+}
+// ---- SFX + phụ đề (assets/sfx.js). Phụ đề hiện kể cả khi tắt tiếng. ----
+const HAS_SFX = typeof SFX !== "undefined";
+let captionsOn = true, lastEvTick = null;
+const captions = [];  // {text, until}
+function pushCaption(t) { captions.push({ text: t, until: performance.now() + 1800 }); if (captions.length > 3) captions.shift(); }
+function processSfx() {
+  const evs = snap.events || [], tick = snap.tick || 0;
+  if (lastEvTick === null) { lastEvTick = evs.length ? evs[evs.length - 1].tick : tick; return; }  // lần đầu: không phát lại quá khứ
+  if (tick < lastEvTick) lastEvTick = -1;  // chơi lại
+  let top = lastEvTick;
+  evs.forEach((e) => {
+    if (e.tick <= lastEvTick) return;
+    top = Math.max(top, e.tick);
+    if (!HAS_SFX) return;
+    const c = SFX.handle(e.name, e.data);
+    if (c) pushCaption(c);
+  });
+  lastEvTick = top;
+}
+function drawCaptions(w, h) {
+  const now = performance.now();
+  while (captions.length && captions[0].until < now) captions.shift();
+  if (captionsOn) captions.forEach((c, i) => {
+    const y = h - 118 - (captions.length - 1 - i) * 26;
+    ctx.font = "16px system-ui, sans-serif";
+    const tw = ctx.measureText("🔊 " + c.text).width + 20;
+    ctx.fillStyle = "rgba(0,0,0,.62)"; ctx.fillRect(w / 2 - tw / 2, y - 18, tw, 24);
+    text("🔊 " + c.text, w / 2, y, { size: 16, align: "center", color: "#fff" });
+  });
+  if (HAS_SFX) text((SFX.isMuted() ? "🔇" : "🔊") + " M tắt/bật tiếng · V " + (captionsOn ? "ẩn" : "hiện") + " phụ đề", w - 10, 20,
+    { size: 12, align: "right", color: "rgba(232,238,242,.75)" });
+}
 const DISH_NAME = { ca_loc_nuong_trui: "Cá lóc nướng trui", goi_bong_sung: "Gỏi bông súng", lau_ca_linh_dien_dien: "Lẩu cá linh điên điển" };
 const dn = (d) => DISH_NAME[d] || d || "?";
 const STOVE_STATE = { idle: "trống", cooking: "đang nấu", ready: "xong, chờ bưng" };
@@ -195,27 +250,46 @@ function drawGather(w, h) {
   }
   // bến
   const dp = meta.dock_pos || [2, 0], dr = meta.dock_radius || 3;
-  ctx.fillStyle = "#8d6e4b"; ctx.fillRect(sx(dp[0] - 1.5), sy(-0.7), 3 * s, 0.9 * s);
-  ctx.fillStyle = "#b9503a"; ctx.beginPath(); ctx.moveTo(sx(dp[0] - 1.8), sy(-0.7)); ctx.lineTo(sx(dp[0]), sy(-2.4)); ctx.lineTo(sx(dp[0] + 1.8), sy(-0.7)); ctx.fill();
+  const dockH = 4.4 * s;  // sàn bến (đáy 82% chiều cao hình) đặt đúng mặt nước d = 0
+  if (!sprite("dock", sx(dp[0]), sy(0) - 0.325 * dockH, dockH * 1.2, dockH)) {
+    ctx.fillStyle = "#8d6e4b"; ctx.fillRect(sx(dp[0] - 1.5), sy(-0.7), 3 * s, 0.9 * s);
+    ctx.fillStyle = "#b9503a"; ctx.beginPath(); ctx.moveTo(sx(dp[0] - 1.8), sy(-0.7)); ctx.lineTo(sx(dp[0]), sy(-2.4)); ctx.lineTo(sx(dp[0] + 1.8), sy(-0.7)); ctx.fill();
+  }
   ctx.strokeStyle = "rgba(255,230,150,.7)"; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(sx(dp[0]), sy(dp[1]), dr * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-  text("Bến (E)", sx(dp[0]), sy(-2.8), { size: 11, align: "center", color: "#5a3a22" });
+  text("Bến (E)", sx(dp[0]), sy(-4.0), { size: 11, align: "center", color: "#5a3a22" });
   // nút hái
   (snap.nodes || []).forEach((n) => {
     const ready = n.ready !== false;
     ctx.globalAlpha = ready ? 1 : 0.35;
-    ctx.fillStyle = kc(n.kind); ctx.beginPath(); ctx.ellipse(sx(n.pos[0]), sy(n.pos[1]) - 0.1 * s, 0.9 * s, 0.4 * s, 0, 0, Math.PI * 2); ctx.fill();
+    const nh = 1.6 * s;
+    if (!sprite(n.kind, sx(n.pos[0]), sy(n.pos[1]) - 0.35 * nh, nh * 1.6, nh)) {
+      ctx.fillStyle = kc(n.kind); ctx.beginPath(); ctx.ellipse(sx(n.pos[0]), sy(n.pos[1]) - 0.1 * s, 0.9 * s, 0.4 * s, 0, 0, Math.PI * 2); ctx.fill();
+    }
     ctx.globalAlpha = 1;
-    text(n.id, sx(n.pos[0]), sy(n.pos[1]) - 0.7 * s, { size: 10, align: "center", color: "#234" });
+    text(n.id, sx(n.pos[0]), sy(n.pos[1]) - 1.9 * s, { size: 10, align: "center", color: "#234" });
     if (!ready && n.regrow_ticks) text(Math.ceil(n.regrow_ticks / 60) + "s", sx(n.pos[0]), sy(n.pos[1]) + 1.1 * s, { size: 10, align: "center", color: "#fff" });
   });
   // đàn cá
   (snap.fish || []).forEach((f) => {
-    ctx.save(); ctx.translate(sx(f.pos[0]), sy(f.pos[1])); ctx.rotate(((f.heading_deg || 0) * Math.PI) / 180);
-    ctx.fillStyle = kc(f.kind);
-    ctx.beginPath(); ctx.ellipse(0, 0, 0.9 * s, 0.45 * s, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(-0.8 * s, 0); ctx.lineTo(-1.4 * s, -0.4 * s); ctx.lineTo(-1.4 * s, 0.4 * s); ctx.fill();
-    ctx.restore();
+    const hr = ((f.heading_deg || 0) * Math.PI) / 180;
+    // cá vẽ quay +x; hướng sang trái thì lật dọc để không bị úp ngược
+    if (!sprite(f.kind, sx(f.pos[0]), sy(f.pos[1]), 2.8 * s, 1.4 * s, { rot: hr, flipY: Math.cos(hr) < 0 })) {
+      ctx.save(); ctx.translate(sx(f.pos[0]), sy(f.pos[1])); ctx.rotate(hr);
+      ctx.fillStyle = kc(f.kind);
+      ctx.beginPath(); ctx.ellipse(0, 0, 0.9 * s, 0.45 * s, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-0.8 * s, 0); ctx.lineTo(-1.4 * s, -0.4 * s); ctx.lineTo(-1.4 * s, 0.4 * s); ctx.fill();
+      ctx.restore();
+    }
     text(f.id, sx(f.pos[0]), sy(f.pos[1]) - 0.7 * s, { size: 10, align: "center", color: "rgba(255,255,255,.8)" });
+  });
+  // thủy quái (Cá Sấu Năm Chèo): quay mặt về waypoint đang tới
+  (snap.monsters || []).forEach((m) => {
+    const wp = m.waypoints && m.waypoints[m.target_idx], left = wp ? wp[0] < m.pos[0] : false;
+    const chase = m.state === "chase";
+    if (!sprite("ca_sau", sx(m.pos[0]), sy(m.pos[1]), 6 * s, 2.25 * s, { flipX: left })) {
+      ctx.fillStyle = "#3d5a2e"; ctx.beginPath(); ctx.ellipse(sx(m.pos[0]), sy(m.pos[1]), 2.4 * s, 0.9 * s, 0, 0, Math.PI * 2); ctx.fill();
+    }
+    text(chase ? "đuổi!" : m.id, sx(m.pos[0]), sy(m.pos[1]) - 1.5 * s, { size: 11, align: "center", color: chase ? "#ff8a80" : "rgba(255,255,255,.7)" });
   });
   // người chơi
   const p = snap.player;
@@ -225,9 +299,11 @@ function drawGather(w, h) {
     if (meta.catch_radius && underwater) { ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.beginPath(); ctx.arc(px, py, meta.catch_radius * s, 0, Math.PI * 2); ctx.stroke(); }
     if (meta.interact_radius && !underwater) { ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.beginPath(); ctx.arc(px, py, meta.interact_radius * s, 0, Math.PI * 2); ctx.stroke(); }
     if (!(p.invuln_ticks > 0 && Math.floor(snap.tick / 5) % 2)) {
-      ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.arc(px, py, 0.6 * s, 0, Math.PI * 2); ctx.fill();
       const a = ((p.heading_deg || 0) * Math.PI) / 180;
-      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * 0.9 * s, py + Math.sin(a) * 0.9 * s); ctx.stroke();
+      if (!sprite("usen", px, py, 2.6 * s, 2.6 * s, { flipX: Math.cos(a) < 0 })) {
+        ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.arc(px, py, 0.6 * s, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * 0.9 * s, py + Math.sin(a) * 0.9 * s); ctx.stroke();
+      }
     }
   }
   // HUD trên
@@ -268,7 +344,7 @@ function drawGather(w, h) {
 function drawQuan(w, h) {
   const meta = snap.meta || {};
   const b = meta.bounds || { x: [0, 16], z: [0, 10] };
-  const X = b.x[1], Z = b.z[1], top = 64, bottom = 40;
+  const X = b.x[1], Z = b.z[1], top = 100, bottom = 40;  // chừa chỗ cho 3 dòng HUD kho phía trên
   const s = Math.max(1, Math.min((w - 40) / X, (h - top - bottom) / Z));
   const ox = (w - s * X) / 2, oy = top;
   const sx = (x) => ox + x * s, sy = (z) => oy + (Z - z) * s;
@@ -277,8 +353,12 @@ function drawQuan(w, h) {
   // bếp
   (snap.stoves || []).forEach((st) => {
     const col = st.state === "cooking" ? "#e8892b" : st.state === "ready" ? "#6fbf5a" : "#6d6d72";
-    ctx.fillStyle = col; ctx.fillRect(sx(st.pos[0]) - 0.8 * s, sy(st.pos[1]) - 0.8 * s, 1.6 * s, 1.6 * s);
-    text(st.id, sx(st.pos[0]), sy(st.pos[1]) + 4, { size: 12, align: "center", color: "#111" });
+    if (sprite("stove", sx(st.pos[0]), sy(st.pos[1]), 2.1 * s, 2.1 * s)) {
+      ctx.fillStyle = col; ctx.fillRect(sx(st.pos[0]) - 1.0 * s, sy(st.pos[1]) + 1.1 * s, 2.0 * s, 4);  // vạch trạng thái bếp
+    } else {
+      ctx.fillStyle = col; ctx.fillRect(sx(st.pos[0]) - 0.8 * s, sy(st.pos[1]) - 0.8 * s, 1.6 * s, 1.6 * s);
+    }
+    text(st.id, sx(st.pos[0]), sy(st.pos[1]) + 1.7 * s, { size: 11, align: "center", color: "#111" });
     const stDish = st.dish && typeof st.dish === "object" ? st.dish.dish_id : st.dish;
     text((STOVE_STATE[st.state] || st.state || "") + (stDish ? " · " + dn(stDish) : ""), sx(st.pos[0]), sy(st.pos[1]) - 0.95 * s, { size: 10, align: "center", color: "#2a1a0a" });
     if (st.state === "cooking" && st.cook_ticks_left !== undefined) text(Math.ceil(st.cook_ticks_left / 60) + "s", sx(st.pos[0]), sy(st.pos[1]) + 1.25 * s, { size: 11, align: "center", color: "#2a1a0a" });
@@ -288,12 +368,20 @@ function drawQuan(w, h) {
   const byTable = {};
   (snap.customers || []).forEach((c) => (byTable[c.table_id] = c));
   (snap.tables || []).forEach((tb) => {
-    ctx.fillStyle = "#8a5a2e"; ctx.beginPath(); ctx.arc(sx(tb.pos[0]), sy(tb.pos[1]), 0.9 * s, 0, Math.PI * 2); ctx.fill();
-    text(tb.id, sx(tb.pos[0]), sy(tb.pos[1]) + 4, { size: 12, align: "center", color: "#fff" });
+    if (!sprite("table", sx(tb.pos[0]), sy(tb.pos[1]), 2.0 * s, 2.0 * s)) {
+      ctx.fillStyle = "#8a5a2e"; ctx.beginPath(); ctx.arc(sx(tb.pos[0]), sy(tb.pos[1]), 0.9 * s, 0, Math.PI * 2); ctx.fill();
+    }
+    text(tb.id, sx(tb.pos[0]), sy(tb.pos[1]) + 1.45 * s, { size: 11, align: "center", color: "#fff" });
     const c = byTable[tb.id];
     if (c) {
       const cx = sx(tb.pos[0]), cy = sy(tb.pos[1]) - 1.5 * s;
-      ctx.fillStyle = c.state === "eating" ? "#7bc67b" : "#f4b6c2"; ctx.beginPath(); ctx.arc(cx, cy, 0.55 * s, 0, Math.PI * 2); ctx.fill();
+      if (sprite("customer", cx, cy, 1.4 * s, 1.4 * s)) {  // viền xanh = đang ăn, hồng = đang chờ
+        ctx.strokeStyle = c.state === "eating" ? "#7bc67b" : "#f4b6c2"; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.arc(cx, cy, 0.78 * s, 0, Math.PI * 2); ctx.stroke();
+        sprite("dish_" + c.dish_id, cx + 1.25 * s, cy, 0.9 * s, 0.9 * s);
+      } else {
+        ctx.fillStyle = c.state === "eating" ? "#7bc67b" : "#f4b6c2"; ctx.beginPath(); ctx.arc(cx, cy, 0.55 * s, 0, Math.PI * 2); ctx.fill();
+      }
       const status = c.state === "eating" ? "đang ăn" : c.order_status === "unfulfillable" ? "không nấu được" : "chờ";
       text(dn(c.dish_id) + " · " + status, cx, cy - 0.75 * s, { size: 10, align: "center", color: "#2a1a0a" });
       if (c.state !== "eating" && c.patience_ticks_left !== undefined) {
@@ -306,9 +394,10 @@ function drawQuan(w, h) {
   if (p) {
     const px = sx(p.pos[0]), py = sy(p.pos[1]);
     if (meta.interact_radius) { ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(px, py, meta.interact_radius * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
-    ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.arc(px, py, 0.5 * s, 0, Math.PI * 2); ctx.fill();
+    if (!sprite("usen", px, py, 1.7 * s, 1.7 * s)) { ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.arc(px, py, 0.5 * s, 0, Math.PI * 2); ctx.fill(); }
     if (snap.hand) {
       const hand = typeof snap.hand === "string" ? snap.hand : snap.hand.dish_id;
+      sprite("dish_" + hand, px, py - 1.55 * s, 0.95 * s, 0.95 * s);
       text("🍲 " + dn(hand), px, py - 0.8 * s, { size: 11, align: "center", color: "#2a1a0a" });
     }
   }
@@ -331,6 +420,7 @@ function frame() {
   if (snap) {
     if (snap.mode === "quan") drawQuan(w, h); else drawGather(w, h);
     eventLog(w, h);
+    drawCaptions(w, h);
     overlay(w, h);
   } else {
     text(offline ? "Không kết nối được máy chủ…" : "Đang tải…", w / 2, h / 2, { align: "center", size: 18 });
