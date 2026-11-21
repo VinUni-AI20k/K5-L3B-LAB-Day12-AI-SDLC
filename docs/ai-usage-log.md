@@ -7,3 +7,4 @@
 | 1 | TV4 | Codex | Đối chiếu mục D–F, triển khai bếp và thanh toán, viết và chạy test headless | Chưa đo | Xem [kết quả TV4](proof/phase-1/tv4-bep-thanh-toan.md). |
 | 1 | TV5 (Vũ Xuân Bách) | Gemini 3.8 Flash | Soạn thảo ma trận kiểm chứng `phase-1.md`, viết `test_phase1_gameplay.py`, tích hợp 3 tính năng sáng tạo Web Audio & Canvas UI | ~18.000 tokens | AI viết kịch bản test giữ nguyên phím `interact=True` khiến không phát hiện được cạnh lên ở thao tác tiếp theo; phát hiện khi chạy unittest fail và sửa nhả phím `interact=False` |
 
+| 2 | TV1 (Nguyễn Duy Mạnh) | Codex (GPT-6.1) | Viết logic Cá Sấu, fixture/snapshot, tuning, test và tài liệu kiểm chứng | Chưa đo | Kiểm tra off-by-one của recoil/bất tử bằng snapshot từng tick, đối chiếu lost của monster_hit và faint để tránh bỏ giỏ hai lần sai thứ tự. Suite đạt 70/70. |

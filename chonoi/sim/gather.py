@@ -25,7 +25,7 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids):
+    def __init__(self, tuning, scenario, streams, ids, day=1):
         t = tuning["gather"]
         self.t = t
         self.rng = streams
@@ -43,6 +43,23 @@ class GatherSim:
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        self.monster_tuning = t.get("monsters")
+        self.monsters = []
+        if self.monster_tuning:
+            spawns = scenario.get("monsters", [
+                m for m in self.monster_tuning["spawns"] if m["from_day"] <= day
+            ])
+            for monster in spawns:
+                self.monsters.append({
+                    "id": monster["id"], "kind": monster["kind"],
+                    "pos": list(monster["pos"]),
+                    "waypoints": [list(point) for point in monster["waypoints"]],
+                    "target_idx": monster.get("target_idx", 1),
+                    "state": monster.get("state", "patrol"),
+                    "state_ticks_left": monster.get("state_ticks_left", 0),
+                    "recoil_dir": monster.get("recoil_dir"),
+                })
+                ids.reserve(monster["id"])
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
@@ -79,6 +96,7 @@ class GatherSim:
                        "at_surface": self._at_surface()},
             "hold": self.hold, "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
+            "monsters": [dict(m, pos=m["pos"].copy()) for m in sort_by_id(self.monsters)],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
@@ -102,6 +120,9 @@ class GatherSim:
         was_at_surface = self._at_surface()
         self._move(inp)
         self._update_survival(was_at_surface, events)
+        if self.done:
+            return events
+        self._update_monsters(events)
         if self.done:
             return events
         # 3. interact: bến trước, rồi hái
@@ -183,6 +204,7 @@ class GatherSim:
         if self.oxygen_ticks > 0:
             self.oxygen_ticks -= 1
             if self.oxygen_ticks > 0:
+                self.zero_oxy_ticks = 0
                 return
             events.append(("oxygen_empty", {"oxygen_ticks": 0}))
 
@@ -195,10 +217,85 @@ class GatherSim:
         self.hp -= 1
         events.append(("choke", {"hp": self.hp}))
         if self.hp == 0:
-            lost = list(reversed(self.hold))
-            self.hold.clear()
-            events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
-            self._finish("fainted", events)
+            self._faint("choke", events)
+
+    def _faint(self, cause, events):
+        lost = list(reversed(self.hold))
+        self.hold.clear()
+        events.append(("faint", {"cause": cause, "lost": lost, "hp": 0}))
+        self._finish("fainted", events)
+
+    def _move_monster(self, monster, target, speed, depths):
+        distance = math.dist(monster["pos"], target)
+        step = min(distance, speed / TICK)
+        if distance:
+            monster["pos"] = [
+                value + (goal - value) * step / distance
+                for value, goal in zip(monster["pos"], target)
+            ]
+        bounds = self.t["bounds"]
+        monster["pos"][0] = max(bounds["x"][0], min(bounds["x"][1], monster["pos"][0]))
+        monster["pos"][1] = max(depths[0], min(depths[1], monster["pos"][1]))
+
+    def _update_monsters(self, events):
+        if not self.monster_tuning:
+            return
+        candidates = []
+        for monster in sort_by_id(self.monsters):
+            species = self.monster_tuning["species"][monster["kind"]]
+            if monster["state"] == "recoil":
+                target = [p + d for p, d in zip(monster["pos"], monster["recoil_dir"])]
+                self._move_monster(
+                    monster, target, species["recoil_dist"] * TICK / species["recoil_ticks"],
+                    species["depths"],
+                )
+                monster["state_ticks_left"] -= 1
+                if monster["state_ticks_left"] == 0:
+                    monster["state"] = "patrol"
+                    monster["recoil_dir"] = None
+                # Bước cuối recoil vẫn không phát hiện hoặc gây hit.
+                continue
+
+            distance = math.dist(monster["pos"], self.pos)
+            deep = self.pos[1] >= species["depths"][0]
+            if monster["state"] == "chase":
+                if not deep or distance > species["exit_radius"]:
+                    monster["state"] = "patrol"
+            elif deep and distance <= species["detect_radius"]:
+                monster["state"] = "chase"
+
+            if monster["state"] == "chase":
+                self._move_monster(monster, self.pos, species["chase_speed"], species["depths"])
+            else:
+                target = monster["waypoints"][monster["target_idx"]]
+                self._move_monster(monster, target, species["patrol_speed"], species["depths"])
+                if math.dist(monster["pos"], target) <= 1e-9:
+                    monster["target_idx"] = 1 - monster["target_idx"]
+
+            distance = math.dist(monster["pos"], self.pos)
+            if deep and distance <= species["hit_radius"]:
+                candidates.append((distance, id_key(monster["id"]), monster))
+
+        if self.invuln_ticks or not candidates:
+            return
+        monster = min(candidates, key=lambda candidate: candidate[:2])[2]
+        species = self.monster_tuning["species"][monster["kind"]]
+        loss_count = math.floor(len(self.hold) * self.monster_tuning["loss_ratio"])
+        lost = [self.hold.pop() for _ in range(loss_count)]
+        self.hp -= 1
+        self.invuln_ticks = self.monster_tuning["invuln_ticks"]
+        events.append(("monster_hit", {
+            "monster_id": monster["id"], "hp": self.hp, "lost": lost, "pos": self.pos.copy(),
+        }))
+        distance = math.dist(monster["pos"], self.pos)
+        monster["recoil_dir"] = (
+            [(m - p) / distance for m, p in zip(monster["pos"], self.pos)]
+            if distance else [1.0, 0.0]
+        )
+        monster["state"] = "recoil"
+        monster["state_ticks_left"] = species["recoil_ticks"]
+        if self.hp == 0:
+            self._faint("monster", events)
 
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]
