@@ -1,0 +1,40 @@
+{
+  "tests_run": 82,
+  "deterministic_gather_bytes": true,
+  "team_check": {
+    "exit_code": 0,
+    "output": "OK: 6 thành viên: hieunhangia, Ducbaynao, Besoi2004, hnib1908, letuandat131, Laurent2526"
+  },
+  "runs": {
+    "gather": {
+      "sha256": "caee0db5f6093fb8e505c25135f11d931980249959fab66169bc5cc185cb4668",
+      "end": {
+        "type": "end",
+        "ticks": 600,
+        "sim_tick": 600,
+        "mode": "gather",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      }
+    },
+    "quan": {
+      "sha256": "ecbce00c8dc04aeded8ec7e702fc71b89b1a7d3baf41cb5a343203a6ed32fa37",
+      "end": {
+        "type": "end",
+        "ticks": 600,
+        "sim_tick": 600,
+        "mode": "quan",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      }
+    }
+  }
+}

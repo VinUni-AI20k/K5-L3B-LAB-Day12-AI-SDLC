@@ -1,1 +1,8 @@
-{"items":{"bong_sung":2,"ca_loc":1}}
+{
+  "items": {
+    "ca_loc": 2,
+    "ca_linh": 6,
+    "bong_dien_dien": 4,
+    "bong_sung": 3
+  }
+}
