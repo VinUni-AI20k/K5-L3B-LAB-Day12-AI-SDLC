@@ -1,9 +1,5 @@
 # Phase 2 — phần khách của Quoosc
 
-Trạng thái: triển khai phần độc lập, chưa nghiệm thu Phase 2. `QuanSim` nhận `menu_filter` tùy chọn qua constructor theo `docs/plan/phan-chia-cong-viec.md`; khi có, chỉ chọn món trong filter và đủ nguyên liệu. `None` giữ menu đầy đủ, filter rỗng không sinh khách; món không có trong menu bị từ chối. Giá trị số của kế hoạch chưa được diễn giải thành hạn mức.
+Main `63f850e`, PR #8 merge `9f60259`: QuanSim nhận menu_filter (None: toàn menu, rỗng: không món, ID lạ: BadInput), order_tick và ledger giữ/tiêu/nhả. Manifest v1.1 có sáu món, hai bếp, bốn bàn. Q3/Q4 đã ghép; [proof sau merge](q3/postmerge-baseline-63f850e.txt): Q3 P1 23, Q3 P2 12, Q4 7, regression 108, 9/9 bước, exit 0.
 
-`python .agents/skills/phase-1-verification/scripts/verify_phase1.py --no-proof`: 90 tests, exit 0, 9/9 bước, headless gather/quán tất định; Python 3.11 trên Windows với shim `python3` tạm. `tests/test_p2_quoc.py` dùng tuning sao chép: hai bếp, bốn bàn, lịch 120 + 900k; xác nhận năm lượt khách, tái sử dụng bàn sau khi hết kiên nhẫn, lọc món, kế hoạch rỗng và món sai. Đây là kiểm thử giả lập, không chứng minh dữ liệu chính thức v1.1. Test giao diện `menu_filter` trước sửa thất bại do constructor thiếu tham số, sau sửa đạt.
-
-Chưa có `DaySim` gọi constructor với kế hoạch; chưa có contract v1.1 với bốn bàn, hai bếp và sáu món. Cần PO/integrator xác nhận schema, ý nghĩa số lượng món, thời điểm tạo kế hoạch, và giao diện truyền trước khi tích hợp. Không sửa contract khóa. Phase 1 vẫn có D-01..D-09 chưa chốt và Q4-F1 trong `../phase-1/q3/q4-review.md`.
-
-Review: khách `waiting` thiếu `reserved` được coi là đã có món nếu `hand` trùng mã món; với nhiều khách cùng món, không có ID liên kết món trên tay và khách. Quy tắc này có thể làm nhiều khách mất reservation. Cần thiết kế cùng Q4, chưa coi là nghiệm thu. Proof Phase 1 trước merge là kết quả lịch sử; regression 90 test ở trên là kết quả mới.
+DaySim chưa có; mode day trả 2. Q4-F1 vẫn tái hiện; chính sách chờ Kiên và PO. Hợp đồng tích hợp là đề xuất chờ duyệt; day_plan và event còn lệch. Chi tiết: [handoff](../../../specs/001-p2-q3-day-customers/handoff.md). QA và phản tư cá nhân chưa được xác nhận. Các log cũ và patch worktree là lịch sử tại [Q3 proof](q3/README.md).

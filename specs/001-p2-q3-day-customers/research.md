@@ -1,3 +1,5 @@
-# Nguồn và quyết định
+# Nguồn và trạng thái sau merge
 
-`docs/plan/phan-chia-cong-viec.md` giao lịch 120+900k, bàn nhỏ nhất, menu_filter và order_tick cho Quốc; `game.contract.json` hiện v1.0, một bàn/ba món. Mock `day-quan.json` có `day_plan.dishes`, nhưng là giả lập UI. Ticket-02 gốc không có trong repo; nguồn Claude yêu cầu đăng nhập. Semantics no_dish, số lượng kế hoạch và xử lý món mồ côi cần PO xác nhận; `docs/clarify.md` ghi câu hỏi. Nhánh Q4 `8b3b93f` chưa nhập main, và DaySim chưa có.
+`docs/plan/phase-2.md` và `docs/plan/phan-chia-cong-viec.md` giao Quốc khách, bàn, filter và reservation; Kiên sở hữu bếp. Main `63f850e` có manifest v1.1, hai bếp, bốn bàn, sáu món. `docs/contracts/README.md` dẫn TICKET-02 nhưng ghi là đề xuất PO chờ Integrator duyệt; ticket gốc chưa được đối chiếu độc lập lần này.
+
+PR #6 và #8 đã ghép Q3/Q4; filter rỗng và kiểm order_tick âm đã hiện diện, không áp lại patch lịch sử. Q4-F1 vẫn tái hiện; DaySim chưa có. Xem [bảng lệch](contracts/q3-q4-day.md) và [proof](../../docs/proof/phase-2/q3/postmerge-baseline-63f850e.txt). No_dish, event, state, kho và chính sách món mồ côi chờ xác nhận.

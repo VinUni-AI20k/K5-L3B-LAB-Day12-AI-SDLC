@@ -1,5 +1,11 @@
 # Bằng chứng Phase 2 Q3
 
+## Kiểm chứng sau merge
+
+Main `63f850e`, manifest v1.1: [log baseline](postmerge-baseline-63f850e.txt) và [log sau cập nhật](postmerge-final-63f850e.txt). Q3 P1 23, Q3 P2 12, Q4 7, regression 108 và 9/9 bước đạt; Day trả 2; Q4-F1 vẫn tái hiện. Q3/Q4 đã ghép; hợp đồng PR #10 chờ Integrator duyệt.
+
+## Lịch sử trước merge (giữ theo thời điểm)
+
 Trên `3ce5cc6` cùng working tree Q3, Python 3.11 Windows, script verification dùng shim Python ngoài repo. `p2-tests.txt`: 10 test, exit 0; `p1-q3-tests.txt`: 23 test, exit 0; `regression-headless.txt`: 98 test, exit 0, 9/9 bước gồm hai lần headless gather/quán cùng seed so byte, nạp kho và đầu vào sai. Các test Phase 2 sử dụng [tuning giả lập](../../../../tests/fixtures/p2/q3/tuning.json), không phải contract chính thức.
 
 Headless `quan` ở đây dùng contract v1.0. Chưa chạy được headless `day` hoặc headless bằng contract v1.1 chính thức do chưa có DaySim/v1.1. Hai bếp trên code hiện tại không dùng lại reservation; test Q4-F1 tái hiện món mồ côi, không biểu thị lỗi đã sửa. Nhánh Q4 `8b3b93f` cần tích hợp/retest thực tế; xem `specs/001-p2-q3-day-customers/contracts/q3-q4-day.md`.

@@ -1,8 +1,10 @@
-# Definition of done
+# Definition of done — Phase 2 Q3
 
-- [x] Interface khách độc lập với filter, lịch từ tuning, reservation và order_tick; unit test và hồi quy có log.
-- [x] Đối chiếu nhánh Q4 thực và cung cấp patch đề xuất có test trong worktree tách biệt.
-- [ ] Q4 hòa vào cùng nhánh, test tích hợp hai bếp và thứ tự đơn, giải quyết Q4-F1 theo luật được chốt.
-- [ ] Contract v1.1 và DaySim thật được tích hợp; headless day và replay đạt.
-- [ ] PO xác nhận AC, no_dish và semantics đang mở; QA nghiệm thu.
-- [ ] Quốc xác nhận nội dung phản ánh cá nhân và reviewer chấp nhận bàn giao.
+- [x] Interface khách, filter, lịch, reservation, order_tick và test có proof.
+- [x] Review Q4 và ghi finding có thể tái hiện.
+- [ ] Q3/Q4 đã ghép và test hai bếp; Q4-F1 chưa được quyết định và xử lý.
+- [ ] Manifest v1.1 đã có; DaySim thật và headless day chưa được kiểm.
+- [ ] PO/Integrator xác nhận AC, no_dish và schema; QA nghiệm thu.
+- [ ] Quốc xác nhận phản tư cá nhân và reviewer chấp nhận bàn giao.
+
+[Proof trên main](../../docs/proof/phase-2/q3/postmerge-baseline-63f850e.txt): 108 test regression, 9/9 bước; không hàm ý Day hoặc QA đã nghiệm thu.
