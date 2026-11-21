@@ -11,6 +11,8 @@ import math
 from .errors import BadInput
 
 BUTTONS_V10 = ("interact", "catch")  # v1.0; các nút khác có từ phiên bản sau
+BUTTONS_P2 = ("interact", "catch", "pause")
+BUTTONS = BUTTONS_P2
 
 
 class InputState:
@@ -23,7 +25,7 @@ class InputState:
         return name in self._edges
 
 
-def load_frames(path, buttons=BUTTONS_V10):
+def load_frames(path, buttons=BUTTONS):
     if path is None:
         return []
     try:

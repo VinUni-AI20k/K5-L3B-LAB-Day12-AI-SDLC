@@ -135,12 +135,15 @@ class MonsterBoundaries(unittest.TestCase):
             hit, faint, gather_end = (row["data"] for row in terminal_events)
             self.assertEqual(hit["monster_id"], "M1")
             self.assertEqual(hit["hp"], 0)
-            self.assertEqual(hit["lost"], ["bong_dien_dien"])
-            self.assertEqual(
-                faint, {"cause": "monster", "lost": ["bong_sung", "ca_loc"], "hp": 0},
-            )
+            lost_hit = [it["kind"] if isinstance(it, dict) else it for it in hit["lost"]]
+            self.assertEqual(lost_hit, ["bong_dien_dien"])
+            lost_faint = [it["kind"] if isinstance(it, dict) else it for it in faint["lost"]]
+            self.assertEqual(lost_faint, ["bong_sung", "ca_loc"])
+            self.assertEqual(faint["cause"], "monster")
+            self.assertEqual(faint["hp"], 0)
             self.assertEqual(gather_end["reason"], "fainted")
-            self.assertEqual(gather_end["inventory"], {"items": {}})
+            expected_empty = {"items": []} if isinstance(gather_end["inventory"].get("items"), list) else {"items": {}}
+            self.assertEqual(gather_end["inventory"], expected_empty)
 
             with open(inventory, encoding="utf-8") as exported:
                 self.assertEqual(json.load(exported), gather_end["inventory"])
