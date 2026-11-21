@@ -30,11 +30,18 @@ class CustomerMixin:
         self.customers = [self._make_customer(c) for c in scenario.get("customers", [])]
         for c in self.customers:
             self.ids.reserve(c["id"])
+        if self.item_mode:  # v1.2: đơn reserved thiếu `reserved` được cấp id cá thể theo order_tick rồi id bàn
+            self._allocate_fixture_reservations([c for c in self.customers if c["reserved"] is None])
 
     def _make_customer(self, c):
         state = c.get("state", "waiting")
         status = c.get("order_status", "served" if state == "eating" else "reserved")
-        if "reserved" in c:
+        if self.item_mode:  # v1.2: reserved là mảng id cá thể; None = chờ cấp từ kho
+            if "reserved" in c:
+                reserved = list(c["reserved"])
+            else:
+                reserved = None if status == "reserved" else []
+        elif "reserved" in c:
             reserved = dict(c["reserved"])
         elif status == "reserved":
             reserved = dict(self.menu[c["dish_id"]]["recipe"])
@@ -71,8 +78,10 @@ class CustomerMixin:
         """Món khách được gọi (lọc theo kế hoạch ngày trước) và đủ nguyên liệu khả dụng,
         sắp theo id (mã Unicode) để duyệt cố định. Không đếm số suất: gọi tiếp món đủ nguyên liệu
         vẫn được kể cả khi đã bán đủ số suất dự kiến."""
-        avail = self._available_stock()
         pool = sorted(self.menu if self.allowed_dishes is None else self.allowed_dishes)
+        if self.item_mode:
+            return self._cookable_items_dishes(pool)
+        avail = self._available_stock()
         return [d for d in pool
                 if all(avail.get(k, 0) >= q for k, q in self.menu[d]["recipe"].items())]
 
@@ -81,7 +90,10 @@ class CustomerMixin:
         out = []
         for c in sort_by_id(self.customers):
             row = {k: c[k] for k in CUSTOMER_FIELDS}
-            row["reserved"] = {k: row["reserved"][k] for k in sorted(row["reserved"])}
+            if isinstance(row["reserved"], dict):
+                row["reserved"] = {k: row["reserved"][k] for k in sorted(row["reserved"])}
+            else:
+                row["reserved"] = list(row["reserved"])  # v1.2: mảng id cá thể (đã sắp theo id)
             out.append(row)
         return out
 
@@ -164,11 +176,13 @@ class CustomerMixin:
             events.append(("no_dish", {}))
             return
         dish_id = dishes[self.rng.get("customer_dish").randrange(len(dishes))]
+        reserved = (self._try_reserve(self.menu[dish_id]["recipe"]) if self.item_mode
+                    else dict(self.menu[dish_id]["recipe"]))
         cid = self.ids.new(CUSTOMER_PREFIX)
         self.customers.append({
             "id": cid, "table_id": table_id, "dish_id": dish_id, "order_tick": self.phase_tick,
             "state": "waiting", "patience_ticks_left": self._patience_max, "eat_ticks_left": 0,
-            "order_status": "reserved", "reserved": dict(self.menu[dish_id]["recipe"]),
+            "order_status": "reserved", "reserved": reserved,
             "base_price": None, "tip": None,
         })
         events.append(("customer_arrived", {"order_id": cid, "table_id": table_id, "dish_id": dish_id}))
