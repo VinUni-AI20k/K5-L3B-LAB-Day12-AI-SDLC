@@ -27,35 +27,43 @@
 
     <main id="main-content">
       <section id="menu" class="menu" aria-labelledby="menu-title">
-        <div class="menu-copy">
-          <p class="eyebrow">Sông Chín Khúc</p>
-          <h1 id="menu-title" tabindex="-1">Một ngày<br>của Út Sen</h1>
-          <p class="intro">Sáng theo con nước bắt cá, hái rau. Tối nhóm bếp trên nhà bè Má Tư, đem mẻ thu hoạch đãi khách.</p>
-          <div class="mode-list">
-            <button type="button" class="mode primary" data-play="campaign" disabled>
-              <span><strong>Chơi</strong><small id="campaign-note">Năm ngày ở chợ nổi</small></span><span aria-hidden="true">→</span>
-            </button>
-            <button type="button" class="mode" id="phase-one-day" data-play="day" disabled>
-              <span><strong>Chơi trọn ngày</strong><small>Từ giỏ buổi sáng đến mâm cơm buổi tối</small></span><span aria-hidden="true">→</span>
-            </button>
-            <div class="single-modes">
-              <button type="button" class="mode" data-play="gather" disabled>
-                <span><strong>Chỉ chơi buổi sáng</strong><small>Lặn bắt cá, hái rau</small></span>
-              </button>
-              <button type="button" class="mode" data-play="quan" disabled>
-                <span><strong>Chỉ chơi buổi tối</strong><small>Mở quán với kho có sẵn</small></span>
-              </button>
-            </div>
-            <button type="button" class="button plain" id="exit">Thoát</button>
+        <div class="menu-feature">
+          <div class="menu-art" aria-hidden="true">
+            <canvas id="cover"></canvas>
+            <img id="river-cover" alt="" decoding="async">
           </div>
+          <div class="menu-copy">
+            <p class="eyebrow">Sông Chín Khúc · Miền Tây</p>
+            <h1 id="menu-title" tabindex="-1">Mùa <em>Nước Nổi</em></h1>
+            <p class="intro">Theo Út Sen lặn bắt cá, hái bông súng rồi nhóm bếp đãi khách trên nhà bè Má Tư.</p>
+            <button type="button" class="mode primary hero-action" data-play="campaign" disabled>
+              <span><strong>Bắt đầu hành trình</strong><small id="campaign-note">Năm ngày ở chợ nổi</small></span><span class="mode-arrow" aria-hidden="true">→</span>
+            </button>
+          </div>
+        </div>
+        <div class="mode-list" role="group" aria-label="Chế độ chơi riêng">
+          <button type="button" class="mode" id="phase-one-day" data-play="day" disabled>
+            <i class="mode-emblem" aria-hidden="true"></i>
+            <span><strong>Chơi trọn ngày</strong><small>Bàn giao giỏ thu hoạch sang quán</small></span><span class="mode-arrow" aria-hidden="true">→</span>
+          </button>
+          <button type="button" class="mode" data-play="gather" disabled>
+            <i class="mode-emblem dawn-emblem" aria-hidden="true"></i>
+            <span><strong>Buổi sáng</strong><small>Lặn bắt cá, hái rau</small></span><span class="mode-arrow" aria-hidden="true">→</span>
+          </button>
+          <button type="button" class="mode" data-play="quan" disabled>
+            <i class="mode-emblem night-emblem" aria-hidden="true"></i>
+            <span><strong>Buổi tối</strong><small>Mở quán với kho có sẵn</small></span><span class="mode-arrow" aria-hidden="true">→</span>
+          </button>
+        </div>
+        <div class="menu-bottom">
           <div class="controls menu-controls" aria-label="Điều khiển">
             <span><kbd>WASD</kbd> <kbd>↑↓←→</kbd> Di chuyển</span>
             <span><kbd>E</kbd> Tương tác</span>
             <span><kbd>Space</kbd> Bắt cá</span>
             <span><kbd>Esc</kbd> / <kbd>P</kbd> Tạm dừng</span>
           </div>
+          <button type="button" class="button plain" id="exit">Thoát</button>
         </div>
-        <div class="menu-art"><canvas id="cover" aria-hidden="true"></canvas></div>
       </section>
 
       <section id="game" aria-labelledby="scene-title" hidden>
@@ -161,7 +169,10 @@
       <section id="journey" class="journey" aria-labelledby="journey-title" hidden>
         <div class="journey-card">
           <header class="journey-head">
-            <p class="eyebrow" id="journey-day"></p>
+            <div class="journey-dayline">
+              <p class="eyebrow" id="journey-day"></p>
+              <progress id="journey-progress" aria-label="Tiến độ hành trình" hidden></progress>
+            </div>
             <h1 id="journey-title" tabindex="-1"></h1>
             <p class="intro" id="journey-copy"></p>
           </header>

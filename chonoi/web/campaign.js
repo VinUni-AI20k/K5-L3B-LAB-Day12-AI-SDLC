@@ -200,6 +200,12 @@ export function createCampaignView({ $, write, update, element, inventoryList, m
 
     $("journey").dataset.screen = current;
     write("journey-day", hasCampaign ? "Ngày " + snapshot.day + " / " + totalDays : snapshot.phase === "gather" ? "Buổi sáng" : "Buổi tối");
+    const progress = $("journey-progress");
+    progress.hidden = !hasCampaign;
+    if (hasCampaign) {
+      progress.max = totalDays;
+      progress.value = snapshot.day;
+    }
     $("journey-stock-panel").hidden = !["day_intro", "evening_intro", "shop"].includes(current);
     $("journey-menu-panel").hidden = !["day_intro", "evening_intro"].includes(current);
     const stock = snapshot.stock ?? receivedInventory(day.gather) ?? {};

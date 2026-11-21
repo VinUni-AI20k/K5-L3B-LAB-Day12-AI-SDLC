@@ -80,15 +80,20 @@ function house(ctx, x, y, size, color, roofColor, windowColor) {
 }
 
 export function shore(ctx, w, h, horizon, drift = 0) {
-  ctx.fillStyle = ramp(ctx, 0, horizon, "#b76e82", "#e7a18f", "#ffd7a0");
+  ctx.fillStyle = ramp(ctx, 0, horizon, "#a55460", "#e99471", "#ffcf8d");
   ctx.fillRect(0, 0, w, h);
   if (horizon <= 0) return;
 
   const size = Math.min(w * .06, horizon * .26);
   const sunX = w * .69 - drift * .034;
   const sunY = horizon * .41;
-  oval(ctx, sunX, sunY, size * 1.22, size * 1.22, "#fdda9e37");
-  oval(ctx, sunX, sunY, size, size, "#ffe0a5");
+  const sunlight = ctx.createRadialGradient(sunX, sunY, size * .72, sunX, sunY, size * 3.5);
+  sunlight.addColorStop(0, "#ffc665a0");
+  sunlight.addColorStop(1, "#ffc66500");
+  ctx.fillStyle = sunlight;
+  ctx.fillRect(0, 0, w, horizon);
+  oval(ctx, sunX, sunY, size * 1.18, size * 1.18, "#ffd49a4a");
+  oval(ctx, sunX, sunY, size, size, "#fff0bd");
   for (let i = 0; i < 12; i++) {
     const x = w * sample(i + 4);
     const y = horizon * (.19 + sample(i + 24) * .57);
@@ -97,7 +102,7 @@ export function shore(ctx, w, h, horizon, drift = 0) {
   }
 
   for (let layer = 0; layer < 3; layer++) {
-    const color = ["#857c73", "#687c71", "#476b60"][layer];
+    const color = ["#96756d", "#626e61", "#35584a"][layer];
     ctx.fillStyle = color;
     ctx.beginPath();
     ctx.moveTo(0, horizon);
@@ -112,8 +117,8 @@ export function shore(ctx, w, h, horizon, drift = 0) {
   const unit = Math.min(28, horizon * .19);
   for (let i = -1; i < 8; i++) {
     const x = i * (w / 7 + 16) - (drift * .19) % (w / 7 + 16);
-    if (i % 3 === 1) house(ctx, x + 10, horizon - 3, unit, "#466659", "#696c65", "#c4a683");
-    else nipa(ctx, x, horizon - 3, unit * (1.13 + sample(i) * .6), "#3a685b", i);
+    if (i % 3 === 1) house(ctx, x + 10, horizon - 3, unit, "#3d5446", "#755844", "#ffb862");
+    else nipa(ctx, x, horizon - 3, unit * (1.13 + sample(i) * .6), "#315d4d", i);
   }
 }
 
@@ -139,6 +144,14 @@ export function river(ctx, w, h, horizon, floor, drift = 0, t = 0, tiers, floodS
     const x = i * w / 7 - (drift * .1) % (w / 7);
     shape(ctx, "#d6e6a008", [x, horizon], [x + w * .06, horizon],
       [x + w * .26, (h + horizon) * .5], [x + w * .23, (h + horizon) * .56]);
+  }
+  const reflectionX = w * .69 - drift * .034;
+  for (let i = 0; i < 9; i++) {
+    const wave = Math.sin(t * 1.6 + i * 1.8);
+    const span = w * (.016 + i * .004) * (.83 + wave * .17);
+    const x = reflectionX + wave * 6;
+    const y = horizon + 3 + i * 2.25;
+    stroke(ctx, i > 3 ? "#fec27226" : "#ffdda26d", i > 3 ? 1 : 1.7, [x - span, y], [x + span, y]);
   }
   for (let i = 0; i < 48; i++) {
     const depth = sample(i + 15);
@@ -280,7 +293,7 @@ function lamp(ctx, x, y, time) {
 }
 
 export function deck(ctx, w, h, x, y, width, height, t) {
-  ctx.fillStyle = ramp(ctx, 0, h, "#142632", "#244345", "#183338");
+  ctx.fillStyle = ramp(ctx, 0, h, "#142335", "#1d353d", "#122a32");
   ctx.fillRect(0, 0, w, h);
   for (let i = 0; i < 42; i++) {
     const rx = (sample(i) * (w + 30) + t * 1.5) % (w + 30) - 15;
@@ -302,6 +315,12 @@ export function deck(ctx, w, h, x, y, width, height, t) {
       stroke(ctx, "#653f2a5e", 1, [px, gy], [px + width * .12, gy + .5]);
     }
   }
+  const lighting = ctx.createRadialGradient(x + width * .35, y, 0, x + width * .35, y + height * .06, height * 1.04);
+  lighting.addColorStop(0, "#ffd98760");
+  lighting.addColorStop(.59, "#ffc16b13");
+  lighting.addColorStop(1, "#1d263d26");
+  ctx.fillStyle = lighting;
+  ctx.fillRect(x, y, width, height);
   ctx.strokeStyle = "#d19d67";
   ctx.lineWidth = 2;
   ctx.strokeRect(x, y, width, height);
@@ -318,7 +337,13 @@ export function deck(ctx, w, h, x, y, width, height, t) {
   ctx.moveTo(x, line(0));
   for (let i = 1; i <= 9; i++) ctx.lineTo(x + i * width / 9, line(i));
   ctx.stroke();
-  for (let i = 0; i <= 9; i++) lamp(ctx, x + i * width / 9, line(i), t);
+  for (let i = 0; i <= 9; i++) {
+    lamp(ctx, x + i * width / 9, line(i), t);
+    const shimmer = x + i * width / 9 + Math.sin(t * 1.65 + i) * 4;
+    const below = y + height + 12 + i % 3 * 2;
+    stroke(ctx, "#f2c68157", 1.15, [shimmer - 5, below], [shimmer + 7, below]);
+    stroke(ctx, "#f2c68126", 1, [shimmer - 10, below + 5], [shimmer + 8, below + 5]);
+  }
 }
 
 export function mealArt(ctx, x, y, size) {

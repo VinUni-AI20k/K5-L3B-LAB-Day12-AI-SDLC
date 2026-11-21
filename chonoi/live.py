@@ -34,6 +34,7 @@ WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 SAMPLE_INVENTORY = os.path.join(os.path.dirname(DEFAULT_PATH), "docs", "contracts", "inventory.sample.json")
 WEB_FILES = {"index.html": "text/html", "styles.css": "text/css", "phase2.preview.json": "application/json",
              "phase3.preview.json": "application/json",
+             "river-cover.webp": "image/webp",
              **dict.fromkeys(("app.js", "adapter.js", "scenes.js", "art.js", "preview.js",
                               "campaign.js", "phase2-preview.js", "phase3-preview.js", "inventory-view.js"), "text/javascript")}
 MAX_BODY = 4096
@@ -240,7 +241,10 @@ class _Handler(BaseHTTPRequestHandler):
         elif (name := "index.html" if path == "/" else path.removeprefix("/")) in WEB_FILES:
             try:
                 with open(os.path.join(WEB_DIR, name), "rb") as f:
-                    self._send(200, f.read(), f"{WEB_FILES[name]}; charset=utf-8")
+                    content_type = WEB_FILES[name]
+                    if not content_type.startswith("image/"):
+                        content_type += "; charset=utf-8"
+                    self._send(200, f.read(), content_type)
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
         else:

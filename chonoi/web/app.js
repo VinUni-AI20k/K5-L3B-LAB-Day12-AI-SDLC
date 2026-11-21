@@ -68,6 +68,11 @@ let toasts = [];
 let damageTimer;
 let input = Promise.resolve();
 const renderer = createRenderer($("cover"), $("world"), benchSignal ? () => benchSignal("frame") : undefined);
+if (!benchSignal) {
+  const poster = $("river-cover");
+  poster.addEventListener("load", () => poster.classList.add("loaded"), { once: true });
+  poster.src = new URL("./river-cover.webp", import.meta.url).href;
+}
 const phaseInput = new CampaignInput(send);
 const campaignView = createCampaignView({ $, write, update, element, inventoryList, money, decimal, dishName, time,
   proceed, action: campaignCommand });
@@ -754,8 +759,7 @@ try {
     liveV12 = liveCampaign && config.contract_version === "1.2";
   }
   tuning = baseTuning;
-  const campaignTitle = mockVersion === "3" ? "Mùa nước nổi · Năm ngày" : "Năm ngày ở chợ nổi";
-  write("campaign-note", liveV12 ? campaignTitle : "Bản xem trước · " + campaignTitle);
+  write("campaign-note", liveV12 ? "Năm ngày ở chợ nổi" : "Bản xem trước · 5 ngày");
   $("phase-one-day").hidden = previewCampaign || liveV12;
   $("preview-label").hidden = !preview && !previewCampaign;
   if (previewCampaign) write("preview-label", "Phase " + mockVersion + " · Snapshot mẫu");
