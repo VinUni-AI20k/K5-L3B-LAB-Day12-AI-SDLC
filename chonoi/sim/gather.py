@@ -64,8 +64,8 @@ class GatherSim:
         else:
             src_fish = []
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0),
-                      "_fixture": "fish" in scenario} for f in src_fish]
+                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+        self.fixture_fish_ids = {f["id"] for f in src_fish} if "fish" in scenario else set()
         self.fish_motion = t.get("fish_motion")
         self.fish_spawn_by_tick = {}
         if "fish" not in scenario and scenario.get("random_fish", True):
@@ -153,7 +153,7 @@ class GatherSim:
             x_min, x_max = self.t["bounds"]["x"]
             d_min, d_max = motion["min_depth"], self.t["bounds"]["d"][1]
             for fish in sort_by_id(self.fish):
-                if fish.get("_fixture", False):
+                if fish["id"] in self.fixture_fish_ids:
                     continue
                 heading = fish["heading_deg"]
                 if turn_rng is not None:
