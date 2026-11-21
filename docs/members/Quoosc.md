@@ -5,3 +5,5 @@ This working diff adds Q3 customer hydration, atomic reservation/consume/release
 The Q4 review at the starting tree recorded a reproducible orphaned-dish case when a customer leaves during cooking. It is a finding for the Q4 owner, not an approval. The baseline test command initially failed because this Windows environment lacks `python3`; a temporary interpreter shim fixed command resolution. This caught an environment issue before interpreting the result as a code failure.
 
 Quốc should review and confirm this draft before using it as a personal reflection.
+
+Phase 2 draft: added `menu_filter`, customer `order_tick` and tests for four tables and six fixture dishes; [evidence](../proof/phase-2/q3/README.md). Reviewed Q4 branch `8b3b93f`: its cooking flow needs reconciliation with the Q3 reservation ledger. DaySim and official v1.1 remain pending. Quốc should confirm the personal reflection and lessons before final submission.
