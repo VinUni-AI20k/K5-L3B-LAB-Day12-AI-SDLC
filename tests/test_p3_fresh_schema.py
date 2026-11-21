@@ -149,7 +149,9 @@ class SimFramework(unittest.TestCase):
                       Streams(1), IdAllocator())
         from chonoi.inputs import InputState
         ev = dict(g.step(InputState((0.0, 0.0), {}, set())))
-        self.assertEqual(ev["faint"]["lost"], [item("I2", "ca_loc", 100.0), item("I1", "ca_linh", 100.0)])
+        # giỏ đã hao đúng một bước (2 đơn vị = 1/120 điểm) trước khi ngất: lát giỏ của B đã viết _decay_hold
+        aged = 100.0 - 1 / 120
+        self.assertEqual(ev["faint"]["lost"], [item("I2", "ca_loc", aged), item("I1", "ca_linh", aged)])
         self.assertEqual(ev["gather_end"]["inventory"], {"items": []})
 
     def test_gather_v11_khong_doi(self):
