@@ -7,7 +7,9 @@ Nhóm viết tiếp (PRD-0 mục F, Quán):
                      ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
 """
 
-from ..ids import sort_by_id
+import math
+
+from ..ids import id_key, sort_by_id
 from .ramp import ramp_velocity
 
 class QuanSim:
@@ -56,6 +58,8 @@ class QuanSim:
         self.shift_earned = 0
         self.done = False
         self.reason = None
+        self.end_reason = None
+        self.state = "playing"
 
     @staticmethod
     def _merge(defaults, updates):
@@ -85,16 +89,13 @@ class QuanSim:
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self._update_timers()
+        self._complete_stoves(events)
         self._move(inp)
-        # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
+        if inp.pressed("interact"):
+            self._interact(events)
+        self._settle_customers(events)
         if self.time_left_ticks > 0:
-            self._expire_customers(events)
             self._spawn_customer(events)
-        if self.time_left_ticks <= 0:
-            self.done = True
-            self.reason = "time"
-            events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
-                                        "shift_earned": self.shift_earned, "reputation": self.reputation}))
         return events
 
     @staticmethod
@@ -106,29 +107,177 @@ class QuanSim:
         for stove in self.stoves:
             if stove.get("state") == "cooking":
                 self._decrement(stove, "cook_ticks_left")
-                if stove.get("cook_ticks_left", 0) == 0:
-                    stove["state"] = "ready"
             elif stove.get("state") == "ready":
-                self._decrement(stove, "ready_ticks")
+                stove["ready_ticks"] = max(0, stove.get("ready_ticks", 0)) + 1
         for customer in self.customers:
             if customer.get("state") == "waiting":
                 self._decrement(customer, "patience_ticks_left")
             elif customer.get("state") == "eating":
                 self._decrement(customer, "eat_ticks_left")
 
-    def _expire_customers(self, events):
-        for customer in sort_by_id(self.customers, key=lambda c: c["table_id"]):
-            if customer.get("state") != "waiting" or customer.get("patience_ticks_left") != 0:
+    @staticmethod
+    def _table_order(customer):
+        return id_key(customer["table_id"])
+
+    def _complete_stoves(self, events):
+        for stove in sort_by_id(self.stoves):
+            if stove.get("state") != "cooking" or stove.get("cook_ticks_left", 0) != 0:
                 continue
-            self.reputation = min(
-                self.t["reputation_max"],
-                max(self.t["reputation_min"], self.reputation + self.t["left_reputation_delta"]),
-            )
-            self.customers.remove(customer)
-            events.append(("customer_left", {
-                "order_id": customer["id"], "table_id": customer["table_id"],
-                "reason": "patience", "reputation": self.reputation,
+            stove["state"] = "ready"
+            stove["ready_ticks"] = 0
+            dish = stove.get("dish") or {}
+            events.append(("dish_ready", {
+                "stove_id": stove["id"], "order_id": dish.get("order_id"),
+                "dish_id": dish.get("dish_id"),
             }))
+
+    def _interact(self, events):
+        radius = self.t["interact_radius"]
+        candidates = []
+        for stove in self.stoves:
+            distance = math.dist(self.pos, stove["pos"])
+            if distance <= radius:
+                candidates.append((distance, 0, id_key(stove["id"]), "stove", stove))
+        occupied = {customer["table_id"]: customer for customer in self.customers}
+        for table in self.tables:
+            distance = math.dist(self.pos, table["pos"])
+            if distance <= radius:
+                candidates.append((distance, 1, id_key(table["id"]), "table", (table, occupied.get(table["id"]))))
+        if not candidates:
+            return
+        _, _, _, kind, target = min(candidates, key=lambda c: c[:3])
+        if kind == "stove":
+            self._interact_stove(target, events)
+        elif target[1] is not None:
+            self._interact_table(target[0], target[1], events)
+
+    def _interact_stove(self, stove, events):
+        state = stove.get("state")
+        if state == "idle":
+            orders = [c for c in self.customers
+                      if c.get("state") == "waiting" and c.get("order_status") == "reserved"]
+            orders.sort(key=lambda c: (c.get("order_tick", 0), self._table_order(c)))
+            if not orders:
+                return
+            customer = orders[0]
+            reserved = customer.get("reserved", {})
+            if any(self.stock.get(kind, 0) < quantity for kind, quantity in reserved.items()):
+                return
+            dish_id = customer["dish_id"]
+            menu_item = self.menu[dish_id]
+            for ingredient, quantity in reserved.items():
+                self.stock[ingredient] -= quantity
+            customer["reserved"] = {}
+            customer["order_status"] = "assigned"
+            base_price = menu_item["price"]
+            stove.update({
+                "state": "cooking",
+                "dish": {"order_id": customer["id"], "dish_id": dish_id, "base_price": base_price},
+                "cook_ticks_left": int(round(menu_item["cook_s"] * self.tick_hz)),
+                "ready_ticks": 0,
+            })
+            items = [ingredient for ingredient in sorted(reserved)
+                     for _ in range(reserved[ingredient])]
+            events.append(("cook_started", {
+                "stove_id": stove["id"], "order_id": customer["id"], "dish_id": dish_id,
+                "items": items, "base_price": base_price,
+            }))
+        elif state == "ready" and self.hand is None and self.t["carry_limit"] > 0:
+            dish = stove.get("dish")
+            if dish is None:
+                return
+            self.hand = dish
+            stove.update({"state": "idle", "dish": None, "cook_ticks_left": 0, "ready_ticks": 0})
+            events.append(("dish_picked", {
+                "stove_id": stove["id"], "order_id": dish["order_id"], "dish_id": dish["dish_id"],
+            }))
+
+    def _interact_table(self, table, customer, events):
+        if customer.get("state") != "waiting" or self.hand is None:
+            return
+        if self.hand.get("order_id") != customer["id"]:
+            return
+        dish = self.hand
+        self.hand = None
+        patience_left = customer.get("patience_ticks_left", 0)
+        full_patience = self.t["patience_s"] * self.tick_hz
+        base_price = dish["base_price"]
+        tip = (math.floor(base_price * self.t["tip_rate"])
+               if patience_left / full_patience >= self.t["tip_min_patience_ratio"] else 0)
+        customer.update({
+            "state": "eating", "order_status": "served",
+            "eat_ticks_left": int(round(self.t["eat_s"] * self.tick_hz)),
+            "dish_id": dish["dish_id"], "base_price": base_price, "tip": tip,
+        })
+        events.append(("served", {
+            "order_id": customer["id"], "table_id": table["id"], "dish_id": dish["dish_id"],
+            "patience_ticks_left": patience_left, "base_price": base_price, "tip": tip,
+        }))
+
+    def _cleanup_order(self, order_id):
+        for stove in self.stoves:
+            dish = stove.get("dish")
+            if dish and dish.get("order_id") == order_id:
+                stove.update({"state": "idle", "dish": None, "cook_ticks_left": 0, "ready_ticks": 0})
+        if self.hand is not None and self.hand.get("order_id") == order_id:
+            self.hand = None
+
+    def _apply_tip_reputation(self, tip):
+        if tip > 0:
+            self.reputation = min(self.t["reputation_max"], max(
+                self.t["reputation_min"], self.reputation + self.t["tip_reputation"]))
+
+    def _pay_customer(self, customer, reason, events):
+        base_price = customer.get("base_price", 0)
+        tip = customer.get("tip", 0)
+        amount = base_price + tip
+        self.money += amount
+        self.earned += amount
+        self.shift_earned += amount
+        self._apply_tip_reputation(tip)
+        events.append(("paid", {
+            "order_id": customer["id"], "table_id": customer["table_id"],
+            "base_price": base_price, "tip": tip, "amount": amount, "reason": reason,
+        }))
+        self.customers.remove(customer)
+
+    def _leave_customer(self, customer, reason, events, penalize=False):
+        self._cleanup_order(customer["id"])
+        if penalize:
+            self.reputation = min(self.t["reputation_max"], max(
+                self.t["reputation_min"], self.reputation + self.t["left_reputation_delta"]))
+        self.customers.remove(customer)
+        events.append(("customer_left", {
+            "order_id": customer["id"], "table_id": customer["table_id"],
+            "reason": reason, "reputation": self.reputation,
+        }))
+
+    def _settle_customers(self, events):
+        ordered = sort_by_id(self.customers, key=lambda c: c["table_id"])
+        if self.time_left_ticks == 0:
+            for customer in ordered:
+                if customer not in self.customers:
+                    continue
+                if customer.get("state") == "eating":
+                    self._pay_customer(customer, "closing", events)
+                elif customer.get("state") == "waiting":
+                    self._leave_customer(customer, "closing", events)
+                else:
+                    self._leave_customer(customer, "closing", events)
+            self.done = True
+            self.reason = self.end_reason = "time"
+            self.state = "finished"
+            events.append(("quan_end", {
+                "reason": "time", "money": self.money, "earned": self.earned,
+                "shift_earned": self.shift_earned, "reputation": self.reputation,
+            }))
+            return
+
+        for customer in ordered:
+            if customer.get("state") == "eating" and customer.get("eat_ticks_left") == 0:
+                self._pay_customer(customer, "finished_eating", events)
+            elif customer.get("state") == "waiting" and customer.get("patience_ticks_left") == 0:
+                self._leave_customer(customer, "patience", events, penalize=True)
 
     def _spawn_customer(self, events):
         interval = int(round(self.t["customer_interval_s"] * self.tick_hz))
