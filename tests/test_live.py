@@ -5,6 +5,8 @@ import time
 import unittest
 import urllib.error
 import urllib.request
+import os
+import tempfile
 
 from chonoi.contract import load_contract
 from chonoi.live import LiveGame, LiveServer
@@ -56,6 +58,27 @@ class LiveServerTest(unittest.TestCase):
             server.stop()
         self.assertFalse(server.game._thread.is_alive())
         self.assertFalse(server._thread.is_alive())
+
+
+class LiveInventoryPersistenceTest(unittest.TestCase):
+    def test_gather_writes_inventory_immediately(self):
+        tuning = load_contract()["tuning"]
+        with tempfile.TemporaryDirectory() as d:
+            inventory_path = os.path.join(d, "inventory.json")
+            scenario = {
+                "player": {"pos": [12, 0]},
+                "hold": ["ca_loc"],
+                "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [12, 0]}],
+                "random_fish": False,
+            }
+            game = LiveGame("gather", tuning, scenario, 1, inventory_out=inventory_path)
+            self.assertFalse(os.path.exists(inventory_path))
+
+            game.inputs.set(interact=True)
+            game._tick_once()
+
+            with open(inventory_path, encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {"items": {"bong_sung": 1, "ca_loc": 1}})
 
 
 if __name__ == "__main__":

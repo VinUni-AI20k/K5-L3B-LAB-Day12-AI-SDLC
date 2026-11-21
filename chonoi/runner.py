@@ -83,7 +83,11 @@ def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, i
         last_snapped = 0
         while sess.tick < ticks and not sess.done:
             inp = player.advance(sess.tick)  # bước k đọc input có tick == k
-            for row in sess.step(inp):
+            rows = sess.step(inp)
+            if mode == "gather" and inventory_out:
+                if any(row["name"] in {"gather", "fish_caught", "faint", "gather_end"} for row in rows):
+                    write_inventory(inventory_out, sess.sim.inventory_items())
+            for row in rows:
                 w.write(row)
             if sess.tick % snapshot_every == 0 or sess.done:
                 w.write(sess.snapshot())
