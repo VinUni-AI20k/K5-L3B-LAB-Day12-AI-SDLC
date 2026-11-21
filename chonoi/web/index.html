@@ -138,6 +138,22 @@ poll();
 const KIND_COLOR = { ca_loc: "#7c9a52", ca_linh: "#d6e6f2", ca_keo: "#d9a066", bong_dien_dien: "#f2c230", bong_sung: "#e8799c", keo_neo: "#8fcf6b" };
 const KIND_NAME = { ca_loc: "cá lóc", ca_linh: "cá linh", ca_keo: "cá kèo", bong_dien_dien: "điên điển", bong_sung: "bông súng", keo_neo: "kèo nèo" };
 const kc = (k) => KIND_COLOR[k] || "#bbbbbb";
+// ---------- độ tươi (P3-06): v1.2 giỏ/kho là mảng cá thể {id, kind, fresh}; v1.1 là chuỗi loại / object đếm ----------
+const kindOf = (x) => (x && typeof x === "object" ? x.kind : x);
+const FH = () => (snap && snap.freshness_hud) || null;            // dữ liệu máy chủ gom (chonoi/freshness_view.py)
+const isSpoiled = (x) => !!(x && typeof x === "object" && FH() && x.fresh < FH().spoil_below);
+function stockText(stock) {
+  if (!stock) return "";
+  if (!Array.isArray(stock)) return Object.keys(stock).map((k) => (KIND_NAME[k] || k) + "×" + stock[k]).join(", ");
+  const by = {};
+  stock.forEach((it) => { const k = kindOf(it); by[k] = by[k] || { n: 0, bad: 0 }; by[k].n++; if (isSpoiled(it)) by[k].bad++; });
+  return Object.keys(by).sort().map((k) => (KIND_NAME[k] || k) + "×" + by[k].n + (by[k].bad ? ` (✕ ${by[k].bad} ươn)` : "")).join(", ");
+}
+function freshSummary() {
+  const f = FH();
+  if (!f || !f.items.length) return "";
+  return ` · tươi thấp nhất ${Math.floor(f.min_fresh)}` + (f.spoiled_count ? ` · ✕ ${f.spoiled_count} ƯƠN (không nấu được)` : "");
+}
 
 function fit() {
   const dpr = window.devicePixelRatio || 1;
@@ -249,7 +265,7 @@ function drawShop(w, h) {
   });
   const active = snap.active_upgrades || {};
   text(`Đang có hiệu lực hôm nay: oxy cấp ${active.oxygen || 0}, Máu cấp ${active.hp || 0} (cấp mới mua dùng từ Ngày sau)`, w / 2, 352, { size: 12, align: "center", color: "#9fb3c0" });
-  const stock = snap.stock ? Object.keys(snap.stock).map((k) => (KIND_NAME[k] || k) + "×" + snap.stock[k]).join(", ") : "";
+  const stock = stockText(snap.stock);
   if (stock) text("Kho dư (bỏ sau Shop): " + stock, w / 2, 372, { size: 12, align: "center", color: "#9fb3c0" });
   const last = (snap.events || []).filter((e) => e.name === "bought" || e.name === "buy_failed").slice(-1)[0];
   if (last) {
@@ -361,10 +377,22 @@ function drawGather(w, h) {
     for (let i = 0; i < cap; i++) {
       const x0 = 14 + i * (sz + 4);
       ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(x0, y0, sz, sz);
-      if (snap.hold[i]) { ctx.fillStyle = kc(snap.hold[i]); ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6); }
+      const it = snap.hold[i];
+      if (it) {
+        ctx.fillStyle = kc(kindOf(it)); ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6);
+        if (typeof it === "object" && FH()) {  // v1.2: thanh độ tươi dưới ô, ươn thì phủ tối và dấu ✕
+          const frac = Math.max(0, Math.min(1, it.fresh / FH().fresh_max));
+          ctx.fillStyle = C("#000000", "#000000"); ctx.fillRect(x0 + 3, y0 + sz - 7, sz - 6, 4);
+          ctx.fillStyle = isSpoiled(it) ? C("#e53935", "#ffff00") : C("#66bb6a", "#ffffff"); ctx.fillRect(x0 + 3, y0 + sz - 7, (sz - 6) * frac, 4);
+          if (isSpoiled(it)) {
+            ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 10);
+            text("✕", x0 + sz / 2, y0 + sz / 2 + 3, { size: 14, align: "center", color: "#ff5252", hcColor: "#ffff00" });
+          }
+        }
+      }
     }
-    const names = {}; snap.hold.forEach((k) => (names[k] = (names[k] || 0) + 1));
-    text("Giỏ " + snap.hold.length + "/" + cap + "  " + Object.keys(names).map((k) => (KIND_NAME[k] || k) + "×" + names[k]).join(", "), 14, y0 + sz + 16, { size: 12, color: "#cfd8dc" });
+    const names = {}; snap.hold.forEach((x) => { const k = kindOf(x); names[k] = (names[k] || 0) + 1; });
+    text("Giỏ " + snap.hold.length + "/" + cap + "  " + Object.keys(names).map((k) => (KIND_NAME[k] || k) + "×" + names[k]).join(", ") + freshSummary(), 14, y0 + sz + 16, { size: 12, color: "#cfd8dc" });
   }
   text("WASD/mũi tên bơi · E hái / cập bến · Space bắt cá · P tạm dừng · R chơi lại", w - 10, h - 14, { size: 12, align: "right", color: "#9fb3c0" });
 }
@@ -399,6 +427,8 @@ function drawQuan(w, h) {
       const cx = sx(tb.pos[0]), cy = sy(tb.pos[1]) - 1.5 * s;
       ctx.fillStyle = c.state === "eating" ? "#7bc67b" : "#f4b6c2"; ctx.beginPath(); ctx.arc(cx, cy, 0.55 * s, 0, Math.PI * 2); ctx.fill();
       text(c.dish_id || "?", cx, cy - 0.75 * s, { size: 10, align: "center", color: "#2a1a0a" });
+      const hit = ((FH() && FH().affected_orders) || []).find((o) => o.customer_id === c.id);
+      if (hit) text(hit.reason === "spoiled_reserved" ? "⚠ hàng ươn" : "⚠ thiếu hàng", cx + 0.7 * s, cy + 4, { size: 11, align: "left", color: "#b71c1c", hcColor: "#ffff00" });
       if (c.patience_ticks_left !== undefined) bar(cx - 0.8 * s, cy + 0.65 * s, 1.6 * s, 5, c.patience_ticks_left / patMax, "#e57373");
     }
   });
@@ -416,8 +446,15 @@ function drawQuan(w, h) {
   // HUD
   text("⏱ " + fmtTime(snap.time_left_ticks), 14, 28, { size: 20 });
   text(`Tiền ${snap.money ?? 0}k · uy tín ${(snap.reputation ?? 0).toFixed(1)} · điểm ${snap.score ?? 0}`, 110, 28, { size: 16 });
-  const stock = snap.stock ? Object.keys(snap.stock).map((k) => (KIND_NAME[k] || k) + "×" + snap.stock[k]).join(", ") : "";
-  text("Kho: " + (stock || "(trống)"), 14, 52, { size: 13, color: "#cfd8dc" });
+  const stock = stockText(snap.stock);
+  text("Kho: " + (stock || "(trống)") + freshSummary(), 14, 52, { size: 13, color: "#cfd8dc" });
+  // đơn bị ảnh hưởng (P3-06): hàng giữ chỗ đã ươn hoặc đơn không làm được
+  const affected = (FH() && FH().affected_orders) || [];
+  affected.slice(0, 4).forEach((o, i) => {
+    const why = o.reason === "spoiled_reserved" ? `hàng giữ chỗ đã ươn (${o.item_ids.join(", ")})` : "không đủ hàng tươi để nấu";
+    text(`⚠ Đơn ${o.customer_id} bàn ${o.table_id} (${o.dish_id || "?"}): ${why}`, 14, h - 14 - (affected.slice(0, 4).length - 1 - i) * 17,
+         { size: 12, color: "#ffcc80", hcColor: "#ffff00" });
+  });
   text("WASD/mũi tên đi · E tương tác (bếp / bàn) · P tạm dừng · R chơi lại", w - 10, h - 14, { size: 12, align: "right", color: "#9fb3c0" });
 }
 

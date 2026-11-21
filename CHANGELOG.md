@@ -6,6 +6,9 @@ Mọi thay đổi đáng chú ý của game ghi ở đây. Định dạng theo [
 
 Dự kiến phát hành thành **1.0.0** cùng tag `phase-4` (D gắn tag và tạo GitHub Release sau khi cả nhóm đồng ý).
 
+### HUD độ tươi (Phase 3, P3-06)
+- Cửa sổ chơi hiển thị độ tươi từng cá thể (thanh dưới ô giỏ), hàng ươn (✕, số ươn, độ tươi thấp nhất) và đơn bị ảnh hưởng ở quán (hàng giữ chỗ đã ươn, đơn không làm được); tính ở `chonoi/freshness_view.py`, chỉ bật khi snapshot có kho cá thể (contract 1.2).
+
 ### Cảnh báo và tương phản cao (Phase 4, P4-04)
 - Ba cảnh báo có biểu tượng và chữ trong cửa sổ chơi: oxy sắp hết (và hết oxy), Cá Sấu gần, khách sắp giận; tính ở `chonoi/alerts.py` từ snapshot, chỉ có ở `chonoi.live` (trường `alerts`).
 - Chế độ tương phản cao: phím H hoặc `?hc=1`; nền đen, chữ trắng/vàng đậm, viền trắng quanh mọi hình.
