@@ -136,9 +136,11 @@ def read_inventory(path: str, kinds=KINDS_P1, version=None):
     if not isinstance(data, dict) or set(data.keys()) != {"items"}:
         raise BadInput("file kho chỉ được có khóa gốc 'items'")
     ver = version if version is not None else get_contract_version()
-    if ver == "1.2":
+    if version in ("1.2", "1.3") or (version is None and ver in ("1.2", "1.3")):
         if not isinstance(data["items"], list):
-            raise BadInput("file kho v1.2 phải là mảng cá thể")
+            if version is None and isinstance(data["items"], dict):
+                return validate_items(data["items"], kinds)
+            raise BadInput(f"file kho v{ver} phải là mảng cá thể")
         return validate_item_objects(data["items"], kinds)
     else:
         if not isinstance(data["items"], dict):
@@ -150,7 +152,7 @@ def read_inventory_or_empty(path: str, kinds=KINDS_P1, version=None):
     """Read an existing inventory, or return an empty one when the file is absent."""
     if not os.path.exists(path):
         ver = version if version is not None else get_contract_version()
-        return [] if ver == "1.2" else {}
+        return [] if ver in ("1.2", "1.3") else {}
     return read_inventory(path, kinds, version=version)
 
 
@@ -186,7 +188,7 @@ def merge_items(*collections):
 def hold_to_items(hold: list, ids=None, version=None):
     """Khoang -> object đếm (v1.0/1.1) hoặc mảng cá thể Item (v1.2)."""
     ver = version if version is not None else get_contract_version()
-    if ver == "1.2" and ids is not None:
+    if ver in ("1.2", "1.3") and ids is not None:
         out = []
         for k in hold:
             if isinstance(k, Item):

@@ -26,6 +26,8 @@ def _req(url, obj=None, raw=None):
         body = e.read()
         e.close()
         return e.code, json.loads(body or b"{}")
+    except (ConnectionResetError, ConnectionAbortedError):
+        return 400, {"error": "body sai"}
 
 
 def _read(rel):
