@@ -1,0 +1,7 @@
+{
+  "items": [
+    {"id": "I1", "kind": "bong_sung", "fresh": 100},
+    {"id": "I2", "kind": "bong_sung", "fresh": 29.99},
+    {"id": "I3", "kind": "ca_loc", "fresh": 97.5}
+  ]
+}

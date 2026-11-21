@@ -1,0 +1,10 @@
+Test Contract v1.2 | seed 42 | actual CLI
+.\.venv\Scripts\python.exe -B -m chonoi.headless --mode gather --seed 42 --ticks 1 --out tmp\phase-3-proof\gather.jsonl --snapshot-every 1 --scenario tmp\phase-3-proof\gather.scenario.json --inputs tmp\phase-3-proof\interact.json --inventory-out tmp\phase-3-proof\inventory.json
+.\.venv\Scripts\python.exe -B -m chonoi.headless --mode quan --seed 42 --ticks 0 --out tmp\phase-3-proof\quan.jsonl --snapshot-every 1 --inventory tmp\phase-3-proof\inventory.json
+PASS file inventory: exact views match; I9 spoils at tick 1
+.\.venv\Scripts\python.exe -B -m chonoi.headless --mode quan --seed 42 --ticks 0 --out tmp\phase-3-proof\rejected.jsonl --snapshot-every 1 --inventory docs/contracts/inventory.sample.json
+exit 2: đầu vào sai: contract v1.2: items phải là mảng cá thể {id, kind, fresh}, kho đếm không còn hợp lệ
+.\.venv\Scripts\python.exe -B -m chonoi.headless --mode quan --seed 42 --ticks 1 --out tmp\phase-3-proof\price.jsonl --snapshot-every 1 --scenario tmp\phase-3-proof\price.scenario.json --inputs tmp\phase-3-proof\interact.json
+PASS spoiled -> replace reservation -> cook I2 at locked price 29
+.\.venv\Scripts\python.exe -B -m chonoi.headless --mode day --seed 42 --ticks 12 --out tmp\phase-3-proof\day.jsonl --snapshot-every 1 --days 2 --scenario tmp\phase-3-proof\day.scenario.json --inputs tmp\phase-3-proof\day.inputs.json
+PASS two days: I12 -> I13 at new day; same stock during paused shop

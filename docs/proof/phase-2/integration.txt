@@ -1,0 +1,9 @@
+Test Contract v1.1 | seed 42 | .venv Python 3.13.12
+.\.venv\Scripts\python.exe -B -m chonoi.headless --mode gather --seed 42 --out tmp\phase-2-proof\integration.gather.jsonl --ticks 1 --scenario tmp\phase-2-proof\integration.gather.json --inputs tmp\phase-2-proof\integration.inputs.json --inventory-out tmp\phase-2-proof\integration.inventory.json
+.\.venv\Scripts\python.exe -B -m chonoi.headless --mode quan --seed 42 --out tmp\phase-2-proof\integration.quan.jsonl --ticks 0 --inventory tmp\phase-2-proof\integration.inventory.json
+PASS gather -> file inventory -> quan at tick 0, 2 stoves, 4 tables
+.\.venv\Scripts\python.exe -B -m chonoi.headless --mode day --seed 42 --out tmp\phase-2-proof\day.jsonl --days 1 --ticks 22200 --snapshot-every 3600
+PASS standard day, 22,200 ticks, elapsed 0.376 s on local Windows
+.\.venv\Scripts\python.exe -B -m chonoi.headless --mode day --seed 42 --out tmp\phase-2-proof\day-multi.jsonl --days 5 --ticks 40 --snapshot-every 1 --scenario tmp\phase-2-proof\day-multi.scenario.json --inputs tmp\phase-2-proof\day-multi.inputs.json
+.\.venv\Scripts\python.exe -B -m chonoi.headless --mode day --seed 42 --out tmp\phase-2-proof\day-multi-repeat.jsonl --days 5 --ticks 40 --snapshot-every 1 --scenario tmp\phase-2-proof\day-multi.scenario.json --inputs tmp\phase-2-proof\day-multi.inputs.json
+PASS fixture D1-D5, pause, oxygen D2, hp and M2 D3, 0 money / 450 earned, byte-identical rerun

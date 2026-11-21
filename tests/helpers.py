@@ -5,9 +5,27 @@ import math
 import os
 import shlex
 import subprocess
+import sys
 import tempfile
+from collections import Counter
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+def item_schema_enabled():
+    with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as file:
+        version = json.load(file)["contract_version"]
+    return tuple(map(int, version.split("."))) >= (1, 2)
+
+
+def ingredient_fixture(kinds):
+    """Giỏ fixture theo schema của bản chạy, giữ thứ tự nhặt."""
+    return [{"id": f"I{i}", "kind": kind, "fresh": 100}
+            for i, kind in enumerate(kinds, 1)] if item_schema_enabled() else list(kinds)
+
+
+def stock_counts(items):
+    return dict(Counter(item["kind"] for item in items)) if isinstance(items, list) else items
 
 
 def write_json(path, obj):
@@ -23,12 +41,16 @@ def frames(*fr):
 def headless_cmd():
     """Lệnh headless khai trong game.contract.json — test chạy qua đây nên dùng được với MỌI ngôn ngữ."""
     with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
-        return shlex.split(json.load(f)["headless_cmd"])
+        command = shlex.split(json.load(f)["headless_cmd"])
+    if sys.platform == "win32" and command[:3] == ["python3", "-m", "chonoi.headless"]:
+        command[0] = sys.executable
+    return command
 
 
 def run_headless(*args, cwd=ROOT):
     """Chạy `<headless_cmd> <args>`; trả (mã thoát, stderr)."""
-    p = subprocess.run([*headless_cmd(), *args], cwd=cwd, capture_output=True, text=True)
+    environment = {**os.environ, "PYTHONIOENCODING": "utf-8"}
+    p = subprocess.run([*headless_cmd(), *args], cwd=cwd, env=environment, capture_output=True, encoding="utf-8")
     return p.returncode, p.stderr
 
 

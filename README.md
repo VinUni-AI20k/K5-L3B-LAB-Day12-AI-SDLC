@@ -15,13 +15,25 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 
 ## Bắt đầu nhanh
 
+Trên macOS hoặc Linux, cần Python 3.12 trở lên và trình duyệt. Chạy từ clone sạch bằng ba lệnh rồi mở URL được in ra.
+
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone https://github.com/KN-16/K5-L3B-LAB-Day12-AI-SDLC-Phoenix
+cd K5-L3B-LAB-Day12-AI-SDLC-Phoenix
+python3 -m chonoi.live --mode day
 ```
 
-Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
+Dùng **WASD hoặc phím mũi tên** để di chuyển. **E** hái rau, cập bến hoặc tương tác với bếp và bàn. **Space** bắt cá khi đang lặn. **P** hoặc **Esc** để tạm dừng. Khi chơi ca độc lập, **R** bắt đầu lại ca.
+
+Bấm **Chơi**, xem mục tiêu nguyên liệu, chơi hai ca rồi dùng tiền trong Shop. Đóng Shop để bắt đầu Ngày tiếp theo hoặc xem tổng kết. Trong quán, theo HUD để xem nguyên liệu khả dụng, đơn gọi, kiên nhẫn, bếp và món đang cầm. Điểm bằng tổng thu (gồm boa) cộng 100 nhân phần nguyên của uy tín. Tiền tính theo nghìn đồng.
+
+Chạy bộ test bằng `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`.
+
+Chơi hai ca riêng bằng `mkdir -p tmp && python3 -m chonoi.live --mode gather --inventory-out tmp/kho.json`. Khi gather kết thúc và ghi kho, dừng tiến trình bằng Ctrl+C rồi chạy `python3 -m chonoi.live --mode quan --inventory tmp/kho.json`.
+
+Chạy headless một Ngày với `mkdir -p tmp && python3 -m chonoi.headless --mode day --days 1 --seed 42 --ticks 22200 --out tmp/day.jsonl`.
+
+Game có các chế độ **headless** `gather`, `quan` và `day` theo Test Contract. [Tài liệu khung Python](docs/STARTER.md) và [hợp đồng tích hợp Phase 2](docs/contracts/phase-2.md) mô tả các luồng chạy.
 
 ## Tự do sáng tạo
 

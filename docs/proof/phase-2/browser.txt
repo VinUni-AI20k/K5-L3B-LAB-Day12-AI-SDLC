@@ -1,0 +1,5 @@
+Test Contract v1.1 | LiveServer + Chrome headless | scenario browser.scenario.json, seed 42
+PASS Gather warning labels, daily plan and live Canvas at 1280x720
+PASS Quan cooked, picked up, served and paid 72 including a tip of 12
+PASS Shop paused and resumed, bought oxygen, finished one day
+Local Chrome headless rAF sample in Gather before transition: 60.0 FPS (one second).

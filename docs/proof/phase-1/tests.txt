@@ -1,0 +1,91 @@
+Integrated code: b772097
+Windows / project .venv / Python 3.13.12
+Suite: unittest discover -s tests -v; sandbox runner used sys.executable for the starter CLI and tmp/run for test fixtures.
+
+test_dock_goes_before_gather_and_catch (test_gather.EndOfShift.test_dock_goes_before_gather_and_catch) ... ok
+test_faint_drops_hold_lifo_and_hands_over_empty_inventory (test_gather.EndOfShift.test_faint_drops_hold_lifo_and_hands_over_empty_inventory) ... ok
+test_faint_goes_before_dock_and_time_on_the_same_step (test_gather.EndOfShift.test_faint_goes_before_dock_and_time_on_the_same_step)
+Mục F: E ở bến bước cuối chỉ cho docked nếu còn Máu. ... ok
+test_interact_at_exact_dock_edge_on_last_step_docks (test_gather.EndOfShift.test_interact_at_exact_dock_edge_on_last_step_docks)
+Mục F: E đúng mép bến ở bước cuối vẫn cho docked (cập bến xét trước hết giờ). ... ok
+test_same_seed_same_inputs_give_identical_bytes (test_gather.EndOfShift.test_same_seed_same_inputs_give_identical_bytes)
+Mục E: cùng seed, tham số, đầu vào -> JSONL và file kho giống từng byte; kịch bản có đủ hành động. ... ok
+test_tick_limit_before_gather_end_keeps_existing_file_bytes (test_gather.EndOfShift.test_tick_limit_before_gather_end_keeps_existing_file_bytes) ... ok
+test_valid_gather_or_catch_on_last_step_is_handed_over (test_gather.EndOfShift.test_valid_gather_or_catch_on_last_step_is_handed_over) ... ok
+test_catch_at_radius_edge_takes_whole_yield_removes_school_sets_cooldown (test_gather.GatherCatch.test_catch_at_radius_edge_takes_whole_yield_removes_school_sets_cooldown) ... ok
+test_catch_cooldown_set_at_t_reusable_from_t_plus_L (test_gather.GatherCatch.test_catch_cooldown_set_at_t_reusable_from_t_plus_L) ... ok
+test_catch_does_nothing_at_surface_or_without_school_in_range (test_gather.GatherCatch.test_catch_does_nothing_at_surface_or_without_school_in_range) ... ok
+test_catch_hold_full_keeps_school_and_cooldown_without_trying_other_school (test_gather.GatherCatch.test_catch_hold_full_keeps_school_and_cooldown_without_trying_other_school) ... ok
+test_catch_tie_on_distance_prefers_smaller_numeric_id (test_gather.GatherCatch.test_catch_tie_on_distance_prefers_smaller_numeric_id) ... ok
+test_gather_hold_full_keeps_node_ready (test_gather.GatherCatch.test_gather_hold_full_keeps_node_ready) ... ok
+test_gather_skips_node_not_ready (test_gather.GatherCatch.test_gather_skips_node_not_ready) ... ok
+test_gather_tie_on_distance_prefers_smaller_numeric_id (test_gather.GatherCatch.test_gather_tie_on_distance_prefers_smaller_numeric_id) ... ok
+test_interact_gathers_nothing_underwater_or_out_of_range (test_gather.GatherCatch.test_interact_gathers_nothing_underwater_or_out_of_range) ... ok
+test_node_regrown_after_regrow_ticks_and_gatherable_in_same_step (test_gather.GatherCatch.test_node_regrown_after_regrow_ticks_and_gatherable_in_same_step)
+Mục F: nút từ 1 về 0 phát node_regrown và hái được ngay trong bước đó. ... ok
+test_prd_example_gathers_node_at_interact_radius_edge (test_gather.GatherCatch.test_prd_example_gathers_node_at_interact_radius_edge)
+Scenario mẫu mục D (nút đúng mép bán kính hái) và dòng event mẫu mục E. ... ok
+test_choke_continues_counter_from_scenario (test_gather.SwimOxygenChoke.test_choke_continues_counter_from_scenario) ... ok
+test_dive_then_oxygen_empty_in_processing_order (test_gather.SwimOxygenChoke.test_dive_then_oxygen_empty_in_processing_order) ... ok
+test_dive_when_crossing_surface_after_move (test_gather.SwimOxygenChoke.test_dive_when_crossing_surface_after_move) ... ok
+test_first_choke_at_t_plus_59_counting_the_empty_step (test_gather.SwimOxygenChoke.test_first_choke_at_t_plus_59_counting_the_empty_step)
+Mục F: chạm oxy 0 ở t, ở dưới nước liên tục -> ngạt lần đầu ở t+59, rồi mỗi choke_interval_ticks. ... ok
+test_no_dive_or_surface_without_crossing (test_gather.SwimOxygenChoke.test_no_dive_or_surface_without_crossing) ... ok
+test_oxygen_empty_once_when_reaching_zero (test_gather.SwimOxygenChoke.test_oxygen_empty_once_when_reaching_zero) ... ok
+test_oxygen_minus_one_underwater_plus_refill_at_surface_clamped (test_gather.SwimOxygenChoke.test_oxygen_minus_one_underwater_plus_refill_at_surface_clamped) ... ok
+test_surface_when_crossing_surface_after_move (test_gather.SwimOxygenChoke.test_surface_when_crossing_surface_after_move) ... ok
+test_surfacing_on_the_choke_step_refills_without_choke (test_gather.SwimOxygenChoke.test_surfacing_on_the_choke_step_refills_without_choke) ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_arrival_uses_phase_tick_and_reserves_recipe_from_inventory (test_quan.QuanTests.test_arrival_uses_phase_tick_and_reserves_recipe_from_inventory) ... ok
+test_closing_pays_eaters_and_clears_waiting_orders_in_table_order (test_quan.QuanTests.test_closing_pays_eaters_and_clears_waiting_orders_in_table_order) ... ok
+test_cook_pick_on_ready_tick_and_serve_after_releasing_button (test_quan.QuanTests.test_cook_pick_on_ready_tick_and_serve_after_releasing_button) ... ok
+test_equal_distance_selects_stove_even_if_it_cannot_interact (test_quan.QuanTests.test_equal_distance_selects_stove_even_if_it_cannot_interact) ... ok
+test_fixture_conflicts_exit_2_before_opening_output (test_quan.QuanTests.test_fixture_conflicts_exit_2_before_opening_output) ... ok
+test_inventory_reserved_for_one_table_is_unavailable_to_another (test_quan.QuanTests.test_inventory_reserved_for_one_table_is_unavailable_to_another) ... ok
+test_no_dish_only_when_a_table_is_free (test_quan.QuanTests.test_no_dish_only_when_a_table_is_free) ... ok
+test_patience_drops_dish_without_refunding_used_ingredients (test_quan.QuanTests.test_patience_drops_dish_without_refunding_used_ingredients) ... ok
+test_reputation_uses_exact_whole_number_for_score_and_clamps (test_quan.QuanTests.test_reputation_uses_exact_whole_number_for_score_and_clamps) ... ok
+test_serving_at_exact_radius_patience_and_closing_deadlines (test_quan.QuanTests.test_serving_at_exact_radius_patience_and_closing_deadlines) ... ok
+test_tip_floors_the_decimal_rate_applied_to_locked_price (test_quan.QuanTests.test_tip_floors_the_decimal_rate_applied_to_locked_price) ... ok
+test_tip_threshold_uses_patience_after_decrement_and_payment_waits_for_eating (test_quan.QuanTests.test_tip_threshold_uses_patience_after_decrement_and_payment_waits_for_eating) ... ok
+test_waiting_customer_leaves_before_arrival_and_releases_raw_stock (test_quan.QuanTests.test_waiting_customer_leaves_before_arrival_and_releases_raw_stock) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 72 tests in 13.340s
+
+OK

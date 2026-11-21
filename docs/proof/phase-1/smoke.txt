@@ -1,0 +1,10 @@
+Code b772097 | Test Contract v1.0 | seed 42
+.venv\Scripts\python.exe -B -m chonoi.headless --mode gather --seed 42 --out tmp\phase-1-smoke\gather.jsonl --ticks 1 --scenario tmp\phase-1-smoke\dock.json --inputs tmp\phase-1-smoke\dock-inputs.json --inventory-out tmp\phase-1-smoke\inventory.json
+.venv\Scripts\python.exe -B -m chonoi.headless --mode quan --seed 42 --out tmp\phase-1-smoke\quan.jsonl --ticks 0 --inventory tmp\phase-1-smoke\inventory.json
+.venv\Scripts\python.exe -B -m chonoi.headless --mode quan --seed 42 --out tmp\phase-1-smoke\quan-service.jsonl --ticks 1000 --snapshot-every 600 --inventory tmp\phase-1-smoke\inventory.json --scenario tmp\phase-1-smoke\quan-service.json --inputs tmp\phase-1-smoke\quan-service-inputs.json
+.venv\Scripts\python.exe -B -m chonoi.headless --mode quan --seed 42 --out tmp\phase-1-smoke\quan-service-repeat.jsonl --ticks 1000 --snapshot-every 600 --inventory tmp\phase-1-smoke\inventory.json --scenario tmp\phase-1-smoke\quan-service.json --inputs tmp\phase-1-smoke\quan-service-inputs.json
+
+PASS dock -> inventory -> quan snapshot tick 0
+PASS cook -> pick -> serve -> paid -> close, money=72, earned=72
+PASS repeated quan service JSONL identical byte for byte
+Events: [(1, 'cook_started'), (361, 'dish_ready'), (361, 'dish_picked'), (381, 'served'), (981, 'paid'), (1000, 'quan_end')]

@@ -1,0 +1,3 @@
+Integrated code b772097 | LiveServer + Chrome headless | 1280x720 | seed 42
+PASS gather: 5 m, 10 m, 15 m, 20 m, 25 m, 30 m, Bến (E), N1, N2, N3, N4, F1, F2, F3, F4, F5, F6, ⏱ 3:00, Oxy 30s, Máu ♥♥♥, x 2.0  d 0.0, Giỏ 1/12  cá lóc×1, WASD/mũi tên bơi · E hái / cập bến · Space bắt cá · R chơi lại, ⏱ 2:59
+PASS quan: B1, T1, gỏi bông súng, ⏱ 3:00, Tiền 0k · uy tín 3.0 · điểm 300, Kho khả dụng: bông súng × 1, cá lóc × 1, B1 trống  |  Trên tay: —, Đơn gọi: T1 gỏi bông súng · chờ 1:00, WASD/mũi tên đi · E tương tác (bếp / bàn) · R chơi lại
