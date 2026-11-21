@@ -1,5 +1,5 @@
 "use strict";
-/* Thành phần UI dùng chung: khung, vòng tiến độ, icon nguyên liệu/món, bong bóng gợi ý. Hình khối tạm, thay bằng sprite sau. */
+/* Thành phần UI dùng chung: khung, vòng tiến độ, icon nguyên liệu/món, bong bóng gợi ý. Icon cá/bông vẽ bằng CN.art (core/art.js); hình khối cũ chỉ còn làm dự phòng cho loài lạ. */
 (function (CN) {
   const { ctx, text, COLOR } = CN;
 
@@ -40,6 +40,8 @@
     // Icon nguyên liệu (cá / bông) tâm (x, y), cỡ size px.
     icon(kind, x, y, size, flip = false) {
       ctx.save(); ctx.translate(x, y);
+      if (CN.art && CN.art.hasFish(kind)) { ctx.restore(); CN.art.fish(kind, x, y, size * 1.05, flip); return; }
+      if (CN.art && CN.KIND_NAME[kind]) { ctx.restore(); CN.art.plant(kind, x, y, size * 0.95); return; }
       if (String(kind).startsWith("ca_")) fishIcon(CN.kc(kind), size, flip); else flowerIcon(CN.kc(kind), size);
       ctx.restore();
     },

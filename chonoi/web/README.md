@@ -32,13 +32,14 @@ WASD/mũi tên di chuyển · E tương tác · Space bắt cá · Esc/P tạm d
 | File | Việc |
 |---|---|
 | `js/core/draw.js` | Canvas, bảng màu, tên loài/món, chữ, thanh, khung bo góc |
+| `js/core/art.js` | Nét vẽ tự làm: cá theo loài, bông/rau, khăn rằn, quầng sáng; hàm băm cố định thay cho số ngẫu nhiên |
 | `js/core/widgets.js` | Khung, vòng tiến độ, icon nguyên liệu/món, bong bóng, gợi ý phím |
 | `js/core/net.js` | `/state`, `/input` (trạng thái phím, `tap` pause/shop_done, `buy`), mock |
 | `js/core/events.js` | Lọc sự kiện mới từ `snap.events` |
 | `js/core/input.js` | Bàn phím → màn hình hoặc phím chơi |
 | `js/core/camera.js`, `js/core/fx.js` | Camera bám người lặn; chữ nổi + rung theo sự kiện |
-| `js/gather/scene.js`, `hud.js` | Cảnh lặn (sông, nút hái, cá, Cá Sấu) + HUD sáng |
-| `js/quan/scene.js`, `hud.js` | Cảnh quán (bếp, bàn, khách, order) + HUD tối |
+| `js/gather/scene.js`, `hud.js` | Cảnh lặn: trời hồng, nhà sàn, dừa nước, nước phù sa theo độ sâu, bến, Út Sen, cá, bông, Cá Sấu + HUD sáng |
+| `js/quan/scene.js`, `hud.js` | Cảnh quán: nhà bè, đèn dây, bếp cà ràng có khói, bàn ghế nhựa, khách + kiên nhẫn + HUD tối |
 | `js/shop/scene.js` | Shop nâng cấp (đọc `meta.upgrades`) |
 | `js/shared/screens.js` | Menu, DayIntro, EveningIntro, DayResult, Tổng kết, Tạm dừng |
 | `js/shared/overlay.js` | MOCK, mất kết nối, lỗi luật, nhật ký, thẻ hết buổi (chạy riêng) |
