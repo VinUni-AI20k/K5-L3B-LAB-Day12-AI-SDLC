@@ -20,11 +20,12 @@ python3 .agents/skills/kiem-tat-dinh/kiem_tat_dinh.py --seeds 1 2 3 --ticks 1080
 python3 .agents/skills/kiem-tat-dinh/kiem_tat_dinh.py --proof docs/proof/phase-1
 ```
 
-Mỗi seed chạy 4 kịch bản, mỗi kịch bản 2 lần, rồi so byte:
+Mỗi seed chạy 5 kịch bản, mỗi kịch bản 2 lần, rồi so byte:
 1. `gather` không điều khiển.
 2. `gather` có inputs: lặn xuống, bắt cá, nổi lên, hái nút; ghi kho.
 3. `quan` với kho mẫu `docs/contracts/inventory.sample.json`.
 4. `quan` không kho.
+5. `day --days 2` (v1.1): gather → quan → Shop, hai Ngày.
 
 Script còn kiểm một seed khác cho JSONL quán khác. Kiểm này chỉ cảnh báo, vì khi chưa có khách hai seed có thể ra giống nhau.
 

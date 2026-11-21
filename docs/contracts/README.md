@@ -161,7 +161,7 @@ DayIntro → gather → EveningIntro → quan → DayResult → Shop → DayIntr
 - **Runner `day`** giữ trạng thái xuyên Ngày: `day`, `money`, `earned`, `reputation`, `upgrades` (đã mua), `active_upgrades` (đang áp dụng), `days_completed`.
 - **Dựng gather mỗi Ngày:** `GatherSim(tuning_ngày, scenario.gather, …)` với `oxygen_max_s`/`hp_max` lấy theo `active_upgrades`, quái lọc theo `from_day ≤ day`.
 - **Bàn giao gather → quán:** trong bộ nhớ, đúng object `gather_end.data.inventory` (schema mục 1). Ngất → `{"items":{}}`, quán vẫn mở.
-- **Dựng quán:** `QuanSim(…, inventory=kho)` với `menu_filter` = id món trong `day_plan[day].dishes`; tiền/earned/uy tín truyền vào từ runner.
+- **Dựng quán:** `QuanSim(tuning_ngày, …, inventory=kho)`; `tuning_ngày.menu` đã lọc còn id món trong `day_plan[day].dishes` (lọc trước nguyên liệu). Runner gán `money`/`earned`/`reputation` vào sim sau khi dựng và đọc lại khi pha xong. Cài ở `chonoi/day.py`.
 - **Shop:** `money` trừ khi `bought`, `earned` giữ nguyên. Cấp mua hôm nay chỉ chép sang `active_upgrades` khi dựng Ngày kế.
 - **Mọi sim** cần thêm: nhận `money`/`earned`/`reputation` ban đầu từ runner, và tôn trọng `pause` (runner không gọi `step` khi đang pause).
 
