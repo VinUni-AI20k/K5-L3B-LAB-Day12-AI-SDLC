@@ -1,34 +1,43 @@
 import { W, H, screen, input, fx, clamp, lerp, ease, txt, panel, measure, reduceMotion, setFont } from "./engine.js";
 import { unlock, music, sfx, toggleMute, isMuted, registerAudio } from "./audio.js";
 import { P, R, portrait, diver, fish, bands, godRays, WATER, kelp, hyacinth, lantern, ghe, chibiSide, KIND_NAME } from "./art.js";
-import { riverWorld, introScript, duskScript, dayScript } from "./story.js";
+import { riverWorld, introScript, duskScript } from "./story.js";
 import { Cutscene, slamText, speedLines, halftone } from "./cutscene.js";
 import { GatherScene } from "./scene_gather.js";
 import { QuanScene } from "./scene_quan.js";
-import { ShopScene } from "./scene_shop.js";
+import { DayIntro, EveningIntro, DayResult, Shop, Summary, drawPause, PAUSE_ITEMS, PAUSE_ITEMS_QUAN, planFor, planDays } from "./scene_day.js";
 import * as progress from "./progress.js";
 
 let CONTRACT = null, MANIFEST = [];
 // haul null = demo stock (title-menu shortcut), {} = empty basket (fainted).
 // campaign = the saved day loop (day card → morning prep → gather → dusk → evening prep → quán → results);
 // false = demo shortcuts (no prep screens, all dishes), never written to the save.
-const state = { scene: null, mode: "boot", t: 0, haul: null, menu: null, campaign: false, dayPaid: false };
+// v1.1 day loop: DayIntro → gather → (dusk) → EveningIntro → quán → DayResult → Shop → next DayIntro / Summary.
+// paused = { sel } while the pause overlay is open (Esc/P in gather, quán, shop): scene.update is skipped, so
+// every gameplay timer (clock, O₂, cooldowns, shop auto-close) is frozen.
+const state = { scene: null, mode: "boot", t: 0, haul: null, menu: null, campaign: false, dayPaid: false, paused: null };
 
 // ---------- title screen ----------
 class Title {
   constructor() {
     this.t = 0; this.sel = 0; this.cam = { x: 0, y: 40 }; this.started = false;
     // [label, action, sub-label, demo?]
+    // main menu (v1.1): Chơi (continue the saved run, else a new one) · Thoát; demo shortcuts below
     this.items = [];
     this.saved = progress.hasSave() ? progress.load() : null;
-    if (this.saved) this.items.push([`Chơi tiếp — Ngày ${this.saved.day}`, "continue", `Ví ${this.saved.money}k · Kỷ lục ${this.saved.best} điểm`]);
-    this.items.push(["Chơi mới", "new", this.saved ? "Xoá sổ cũ, bắt đầu lại từ Ngày 1" : "Mở màn rồi vào Ngày 1"]);
+    if (this.saved) {
+      this.items.push(["Chơi", "continue", `Chơi tiếp Ngày ${this.saved.day} · Ví ${this.saved.money}k · Kỷ lục ${this.saved.best} điểm`]);
+      this.items.push(["Chơi mới", "new", "Xoá sổ cũ, bắt đầu lại từ Ngày 1"]);
+    } else this.items.push(["Chơi", "new", "Mở màn rồi vào Ngày 1"]);
+    this.items.push(["Thoát", "quit", "Rời quán"]);
     this.items.push(["Buổi sáng — Lặn", "gather", null, true], ["Buổi tối — Quán", "quan", null, true], ["Xem mở màn", "intro", null, true]);
+    this.bye = false;
     this.press = 0; this.confirmNew = 0;
     music("theme");
   }
   update(dt) {
     this.t += dt; this.cam.x += dt * 6;
+    if (this.bye) { if (this.t - this.bye > 0.4 && input.anyKey()) this.bye = false; return; }
     if (input.hit("up")) { this.sel = (this.sel + this.items.length - 1) % this.items.length; sfx("click"); this.confirmNew = 0; }
     if (input.hit("down")) { this.sel = (this.sel + 1) % this.items.length; sfx("click"); this.confirmNew = 0; }
     if (input.hit("mute")) toggleMute();
@@ -37,6 +46,7 @@ class Title {
       const act = this.items[this.sel][1];
       // overwriting an existing save needs a second press
       if (act === "new" && this.saved && this.confirmNew <= 0) { this.confirmNew = 3; sfx("hurt"); return; }
+      if (act === "quit") { sfx("select"); this.bye = this.t; try { window.close(); } catch (e) {} return; }
       sfx("select"); this.press = 0.2; this.leaving = true; go(act);
     }
     if (this.press > 0) this.press -= dt;
@@ -76,8 +86,14 @@ class Title {
     if (note) txt(note, W / 2, H - 26, { size: 7.5, align: "center", color: cur[3] ? "rgba(255,255,255,.55)" : "#ffe2a8", weight: 700, shadow: "rgba(0,0,0,.6)" });
     txt("↑↓ chọn · Enter/Space chơi · M tắt tiếng", W / 2, H - 15, { size: 8, align: "center", color: "rgba(255,255,255,.6)", weight: 700 });
     txt(isMuted() ? "🔇" : "🔊", W - 12, 14, { size: 10, align: "right" });
-    txt("Nhóm 001 · Day 12 AI-SDLC · GUI dựng trước, luật ráp sau", W / 2, H - 5, { size: 6.5, align: "center", color: "rgba(255,255,255,.4)", weight: 700 });
+    txt("Nhóm 001 · Day 12 AI-SDLC · Test Contract v1.1", W / 2, H - 5, { size: 7, align: "center", color: "rgba(255,255,255,.4)", weight: 700 });
     if (this.press > 0) { c.fillStyle = `rgba(255,255,255,${this.press})`; c.fillRect(0, 0, W, H); }
+    if (this.bye) {
+      u.save(); u.fillStyle = "rgba(4,8,20,.8)"; u.fillRect(0, 0, W, H); u.restore();
+      panel(W / 2 - 120, H / 2 - 36, 240, 72, { fill: "rgba(30,12,16,.95)", border: "#ffd23f", r: 10, bw: 1.5 });
+      txt("Tạm biệt! Hẹn gặp lại ở chợ nổi", W / 2, H / 2 - 10, { size: 11, align: "center", color: "#ffd23f", weight: 900 });
+      txt("Đóng tab trình duyệt để thoát hẳn · phím bất kỳ: quay lại", W / 2, H / 2 + 12, { size: 8, align: "center", color: "#fff", weight: 700 });
+    }
   }
 }
 
@@ -86,7 +102,7 @@ let wipe = null;
 function transition(next, kind = "iris") { wipe = { k: 0, phase: "in", next, kind }; }
 
 // where: "continue" | "new" ("play" = old alias) | "gather" | "quan" | "intro"
-//        debug only: "shop" (reopen last results) | "morning" | "evening" (prep screens on the real save)
+//        debug only: "shop" | "evening" | "summary" (on the real save)
 function go(where) {
   if (where === "continue") { campaign(); progress.resume(); transition(startDay); }
   else if (where === "new" || where === "play") {
@@ -96,50 +112,78 @@ function go(where) {
     demo(); transition(() => { state.mode = "cut"; state.scene = new Cutscene(introScript(), toTitle); });
   } else if (where === "gather") { demo(); transition(startGather); }
   else if (where === "quan") { demo(); state.haul = null; state.menu = null; transition(() => startQuan(null)); }
-  else if (where === "morning") { campaign(); transition(startMorning); }
   else if (where === "evening") { campaign(); state.haul = state.haul || {}; transition(startEvening); }
-  else if (where === "shop") {
-    campaign(); const h = progress.save.history.at(-1);
-    transition(() => startShop(h ? { ...h, prevBest: progress.save.best, newBest: false } : { day: progress.save.day - 1, haulCount: 0, earned: 0, rep: 0, served: 0, left: 0, score: 0 }));
-  }
+  else if (where === "shop") { campaign(); transition(startShop); }
+  else if (where === "summary") { campaign(); transition(startSummary); }
 }
 function campaign() { progress.setDemo(false); state.campaign = true; }
 function demo() { progress.setDemo(true); state.campaign = false; }
 
-// one campaign day: NGÀY N card → Chuẩn bị lặn → gather → dusk → Chuẩn bị mở quán → quán → finishDay → Kết sổ → next day
+// one campaign day (v1.1 §2): DayIntro → gather → dusk → EveningIntro → quán → DayResult → Shop → next day / Summary
+function curDay() { return state.campaign ? progress.save.day : 1; }
 function startDay() {
-  const s = progress.save, ups = Object.values(s.up).reduce((a, b) => a + b, 0);
-  state.mode = "cut"; state.haul = {}; state.menu = null; state.dayPaid = false;
-  const sub = s.day === 1 && !s.history.length ? "Ngày đầu mở lại quán · lặn kiếm nguyên liệu" : `Ví ${s.money}k · ${ups} nâng cấp · lặn kiếm nguyên liệu`;
-  state.scene = new Cutscene(dayScript(s.day, sub), startMorning);
+  const s = progress.save;
+  if (s.day > planDays(CONTRACT)) return startSummary();
+  progress.activateUpgrades(); // levels bought in yesterday's Shop take effect now
+  state.mode = "intro"; state.haul = {}; state.menu = null; state.dayPaid = false;
+  state.scene = new DayIntro(CONTRACT, s.day, progress.stats(CONTRACT), () => transition(startGather));
 }
-function startMorning() { state.mode = "prep"; state.scene = new ShopScene(CONTRACT, null, () => transition(startGather), { mode: "morning" }); }
-function startEvening() {
-  state.mode = "prep";
-  state.scene = new ShopScene(CONTRACT, null, (sel) => { state.menu = sel?.menu || null; transition(() => startQuan(state.haul, state.menu)); }, { mode: "evening", stock: state.haul || {} });
+function startGather() {
+  state.mode = "gather";
+  const plan = planFor(CONTRACT, curDay());
+  state.scene = new GatherScene(CONTRACT, onGatherEnd, { day: curDay(), need: plan ? plan.ingredients : null });
 }
-function startGather() { state.mode = "gather"; state.scene = new GatherScene(CONTRACT, onGatherEnd); }
 function onGatherEnd(res) {
   if (res.restart) return transition(startGather);
-  state.haul = res.by || {};
-  // campaign: dusk → evening prep (menu + restaurant shop); demo: dusk → quán with every dish
+  state.haul = res.by || {}; // fainted = {} (basket lost); quán still opens
   transition(() => { state.mode = "cut"; state.scene = new Cutscene(duskScript(flat(state.haul)), () => state.campaign ? startEvening() : startQuan(state.haul)); });
 }
-// opts.menu = dish ids allowed tonight (scene_quan.js 4th arg; omitted = all dishes)
-function startQuan(stock, menu = null) { state.mode = "quan"; state.scene = new QuanScene(CONTRACT, stock, onQuanEnd, menu ? { menu } : undefined); }
+function startEvening() {
+  state.mode = "evening";
+  state.scene = new EveningIntro(CONTRACT, progress.save.day, state.haul || {}, (ids) => { state.menu = ids; transition(() => startQuan(state.haul, state.menu)); });
+}
+// opts.menu = dish ids allowed tonight (the day plan); opts.rep = reputation carried from the previous day
+function startQuan(stock, menu = null) {
+  state.mode = "quan";
+  const opts = {}; if (menu) opts.menu = menu; if (state.campaign) opts.rep = progress.repNow(CONTRACT);
+  state.scene = new QuanScene(CONTRACT, stock, onQuanEnd, opts);
+}
 function onQuanEnd(res) {
   // R on the result screen replays the evening with the same stock; the day is only paid once, below
   if (res.restart) return transition(() => startQuan(state.haul, state.menu));
   if (!state.campaign || state.dayPaid) return transition(toTitle);
   state.dayPaid = true;
-  const day = progress.save.day, prevBest = progress.save.best;
-  const summary = { haulCount: flat(state.haul || {}).length, earned: res.money ?? 0, rep: res.rep, served: res.served ?? 0, left: res.left ?? 0, score: res.score };
+  const day = progress.save.day;
+  const summary = { day, haulCount: flat(state.haul || {}).length, earned: res.money ?? 0, rep: res.rep, rep0: res.rep0, served: res.served ?? 0, left: res.left ?? 0, score: res.score, tips: res.tips ?? 0, sold: res.sold || {}, closedEarly: !!res.closedEarly };
   progress.finishDay(summary);
-  transition(() => startShop({ ...summary, day, prevBest, newBest: (res.score || 0) > prevBest }));
+  transition(() => { state.mode = "result"; state.scene = new DayResult(summary, () => transition(startShop)); });
 }
-function startShop(summary) { state.mode = "results"; state.scene = new ShopScene(CONTRACT, summary, () => transition(startDay), { mode: "results" }); }
-function toTitle() { progress.setDemo(false); state.campaign = false; state.mode = "title"; state.scene = new Title(); }
+function startShop() {
+  state.mode = "shop";
+  const last = progress.save.day > planDays(CONTRACT);
+  state.scene = new Shop(CONTRACT, last ? "Xong — xem tổng kết ▶" : `Xong — sang Ngày ${progress.save.day} ▶`, () => transition(startDay));
+}
+function startSummary() {
+  state.mode = "summary";
+  state.scene = new Summary(CONTRACT, () => { progress.newGame(); transition(toTitle); });
+}
+function toTitle() { state.paused = null; progress.setDemo(false); state.campaign = false; state.mode = "title"; state.scene = new Title(); }
 function flat(by) { const a = []; for (const k in by) for (let i = 0; i < by[k]; i++) a.push(k); return a; }
+
+// ---------- pause (Esc / P) ----------
+const PAUSABLE = new Set(["gather", "quan", "shop"]);
+const pauseItems = () => (state.mode === "quan" ? PAUSE_ITEMS_QUAN : PAUSE_ITEMS);
+function updatePause() {
+  const p = state.paused, items = pauseItems();
+  if (input.hit("pause") || input.hit("back")) { state.paused = null; sfx("click"); return; }
+  if (input.hit("up")) { p.sel = (p.sel + items.length - 1) % items.length; sfx("click"); }
+  if (input.hit("down")) { p.sel = (p.sel + 1) % items.length; sfx("click"); }
+  if (input.hit("confirm") || input.hit("interact") || input.hit("catch")) {
+    sfx("select"); state.paused = null;
+    if (items[p.sel] === "Đóng quán sớm") { state.scene?.closeEarly?.(); return; } // the menu choice is the confirmation
+    if (items[p.sel] === "Về menu") { const m = state.scene?._onMove; if (m) { removeEventListener("pointermove", m); removeEventListener("pointerdown", m); } transition(toTitle); }
+  }
+}
 
 // ---------- transition draw ----------
 function drawWipe(dt) {
@@ -181,7 +225,7 @@ async function boot() {
     if (r.ok) { MANIFEST = normalizeManifest(await r.json()); registerAudio(MANIFEST); const f = MANIFEST.find((a) => a.kind === "font"); if (f && f.family) await loadFont(f); }
   } catch (e) { /* no assets yet: procedural art + synth sfx still work */ }
   state.mode = "title"; state.scene = new Title();
-  if (/[?&]debug\b/.test(location.search)) window.__chonoi = { state, manifest: MANIFEST, go, step, input, progress };
+  if (/[?&]debug\b/.test(location.search)) window.__chonoi = { state, manifest: MANIFEST, go, step, input, progress, contract: () => CONTRACT };
   // first input unlocks audio
   const kick = () => { unlock(); removeEventListener("keydown", kick); removeEventListener("pointerdown", kick); };
   addEventListener("keydown", kick); addEventListener("pointerdown", kick);
@@ -214,7 +258,11 @@ function frame(dt) {
   fx.update(dt);
 
   // update: scene runs except while the wipe is closing over it
-  if (!wipe || wipe.phase === "out") state.scene?.update(dt);
+  if (!wipe || wipe.phase === "out") {
+    if (state.paused) updatePause();
+    else if (PAUSABLE.has(state.mode) && !wipe && !state.scene?.result && (input.hit("pause") || (input.hit("back") && !state.scene?.menuOpen))) { state.paused = { sel: 0 }; sfx("click"); }
+    else state.scene?.update(dt);
+  }
 
   // draw with screen shake
   const px = screen.px;
@@ -224,6 +272,7 @@ function frame(dt) {
   px.save(); px.translate(sx, sy);
   screen.beginUI();
   state.scene?.draw();
+  if (state.paused) drawPause(state.paused.sel, pauseItems());
   if (fx.flashT > 0) { px.globalAlpha = (fx.flashT / 0.2) * 0.6; px.fillStyle = fx.flashCol; px.fillRect(-8, -8, W + 16, H + 16); px.globalAlpha = 1; }
   drawWipe(dt);
   px.restore();
