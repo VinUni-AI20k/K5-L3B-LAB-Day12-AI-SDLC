@@ -23,3 +23,7 @@
   1. Điền đủ 5 thành viên & thỏa thuận nhóm vào `TEAM.md` để `python3 tools/check_team.py` ra `OK: 5 thành viên`.
   2. Điền tên tác giả, link nguồn và giấy phép CC0/CC-BY/MIT cho gói `assets/fish/` trong `CREDITS.md`; bổ sung token của B, D và `docs/members/<handle>.md` của A, B, C, D.
   3. Gộp PR nhánh `p1/common-maker/hud-qa-p1` vào `main`, chạy lại `verify-ac` lần cuối trên `main` rồi A gắn & đẩy tag `phase-1`.
+
+## Ghi chú trung thực về tag (Phase 3)
+- Tag `phase-1` **gắn trễ**: theo `PHAN-CONG-PHASE-3.md` tag đặt vào commit `759caeb` (đủ lát 1–4, HUD, verification P1, `contract_version` 1.0, 105/105 test xanh, commit cuối trước khi nền v1.1 vào). Đến lúc ghi file này `origin` chưa có tag.
+- Phần chưa đạt tại tag: `AC-P1-14` (xem bảng): `TEAM.md` chưa điền đủ 5 thành viên, `check_team.py` thoát mã 1; `CREDITS.md` chờ nguồn ảnh `assets/fish/`; token của B, D và phản tư của A, B, C, D chưa đủ. Các bằng chứng trong `docs/proof/phase-1/` chạy ở `contract_version` 1.0, nên **không còn khớp `main` hiện tại (1.1)**; bản chạy lại ở Phase 2 nằm trong `docs/proof/phase-2/`.

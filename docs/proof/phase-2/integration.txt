@@ -1,0 +1,12 @@
+# Smoke tích hợp Phase 2: gather -> quan (E, common-maker)
+# Commit chạy: b046845  (test_contract v1.1, seed 42)
+# python -m chonoi.headless --mode gather --seed 42 --scenario docs/proof/phase-1/dock.json --inputs docs/proof/phase-1/dock-inputs.json --ticks 1 --out gather.jsonl --inventory-out catch.json
+# python -m chonoi.headless --mode quan --seed 42 --inventory catch.json --ticks 0 --out quan.jsonl
+mã thoát gather = 0 (0.19s), quan = 0 (0.16s)  
+catch.json            = {"items": {"bong_sung": 2, "ca_loc": 1}}
+gather_end.inventory  = {"items": {"bong_sung": 2, "ca_loc": 1}}
+quan tick 0 stock     = {"bong_sung": 2, "ca_loc": 1}
+file kho == gather_end.inventory : True
+quan tick 0 stock == file kho    : True
+snapshot quan tick 0 có 2 bếp, 4 bàn
+KẾT QUẢ: ĐẠT
