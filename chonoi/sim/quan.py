@@ -53,8 +53,7 @@ class QuanSim:
             self.hand = None
 
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
-        self.total_duration_ticks = int(round(t["duration_s"] * TICK))
-        self.phase_tick = self.total_duration_ticks - self.time_left_ticks
+        self.phase_tick = 0
         self.reputation = float(scenario.get("reputation", t["reputation_initial"]))
 
         # Bếp
@@ -239,12 +238,12 @@ class QuanSim:
         # Xét khách chờ hết kiên nhẫn (patience)
         still_here = []
         for c in sort_by_id(self.customers):
-            if c["state"] == "waiting" and c["patience_ticks_left"] <= 0:
+            if self.time_left_ticks > 0 and c["state"] == "waiting" and c["patience_ticks_left"] <= 0:
                 self.reputation = round(
                     max(float(self.t["reputation_min"]), self.reputation + float(self.t["left_reputation_delta"])),
                     3,
                 )
-                c["reserved"] = {}
+                self._discard_order(c["id"])
                 events.append(
                     (
                         "customer_left",
@@ -289,7 +288,7 @@ class QuanSim:
                         )
                     )
                 elif c["state"] == "waiting":
-                    c["reserved"] = {}
+                    self._discard_order(c["id"])
                     events.append(
                         (
                             "customer_left",
@@ -324,6 +323,13 @@ class QuanSim:
 
         return events
 
+    def _discard_order(self, order_id):
+        if self.hand is not None and self.hand["order_id"] == order_id:
+            self.hand = None
+        for stove in self.stoves:
+            if stove["dish"] is not None and stove["dish"]["order_id"] == order_id:
+                stove.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
+
     def _interact(self, events):
         radius = self.t["interact_radius"]
         candidates = []
@@ -332,22 +338,13 @@ class QuanSim:
         for s in self.stoves:
             d = math.dist(self.pos, s["pos"])
             if d <= radius:
-                has_reserved = any(c["order_status"] == "reserved" for c in self.customers)
-                if s["state"] == "idle" and has_reserved:
-                    candidates.append((d, 0, id_key(s["id"]), "stove", s))
-                elif s["state"] == "ready" and self.hand is None:
-                    candidates.append((d, 0, id_key(s["id"]), "stove", s))
+                candidates.append((d, 0, id_key(s["id"]), "stove", s))
 
         # Xét bàn
         for tb in self.tables:
             d = math.dist(self.pos, tb["pos"])
-            if d <= radius and self.hand is not None:
-                cust = next(
-                    (c for c in self.customers if c["table_id"] == tb["id"] and c["state"] == "waiting"),
-                    None,
-                )
-                if cust and cust["id"] == self.hand["order_id"]:
-                    candidates.append((d, 1, id_key(tb["id"]), "table", tb, cust))
+            if d <= radius:
+                candidates.append((d, 1, id_key(tb["id"]), "table", tb))
 
         if not candidates:
             return
@@ -360,7 +357,9 @@ class QuanSim:
             if s["state"] == "idle":
                 # Nhận đơn reserved cũ nhất
                 res_custs = [c for c in self.customers if c["order_status"] == "reserved"]
-                res_custs.sort(key=lambda c: (c.get("order_tick", 0), id_key(c["id"])))
+                if not res_custs:
+                    return
+                res_custs.sort(key=lambda c: (c["order_tick"], id_key(c["table_id"])))
                 target_cust = res_custs[0]
 
                 d_id = target_cust["dish_id"]
@@ -398,7 +397,7 @@ class QuanSim:
                         },
                     )
                 )
-            elif s["state"] == "ready":
+            elif s["state"] == "ready" and self.hand is None:
                 # Bưng món khi tay trống
                 self.hand = dict(s["dish"])
                 s["state"] = "idle"
@@ -417,13 +416,16 @@ class QuanSim:
                 )
 
         elif chosen[3] == "table":
-            tb, cust = chosen[4], chosen[5]
+            tb = chosen[4]
+            cust = next((c for c in self.customers if c["table_id"] == tb["id"] and c["state"] == "waiting"), None)
+            if self.hand is None or cust is None or cust["id"] != self.hand["order_id"]:
+                return
             patience_left = cust["patience_ticks_left"]
             max_pat = int(round(self.t["patience_s"] * TICK))
             ratio = patience_left / max_pat
             base_price = self.hand["base_price"]
             if ratio >= self.t["tip_min_patience_ratio"]:
-                tip = int(round(base_price * self.t["tip_rate"]))
+                tip = math.floor(base_price * self.t["tip_rate"])
             else:
                 tip = 0
             cust["tip"] = tip
