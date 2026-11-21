@@ -1,0 +1,15 @@
+# commit nền: ad61740 (main sau PR #7) + tests/test_quan_p2.py chưa commit · 2026-11-21 12:00
+# lệnh: PYTHONPATH=tests:. python3 -m unittest tests.test_quan_p2 -v
+# kiểm đột biến: bỏ lọc allowed_dishes trong QuanSim -> 2/5 test FAIL (khach_chi_goi_mon_trong_ke_hoach, chi_du_mon_ngoai_ke_hoach_thi_no_dish); đã hoàn nguyên
+test_ac_p2_06_chi_du_mon_ngoai_ke_hoach_thi_no_dish (tests.test_quan_p2.DayPlanFilter.test_ac_p2_06_chi_du_mon_ngoai_ke_hoach_thi_no_dish) ... ok
+test_ac_p2_06_ke_hoach_ghi_de_trong_scenario_doi_mon_khach_goi (tests.test_quan_p2.DayPlanFilter.test_ac_p2_06_ke_hoach_ghi_de_trong_scenario_doi_mon_khach_goi) ... ok
+test_ac_p2_06_khach_chi_goi_mon_trong_ke_hoach (tests.test_quan_p2.DayPlanFilter.test_ac_p2_06_khach_chi_goi_mon_trong_ke_hoach)
+Kho đủ cả món ngoài kế hoạch, nhưng khách Ngày 1 chỉ được gọi món trong kế hoạch D1. ... ok
+test_ac_p2_06_khach_fixture_goi_mon_ngoai_ke_hoach_ma_2 (tests.test_quan_p2.DayPlanFilter.test_ac_p2_06_khach_fixture_goi_mon_ngoai_ke_hoach_ma_2) ... ok
+test_quan_doc_lap_dung_ca_menu (tests.test_quan_p2.StandaloneMenu.test_quan_doc_lap_dung_ca_menu)
+Quán chạy riêng không lọc theo kế hoạch: món ngoài D1 (canh chua) vẫn được gọi. ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 10.005s
+
+OK

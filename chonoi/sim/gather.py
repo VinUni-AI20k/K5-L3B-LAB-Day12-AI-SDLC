@@ -29,6 +29,52 @@ from .ramp import ramp_velocity
 TICK = 60.0
 AXES = ("x", "d")
 
+DEFAULT_FISH_DEPTHS = {
+    "ca_linh": (3.0, 12.0),
+    "ca_loc": (8.0, 20.0),
+    "ca_keo": (22.0, 28.0),
+}
+
+DEFAULT_SPAWN_X = [15.0, 30.0, 45.0, 60.0, 75.0, 90.0]
+
+DEFAULT_SPAWN_DEPTHS = {
+    "ca_linh": [5.0, 10.0],
+    "ca_loc": [10.0, 16.0],
+    "ca_keo": [24.0, 27.0],
+}
+
+DEFAULT_FISH_WEIGHTS = {
+    "ca_linh": 0.4,
+    "ca_loc": 0.3,
+    "ca_keo": 0.3,
+}
+
+def _reflect_1d(pos: float, vel: float, rem: float, lo: float, hi: float):
+    """Di chuyển theo vận tốc đơn vị * rem trên [lo, hi]; phản xạ phần dư nếu chạm biên."""
+    while rem > 1e-12:
+        if vel > 0:
+            dist_to_edge = hi - pos
+            if rem <= dist_to_edge:
+                pos += rem
+                rem = 0.0
+            else:
+                pos = hi
+                rem -= dist_to_edge
+                vel = -vel
+        elif vel < 0:
+            dist_to_edge = pos - lo
+            if rem <= dist_to_edge:
+                pos -= rem
+                rem = 0.0
+            else:
+                pos = lo
+                rem -= dist_to_edge
+                vel = -vel
+        else:
+            break
+    pos = max(lo, min(hi, pos))
+    return pos, vel
+
 
 class GatherSim:
     mode = "gather"
@@ -63,10 +109,19 @@ class GatherSim:
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
         # Cá (v1.1): random_fish (mặc định true) bật cá mặc định + bơi/sinh; false -> chỉ cá fixture, đứng yên.
         # Khai `fish` khi cờ bật thì THAY đàn ban đầu, vẫn bơi/sinh.
-        self.random_fish = scenario.get("random_fish", True)
-        self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)}
-                     for f in scenario.get("fish", [])]
+        self.phase_tick = 0
+        self.random_fish = bool(scenario.get("random_fish", True))
+        self.fish = [
+            {
+                "id": f["id"],
+                "kind": f["kind"],
+                "pos": [float(c) for c in f["pos"]],
+                "heading_deg": float(f.get("heading_deg", 0)),
+                "age_ticks": int(f.get("age_ticks", 0)),
+                "can_swim": self.random_fish,
+            }
+            for f in scenario.get("fish", [])
+        ]
         # Cá Sấu: scenario.monsters thay bố trí mặc định của Ngày (spawns có from_day <= day).
         if "monsters" in scenario:
             src_m = scenario["monsters"]
@@ -117,7 +172,9 @@ class GatherSim:
     # --- một bước ---------------------------------------------------------------
     def step(self, inp):
         events = []
-        # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
+        self.phase_tick += 1
+
+        # 1. Timers & node regrowth
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
@@ -126,27 +183,37 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-        # 2. bơi + chặn mép
+
+        # 2. Player movement & oxygen/choke/faint
         was_surface = self._at_surface()
         self._move(inp)
-        # 2b. lát 1: dive/surface, oxy, ngạt, ngất. True = đã ngất (gather_end đã phát) -> dừng bước.
         if self._update_oxygen(events, was_surface):
             return events
-        # 2c. lát 1 (v1.1): Cá Sấu theo id, rồi xét tối đa một hit. True = đã ngất -> dừng bước.
-        if self._update_monsters(events):
+
+        # 2b. Monsters (if present in GatherSim)
+        if hasattr(self, "_update_monsters") and self._update_monsters(events):
             return events
-        # 3. interact: bến trước, rồi hái (lát 2)
+
+        # 3. Interact: dock first, then harvest
         if inp.pressed("interact"):
             if self._in_dock():
                 self._finish("docked", events)
                 return events
             self._try_gather(events)
-        # 4. bắt cá (lát 2)
+
+        # 4. Catch BEFORE fish swim this tick
         if inp.pressed("catch"):
             self._try_catch(events)
-        # 5. hết giờ
+
+        # 5. Shift timeout
         if self.time_left_ticks <= 0:
             self._finish("time", events)
+
+        # 6. Fish swim & scheduled spawn (only if shift not ended)
+        if not self.done:
+            self._move_fish()
+            self._spawn_fish(events)
+
         return events
 
     # --- lát 1 (sở hữu: người làm gather lát 1) ---------------------------------
@@ -348,6 +415,63 @@ class GatherSim:
                 "required": yield_amt,
                 "free": free,
             }))
+
+    def _move_fish(self):
+        if not self.random_fish:
+            return
+
+        speed = float(self.t.get("fish_speed", 1.5))
+        turn_ticks = int(self.t.get("fish_turn_ticks", 120))
+        x_lo, x_hi = [float(v) for v in self.t.get("fish_x", [4.0, 96.0])]
+        depths_map = self.t.get("fish_depths", {
+            "ca_linh": [3.0, 12.0],
+            "ca_loc": [8.0, 20.0],
+            "ca_keo": [22.0, 28.0],
+        })
+        rng_turn = self.rng.get("fish_turn")
+
+        for f in sort_by_id(self.fish):
+            if not f.get("can_swim", False):
+                f["can_swim"] = True
+                continue
+
+            age = int(f.get("age_ticks", 0))
+            if turn_ticks > 0 and age > 0 and age % turn_ticks == 0:
+                f["heading_deg"] = rng_turn.uniform(0.0, 360.0)
+
+            rad = math.radians(f["heading_deg"])
+            vx, vd = math.cos(rad), math.sin(rad)
+            d_lo, d_hi = [float(v) for v in depths_map[f["kind"]]]
+            step_base = speed / TICK
+
+            nx, nvx = _reflect_1d(f["pos"][0], vx, step_base * abs(vx), x_lo, x_hi)
+            nd, nvd = _reflect_1d(f["pos"][1], vd, step_base * abs(vd), d_lo, d_hi)
+
+            f["pos"] = [nx, nd]
+            if (nvx, nvd) != (vx, vd):
+                f["heading_deg"] = math.degrees(math.atan2(nvd, nvx)) % 360.0
+            f["age_ticks"] = age + 1
+
+    def _spawn_fish(self, events):
+        if not self.random_fish:
+            return
+
+        spawn_ticks = int(self.t.get("fish_spawn_ticks", 360))
+        if spawn_ticks <= 0 or self.phase_tick <= 0 or self.phase_tick % spawn_ticks != 0:
+            return
+
+        fish_max = int(self.t.get("fish_max", 12))
+        if len(self.fish) >= fish_max:
+            return
+
+        spawned = self._spawn_one()
+        if spawned is not None:
+            events.append(("fish_spawned", {
+                "id": spawned["id"],
+                "kind": spawned["kind"],
+                "pos": list(spawned["pos"]),
+            }))
+            
 
     # --- dùng chung (lát 1 + lát 2): mọi thao tác thêm vào giỏ đi qua đây ----------
     def _add_to_hold(self, kinds) -> bool:

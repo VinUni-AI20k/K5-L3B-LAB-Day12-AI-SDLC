@@ -1,0 +1,3 @@
+kho ghi: {"items": {"bong_sung": 2, "ca_loc": 1}}
+quan stock: {"bong_sung": 2, "ca_loc": 1}
+-> KHỚP

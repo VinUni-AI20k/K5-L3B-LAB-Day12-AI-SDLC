@@ -156,6 +156,7 @@ class TestGatherLat2(unittest.TestCase):
                     "gather": {
                         "player": {"pos": [15, 5]},
                         "nodes": [],
+                        "random_fish": False,
                         "fish": [
                             {"id": "F1", "kind": "ca_linh", "pos": [15, 5]},
                             {"id": "F2", "kind": "ca_loc", "pos": [15.5, 5]},
