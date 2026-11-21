@@ -164,7 +164,8 @@ function startDay() {
   progress.activateUpgrades(); // levels bought in yesterday's Shop take effect now
   if (s.day > 1) { const w = meta.payWages(); if (!w.skipped && !w.owed && s.day % 2 === 0) meta.pushMessage("Bà Tư", BA_TU_REMIND[s.day % BA_TU_REMIND.length]); } // yesterday's wages (once per day)
   state.mode = "intro"; state.haul = {}; state.haulItems = null; state.menu = null; state.portions = null; state.delivered = null; state.leftover = null; state.dayPaid = false;
-  state.scene = new DayIntro(CONTRACT, s.day, progress.stats(CONTRACT), () => transition(startMorningHub));
+  // the very first day of a new game goes straight into the water (no dock hub yet); the hub opens from Day 2
+  state.scene = new DayIntro(CONTRACT, s.day, progress.stats(CONTRACT), () => transition(s.day === 1 ? startGather : startMorningHub));
 }
 // morning dock hub: shop pop-up (orders arrive TOMORROW evening, contract upgrades from tomorrow), Bà Tư, ladder → dive
 function startMorningHub() {
