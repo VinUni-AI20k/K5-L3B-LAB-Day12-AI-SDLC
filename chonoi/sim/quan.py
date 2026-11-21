@@ -40,8 +40,10 @@ class QuanSim:
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        # TODO(nhóm): khách dựng sẵn từ scenario (customers[]) và suy ra giữ chỗ (reserved).
-        self.customers = [dict(c, reserved=c.get("reserved", {})) for c in scenario.get("customers", [])]
+        self.random_customers = scenario.get("random_customers", True)
+        self.phase_tick = 0
+        self.customers = customers.build_fixture_customers(
+            scenario.get("customers", []), tuning, self.stock, self.stoves, self.hand)
         for e in self.customers:
             ids.reserve(e["id"])
         self.money = 0
@@ -75,13 +77,22 @@ class QuanSim:
     def step(self, inp):
         events = []
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # Thứ tự tạm theo khung; lát 4 chỉnh lại đúng PRD-0 mục F khi đề mở.
-        service.tick_service(self, events)      # lát 4: bếp nấu -> dish_ready, khách ăn xong -> paid
-        customers.tick_customers(self, events)  # lát 3: giảm kiên nhẫn, customer_left
-        self._move(inp)
+        self.phase_tick += 1
+        # Thứ tự theo docs/contracts/customer.md mục 5 (PRD-0 F). Hàm lát 3 gọi nếu có.
+        timers = getattr(customers, "tick_customers_timers", None) or getattr(customers, "tick_customers", None)
+        leave = getattr(customers, "customers_leave", None)
+        closing = self.time_left_ticks <= 0
+        service.tick_service(self, events)              # 1. bếp nấu -> dish_ready, khách ăn đếm ngược
+        if timers:
+            timers(self, events)                        # 1. kiên nhẫn (lát 3)
+        self._move(inp)                                 # 2. đi lại
         if inp.pressed("interact"):
-            service.interact(self, events)      # lát 4: tối đa MỘT interact (khoảng cách, bếp trước bàn, id)
-        customers.spawn_customers(self, events)  # lát 3: khách mới theo lịch, chọn món, giữ chỗ, no_dish
+            service.interact(self, events)              # 2. tối đa MỘT interact
+        service.settle(self, events, closing=closing)   # 3. ăn xong -> paid, rời bàn (hết ca: trả hết)
+        if leave:
+            leave(self, events)                         # 4/5. bỏ đi vì kiên nhẫn / closing (lát 3)
+        if not closing:
+            customers.spawn_customers(self, events)     # 6. khách mới (lát 3)
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"

@@ -1,25 +1,26 @@
-# Kế hoạch Phase 2 — Một ngày ở chợ nổi (TICKET-02)
+# Kế hoạch Phase 2 (TICKET-02 — Một ngày ở chợ nổi)
 
-**Mục tiêu:** chuyển sang Test Contract v1.1 với số liệu chuẩn, chơi trọn vòng ngày `DayIntro → gather → EveningIntro → quan → DayResult → Shop` qua 5 Ngày, có Cá Sấu, cá bơi/sinh, 2 bếp/4 bàn, 6 món, pause, menu và HUD. Tag `phase-2` trên `main` trước **1:55**. Câu hỏi và quyết định: [clarify](../clarify.md) (#8 trở đi).
+- **Mục tiêu:** contract v1.1 với số chuẩn; cá bơi/sinh, Cá Sấu, 2 bếp/4 bàn, 6 món; chế độ `day` (kế hoạch D1–D5, Shop, pause); menu/HUD. Tag `phase-2` trước 1:55. Câu hỏi và quyết định: [clarify](../clarify.md) (#8 trở đi).
+- **Nguyên tắc tránh conflict:** mỗi việc một file riêng; `gather.py` và khung chạy (`runner`, `headless`, `inputs`) do Lead giữ và đã nối sẵn lời gọi.
 
-## Lát và người
+## Việc / người / phụ thuộc (Lead chia)
 
-Lead (@justapea25) gán người trong 5 phút đầu (PO chốt: Lead chia). Giữ nguyên tắc **mỗi việc mới nằm trong file mới**, file cũ chỉ thêm vài dòng nối.
+| Việc | Người | File | Phụ thuộc | AC |
+|---|---|---|---|---|
+| Contract v1.1 (số chuẩn, 6 nguyên liệu, 6 món, day_plan, shop, monsters), nối lời gọi gather theo thứ tự 4.5, sinh cá đầu ca/theo lịch, `faint` v1.1 | @justapea25 | `game.contract.json`, `chonoi/contract.py`, `gather.py`, `gather_fish.py` (phần sinh) | — (làm đầu tiên) | 01, 02, 04, 11 |
+| Chế độ `day` + pause (đổi pha, `day_plan`, bàn giao kho, cấp nâng cấp), tích hợp, gắn tag | @justapea25 | `chonoi/day.py` (mới), `runner.py`, `headless.py`, `inputs.py` | contract v1.1, Shop | 13, 14, 17, 18, 19 |
+| Cá bơi (đổi hướng theo seed, phản xạ mép), bắt cá 3 loài, hái kèo nèo | @LETHESHIYING | `gather_fish.py` (`swim`), `gather_harvest.py` | contract v1.1 | 03, 05 |
+| Cá Sấu: patrol/chase/hit/recoil, bất tử, mất hàng LIFO, ngất do quái | @minhthu27 | `gather_monsters.py` | contract v1.1 | 06, 07, 08, 09 |
+| Quán v1.1: 2 bếp/4 bàn, bếp nhận đơn cũ nhất, lọc món theo kế hoạch ngày, luật đóng ca | @viethoang126 | `quan.py`, `quan_customers.py`, `quan_service.py` | contract v1.1 | 10, 12 |
+| Shop: mua oxygen/hp, `bought`/`buy_failed`, `shop_done`, tự đóng 600 tick; QA: cập nhật test P1 theo số chuẩn, smoke tích hợp (phút 20, 35), `verification/phase-2.md` | @Kaylez-TXL | `chonoi/shop.py` (mới), `tests/`, `docs/proof/phase-2/` | contract v1.1 | 15, 16, 22, 23, 24, 25 |
+| PO: `clarify.md`, plan, AGENTS.md, skill; giao diện: menu, DayIntro/EveningIntro/DayResult/Summary, pause, HUD | @linkiewinkie | `chonoi/web/index.html`, `chonoi/live.py`, docs | snapshot v1.1 | 20, 21, 25 |
 
-| Lát (theo TICKET-02 mục 5) | Phạm vi | AC | Người |
-|---|---|---|---|
-| 1. Số chuẩn, cá bơi/sinh | `game.contract.json` v1.1 phần gather; N5/N6 kèo nèo; `ca_keo`; cá bơi, đổi hướng, phản xạ mép, sinh theo lịch | 01, 02, 03, 04, 05 | Lead gán |
-| 2. Cá Sấu, Máu, ngất | `gather.monsters`; patrol/chase/recoil; hit, bất tử, rơi hàng; ngạt xuyên bất tử; faint do quái | 06, 07, 08, 09 | Lead gán |
-| 3. 2 bếp/4 bàn, 6 món, kế hoạch ngày | B2, T2–T4; 6 món theo dữ liệu; khách trong `day` chỉ gọi món của kế hoạch; `day_plan` D1–D5 | 10, 11, 12 | Lead gán |
-| 4. Day, Shop, pause (mô phỏng) | `--mode day --days N`; đổi pha; dữ liệu xuyên Ngày; Shop và nâng cấp; pause; scenario/inputs v1.1 | 13–19 | Lead gán. **Một người duy nhất** sửa khung `headless`/`runner`/`inputs`/`scenario`/`contract` |
-| 4b. Menu, màn chuyển pha, pause, HUD (web) | `chonoi/web/index.html` | 20, 21 | @linkiewinkie |
-| QA | Regression P1 với số chuẩn, smoke tích hợp, smoke `day`, verification | 22, 23, 24 | @Kaylez-TXL |
-| PO / docs | Plan, clarify, AGENTS.md, skill, README, nhật ký AI | 25 | @linkiewinkie |
+Mở rộng (nhóm 6 cần ≥ 2 trong cả buổi): để Phase 3–4 khi lõi đúng — Lead ưu tiên `burn` (quán) và `net` (bắt cá); PO chốt đầu Phase 3 ([clarify #16](../clarify.md)).
 
-**Giao diện cần chốt ở phút 0–5** (người làm lát 4 chủ trì, Lead duyệt):
-1. Vòng ngày gọi hai mô phỏng thế nào: lát 4 dựng `GatherSim`/`QuanSim` mỗi Ngày, nhận `gather_end.inventory` trong bộ nhớ, truyền cấp đang áp dụng (`oxygen_max_s`, `hp_max`) vào khi dựng.
+**Giao diện cần chốt sớm** (Lead chủ trì):
+1. Vòng ngày dựng `GatherSim`/`QuanSim` mỗi Ngày, nhận `gather_end.inventory` trong bộ nhớ, truyền cấp đang áp dụng (`oxygen_max_s`, `hp_max`) vào khi dựng.
 2. Trường snapshot UI đọc: `day`, `day_plan`, `upgrades`, `active_upgrades`, `phase` (`gather`/`quan`/`shop`), `state` (`playing`/`paused`/`finished`), `monsters[]`, `player.invuln_ticks`.
-3. Hàm dùng chung giữa lát 1 và 2: vị trí người chơi, giỏ (`_add_to_hold`), bỏ hàng LIFO (dùng chung cho ngất và hit).
+3. Hàm dùng chung giữa cá/Cá Sấu và `gather.py`: vị trí người chơi, giỏ (`_add_to_hold`), bỏ hàng LIFO (dùng chung cho ngất và hit).
 
 ## Tiêu chí chấp nhận (AC-P2-xx, nhóm tự đánh theo TICKET-02)
 
@@ -55,7 +56,7 @@ Lead (@justapea25) gán người trong 5 phút đầu (PO chốt: Lead chia). Gi
 
 | Phút | Việc |
 |---|---|
-| 0–5 | Lead gán người; chốt 3 giao diện ở trên; ai nhận việc thì ghi tên vào bảng |
+| 0–5 | Lead gán người (xong); chốt 3 giao diện ở trên |
 | 5–20 | Build 4 lát, Lead cập nhật `game.contract.json` v1.1 và contract |
 | 20 | Smoke tích hợp (AC-P2-22), standup 2–3 phút, điều người sang lát trễ |
 | 20–35 | Build tiếp, chốt luồng `day` |
@@ -64,9 +65,7 @@ Lead (@justapea25) gán người trong 5 phút đầu (PO chốt: Lead chia). Gi
 | 50–55 | Dự phòng, tag `phase-2` chậm nhất 1:55 |
 
 ## Rủi ro
-
-- **Khung chưa hỗ trợ v1.1:** `headless` còn từ chối `--mode day`, chưa có pause/`buy`/`shop_done`. Phải sửa khung; chỉ một người sửa để tránh conflict.
-- **Test P1 dựa vào cá đứng yên F1–F6:** v1.1 đổi `fish_initial` thành số 8 và cá bơi. Test nào hỏng phải dựng lại bằng scenario `random_fish: false` và ghi lý do.
-- **Lát 4 dài nhất** (day + Shop + pause + scenario/inputs): Lead nên ghép cặp hoặc tách scenario/inputs cho người khác.
-- **Contract P1 lệch PRD** ([clarify #3, #7](../clarify.md)): sửa xong trước khi thêm sự kiện v1.1.
-- **Mở rộng:** nhóm 6 người cần ≥ 2 mục trong cả buổi; PO chưa chọn, chốt ở đầu Phase 3. Lõi đúng trước.
+- `day` phụ thuộc mọi lát → tích hợp sớm bằng fixture cố định, mỗi lát giữ test xanh trên `main`.
+- Test ẩn kiểm lại Phase 1 với số chuẩn → test cũ đổi phải ghi lý do (đã đổi: số đàn cá đầu ca 6 → 8; P1 cần cá đứng yên thì dựng `random_fish: false`).
+- Lead ôm nhiều việc (contract + `day` + khung + tích hợp): người xong sớm hỗ trợ `day`/pause ở phút 20.
+- UI phụ thuộc snapshot v1.1 của `day`: làm HUD gather/quán trước bằng mode độc lập, nối `day` khi Lead có snapshot.
