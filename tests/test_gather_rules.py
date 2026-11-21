@@ -80,6 +80,7 @@ class GatherHarvestAndCatchTests(unittest.TestCase):
             sc = write_json(w.path("sc.json"), {"gather": {
                 "hold": ["bong_sung"] * (cap - 2),
                 "player": {"pos": [20, 10]},
+                "random_fish": False,
                 "fish": [
                     {"id": "F10", "kind": "ca_loc", "pos": [21, 10]},
                     {"id": "F2", "kind": "ca_linh", "pos": [21, 10]},
@@ -103,17 +104,21 @@ class GatherHarvestAndCatchTests(unittest.TestCase):
             self.assertEqual(code, 0, err)
             rows = read_jsonl(w.path("o.jsonl"))
             caught = events(rows, "fish_caught")
-            self.assertEqual(len(caught), 2)
-            self.assertEqual(caught[0]["data"]["fish_id"], "F3")
-            self.assertEqual(caught[0]["data"]["count"], 1)
-            self.assertEqual(caught[1]["data"]["fish_id"], "F2")
-            self.assertEqual(caught[1]["data"]["count"], 1)
-            full_ev = events(rows, "hold_full")
-            self.assertEqual(len(full_ev), 1)
-            self.assertEqual(full_ev[0]["data"]["fish_id"], "F10")
+            self.assertEqual(
+                [(e["tick"], e["data"]) for e in caught],
+                [(1, {"fish_id": "F3", "kind": "ca_loc", "yield": 1})],
+            )
+            # Còn một ô nhưng F2 cần toàn bộ yield. Không thử F10 dù nó vừa.
+            failed_catch = {"action": "catch", "fish_id": "F2",
+                            "required": g["fish_yield"]["ca_linh"], "free": 1}
+            self.assertEqual(
+                [(e["tick"], e["data"]) for e in events(rows, "hold_full")],
+                [(cd + 3, failed_catch), (2 * cd + 4, failed_catch)],
+            )
             last_snap = snapshots(rows)[-1]
-            self.assertEqual(len(last_snap["hold"]), cap)
-            self.assertEqual([f["id"] for f in last_snap["fish"]], ["F10"])
+            self.assertEqual(last_snap["hold_count"], cap - 1)
+            self.assertEqual(last_snap["player"]["catch_cd_ticks"], 0)
+            self.assertEqual([f["id"] for f in last_snap["fish"]], ["F2", "F10"])
 
             # Không bắt cá khi ở mặt nước
             sc_surf = write_json(w.path("sc_s.json"), {"gather": {
