@@ -8,8 +8,8 @@
 |---|---|---|---|---|
 |Nguyễn Trung Dũng | … | `sim/gather` | PO · hỏi giảng viên, ghi quyết định | `sim/quan` |
 |Nguyễn Văn Lâm | … | `sim/quan` | Integrator · điều phối file chung, tích hợp, gắn tag | `sim/gather` |
-|Đặng Nguyễn Nhật Minh | … | `client/ui` | Scrum/Release · giữ nhịp, chuẩn bị demo và release | `qa` |
-|Nguyễn Duy Hưng | … | `qa` | QA lead · kiểm thử hộp đen, tổng hợp bằng chứng | `client/ui` |
+|Nguyễn Duy Hưng | … | `client/ui` | Scrum/Release · giữ nhịp, chuẩn bị demo và release | `qa` |
+|Đặng Nguyễn Nhật Minh | … | `qa` | QA lead · kiểm thử hộp đen, tổng hợp bằng chứng | `client/ui` |
 
 ## Phase 1
 
