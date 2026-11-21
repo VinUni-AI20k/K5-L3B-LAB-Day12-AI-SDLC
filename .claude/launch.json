@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "chonoi-live",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-X", "utf8", "-m", "chonoi.live", "--mode", "gather", "--port", "8000"],
+      "port": 8000
+    }
+  ]
+}
