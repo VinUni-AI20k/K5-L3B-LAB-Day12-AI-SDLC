@@ -108,24 +108,73 @@ class GatherSim:
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
         # 2. bơi + chặn mép
+        was_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
-        # 3. interact: bến trước, rồi hái
+        # 3. lát 1: dive / surface, oxy, ngạt, ngất
+        if self._zone_and_oxygen(was_surface, events):
+            return events
+        # 4. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
                 self._finish("docked", events)
                 return events
             # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
             #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
-        # 4. bắt cá
+            #   Thêm vào giỏ qua self._add_to_hold(kind, n, events) (đã phát hold_full khi đầy).
+        # 5. bắt cá
         if inp.pressed("catch"):
             pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
-        # 5. hết giờ
+        # 6. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events
+
+    # --- lát 1: oxy, ngạt, Máu, ngất, giỏ ----------------------------------------
+    def _zone_and_oxygen(self, was_surface, events) -> bool:
+        """Xét theo vị trí CUỐI bước. Trả True nếu buổi kết thúc vì ngất."""
+        now_surface = self._at_surface()
+        if was_surface and not now_surface:
+            events.append(("dive", {"pos": list(self.pos)}))
+        elif now_surface and not was_surface:
+            events.append(("surface", {"pos": list(self.pos)}))
+
+        if now_surface:
+            self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + int(self.t["oxygen_refill_per_tick"]))
+            self.zero_oxy_ticks = 0
+            return False
+
+        before = self.oxygen_ticks
+        self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
+        if before > 0 and self.oxygen_ticks == 0:
+            events.append(("oxygen_empty", {"pos": list(self.pos)}))
+        if self.oxygen_ticks > 0:
+            self.zero_oxy_ticks = 0
+            return False
+
+        self.zero_oxy_ticks += 1
+        if self.zero_oxy_ticks < int(self.t["choke_interval_ticks"]):
+            return False
+        self.zero_oxy_ticks = 0
+        self.hp = max(0, self.hp - 1)
+        events.append(("choke", {"hp": self.hp}))
+        if self.hp > 0:
+            return False
+        lost = hold_to_items(self.hold)
+        self.hold = []
+        events.append(("faint", {"pos": list(self.pos), "lost": lost}))
+        self._finish("fainted", events)
+        return True
+
+    def _add_to_hold(self, kind, n, events) -> bool:
+        """Thêm n món `kind` vào giỏ (cuối mảng = mới nhất, LIFO).
+        Không đủ chỗ cho cả n -> không thêm gì, phát hold_full, trả False (giả định, xem docs/clarify.md)."""
+        cap = int(self.t["hold_capacity"])
+        if len(self.hold) + n > cap:
+            events.append(("hold_full", {"kind": kind, "count": n, "hold_count": len(self.hold),
+                                         "hold_capacity": cap}))
+            return False
+        self.hold.extend([kind] * n)
+        return True
 
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:
