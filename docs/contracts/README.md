@@ -1,6 +1,6 @@
-# Hợp đồng tích hợp — Phase 1 (Test Contract v1.0)
+# Hợp đồng tích hợp — Test Contract v1.1 (Phase 2)
 
-> Chốt lúc kickoff Phase 1. Người giữ: Integrator (nglngnguyen-gh). Đổi hợp đồng phải báo cả nhóm và ghi lý do trong `docs/adr/`.
+> Mục 1–4 chốt lúc kickoff Phase 1 (v1.0), vẫn hiệu lực ở v1.1. Mục 5 thêm ở Phase 2. Người giữ: Integrator (nglngnguyen-gh). Đổi hợp đồng phải báo cả nhóm và ghi lý do trong `docs/adr/`.
 > Nguồn: PRD-0 mục D, E, G. Phần cài đặt: `chonoi/inventory.py`, `chonoi/runner.py`, `chonoi/live.py`.
 
 ## 1. File kho (Lặn & Hái → Mở Quán)
@@ -14,7 +14,7 @@
 | Quy tắc | Chi tiết |
 |---|---|
 | Khóa gốc | Đúng một khóa `items`. Khóa gốc khác → mã 2. |
-| `kind` | Chỉ `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`. Kind lạ → mã 2. |
+| `kind` | v1.1: `ca_loc`, `ca_linh`, `ca_keo`, `bong_dien_dien`, `bong_sung`, `keo_neo` (`chonoi/inventory.py` `KINDS`). Kind lạ → mã 2. |
 | Số lượng | Số nguyên không âm (không nhận `bool`, số thực, số âm → mã 2). Kind vắng tính là 0. |
 | Bên ghi | Bỏ khóa có lượng 0, sắp khóa theo mã Unicode, JSON gọn (`,` `:`), một dòng, kết thúc `\n`, UTF-8. Kho rỗng là `{"items":{}}`. |
 | Trần | Trần giỏ (`hold_capacity`) không áp lên kho quán. |
@@ -124,3 +124,64 @@ Hai lát cùng sửa `chonoi/sim/quan.py`; thống nhất cấu trúc sau để 
 **Bếp**: `{"id":"B1","pos":[2,8],"state":"idle|cooking|ready","dish":<payload|null>,"cook_ticks_left":int,"ready_ticks":int}`.
 
 **Hàm dùng chung** (lát 3 viết, lát 4 gọi): `_release(customer)` nhả phần giữ, bỏ món của đơn ở bếp hoặc trên tay khi khách rời.
+
+## 5. Thay đổi ở v1.1 (Phase 2, TICKET-02)
+
+> Nguồn: TICKET-02 mục 1, 2, 4. Dữ liệu ở `game.contract.json` (`contract_version: "1.1"`), kiểm ở `chonoi/contract.py`.
+
+### 5.1. Dữ liệu mới trong `game.contract.json`
+
+| Khối | Thay đổi | Lát dùng |
+|---|---|---|
+| `gather.nodes` | Thêm N5 [76,0], N6 [90,0] `keo_neo` | lát 1 (Long) |
+| `gather.fish_*` | `fish_initial` là **số 8** (không còn là danh sách); thêm `fish_speed`, `fish_turn_ticks`, `fish_max`, `fish_spawn_ticks`, `fish_spawn_clearance`, `fish_x`, `fish_depths`, `fish_spawn_x`, `fish_spawn_depths`, `fish_weights`; `fish_yield.ca_keo = 2` | lát 1 (Long) |
+| `gather.monsters` | `species.ca_sau`, `spawns` M1 (từ Ngày 1), M2 (từ Ngày 3), `invuln_ticks: 90`, `loss_ratio: 0.5` | lát 2 (Ly) |
+| `quan` | Bếp B1, B2; bàn T1–T4 | lát 3 (Triết, Lên) |
+| `menu` | Thêm `canh_chua_ca_loc`, `ca_keo_nuong`, `lau_mam` (tổng 6 món) | lát 3 |
+| `day_plan` | 5 object `{day, dishes, ingredients}`; `contract.py` kiểm `ingredients` = tổng công thức × số suất | lát 4 (Nguyên) |
+| `shop` | `max_ticks: 600`, `upgrades.oxygen[]`, `upgrades.hp[]` | lát 4 |
+| `extensions` | Mảng mã mở rộng đã bật ở gốc manifest; hiện `[]` | ai làm mở rộng |
+
+Quy ước nhóm cho khóa đề không ghi rõ (xem `docs/clarify.md` #10–12):
+- `recoil_dist: 2.0` là **tổng** quãng lùi trong `recoil_ticks` (mỗi bước 2/60 m).
+- Ngưỡng độ sâu phát hiện/chạm của quái = cận dưới `depths` của loài (Cá Sấu 10, Rắn 8).
+
+### 5.2. Hàm dùng chung đã có trên nhánh `contract-v1.1`
+
+- `GatherSim._spawn_school()` (`chonoi/sim/gather.py`): sinh một đàn theo luật "Sinh cá" (trọng số loài chuẩn hóa trên loài còn điểm, điểm cách mọi đàn > `fish_spawn_clearance`, hướng đều [0, 360), luồng RNG `fish_spawn`, id `F` tiếp nối). Đã dùng cho 8 đàn đầu ca; lát 1 gọi lại cho lịch `phase_tick = 360·k`.
+- `contract.recipe_sum(dishes, menu)`: tổng nguyên liệu của kế hoạch, dùng cho `day_plan` và HUD "đã lấy / cần".
+- Đàn cá có thêm `age_ticks` (scenario + snapshot).
+
+### 5.3. Giao diện chuyển pha (`--mode day`, lát 4)
+
+```
+DayIntro → gather → EveningIntro → quan → DayResult → Shop → DayIntro … (Summary sau Ngày 5)
+```
+
+- **Runner `day`** giữ trạng thái xuyên Ngày: `day`, `money`, `earned`, `reputation`, `upgrades` (đã mua), `active_upgrades` (đang áp dụng), `days_completed`.
+- **Dựng gather mỗi Ngày:** `GatherSim(tuning_ngày, scenario.gather, …)` với `oxygen_max_s`/`hp_max` lấy theo `active_upgrades`, quái lọc theo `from_day ≤ day`.
+- **Bàn giao gather → quán:** trong bộ nhớ, đúng object `gather_end.data.inventory` (schema mục 1). Ngất → `{"items":{}}`, quán vẫn mở.
+- **Dựng quán:** `QuanSim(…, inventory=kho)` với `menu_filter` = id món trong `day_plan[day].dishes`; tiền/earned/uy tín truyền vào từ runner.
+- **Shop:** `money` trừ khi `bought`, `earned` giữ nguyên. Cấp mua hôm nay chỉ chép sang `active_upgrades` khi dựng Ngày kế.
+- **Mọi sim** cần thêm: nhận `money`/`earned`/`reputation` ban đầu từ runner, và tôn trọng `pause` (runner không gọi `step` khi đang pause).
+
+### 5.4. Sự kiện mới
+
+| `name` | `data` | Phát bởi |
+|---|---|---|
+| `fish_spawned` | `id`, `kind`, `pos` (chỉ khi sinh theo lịch) | lát 1 |
+| `monster_hit` | `monster_id`, `hp`, `lost` (LIFO), `pos` (người chơi) | lát 2 |
+| `faint` | thêm `cause: "monster"`; `lost` = phần giỏ còn lại | lát 2 |
+| `day_start`, `phase_start` | `{}` | lát 4 |
+| `day_plan` | `dishes`, `ingredients` của Ngày | lát 4 |
+| `paused`, `resumed` | `{}` | lát 4 |
+| `bought` | `upgrade`, `level`, `price`, `money` | lát 4 |
+| `buy_failed` | `action`, `reason` (`funds`/`max_level`/`out_of_stock`/`unknown`) | lát 4 |
+| `shop_end` | `reason` (`done`/`time`) | lát 4 |
+| `dish_burnt` | `stove_id`, `order_id`, `dish_id`, `order_status` (nếu bật burn) | mở rộng |
+
+Trong `day`, vỏ mọi event có thêm `day`; snapshot mọi pha có `day`, `day_plan`, `upgrades`, `active_upgrades`. Dòng `end` thêm `days_completed`; đủ Ngày → `reason: "days_complete"`.
+
+### 5.5. Inputs mới
+
+Nút boolean `pause` (cả 3 mode), `shop_done` (Shop); `buy` là chuỗi (`oxygen`, `hp`, …) chỉ chạy ở frame khai báo. `chonoi/inputs.py` hiện chỉ nhận `interact`, `catch` (`BUTTONS_V10`) → lát 4 mở rộng danh sách nút và kiểu `buy`.

@@ -58,18 +58,20 @@ class GatherSim:
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
-        if "fish" in scenario:
-            src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
-            src_fish = t["fish_initial"]
-        else:
-            src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
+        # v1.1: fish_initial là SỐ đàn đầu ca, sinh theo seed (TICKET-02 mục 1.1). Scenario `fish` thay thế.
+        src_fish = scenario["fish"] if "fish" in scenario else []
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                      "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)}
+                     for f in src_fish]
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
+        if "fish" not in scenario and scenario.get("random_fish", True):
+            for _ in range(int(t["fish_initial"])):
+                school = self._spawn_school()
+                if school is None:
+                    break
+                self.fish.append(school)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -92,7 +94,8 @@ class GatherSim:
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
+            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"],
+                      "age_ticks": f["age_ticks"]}
                      for f in sort_by_id(self.fish)],
         }
 
@@ -151,6 +154,37 @@ class GatherSim:
         return events
 
     # --- tiện ích ---------------------------------------------------------------
+    def _spawn_school(self):
+        """Sinh MỘT đàn theo TICKET-02 mục 1.1 "Sinh cá"; trả dict hoặc None nếu hết điểm.
+
+        Điểm hợp lệ: cặp (loài, x ∈ fish_spawn_x, d ∈ fish_spawn_depths[loài]) cách mọi đàn đang sống
+        > fish_spawn_clearance. Chọn loài theo fish_weights, chuẩn hóa lại trên các loài còn điểm,
+        rồi chọn đều một điểm của loài, hướng ban đầu đều trong [0, 360). Luồng RNG riêng "fish_spawn".
+        Dùng chung cho 8 đàn đầu ca và lịch sinh mỗi fish_spawn_ticks (lát cá bơi/sinh gọi lại hàm này).
+        """
+        t = self.t
+        clearance = t["fish_spawn_clearance"]
+        valid = {}
+        for kind in sorted(t["fish_weights"]):
+            pts = [[float(x), float(d)] for x in t["fish_spawn_x"] for d in t["fish_spawn_depths"][kind]
+                   if all(math.dist([x, d], f["pos"]) > clearance for f in self.fish)]
+            if pts and t["fish_weights"][kind] > 0:
+                valid[kind] = pts
+        if not valid:
+            return None
+        rng = self.rng.get("fish_spawn")
+        kinds = sorted(valid)
+        total = sum(t["fish_weights"][k] for k in kinds)
+        r, acc, kind = rng.random() * total, 0.0, kinds[-1]
+        for k in kinds:
+            acc += t["fish_weights"][k]
+            if r < acc:
+                kind = k
+                break
+        pos = valid[kind][rng.randrange(len(valid[kind]))]
+        heading = rng.random() * 360.0
+        return {"id": self.ids.new("F"), "kind": kind, "pos": pos, "heading_deg": heading, "age_ticks": 0}
+
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
 
