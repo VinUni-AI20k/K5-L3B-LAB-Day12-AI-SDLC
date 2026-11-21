@@ -7,7 +7,8 @@
 - Phase 2, lát cá: `python -m unittest tests.test_p2_fish -v`
 - Phase 3, giỏ và độ tươi: `python -m unittest tests.test_p3_gather -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
-- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
+- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan|day` (mở địa chỉ in ra; WASD, E, Space, Esc tạm dừng, R chơi lại; `day` mặc định 5 Ngày, `--days N`)
+- Phase 2, lát 4b (bản chơi live): `python -m unittest tests.test_p2_ui_live -v`. Chạy đúng lệnh test ở trên, **đừng** thêm `-X utf8` (3 test `test_p1_contract` đọc stderr sẽ lỗi `NoneType.strip`, có sẵn trên `main`)
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
