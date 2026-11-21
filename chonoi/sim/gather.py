@@ -7,12 +7,9 @@ Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` đ�
 cập bến (`interact` trong vùng bến -> `gather_end` reason `docked`), xuất kho, snapshot đầy đủ trường gather.
 
 Lát 1 đã có: chuyển vùng theo vị trí cuối bước, oxy, ngạt và ngất trước interact/catch/hết giờ.
-Giỏ giữ thứ tự nhặt (mới nhất ở cuối); lát 2 dùng _store_in_hold để giới hạn sức chứa.
-Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gather"):
-  TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
-      - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
-      - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
-      - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
+Giỏ giữ thứ tự nhặt (mới nhất ở cuối); khi ngất, event lost ghi thứ tự đảo trước khi xóa giỏ.
+Lát 2 đã tích hợp hái + bắt cá; _store_in_hold chỉ nhận đủ yield, thiếu chỗ giữ nguyên giỏ.
+Cập bến xét trước hái; ghi kho đúng một lần do runner lo (PRD-0 mục E/F/G).
 Các tính năng của phase sau chưa nằm trong khung này.
 """
 
@@ -76,10 +73,11 @@ class GatherSim:
         return hold_to_items(self.hold)
 
     def _store_in_hold(self, kind, count) -> int:
-        """Thêm theo thứ tự nhặt, trả số món thực nhận để lát 2 tạo event tương ứng."""
-        stored = min(count, max(0, self.t["hold_capacity"] - len(self.hold)))
-        self.hold.extend([kind] * stored)
-        return stored
+        """Nhận đủ lô theo thứ tự nhặt; thiếu chỗ trả 0 và giữ nguyên giỏ (PRD-0 F)."""
+        if count > self.t["hold_capacity"] - len(self.hold):
+            return 0
+        self.hold.extend([kind] * count)
+        return count
 
     def snapshot(self) -> dict:
         return {
@@ -121,7 +119,7 @@ class GatherSim:
         else:
             self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
             if oxygen_before > 0 and self.oxygen_ticks == 0:
-                events.append(("oxygen_empty", {}))
+                events.append(("oxygen_empty", {"oxygen_ticks": 0}))
         if not at_surface and self.oxygen_ticks == 0:
             self.zero_oxy_ticks += 1
             if self.zero_oxy_ticks >= self.t["choke_interval_ticks"]:
@@ -129,8 +127,9 @@ class GatherSim:
                 self.hp = max(0, self.hp - 1)
                 events.append(("choke", {"hp": self.hp}))
                 if self.hp == 0:
+                    lost = self.hold[::-1]
                     self.hold = []
-                    events.append(("faint", {"reason": "fainted"}))
+                    events.append(("faint", {"cause": "choke", "lost": lost, "hp": self.hp}))
                     self._finish("fainted", events)
                     return events
         else:
@@ -166,7 +165,7 @@ class GatherSim:
         if free < amount:
             events.append(("hold_full", {"action": "gather", "node_id": node["id"], "required": amount, "free": free}))
             return
-        self.hold += [node["kind"]] * amount
+        self._store_in_hold(node["kind"], amount)
         node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
         events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
 
@@ -182,7 +181,7 @@ class GatherSim:
             # giữ đàn, không đặt hồi chiêu, không thử đàn khác
             events.append(("hold_full", {"action": "catch", "fish_id": fish["id"], "required": y, "free": free}))
             return
-        self.hold += [fish["kind"]] * y
+        self._store_in_hold(fish["kind"], y)
         self.fish.remove(fish)
         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
         events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": y}))

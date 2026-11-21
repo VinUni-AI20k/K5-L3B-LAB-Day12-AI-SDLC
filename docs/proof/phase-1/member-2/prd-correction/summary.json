@@ -1,0 +1,192 @@
+{
+  "deterministic_faint_bytes": true,
+  "faint_inventory_empty": true,
+  "tests_run": 70,
+  "team_check": {
+    "exit_code": 1,
+    "output": "KIỂM TRA DANH SÁCH THÀNH VIÊN KHÔNG ĐẠT:\n  - thành viên #6: GitHub handle chưa điền hoặc không hợp lệ ('<github-handle-6>')"
+  },
+  "runs": {
+    "gather_run": {
+      "sha256": "72c30e63f0ca4f4d15de11305be5fae1a967aa6bcd9e00f3deef7d301e1c7ae3",
+      "end": {
+        "type": "end",
+        "ticks": 600,
+        "sim_tick": 600,
+        "mode": "gather",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      },
+      "events": []
+    },
+    "quan_run": {
+      "sha256": "15f84510b7b485386b45d9e79ca5e8f9f84d4077439ff75debb7b8ecdf92351e",
+      "end": {
+        "type": "end",
+        "ticks": 600,
+        "sim_tick": 600,
+        "mode": "quan",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      },
+      "events": [
+        {
+          "tick": 120,
+          "name": "no_dish",
+          "data": {
+            "customer_id": "C1"
+          }
+        }
+      ]
+    },
+    "oxygen-cycle": {
+      "sha256": "06c9af7d6d3f841c1f58086daea3533514dbdd5a0d58c620a0b7c96305b1eadd",
+      "end": {
+        "type": "end",
+        "ticks": 32,
+        "sim_tick": 32,
+        "mode": "gather",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      },
+      "events": [
+        {
+          "tick": 1,
+          "name": "dive",
+          "data": {
+            "pos": [
+              20.0,
+              0.511
+            ]
+          }
+        },
+        {
+          "tick": 3,
+          "name": "oxygen_empty",
+          "data": {
+            "oxygen_ticks": 0
+          }
+        },
+        {
+          "tick": 10,
+          "name": "surface",
+          "data": {
+            "pos": [
+              20.0,
+              0.489
+            ]
+          }
+        }
+      ]
+    },
+    "faint": {
+      "sha256": "1ca1e704c7a1407b0276a37c229445137e37b7229f4b73820a0cba5056f08a10",
+      "end": {
+        "type": "end",
+        "ticks": 180,
+        "sim_tick": 180,
+        "mode": "gather",
+        "state": "finished",
+        "reason": "fainted",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      },
+      "events": [
+        {
+          "tick": 1,
+          "name": "oxygen_empty",
+          "data": {
+            "oxygen_ticks": 0
+          }
+        },
+        {
+          "tick": 60,
+          "name": "choke",
+          "data": {
+            "hp": 2
+          }
+        },
+        {
+          "tick": 120,
+          "name": "choke",
+          "data": {
+            "hp": 1
+          }
+        },
+        {
+          "tick": 180,
+          "name": "choke",
+          "data": {
+            "hp": 0
+          }
+        },
+        {
+          "tick": 180,
+          "name": "faint",
+          "data": {
+            "cause": "choke",
+            "lost": [
+              "bong_sung",
+              "ca_loc"
+            ],
+            "hp": 0
+          }
+        },
+        {
+          "tick": 180,
+          "name": "gather_end",
+          "data": {
+            "reason": "fainted",
+            "inventory": {
+              "items": {}
+            }
+          }
+        }
+      ]
+    },
+    "dock": {
+      "sha256": "6bc3a907bb1c941be656463f91009d0644398b32057bef98ba04103b2eaed8f9",
+      "end": {
+        "type": "end",
+        "ticks": 1,
+        "sim_tick": 1,
+        "mode": "gather",
+        "state": "finished",
+        "reason": "docked",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      },
+      "events": [
+        {
+          "tick": 1,
+          "name": "gather_end",
+          "data": {
+            "reason": "docked",
+            "inventory": {
+              "items": {
+                "bong_sung": 2,
+                "ca_loc": 1
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}
