@@ -39,7 +39,7 @@ class LiveDayPreviewTest(unittest.TestCase):
         fish = next(f for f in state["snapshot"]["fish"] if f["kind"] == "ca_loc")
         self.at(fish["pos"])
         state = self.press("catch")
-        self.assertEqual(state["snapshot"]["hold"], ["ca_loc"])
+        self.assertEqual([h["kind"] for h in state["snapshot"]["hold"]], ["ca_loc"])
         self.assertIn("fish_caught", [event["name"] for event in state["events"]])
         self.assertTrue(preview.action("pause", {}))
         tick = preview.snapshot()["snapshot"]["tick"]

@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT))
 from chonoi.contract import load_contract
 from chonoi.inputs import InputState, LiveInputs, normalize
+from chonoi.inventory import items_to_counts
 from chonoi.live import LiveGame, read_web_art
 from chonoi.runner import build_sim
 
@@ -255,9 +256,10 @@ class LiveScenesPreview(Preview):
         elif self.screen == "day_intro":
             state["menu"] = list(TUNING["menu"])
         elif self.screen == "evening_intro":
-            state.update(inventory=self.inventory, gather_reason=self.gather_reason,
+            counts = items_to_counts(self.inventory) if isinstance(self.inventory, list) else self.inventory
+            state.update(inventory=counts, gather_reason=self.gather_reason,
                          cookable=[name for name, dish in TUNING["menu"].items()
-                                   if all(self.inventory.get(k, 0) >= v for k, v in dish["recipe"].items())])
+                                   if all(counts.get(k, 0) >= v for k, v in dish["recipe"].items())])
         elif self.screen in ("day_result", "summary"):
             result = self.results[-1].copy()
             if self.screen == "summary":
