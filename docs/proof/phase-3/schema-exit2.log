@@ -1,0 +1,7 @@
+# Kho đếm v1.1 và các dạng sai -> mã 2 (commit 32883d0)
+quan --inventory {"items":{"ca_loc":1}} -> exit 2 đầu vào sai: inventory.items phải là mảng cá thể
+quan --inventory {"items":[{"id":"I1","kind":"ca_loc"}]} -> exit 2 đầu vào sai: inventory.items: mỗi cá thể cần đúng id, kind và fresh
+quan --inventory {"items":[{"id":"I1","kind":"ca_loc","fresh":101}]} -> exit 2 đầu vào sai: inventory.items.I1.fresh phải trong [0, 100]
+quan --inventory {"items":[{"id":"I1","kind":"ca_loc","fresh":90},{"id":"I1","kind":"ca_linh","fresh":90}]} -> exit 2 đầu vào sai: inventory.items: id trùng I1
+quan --inventory {"items":[{"id":"I1","kind":"ca_loc","fresh":90}]} -> exit 0 
+gather scenario hold ["ca_loc"] -> exit 2 đầu vào sai: gather.hold: mỗi cá thể cần đúng id, kind và fresh

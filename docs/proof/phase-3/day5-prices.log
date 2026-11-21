@@ -1,0 +1,47 @@
+tick 5772 cook goi_bong_sung avg_fresh 91.433 price 40 -> base 36 (expect 36) items_sorted=True ok=True
+tick 6117 served C1 base 36 tip 7 ok=True
+tick 6714 cook goi_bong_sung avg_fresh 72.433 price 40 -> base 28 (expect 28) items_sorted=True ok=True
+tick 7101 served C2 base 28 tip 5 ok=True
+tick 7655 cook goi_bong_sung avg_fresh 53.375 price 40 -> base 21 (expect 21) items_sorted=True ok=True
+tick 7999 served C3 base 21 tip 4 ok=True
+tick 8513 cook ca_loc_nuong_trui avg_fresh 46.954 price 60 -> base 28 (expect 28) items_sorted=True ok=True
+tick 9019 served C4 base 28 tip 5 ok=True
+tick 9455 cook ca_loc_nuong_trui avg_fresh 42.571 price 60 -> base 25 (expect 25) items_sorted=True ok=True
+tick 9919 served C5 base 25 tip 5 ok=True
+tick 10313 cook ca_loc_nuong_trui avg_fresh 36.638 price 60 -> base 21 (expect 21) items_sorted=True ok=True
+tick 10819 served C6 base 21 tip 4 ok=True
+tick 19660 cook ca_loc_nuong_trui avg_fresh 80.100 price 60 -> base 48 (expect 48) items_sorted=True ok=True
+tick 20125 served C1 base 48 tip 9 ok=True
+tick 20602 cook ca_loc_nuong_trui avg_fresh 75.142 price 60 -> base 45 (expect 45) items_sorted=True ok=True
+tick 21109 served C2 base 45 tip 9 ok=True
+tick 21543 cook lau_ca_linh_dien_dien avg_fresh 84.206 price 120 -> base 101 (expect 101) items_sorted=True ok=True
+tick 22247 served C3 base 101 tip 20 ok=True
+tick 22401 cook lau_ca_linh_dien_dien avg_fresh 72.175 price 120 -> base 86 (expect 86) items_sorted=True ok=True
+tick 23147 served C4 base 86 tip 17 ok=True
+tick 34858 cook goi_bong_sung avg_fresh 89.338 price 40 -> base 35 (expect 35) items_sorted=True ok=True
+tick 35203 served C1 base 35 tip 7 ok=True
+tick 35800 cook ca_keo_nuong avg_fresh 74.583 price 70 -> base 52 (expect 52) items_sorted=True ok=True
+tick 36307 served C2 base 52 tip 10 ok=True
+tick 36741 cook canh_chua_ca_loc avg_fresh 69.250 price 90 -> base 62 (expect 62) items_sorted=True ok=True
+tick 37325 served C3 base 62 tip 12 ok=True
+tick 37599 cook canh_chua_ca_loc avg_fresh 60.571 price 90 -> base 54 (expect 54) items_sorted=True ok=True
+tick 38225 served C4 base 54 tip 10 ok=True
+tick 38541 cook goi_bong_sung avg_fresh 59.804 price 40 -> base 23 (expect 23) items_sorted=True ok=True
+tick 38885 served C5 base 23 tip 4 ok=True
+tick 39399 cook ca_keo_nuong avg_fresh 57.712 price 70 -> base 40 (expect 40) items_sorted=True ok=True
+tick 39905 served C6 base 40 tip 8 ok=True
+tick 49896 cook lau_mam avg_fresh 83.173 price 200 -> base 166 (expect 166) items_sorted=True ok=True
+tick 50721 served C1 base 166 tip 33 ok=True
+tick 50838 cook ca_loc_nuong_trui avg_fresh 83.008 price 60 -> base 49 (expect 49) items_sorted=True ok=True
+tick 51345 served C2 base 49 tip 9 ok=True
+tick 51779 cook ca_loc_nuong_trui avg_fresh 60.371 price 60 -> base 36 (expect 36) items_sorted=True ok=True
+tick 52243 served C3 base 36 tip 7 ok=True
+tick 52637 cook goi_bong_sung avg_fresh 60.200 price 40 -> base 24 (expect 24) items_sorted=True ok=True
+tick 53023 served C4 base 24 tip 4 ok=True
+tick 63450 cook lau_mam avg_fresh 85.308 price 200 -> base 170 (expect 170) items_sorted=True ok=True
+tick 64275 served C1 base 170 tip 34 ok=True
+tick 64392 cook ca_loc_nuong_trui avg_fresh 75.400 price 60 -> base 45 (expect 45) items_sorted=True ok=True
+tick 64899 served C2 base 45 tip 9 ok=True
+tick 65333 cook lau_ca_linh_dien_dien avg_fresh 71.896 price 120 -> base 86 (expect 86) items_sorted=True ok=True
+tick 66037 served C3 base 86 tip 17 ok=True
+cook_started checked: 23; bad: []
