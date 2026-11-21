@@ -152,6 +152,7 @@ function drawSprite(key, x, y, w, h, fallbackFn) {
 }
 
 let playerLastDirQuan = 0;
+let playerLastPosQuan = null;
 function drawPixelCharacter(charIndex, dirRow, frameCol, destX, destY, destW, destH) {
   const sheet = getImage("/assets/Pixel Art People/Pixel Art People Sample Sheet.png");
   if (sheet.complete && sheet.naturalWidth > 0) {
@@ -566,18 +567,36 @@ function drawQuan(w, h) {
       ctx.setLineDash([]);
     }
 
-    // Hướng nhìn và hoạt ảnh bước đi của Út Sen từ Pixel Art People
-    let dirRow = playerLastDirQuan;
-    const vx = p.vel ? p.vel[0] : 0, vz = p.vel ? p.vel[1] : 0;
-    const speed = Math.hypot(vx, vz);
-    if (speed > 0.05) {
-      if (Math.abs(vx) > Math.abs(vz)) {
-        dirRow = vx > 0 ? 2 : 1; // 2: Phải (East), 1: Trái (West)
-      } else {
-        dirRow = vz > 0 ? 3 : 0; // 3: Lên/Bắc (North), 0: Xuống/Nam (South)
+    // Hướng nhìn và hoạt ảnh quay người / bước đi của Út Sen từ Pixel Art People
+    let vx = p.vel ? p.vel[0] : 0;
+    let vz = p.vel ? p.vel[1] : 0;
+
+    // Nếu không có vel từ server hoặc đang đứng yên, kiểm tra độ dời toạ độ thực tế
+    if (playerLastPosQuan) {
+      const ddx = p.pos[0] - playerLastPosQuan[0];
+      const ddz = p.pos[1] - playerLastPosQuan[1];
+      if (Math.hypot(ddx, ddz) > 0.002) {
+        vx = ddx;
+        vz = ddz;
       }
-      playerLastDirQuan = dirRow;
     }
+    playerLastPosQuan = [p.pos[0], p.pos[1]];
+
+    // Phản hồi quay hướng ngay lập tức khi người chơi bấm phím
+    if (down.has("left")) vx = -1;
+    else if (down.has("right")) vx = 1;
+    if (down.has("up")) vz = 1;
+    else if (down.has("down")) vz = -1;
+
+    const speed = Math.hypot(vx, vz);
+    if (speed > 0.005) {
+      if (Math.abs(vx) >= Math.abs(vz)) {
+        playerLastDirQuan = vx > 0 ? 2 : 1; // 2: Phải (East), 1: Trái (West)
+      } else {
+        playerLastDirQuan = vz > 0 ? 3 : 0; // 3: Lên/Bắc (North/Back), 0: Xuống/Nam (South/Front)
+      }
+    }
+    const dirRow = playerLastDirQuan;
 
     // Chu kỳ bước chân cell animation [Idle, Step1, Idle, Step2]
     let frameCol = 1;
