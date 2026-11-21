@@ -15,6 +15,7 @@ import math
 from .errors import BadInput
 from .contract import recipe_sum
 from .inventory import KINDS_P1, validate_items
+from .items import is_v12, validate_public_items
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "monsters", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
@@ -169,7 +170,9 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
+        if is_v12(tuning):  # v1.2: mảng cá thể {id, kind, fresh} theo thứ tự vào giỏ
+            validate_public_items(h, "gather.hold")
+        elif not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
@@ -258,7 +261,10 @@ def _validate_quan(b, tuning):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate_items(b["stock"])
+        if is_v12(tuning):  # v1.2: mảng cá thể; customers[].reserved là mảng id (lát 3 kiểm liên kết)
+            validate_public_items(b["stock"], "quan.stock")
+        else:
+            validate_items(b["stock"])
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")
