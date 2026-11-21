@@ -87,16 +87,16 @@ class GatherPhase1Tests(unittest.TestCase):
         self.assertTrue(s.done)
         self.assertEqual(s.reason, "fainted")
         self.assertEqual(s.hold, [])
-        self.assertEqual(s.inventory_items(), {})
+        self.assertEqual(s.inventory_items(), [])
         self.assertTrue(has_event(events, "faint"))
         end = next(data for name, data in events
                    if name == "gather_end")
-        self.assertEqual(end["inventory"], {"items": {}})
+        self.assertEqual(end["inventory"], {"items": []})
 
     def test_07_gather_plant(self):
         s = make_sim({"player": {"pos": [12, 0]}})
         events = tick(s, buttons=("interact",))
-        self.assertEqual(s.hold, ["bong_dien_dien"])
+        self.assertEqual([(i["id"], i["kind"]) for i in s.hold], [("I1", "bong_dien_dien")])
         self.assertTrue(has_event(events, "gather"))
 
     def test_08_plant_regrowth(self):
@@ -118,7 +118,7 @@ class GatherPhase1Tests(unittest.TestCase):
     def test_09_catch_ca_linh(self):
         s = make_sim({"player": {"pos": [15, 5]}})
         events = tick(s, buttons=("catch",))
-        self.assertEqual(s.hold, ["ca_linh"] * 3)
+        self.assertEqual([(i["id"], i["kind"]) for i in s.hold], [("I1", "ca_linh"), ("I2", "ca_linh"), ("I3", "ca_linh")])
         self.assertTrue(has_event(events, "fish_caught"))
 
     def test_10_catch_cooldown(self):
@@ -166,11 +166,14 @@ class GatherPhase1Tests(unittest.TestCase):
                 "bong_sung", "ca_loc"
             ]
         })
-        self.assertEqual(s.inventory_items(), {
-            "ca_linh": 2,
-            "bong_sung": 1,
-            "ca_loc": 1
-        })
+        items = s.inventory_items()
+        self.assertEqual(
+            {k: sum(i["kind"] == k for i in items)
+             for k in ("ca_linh", "bong_sung", "ca_loc")},
+            {"ca_linh": 2, "bong_sung": 1, "ca_loc": 1}
+        )
+        self.assertEqual(len({i["id"] for i in items}), len(items))
+        self.assertTrue(all(0 <= i["fresh"] <= 100 for i in items))
 
     def test_15_no_catch_at_surface(self):
         s = make_sim({
