@@ -6,6 +6,7 @@ import time
 import unittest
 
 from helpers import ROOT, Workdir, run_headless, write_json
+from chonoi.day import DaySession
 from chonoi.inputs import InputState
 from chonoi.shop import ShopSim
 
@@ -126,6 +127,28 @@ class DayLoop(unittest.TestCase):
         self.assertEqual(s["phase"], "shop")
         self.assertEqual(s["phase_tick"], 11000 - 10801 - 99)  # 99 bước pause (10802..10900) không tính
         self.assertEqual(s["sim_tick"], 11000 - 99)
+
+
+class DayBeyondFive(unittest.TestCase):
+    """Soak (Ticket-04): DaySession chạy quá 5 Ngày, Ngày n dùng day_plan[(n - 1) % 5]. headless vẫn giới hạn --days 1-5."""
+
+    def test_ngay_6_lap_lai_ke_hoach_d1_va_chay_du_so_ngay(self):
+        sess = DaySession(TUNING, {}, 1, 7)
+        plans = {r["day"]: r["data"]["dishes"] for r in sess.start_rows() if r["name"] == "day_plan"}  # Ngày 1 ở tick 0
+        while not sess.done:
+            for r in sess.step(Inp()):
+                if r["name"] == "day_plan":
+                    plans[r["day"]] = r["data"]["dishes"]
+        self.assertEqual((sess.days_completed, sess.day), (7, 7))
+        self.assertEqual(sess.end_row()["reason"], "days_complete")
+        for n in range(1, 8):
+            self.assertEqual(plans[n], TUNING["day_plan"][(n - 1) % 5]["dishes"], n)
+
+    def test_headless_days_van_gioi_han_1_den_5(self):
+        with Workdir() as w:
+            code, _ = run_headless("--mode", "day", "--seed", "1", "--days", "6", "--ticks", "0",
+                                   "--out", w.path("o.jsonl"))
+        self.assertEqual(code, 2)
 
 
 class DayBadInput(unittest.TestCase):

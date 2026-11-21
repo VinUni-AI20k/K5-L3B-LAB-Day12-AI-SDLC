@@ -66,7 +66,8 @@ class DaySession:
     # ---- vòng pha ---------------------------------------------------------------
 
     def _plan(self):
-        return self.plans[self.day - 1]
+        # Soak (Ticket-04): Ngày 6-10 lặp D1-D5, nên kế hoạch Ngày n là day_plan[(n - 1) % 5].
+        return self.plans[(self.day - 1) % len(self.plans)]
 
     def _new_day(self):
         """day_start -> day_plan -> phase_start(gather), cùng tick. Cấp vừa mua có hiệu lực từ Ngày này."""

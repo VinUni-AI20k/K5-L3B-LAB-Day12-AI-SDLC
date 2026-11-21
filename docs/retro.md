@@ -12,8 +12,24 @@
 - 1 hành động cho Phase 4: (cả nhóm nhận khi retro)
 
 ## Phase 4 (cuối)
-- Rà lại hành động Phase 2: đã làm chưa? vì sao?
-- Điều tốt / điều tệ:
-- Số liệu: số commit theo người, cách đọc code của nhau, token theo người:
-- Một lần AI sai và cách nhóm phát hiện:
+- Rà lại hành động Phase 2 (`TheDLCrimson` tổng hợp từ `main` và `origin` lúc 2:40, chưa có kiểm chứng riêng của chủ việc):
+  - `common-maker` thêm kiểm tra cú pháp JS cho `index.html` vào smoke: chưa thấy. Tìm trong `tests/` không có test chạy JS hay đọc console trình duyệt, nên lỗi kiểu `continue` trong `forEach` vẫn có thể lọt lại.
+  - `LeBao403` gắn và đẩy tag `phase-1`, `phase-2`: chưa làm. `git tag -l` trên `origin` vẫn rỗng.
+  - Cả nhóm điền `TEAM.md`: chưa làm. `TEAM.md` vẫn là bản mẫu, `tools/check_team.py` báo lỗi.
+  - Vì sao: ba việc này không thuộc lát của ai và không có người kiểm cuối giờ. Chúng nằm giữa Integrator, QA và Scrum, đều đã ghi vào phân công nhưng không ai bị nhắc đúng lúc. Phần lý do là nhận định của `TheDLCrimson`, cần chủ việc xác nhận.
+- Điều tốt:
+  - Nền hợp đồng v1.1, v1.2 và v1.3 của `LeBao403` vào `main` sớm, các lát làm song song được. Cách "hai phiên bản, manifest để nguyên tới khi mọi lát chuyển xong" giữ `main` chạy được khi đổi schema kho.
+  - Test theo từng lát và bằng chứng headless trong `docs/proof/` cho phép kiểm tích hợp bằng lệnh thật, không bằng lời.
+  - Soak 10 Ngày của `LeBao403` bắt được lỗi mà test từng lát không thấy (xem mục AI sai).
+- Điều tệ:
+  - Việc chung (tag, `TEAM.md`) bị bỏ sót suốt cả 4 phase.
+  - Các lát đụng chung `quan.py` và `scenario.py` nên có PR trùng việc và phải đóng (3 PR đầu của `TheDLCrimson`).
+  - Một số commit đẩy lên nhánh sau khi PR đã merge nên không vào `main` (commit nhật ký và standup Phase 3 của `TheDLCrimson`), cần mở PR bù.
+- Số liệu (commit không tính merge trên `main`, đếm lúc 2:40): `LeBao403` 19, `common-maker` 17, `TheDLCrimson` 16, `baoduy2048` 8, `LaanLee` 5 (`laaaaanleeeee` ký commit bằng tên `LaanLee`, cần chắc email đã gắn với tài khoản). 9 commit của `Hai Duong` là starter của giảng viên. PR đã mở: `TheDLCrimson` 12, `LeBao403` 6, `laaaaanleeeee` 5, `common-maker` 2, `baoduy2048` 2.
+  - Cách đọc code của nhau: `TheDLCrimson` đọc diff lát 4 của `baoduy2048` (PR #3) và tìm ra xung đột với `main` trước khi gộp. Các cặp còn lại chưa có bằng chứng review trên GitHub, cần chủ cặp bổ sung.
+  - Token theo người (từ `docs/ai-usage-log.md`, đếm khác nhau nên chỉ so sánh thô): `LeBao403` khoảng 3,7M (P1), 12,5M (P2), 17,3M (P3), 7,9M (P4); `TheDLCrimson` khoảng 5,9M (P1), 22,9M (P2), 23,2M (P3). `common-maker` chỉ ước tính. `LaanLee` và `baoduy2048` chưa ghi token.
+- Một lần AI sai và cách nhóm phát hiện: `DaySession` do AI viết chỉ lập chỉ mục `day_plan[day - 1]`, nên vỡ `IndexError` ở Ngày 6. Test từng lát chỉ chạy tối đa 2 Ngày nên không thấy. Soak `--days 10` của `LeBao403` cho `days_completed` 5 và `crashes` 1. `TheDLCrimson` tái hiện bằng đúng lệnh đó, sửa bằng `(day - 1) % 5`, thêm test Ngày 6-7 lặp kế hoạch D1-D2, và chạy lại soak ra 10 Ngày, 0 lỗi (`docs/proof/phase-4/lat3-soak-10-ngay.json`).
 - Nếu làm lại, đổi gì:
+  - Ngay phút đầu của phase đầu: điền `TEAM.md` và giao tag cho một người cụ thể, có hạn.
+  - Trước khi viết hợp đồng hay khung, đọc `main` và các PR đang mở để không làm trùng.
+  - Chạy một smoke nhiều Ngày sớm hơn, không đợi tới Phase 4.
