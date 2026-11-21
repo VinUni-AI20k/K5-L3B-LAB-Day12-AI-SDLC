@@ -1,13 +1,20 @@
 """Nạp và kiểm scenario (Contract D). Trả về dict của đúng khối theo mode.
 
 KHUNG: kiểm cú pháp, id trùng, bộ đếm âm, khoang vượt sức chứa, trường lạ.
-TODO(nhóm): bổ sung kiểm mâu thuẫn mức luật mà nhóm cần (khách giữ chỗ quá kho, đơn assigned
-phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 mục D và 'Mâu thuẫn -> mã 2'.
+v1.2 (khi tuning có `freshness`, xem docs/clarify.md #3-#5):
+- `gather.hold`, `quan.stock` là mảng cá thể {id, kind, fresh}, id duy nhất, fresh trong [0, 100].
+- `customers[].reserved` là mảng id; mỗi id giữ cho tối đa một đơn, phải có trong kho, còn tươi
+  và đủ đúng công thức. Đơn chờ nấu chưa khai được cấp theo (order_tick, table_id), tươi nhất trước,
+  hòa thì id nhỏ hơn (`prepare_quan_reservations`).
+TODO(nhóm): các mâu thuẫn mức luật khác (đơn assigned phải có đúng một món, khách eating thiếu
+giá/tip...) — xem PRD-0 mục D và 'Mâu thuẫn -> mã 2'.
 """
 
+from collections import Counter
 import json
 
 from .errors import BadInput
+from .ids import id_key
 from .inventory import KINDS_V11, validate_items
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
@@ -173,7 +180,9 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_V11 for k in h):
+        if "freshness" in tuning:
+            _validate_fresh_items("gather.hold", h)
+        elif not isinstance(h, list) or any(k not in KINDS_V11 for k in h):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
@@ -228,7 +237,7 @@ def _validate_quan(b, tuning):
     for arr in ("stoves", "tables", "customers"):
         if arr in b:
             _check_ids(arr, b[arr])
-    if "stock" in b:
+    if "stock" in b and "freshness" not in tuning:
         validate_items(b["stock"])
     for stove in b.get("stoves", []):
         name = f"stoves.{stove['id']}"
@@ -257,3 +266,101 @@ def _validate_quan(b, tuning):
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    if "freshness" in tuning:
+        customers = b.get("customers", [])
+        if "stock" in b:
+            if customers:
+                b["customers"] = prepare_quan_reservations(customers, b["stock"], tuning)
+            else:
+                _validate_fresh_items("quan.stock", b["stock"])
+        else:
+            claimed = set()
+            for customer in customers:
+                _reservation_fields(customer, tuning["menu"])
+                for ident in customer.get("reserved", []):
+                    if ident in claimed:
+                        raise BadInput(f"customers.{customer['id']}.reserved: ID đã được giữ {ident}")
+                    claimed.add(ident)
+
+
+def _validate_fresh_items(name, items):
+    _check_ids(name, items)
+    for item in items:
+        if set(item) != {"id", "kind", "fresh"} or item["kind"] not in KINDS_V11:
+            raise BadInput(f"{name}.{item['id']}: cần đúng id, kind và fresh")
+        fresh = item["fresh"]
+        if not _num(fresh) or not 0 <= fresh <= 100:
+            raise BadInput(f"{name}.{item['id']}.fresh phải trong [0, 100]")
+
+
+def _reservation_fields(customer, menu):
+    name = f"customers.{customer['id']}"
+    dish = customer.get("dish_id")
+    if not isinstance(dish, str) or dish not in menu:
+        raise BadInput(f"{name}.dish_id phải có trong menu")
+    _nonneg_int(f"{name}.order_tick", customer.get("order_tick", 0))
+    if "reserved" not in customer:
+        return
+    reserved = customer["reserved"]
+    if not isinstance(reserved, list) or any(not isinstance(i, str) or not i for i in reserved):
+        raise BadInput(f"{name}.reserved phải là mảng ID nguyên liệu")
+    if len(reserved) != len(set(reserved)):
+        raise BadInput(f"{name}.reserved có ID trùng")
+    if reserved and not _awaiting_reservation(customer):
+        raise BadInput(f"{name}.reserved chỉ dành cho đơn đang chờ nấu")
+
+
+def _awaiting_reservation(customer):
+    return customer.get("state", "waiting") == "waiting" and customer.get("order_status", "reserved") == "reserved"
+
+
+def prepare_quan_reservations(customers, stock, tuning):
+    """Kiểm và cấp giữ chỗ khi đã có kho thật. Giữ thứ tự khách trong scenario."""
+    _validate_fresh_items("quan.stock", stock)
+    menu = tuning["menu"]
+    threshold = tuning["freshness"].get("spoiled_below")
+    if not _num(threshold) or not 0 <= threshold <= 100:
+        raise BadInput("freshness.spoiled_below phải trong [0, 100]")
+    by_id = {item["id"]: item for item in stock}
+    claimed = set()
+    prepared = [dict(customer) for customer in customers]
+    pending = []
+    for customer in prepared:
+        _reservation_fields(customer, menu)
+        name = f"customers.{customer['id']}.reserved"
+        if not _awaiting_reservation(customer):
+            customer.setdefault("reserved", [])
+            continue
+        recipe = menu[customer["dish_id"]]["recipe"]
+        if "reserved" not in customer:
+            pending.append(customer)
+            continue
+        counts = Counter()
+        for ident in customer["reserved"]:
+            if ident in claimed:
+                raise BadInput(f"{name}: ID đã được giữ {ident}")
+            item = by_id.get(ident)
+            if item is None or item["fresh"] < threshold:
+                raise BadInput(f"{name}: ID không có trong kho hoặc đã ươn {ident}")
+            claimed.add(ident)
+            counts[item["kind"]] += 1
+        if counts != recipe:
+            raise BadInput(f"{name}: nguyên liệu giữ chỗ không khớp công thức")
+
+    available = {}
+    for item in sorted(stock, key=lambda item: (-item["fresh"], id_key(item["id"]))):
+        if item["id"] not in claimed and item["fresh"] >= threshold:
+            available.setdefault(item["kind"], []).append(item["id"])
+
+    pending.sort(key=lambda customer: (customer.get("order_tick", 0), id_key(customer["table_id"])))
+    for customer in pending:
+        reserved = []
+        recipe = menu[customer["dish_id"]]["recipe"]
+        for kind, count in sorted(recipe.items()):
+            choices = available.get(kind, [])
+            if len(choices) < count:
+                raise BadInput(f"customers.{customer['id']}.reserved: không đủ {kind} còn tươi")
+            reserved.extend(choices[:count])
+            del choices[:count]
+        customer["reserved"] = reserved
+    return prepared
