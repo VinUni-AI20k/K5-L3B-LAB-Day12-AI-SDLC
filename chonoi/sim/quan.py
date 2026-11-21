@@ -29,8 +29,9 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, plan_dishes=None):
         t = tuning["quan"]
+        self.plan_dishes = plan_dishes  # chế độ day: chỉ gọi món trong kế hoạch Ngày (None = cả thực đơn)
         self.t = t
         self.menu = tuning["menu"]
         self.rng = streams
@@ -272,7 +273,7 @@ class QuanSim:
             return  # không còn bàn: bỏ lượt (không phát no_dish)
         table = free[0]  # self.tables đã sắp theo id
         avail = self._available()
-        cands = [d for d in sorted(self.menu)
+        cands = [d for d in sorted(self.menu) if self.plan_dishes is None or d in self.plan_dishes
                  if all(avail.get(k, 0) >= n for k, n in self.menu[d]["recipe"].items())]
         if not cands:
             events.append(("no_dish", {}))
