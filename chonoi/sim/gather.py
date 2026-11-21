@@ -6,13 +6,9 @@ Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` đ�
 Đã làm sẵn để smoke test chạy được: bơi + tăng/giảm tốc, chặn mép (d không âm), đồng hồ và hết giờ,
 cập bến (`interact` trong vùng bến -> `gather_end` reason `docked`), xuất kho, snapshot đầy đủ trường gather.
 
-Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gather"):
-  TODO(nhóm, lát 1): bơi + oxy + biên + giỏ
-      - oxy: dưới nước (d > surface_depth) trừ 1 tick/tick, mặt nước hồi oxygen_refill_per_tick, kẹp [0, max]
-      - ngạt: oxy = 0 và đang dưới nước -> đếm zero_oxy_ticks, đủ choke_interval_ticks thì -1 Máu (choke)
-      - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
-      - sự kiện dive / surface / oxygen_empty / choke / faint
-      - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
+Lát 1 xử lý bơi, chặn biên, oxy và ngất làm rơi giỏ theo LIFO.
+
+Nhóm viết tiếp theo mục F của Test Contract v1.0:
   TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
       - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
       - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
@@ -49,7 +45,6 @@ class GatherSim:
         self.oxygen_ticks = p.get("oxygen_ticks", self.oxygen_max)
         self.hp = p.get("hp", t["hp_max"])
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
-        self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
@@ -84,7 +79,7 @@ class GatherSim:
             "player": {"pos": self.pos, "vel": self.vel, "heading_deg": self.heading,
                        "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
-                       "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
+                       "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
             "hold": self.hold, "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
@@ -100,18 +95,25 @@ class GatherSim:
         events = []
         # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        self.invuln_ticks = max(0, self.invuln_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
         for n in sort_by_id(self.nodes):
             if n["regrow_ticks"] > 0:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-        # 2. bơi + chặn mép
+        # 2. Bơi và chặn biên trước khi tính oxy theo độ sâu thực ở cuối bước.
+        was_at_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
+        at_surface = self._at_surface()
+        if at_surface != was_at_surface:
+            name = "surface" if at_surface else "dive"
+            # Sao chép vị trí để payload phản ánh đúng tick chuyển vùng.
+            events.append((name, {"pos": self.pos.copy()}))
+
+        self._update_oxygen(at_surface, events)
+        if self.done:
+            # Ngất chốt lượt ngay, trước cập bến, hái, bắt cá và hết giờ.
+            return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
@@ -128,6 +130,39 @@ class GatherSim:
         return events
 
     # --- tiện ích ---------------------------------------------------------------
+    def _update_oxygen(self, at_surface, events):
+        if at_surface:
+            # Nổi lên dừng chuỗi thiếu oxy ngay cả ở tick đáng lẽ bị ngạt.
+            refill = self.t["oxygen_refill_per_tick"]
+            self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + refill)
+            self.zero_oxy_ticks = 0
+            return
+
+        # Mỗi bước dưới nước tiêu một tick oxy. Sự kiện oxygen_empty chỉ phát
+        # ở bước chuyển từ oxy dương về 0.
+        previous_oxygen = self.oxygen_ticks
+        self.oxygen_ticks = max(0, previous_oxygen - 1)
+        if self.oxygen_ticks > 0:
+            return
+        if previous_oxygen > 0:
+            events.append(("oxygen_empty", {"oxygen_ticks": 0}))
+
+        # Tick vừa cạn oxy là tick thứ nhất của chuỗi ngạt.
+        self.zero_oxy_ticks += 1
+        if self.zero_oxy_ticks < self.t["choke_interval_ticks"]:
+            return
+
+        self.zero_oxy_ticks = 0
+        self.hp -= 1
+        events.append(("choke", {"hp": self.hp}))
+        if self.hp == 0:
+            # Giỏ lưu cũ → mới. Payload mất đồ lưu theo thứ tự bỏ mới → cũ.
+            lost = list(reversed(self.hold))
+            self.hold.clear()
+            events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
+            # Runner dùng cùng giỏ đã rỗng để ghi inventory-out.
+            self._finish("fainted", events)
+
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
 
