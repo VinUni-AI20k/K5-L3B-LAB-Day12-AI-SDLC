@@ -1,4 +1,4 @@
-Commit: 80de567
+Commit: 39bcc54
 Command 1: python -m chonoi.headless --mode gather --seed 42 --scenario docs/proof/phase-1/dock.json --inputs docs/proof/phase-1/dock-inputs.json --ticks 1 --out <temp>/gather.jsonl --inventory-out docs/proof/phase-1/catch.json
 Exit code 1: 0
 Command 2: python -m chonoi.headless --mode quan --seed 42 --inventory docs/proof/phase-1/catch.json --ticks 0 --out <temp>/quan.jsonl
@@ -15,5 +15,15 @@ quan tick 0 snapshot:
 
 quan end row:
 {"type": "end", "ticks": 0, "sim_tick": 0, "mode": "quan", "state": "playing", "reason": "tick_limit", "money": 0, "earned": 0, "reputation": 3.0, "score": 300}
+
+--- End-to-end quan verification from catch.json (1400 ticks) ---
+Exit code 3: 0
+{"type": "event", "tick": 120, "phase": "quan", "name": "customer_arrived", "data": {"order_id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}}
+{"type": "event", "tick": 141, "phase": "quan", "name": "cook_started", "data": {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui", "items": ["ca_loc"], "base_price": 60}}
+{"type": "event", "tick": 501, "phase": "quan", "name": "dish_ready", "data": {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui"}}
+{"type": "event", "tick": 521, "phase": "quan", "name": "dish_picked", "data": {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui"}}
+{"type": "event", "tick": 731, "phase": "quan", "name": "served", "data": {"order_id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "patience_ticks_left": 2989, "base_price": 60, "tip": 12}}
+{"type": "event", "tick": 1331, "phase": "quan", "name": "paid", "data": {"order_id": "C1", "table_id": "T1", "base_price": 60, "tip": 12, "amount": 72, "reason": "finished_eating"}}
+{"type": "end", "ticks": 1400, "sim_tick": 1400, "mode": "quan", "state": "playing", "reason": "tick_limit", "money": 72, "earned": 72, "reputation": 3.2, "score": 372}
 
 Result: PASS

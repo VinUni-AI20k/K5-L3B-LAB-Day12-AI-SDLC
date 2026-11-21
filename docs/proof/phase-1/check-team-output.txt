@@ -1,4 +1,4 @@
-Commit: 80de567
+Commit: 39bcc54
 Command: python tools/check_team.py
 Exit code: 1
 
