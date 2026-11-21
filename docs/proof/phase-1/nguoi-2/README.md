@@ -9,6 +9,10 @@ Mã và test được kiểm ở commit `4073fbf` trên nhánh `p1/gather-resour
 | HUD Gather | Chrome kiểm giờ, oxy, máu và giỏ `3/12`. Phím `E` cập bến, `R` khôi phục lượt chơi. | [Ảnh Gather](gather-hud.png) · [Log trình duyệt](browser.log) |
 | HUD Quán | Chrome kiểm món gọi, kiên nhẫn, bếp, tay, tiền, uy tín và điểm. Có ba bông súng vật lý, khách giữ hai, HUD hiển thị một. Các nhãn chính cũng hiện ở chiều rộng 360 px. | [Fixture Quán](quan-hud.json) · [Ảnh Quán](quan-hud.png) · [Log trình duyệt](browser.log) |
 
+## Bản giao diện cập nhật
+
+Bản mới có HUD bằng HTML và minh họa cảnh sông buổi sáng, nhà bè buổi tối bằng Canvas. Chrome đã kiểm lại HUD, `E` cập bến, `R` và nút **Chơi lại**, cách tính kho khả dụng, cùng bố cục ở 1280 px và 360 px. Bộ test đạt 38/38. [Lặn & hái](gather-ui.png) · [Mở quán](quan-ui.png)
+
 ## Chạy lại từ gốc repo
 
 ```bash
