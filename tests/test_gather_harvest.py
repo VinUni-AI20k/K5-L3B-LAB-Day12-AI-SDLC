@@ -135,6 +135,7 @@ class GatherHarvestTests(unittest.TestCase):
                 "gather": {
                     "player": {"pos": [30.0, 10.0]},
                     "nodes": [],
+                    "random_fish": False,
                     "fish": [
                         {"id": "F10", "kind": "ca_loc", "pos": [30.0 + r, 10.0]},
                         {"id": "F2", "kind": "ca_linh", "pos": [30.0 - r, 10.0]},

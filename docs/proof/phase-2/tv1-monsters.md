@@ -28,3 +28,7 @@ TV4 truyền `day=N` vào GatherSim khi dựng mỗi ngày. Tham số mặc đ�
 TV5 đọc monsters[] gồm id, kind, pos, waypoints, target_idx, state, state_ticks_left, recoil_dir và player.invuln_ticks để vẽ cảnh báo. TV2 ghép cá bơi/sinh sau tương tác, catch và xét hết giờ trong GatherSim.step.
 
 Chưa kiểm chứng luồng ngất → mở quán bằng --mode day hoặc cấp oxy/Máu qua Shop, vì bản hiện tại còn CLI/manifest v1.0. Khối tuning.gather.monsters đã thêm theo v1.1. TV4 chịu trách nhiệm nâng contract_version khi ghép đủ cấu hình. Phần chơi trực tiếp và HUD quái cần TV5 kiểm tra sau tích hợp.
+
+## Review và tích hợp PR #8
+
+Đã ghép main có cá bơi/sinh của TV2 vào nhánh TV1, giữ cả cấu hình cá và quái. Bộ test tích hợp đạt 75/75. Manifest sau tích hợp theo main là v1.1. Review bổ sung kiểm tra kind sai kiểu để fixture monsters trả mã 2 thay vì lỗi thực thi. Luồng day/Shop và HUD vẫn cần chủ lát kiểm chứng khi tích hợp.

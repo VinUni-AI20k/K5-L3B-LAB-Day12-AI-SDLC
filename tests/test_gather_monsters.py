@@ -126,7 +126,7 @@ class Monsters(unittest.TestCase):
             monster(target_idx=True), monster(state="recoil", state_ticks_left=0),
             monster(state="recoil", state_ticks_left=2, recoil_dir=[2, 0]),
             monster(pos=[50, 9]), monster(state="chase", recoil_dir=[1, 0]),
-            monster(unknown=1), monster(waypoints=[[50, 20]]),
+            monster(unknown=1), monster(waypoints=[[50, 20]]), monster(kind=[]),
         ]
         with Workdir() as work:
             for fixture in bad:

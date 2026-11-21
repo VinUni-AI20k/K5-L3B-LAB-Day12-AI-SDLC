@@ -44,7 +44,8 @@
       "catch_cooldown_s": 0.5,
       "fish_yield": {
         "ca_linh": 3,
-        "ca_loc": 1
+        "ca_loc": 1,
+        "ca_keo": 2
       },
       "nodes": [
         {
@@ -78,64 +79,75 @@
             60,
             0
           ]
-        }
-      ],
-      "fish_initial": [
-        {
-          "id": "F1",
-          "kind": "ca_linh",
-          "pos": [
-            15,
-            5
-          ],
-          "heading_deg": 0
         },
         {
-          "id": "F2",
-          "kind": "ca_loc",
+          "id": "N5",
+          "kind": "keo_neo",
           "pos": [
-            30,
-            10
-          ],
-          "heading_deg": 0
+            76,
+            0
+          ]
         },
         {
-          "id": "F3",
-          "kind": "ca_linh",
-          "pos": [
-            45,
-            10
-          ],
-          "heading_deg": 0
-        },
-        {
-          "id": "F4",
-          "kind": "ca_loc",
-          "pos": [
-            60,
-            16
-          ],
-          "heading_deg": 0
-        },
-        {
-          "id": "F5",
-          "kind": "ca_linh",
-          "pos": [
-            75,
-            5
-          ],
-          "heading_deg": 0
-        },
-        {
-          "id": "F6",
-          "kind": "ca_loc",
+          "id": "N6",
+          "kind": "keo_neo",
           "pos": [
             90,
-            16
-          ],
-          "heading_deg": 0
+            0
+          ]
         }
       ],
+      "fish_initial": 8,
+      "fish_speed": 1.5,
+      "fish_turn_ticks": 120,
+      "fish_max": 12,
+      "fish_spawn_ticks": 360,
+      "fish_spawn_clearance": 1.0,
+      "fish_x": [
+        4,
+        96
+      ],
+      "fish_depths": {
+        "ca_linh": [
+          3,
+          12
+        ],
+        "ca_loc": [
+          8,
+          20
+        ],
+        "ca_keo": [
+          22,
+          28
+        ]
+      },
+      "fish_spawn_x": [
+        15,
+        30,
+        45,
+        60,
+        75,
+        90
+      ],
+      "fish_spawn_depths": {
+        "ca_linh": [
+          5,
+          10
+        ],
+        "ca_loc": [
+          10,
+          16
+        ],
+        "ca_keo": [
+          24,
+          27
+        ]
+      },
+      "fish_weights": {
+        "ca_linh": 0.4,
+        "ca_loc": 0.3,
+        "ca_keo": 0.3
+      },
       "monsters": {
         "species": {
           "ca_sau": {
