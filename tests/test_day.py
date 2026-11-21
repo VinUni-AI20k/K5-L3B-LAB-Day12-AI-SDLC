@@ -259,5 +259,59 @@ class DayHeadless(unittest.TestCase):
             self.assertEqual((rows[-1]["reason"], rows[-1]["days_completed"]), ("tick_limit", 0))
 
 
+@unittest.skipUnless(DAY_READY, SKIP)
+class DayScenario(unittest.TestCase):
+    """Khối day của scenario (v1.1 mục 4.3), chạy hộp đen qua headless."""
+
+    def test_ticket_example_opens_day_with_money_and_hold(self):
+        # đúng ví dụ TICKET-02 mục 4.3: tương tác lúc ở bến đóng ca sáng ngay
+        scn_obj = {"day": {"money": 200, "earned": 200},
+                   "gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"], "random_fish": False}}
+        with Workdir() as w:
+            scn = write_json(w.path("s.json"), scn_obj)
+            inp_f = write_json(w.path("i.json"), frames({"tick": 0, "interact": True}))
+            out = w.path("o.jsonl")
+            code, err = run("--mode", "day", "--seed", "1", "--scenario", scn, "--inputs", inp_f, "--ticks", "1",
+                            "--out", out)
+            self.assertEqual(code, 0, err)
+            rows = read_jsonl(out)
+            self.assertEqual([(r["name"], r["phase"]) for r in events(rows) if r["tick"] == 1],
+                             [("gather_end", "gather"), ("phase_start", "quan")])
+            snap = snapshots(rows)[-1]
+            self.assertEqual((snap["phase"], snap["money"], snap["earned"]), ("quan", 200, 200))
+            self.assertEqual(snap["stock"], {"bong_sung": 2, "ca_loc": 1})
+
+    def test_scenario_upgrades_active_from_day_one(self):
+        lv1 = next(e for e in SHOP["upgrades"]["hp"] if e["level"] == 1)
+        s = DaySession(TUNING, {"day": {"upgrades": {"hp": 1}}}, 1, 1)
+        snap = s.snapshot()
+        self.assertEqual((snap["upgrades"], snap["active_upgrades"]), ({"hp": 1}, {"hp": 1}))
+        self.assertEqual(snap["player"]["hp_max"], lv1["hp_max"])
+
+    def test_bad_day_scenarios_exit_2(self):
+        top = max(e["level"] for e in SHOP["upgrades"]["oxygen"])
+        bad = {
+            "quan_stock": {"quan": {"stock": {"ca_loc": 1}}},
+            "quan_reputation": {"quan": {"reputation": 4.0}},
+            "money_gt_earned": {"day": {"money": 100, "earned": 50}},
+            "money_without_earned": {"day": {"money": 100}},
+            "unknown_upgrade": {"day": {"upgrades": {"laser": 1}}},
+            "upgrade_over_max": {"day": {"upgrades": {"oxygen": top + 1}}},
+            "unknown_day_key": {"day": {"gold": 1}},
+            "wrong_block": {"river": {}},
+            "plan_bad_ingredients": {"day": {"day_plan": [{"day": 1, "dishes": {"goi_bong_sung": 1},
+                                                           "ingredients": {"bong_sung": 3}}]}},
+            "plan_dish_off_menu": {"day": {"day_plan": [{"day": 1, "dishes": {"pho": 1}}]}},
+        }
+        with Workdir() as w:
+            out = w.path("o.jsonl")
+            for name, obj in bad.items():
+                with self.subTest(name):
+                    scn = write_json(w.path(f"{name}.json"), obj)
+                    code, _ = run("--mode", "day", "--seed", "1", "--scenario", scn, "--ticks", "0", "--out", out)
+                    self.assertEqual(code, 2)
+                    self.assertFalse(os.path.exists(out))
+
+
 if __name__ == "__main__":
     unittest.main()

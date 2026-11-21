@@ -12,8 +12,8 @@ Một Ngày: day_start → day_plan → phase_start(gather) → … gather_end �
 - Pause: dùng chung `PauseGate` với gather/quan; khi pause mọi timer (kể cả Shop) đứng yên.
 - Mọi số liệu đọc từ tuning (`day_plan`, `shop`); không hard-code.
 
-Tích hợp với phần của người khác (chỉ gọi, không sửa): `QuanSim(plan_dishes=...)` và `chonoi.day_plan` (TV2),
-`GatherSim` (TV1; nhận thêm `day=` nếu lớp hỗ trợ, cho bố trí thủy quái theo Ngày).
+Quán trong day chỉ nhận món của kế hoạch Ngày (`QuanSim(plan_dishes=...)`). `GatherSim` nhận thêm `day=` nếu
+lớp hỗ trợ (bố trí thủy quái theo Ngày, M2 từ Ngày 3).
 """
 
 import copy
@@ -33,6 +33,15 @@ def _accepts(cls, name):
 
 def _level(entries, level):
     return next((e for e in entries if e["level"] == level), None)
+
+
+def plan_ingredients(dishes, menu):
+    """Tổng nguyên liệu cần = Σ công thức × số suất, sắp theo kind (TICKET-02 mục 2, v1.1 mục 4.3)."""
+    total = {}
+    for dish_id, servings in dishes.items():
+        for kind, n in menu[dish_id]["recipe"].items():
+            total[kind] = total.get(kind, 0) + n * servings
+    return {k: total[k] for k in sorted(total) if total[k] > 0}
 
 
 class DaySession:
@@ -76,7 +85,6 @@ class DaySession:
         plan = {e["day"]: {"dishes": dict(e["dishes"]), "ingredients": dict(e["ingredients"])}
                 for e in self.tuning["day_plan"]}
         if overrides:
-            from ..day_plan import plan_ingredients  # TV2: ingredients = Σ công thức × số suất
             for e in overrides:
                 plan[e["day"]] = {"dishes": dict(e["dishes"]),
                                   "ingredients": plan_ingredients(e["dishes"], self.tuning["menu"])}
@@ -116,9 +124,8 @@ class DaySession:
         self.phase, self.phase_tick = "gather", 0
 
     def _build_quan(self, items):
-        kw = {"plan_dishes": list(self.plan[self.day]["dishes"])} if _accepts(QuanSim, "plan_dishes") else {}
         self.sim = QuanSim(self.tuning, copy.deepcopy(self.tpl_quan), self.streams, self.ids, inventory=dict(items),
-                           **kw)
+                           plan_dishes=list(self.plan[self.day]["dishes"]))
         self._sync_into(self.sim)
         self.sim.shift_earned = 0
         self.phase, self.phase_tick = "quan", 0
