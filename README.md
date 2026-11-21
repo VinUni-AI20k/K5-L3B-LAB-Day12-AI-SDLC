@@ -15,15 +15,30 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 
 ## Bắt đầu nhanh
 
+Máy cần Python 3 (thư viện chuẩn, không cài thêm gói). macOS, Linux và Windows đều chạy được.
+
+Từ clone sạch, bản có giao diện mở trong **tối đa 3 lệnh**:
+
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone <fork-của-nhóm>
+cd <fork-của-nhóm>
+python3 -m chonoi.live --mode day
+```
+
+Trình duyệt mở địa chỉ in ra. Điều khiển: WASD di chuyển, E tương tác, Space bắt cá, R về bến (gather), Esc hoặc P tạm dừng.
+
+```bash
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v          # test
+python3 -m chonoi.headless --mode day --seed 1 --days 1 --ticks 30000 --out out.jsonl
+python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json     # đo ~33 giây (3 giây làm nóng + 30 giây)
+python3 -m chonoi.soak --seed 7 --days 10 --out soak.json            # giảng viên chạy; nhóm có thể smoke --days 1
 ```
 
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
 ## Tự do sáng tạo
+
+Nhóm đã thêm **cháy món** (`burn`). Món để trên bếp quá 20 giây sẽ cháy. Quán thử giữ nguyên liệu mới cho đơn. Xem [kiểm chứng cháy món](docs/proof/phase-4/tv4-burn-2111.md).
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
 
