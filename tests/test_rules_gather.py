@@ -22,7 +22,7 @@ import json
 import unittest
 
 from helpers import Workdir, events, frames
-from rules_common import H, at, contract_tuning, counts, kinds, run_mode
+from rules_common import at, contract_tuning, run_mode
 
 
 def run(w, block, **kw):
@@ -118,20 +118,18 @@ class Ngat(unittest.TestCase):
         with Workdir() as w:
             inv = w.path("inv.json")
             sc = {"player": {"pos": [50, 10], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
-                  "hold": H("ca_loc", "bong_sung")}
+                  "hold": ["ca_loc", "bong_sung"]}
             rows = run(w, sc, ticks=100, every=100, inv_out=inv)
             self.assertEqual(only(rows, "choke")["data"]["hp"], 0)
             faint = only(rows, "faint")
-            self.assertEqual((faint["data"]["cause"], faint["data"]["hp"]), ("choke", 0))
-            self.assertEqual(kinds(faint["data"]["lost"]), ["bong_sung", "ca_loc"])   # LIFO: nhặt sau bỏ trước
+            self.assertEqual(faint["data"], {"cause": "choke", "lost": ["bong_sung", "ca_loc"], "hp": 0})
             end = only(rows, "gather_end")
-            self.assertEqual(end["data"]["reason"], "fainted")
-            self.assertEqual(counts(end["data"]["inventory"]), {})
+            self.assertEqual(end["data"], {"reason": "fainted", "inventory": {"items": {}}})
             names = [r["name"] for r in rows if r["type"] == "event"]
             self.assertLess(names.index("faint"), names.index("gather_end"))
             self.assertEqual(rows[-1]["reason"], "fainted")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(counts(json.load(f)), {})
+                self.assertEqual(json.load(f), {"items": {}})
 
 
 class Nut(unittest.TestCase):
@@ -183,7 +181,7 @@ class Nut(unittest.TestCase):
         """Giỏ đầy: `hold_full` {action:gather,node_id,required,free}; nút giữ nguyên."""
         cap = tuning()["hold_capacity"]
         with Workdir() as w:
-            rows = run(w, {"player": {"pos": [12, 0]}, "hold": H(*["ca_loc"] * cap)},
+            rows = run(w, {"player": {"pos": [12, 0]}, "hold": ["ca_loc"] * cap},
                        inp=frames({"tick": 0, "interact": True}), ticks=1)
             ev = only(rows, "hold_full")
             self.assertEqual(ev["data"], {"action": "gather", "node_id": "N1", "required": 1, "free": 0})
@@ -264,7 +262,7 @@ class Ca(unittest.TestCase):
         """Thiếu chỗ (không bắt một phần): `hold_full` {action:catch,fish_id,required,free}; giữ đàn; không hồi chiêu."""
         cap = tuning()["hold_capacity"]
         with Workdir() as w:
-            sc = {"player": {"pos": [50, 10]}, "random_fish": False, "hold": H(*["bong_sung"] * (cap - 2)),
+            sc = {"player": {"pos": [50, 10]}, "random_fish": False, "hold": ["bong_sung"] * (cap - 2),
                   "fish": [{"id": "F1", "kind": "ca_linh", "pos": [50, 10]}]}
             rows = run(w, sc, inp=frames({"tick": 0, "catch": True}), ticks=1)
             self.assertEqual(only(rows, "hold_full")["data"],
@@ -284,13 +282,11 @@ class KetThuc(unittest.TestCase):
         t = tuning()
         x = t["dock_pos"][0] + t["dock_radius"]
         with Workdir() as w:
-            sc = {"player": {"pos": [x, 0]}, "hold": H("ca_loc"),
+            sc = {"player": {"pos": [x, 0]}, "hold": ["ca_loc"],
                   "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [x, 0]}]}
             rows = run(w, sc, inp=frames({"tick": 0, "interact": True}), ticks=5)
             self.assertEqual(events(rows, "gather"), [])
-            end = only(rows, "gather_end")["data"]
-            self.assertEqual(end["reason"], "docked")
-            self.assertEqual(counts(end["inventory"]), {"ca_loc": 1})
+            self.assertEqual(only(rows, "gather_end")["data"], {"reason": "docked", "inventory": {"items": {"ca_loc": 1}}})
             self.assertEqual(rows[-1]["reason"], "docked")
 
     def test_ket_02_gather_on_last_step_still_counts(self):
@@ -301,18 +297,16 @@ class KetThuc(unittest.TestCase):
             rows = run(w, sc, inp=frames({"tick": 0, "interact": True}), ticks=5, inv_out=inv)
             self.assertEqual(only(rows, "gather")["tick"], 1)
             end = only(rows, "gather_end")
-            self.assertEqual(end["data"]["reason"], "time")
-            self.assertEqual(counts(end["data"]["inventory"]), {"bong_dien_dien": 1})
+            self.assertEqual(end["data"], {"reason": "time", "inventory": {"items": {"bong_dien_dien": 1}}})
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(counts(json.load(f)), {"bong_dien_dien": 1})
+                self.assertEqual(json.load(f), {"items": {"bong_dien_dien": 1}})
 
     def test_ket_03_time_end_at_depth_keeps_hold(self):
         """Hết giờ khi đang ở dưới nước: kết thúc `time`, giữ nguyên giỏ (không ngất)."""
         with Workdir() as w:
-            rows = run(w, {"player": {"pos": [50, 10]}, "hold": H("ca_loc"), "time_left_ticks": 3}, ticks=50)
-            end = only(rows, "gather_end")["data"]
-            self.assertEqual(end["reason"], "time")
-            self.assertEqual(counts(end["inventory"]), {"ca_loc": 1})
+            rows = run(w, {"player": {"pos": [50, 10]}, "hold": ["ca_loc"], "time_left_ticks": 3}, ticks=50)
+            self.assertEqual(only(rows, "gather_end")["data"],
+                             {"reason": "time", "inventory": {"items": {"ca_loc": 1}}})
 
 
 if __name__ == "__main__":

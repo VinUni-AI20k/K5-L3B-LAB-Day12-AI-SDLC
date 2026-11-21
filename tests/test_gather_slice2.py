@@ -15,6 +15,7 @@ import unittest
 
 from helpers import (Workdir, events, frames, read_jsonl, run_headless,
                      snapshots, write_json)
+from helpers import counts, items, kinds  # v1.2 kho cá thể
 
 
 def sc(block):
@@ -43,7 +44,7 @@ class Harvest(unittest.TestCase):
             self.assertEqual(g[0]["tick"], 1)
             self.assertEqual(g[0]["data"], {"node_id": "N1", "kind": "bong_sung", "amount": 1})
             s = snapshots(rows)[-1]
-            self.assertEqual(s["hold"], ["bong_sung"])
+            self.assertEqual(kinds(s["hold"]), ["bong_sung"])
             self.assertEqual(s["hold_count"], 1)
 
     def test_hai_chi_khi_o_mat_nuoc(self):
@@ -60,14 +61,14 @@ class Harvest(unittest.TestCase):
             self.assertEqual(events(rows, "gather"), [])
             self.assertEqual(events(rows, "hold_full"), [])
             self.assertEqual(events(rows, "gather_end"), [])
-            self.assertEqual(snapshots(rows)[-1]["hold"], [])
+            self.assertEqual(kinds(snapshots(rows)[-1]["hold"]), [])
 
     def test_hold_full_hai_gio_day(self):
         """Giỏ đầy: hold_full (required, free = 0), không gather, nút vẫn ready không mọc lại."""
         with Workdir() as w:
             f = write_json(w.path("sc.json"), sc({
                 "player": {"pos": [10, 0.3]},
-                "hold": ["ca_loc"] * 12,
+                "hold": items(*["ca_loc"] * 12),
                 "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [10, 0]}]}))
             inp = write_json(w.path("in.json"), frames({"tick": 0, "interact": True}))
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "2",
@@ -126,7 +127,7 @@ class Catch(unittest.TestCase):
             self.assertEqual(fc[0]["tick"], 1)
             self.assertEqual(fc[0]["data"], {"fish_id": "F1", "kind": "ca_linh", "yield": 3})
             s = snapshots(rows)[-1]
-            self.assertEqual(s["hold"], ["ca_linh"] * 3)
+            self.assertEqual(kinds(s["hold"]), ["ca_linh"] * 3)
             self.assertEqual(s["fish"], [], "đàn bị xóa sau khi bắt")
             self.assertEqual(s["player"]["catch_cd_ticks"], 28)  # 30 - 2 bước đã trừ
 
@@ -152,7 +153,7 @@ class Catch(unittest.TestCase):
         with Workdir() as w:
             f = write_json(w.path("sc.json"), sc({
                 "player": {"pos": [15, 5]},
-                "hold": ["ca_loc"] * 10,  # free = 2 < yield ca_linh = 3
+                "hold": items(*["ca_loc"] * 10),  # free = 2 < yield ca_linh = 3
                 "fish": [{"id": "F1", "kind": "ca_linh", "pos": [15, 5]},
                          {"id": "F2", "kind": "ca_loc", "pos": [18, 5]}]}))
             inp = write_json(w.path("in.json"), frames({"tick": 0, "catch": True}))
@@ -191,7 +192,7 @@ class Dock(unittest.TestCase):
         with Workdir() as w:
             f = write_json(w.path("sc.json"), sc({
                 "player": {"pos": [3, 0]},
-                "hold": ["ca_loc", "bong_sung", "bong_sung"],
+                "hold": items(*["ca_loc", "bong_sung", "bong_sung"]),
                 "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [3, 0]}]}))
             inp = write_json(w.path("in.json"), frames({"tick": 0, "interact": True}))
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "2",
@@ -202,7 +203,7 @@ class Dock(unittest.TestCase):
             end = events(rows, "gather_end")
             self.assertEqual(len(end), 1)
             self.assertEqual(end[0]["data"]["reason"], "docked")
-            self.assertEqual(end[0]["data"]["inventory"], {"items": {"bong_sung": 2, "ca_loc": 1}})
+            self.assertEqual(counts(end[0]["data"]["inventory"]), {"items": {"bong_sung": 2, "ca_loc": 1}})
 
     def test_dung_mep_ben_van_docked(self):
         """Khoảng cách tới tâm bến đúng bằng dock_radius (3.0) vẫn docked."""
@@ -233,7 +234,7 @@ class TimeEnd(unittest.TestCase):
             self.assertEqual(len(events(rows, "gather")), 1, "hái ở bước cuối vẫn hợp lệ")
             ends = events(rows, "gather_end")
             self.assertEqual(len(ends), 1)
-            self.assertEqual(ends[0]["data"], {"reason": "time", "inventory": {"items": {"bong_sung": 1}}})
+            self.assertEqual({**ends[0]["data"], "inventory": counts(ends[0]["data"]["inventory"])}, {"reason": "time", "inventory": {"items": {"bong_sung": 1}}})
             self.assertEqual(rows[-1]["reason"], "time")
 
 
