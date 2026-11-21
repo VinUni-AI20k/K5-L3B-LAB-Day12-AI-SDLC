@@ -36,7 +36,7 @@
 | 30 | P2 (research P2-Q3) | Ngất do **ngạt** (không phải bị chạm) thì `faint.data` có `lost`/`hp` không? | `CHỜ HỎI`. `GIẢ ĐỊNH`: có `hp:0` và `lost` = phần giỏ còn lại, không có `cause` (đề chỉ nói `cause:"monster"` khi do bị chạm). | PO |
 | 31 | P2 (research P2-Q7) | Cá Sấu hit cần người chơi ở đâu? | `ĐÃ TRẢ LỜI (TICKET-02 §1.2)`: sau khi cả hai di chuyển, khoảng cách ≤ 1.5 m, người chơi ở **d ≥ 10** và hết bất tử. | TICKET-02 |
 | 32 | P2 (research P2-Q8) | `extensions` ở gốc manifest là mảng mã hay object? | `CHỜ HỎI`. `GIẢ ĐỊNH`: mảng chuỗi mã, vd. `["burn","snake"]`. | PO |
-| 33 | P2 (research P2-Q9) | Đàn cá bị bắt có biến mất không? | `CHỜ HỎI`. `GIẢ ĐỊNH`: biến mất (đề có trần 12 đàn và sinh lại theo lịch → ngầm hiểu bị loại). | PO |
+| 33 | P2 (research P2-Q9) | Đàn cá bị bắt có biến mất không? | `CHỜ HỎI`. `GIẢ ĐỊNH`: biến mất (đề có trần 12 đàn và sinh lại theo lịch → ngầm hiểu bị loại). — **Cập nhật:** code TV2 (PR #2, `_try_catch`) đã xóa đàn khi bắt thành công, khớp giả định. | PO |
 | 34 | P3 (research) | Khóa `freshness` đặt ở `tuning.freshness` hay gốc manifest? | `CHỜ HỎI`. `GIẢ ĐỊNH`: `tuning.freshness` (cùng chỗ các khóa luật khác); TV1 chốt. | PO + TV1 |
 | 35 | P3 (research) | `cook_started` có kèm `base_price` không? | `GIẢ ĐỊNH` theo đề ("Payload món giữ cấu trúc, `base_price` là giá đã chốt theo fresh"): payload món có `base_price` đã chốt lúc bắt đầu nấu; `cook_started.data.items` là mảng cá thể sắp theo kind rồi id. | PO |
 | 36 | P3 (research) | Cùng tick thì `node_regrown` hay `spoiled` trước? | `ĐÃ TRẢ LỜI (TICKET-03, thứ tự gather)`: "đồng hồ, cooldown, hồi nút **và** độ tươi của hàng có sẵn ở đầu bước" → hồi nút trước, rồi độ tươi. | TICKET-03 |
