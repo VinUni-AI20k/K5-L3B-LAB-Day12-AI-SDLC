@@ -19,13 +19,22 @@ Bản nháp của D (Integrator); TuHoAnh và Cuongngucuteee đã thêm phần c
   - **TuHoAnh:** Luôn `git fetch` + `merge origin/main` và chạy đủ `unittest` + `check_no_hardcode.py` trước mọi lần mở PR.
 
 ## Phase 3 (nhanh)
-A gom và nộp (P3-10); mỗi người tự thêm dòng của mình.
+A gom và nộp (P3-10). C và D tự viết phần của mình; **dòng của NguyenDucNhat3006 (A) và TuHoAnh (B) do D soạn từ lịch sử PR và review, nhờ hai bạn đọc và sửa thẳng trên file này nếu chưa đúng.**
 - Điều tốt:
   - **Cuongngucuteee:** HUD độ tươi (P3-06) làm song song với gather và quán nhờ D gộp schema kho cá thể (P3-02) trước và ghi dạng snapshot trong hợp đồng; test dùng thẳng adapter của P3-02 nên không tự bịa dữ liệu.
+  - **NguyenDucNhat3006 (A, D soạn từ PR):** P3-03 (#45) và P3-05 (#46) vào `main` đúng thứ tự phụ thuộc; id cá thể cấp từ một allocator chung nên không bị cấp lại qua pha và Ngày; test kiểm đúng tick biên của ngưỡng ươn.
+  - **TuHoAnh (B, D soạn từ PR):** P3-04 có đủ luật quán v1.2 (hao kể cả hàng đang giữ, giữ chỗ theo id, nhả và giữ lại đúng một lần, `unfulfillable`, giá theo độ tươi); đã đổi tên hồ sơ thành `TuHoAnh.md` đúng yêu cầu.
+  - **luongvh2510 (D):** Gộp schema, adapter và `freshness` vào `main` trước (P3-02) nên A, B, C làm song song mà ít xung đột; phá thử mỗi PR bắt được các chỗ test chưa chặt; bật 1.2 giữ hồi quy Phase 1-2 xanh (27/27, 15/15) nhờ chạy chúng với bản 1.1.
 - Điều tệ:
   - **Cuongngucuteee:** Mã việc trên Sheet lệch 1 so với kế hoạch nên tôi đặt nhầm tên hai PR (#39, #42); chưa thử HUD với sim v1.2 thật vì quán chưa xong.
+  - **NguyenDucNhat3006 (A, D soạn từ PR):** Phá thử còn lọt hai cách ở #45 và #46 (kiểm sức chứa `hold` lúc dựng sim, Shop sao chép kho); chưa có hồ sơ cá nhân và dòng nhật ký AI Phase 3.
+  - **TuHoAnh (B, D soạn từ PR):** Đẩy nhánh P3-04 nhưng chưa mở PR nên Sheet ghi Xong sớm hơn thực tế; test lọt ba cách phá thử (`spoiled` phát lại mỗi tick, giữ chỗ chọn cũ nhất, nấu cả hàng ươn); báo lệch tên khóa `freshness` với đề muộn; chưa có nhật ký AI Phase 3.
+  - **luongvh2510 (D):** Tôi đặt tên khóa `freshness` sai so với đề (P3-02) vì không đọc được Ticket-03; B phát hiện muộn nên phải sửa lại ở #48 và đổi code của B và C. Sheet và PR cũng lệch nhau (P3-04 ghi Xong khi chưa có PR); test của A và B còn lọt vài cách phá thử; payload `spoiled` của gather và quán khác nhau.
 - 1 hành động cho Phase 4:
   - **Cuongngucuteee:** Trước khi làm, đối chiếu mã việc trên Sheet với commit đã gộp; khi A, B gộp v1.2 thì mở cửa sổ chơi chụp lại HUD độ tươi.
+  - **NguyenDucNhat3006 (A, D soạn từ PR):** Đối chiếu từng tham số lệnh (ví dụ `--duration`, thời lượng đo) với Ticket-04 trước khi mở PR bench, và ghi hồ sơ, nhật ký AI trong chính PR của task.
+  - **TuHoAnh (B, D soạn từ PR):** Mở PR (kể cả bản nháp) ngay khi đẩy nhánh, và báo D ngay khi thấy đề khác với contract hay hợp đồng.
+  - **luongvh2510 (D):** Trước khi khóa contract (v1.3, bench và soak), nhờ người đọc được Ticket-04 đối chiếu tên khóa và trường từng chữ; mỗi PR ghi rõ chỗ nào là giả định.
 
 ## Phase 4 (cuối)
 - Rà lại hành động Phase 2: đã làm chưa? vì sao?
