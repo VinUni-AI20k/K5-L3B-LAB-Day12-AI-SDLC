@@ -33,3 +33,4 @@
 
 | Phase | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|
+| 1 | Codex | Soạn kế hoạch, ma trận kiểm chứng và lệnh lưu bằng chứng cho hai mode | Chưa đo | Lệnh thử đầu tiên trên Windows ghi UTF-8 nhưng tiến trình test đọc stderr theo mã trang hệ thống. Bật UTF-8 cho tiến trình test rồi chạy lại. Log cuối có 41 test OK, hai mode cho JSONL lặp lại giống từng byte. [Bằng chứng](verification/phase-1.md) |
