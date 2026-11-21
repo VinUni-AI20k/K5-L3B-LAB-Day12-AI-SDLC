@@ -74,7 +74,7 @@ class DaySim:
     def _build_gather(self):
         dt = self._day_tuning()
         g_sc = self.scenario.get("gather", {})
-        self._sub = GatherSim(dt, g_sc, Streams(self.seed + self.day * 1000), IdAllocator())
+        self._sub = GatherSim(dt, g_sc, Streams(self.seed + self.day * 1000), IdAllocator(), day=self.day)
         self._sub.money = self.money
         self._sub.earned = self.earned
         self._sub.reputation = self.reputation
