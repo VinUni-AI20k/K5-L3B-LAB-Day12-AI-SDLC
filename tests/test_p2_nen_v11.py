@@ -39,7 +39,7 @@ def headless(w, *args, scenario=None, inputs=None):
 
 class Manifest(unittest.TestCase):
     def test_v11_so_chuan(self):
-        self.assertEqual(CONTRACT["contract_version"], "1.2")  # Ticket-03: số chuẩn v1.1 giữ nguyên ở 1.2
+        self.assertIn(CONTRACT["contract_version"], ("1.2", "1.3"))  # Ticket-03/04: số chuẩn v1.1 giữ nguyên
         self.assertEqual(len(T["menu"]), 6)
         self.assertEqual([s["id"] for s in T["quan"]["stoves"]], ["B1", "B2"])
         self.assertEqual([t["id"] for t in T["quan"]["tables"]], ["T1", "T2", "T3", "T4"])
