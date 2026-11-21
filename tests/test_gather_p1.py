@@ -8,6 +8,7 @@ import unittest
 
 from helpers import events
 from qa_helpers import press, run_case, snap_at
+from legacy_v11 import setUpModule, tearDownModule  # noqa: F401  v1.2: fixture kho đếm chạy trên manifest v1.1 tạm, xem tests/legacy_v11.py
 
 UNDER = [20, 10]   # dưới nước, xa bến
 SURF = [20, 0]     # mặt nước, xa bến (bến ở [2,0] bán kính 3)

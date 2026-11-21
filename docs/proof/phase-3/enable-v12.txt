@@ -1,0 +1,61 @@
+# Bật contract v1.2 trên main + gộp lát 2 (mhoo40) và lát 5 (tiepnnk01-10) · nhánh feat/p3-enable-v12 trên 88bf501 (origin/main) + thay đổi chưa commit · 2026-11-21 16:26
+# origin/main (88bf501) trước khi gộp: 233 test, 4 FAIL + 1 ERROR (test_lat0_v12 ×2, test_fresh_p3 AC-P3-06/07/10).
+# Giữ nguyên code chủ lát: gather.py (Vũ: _tick_hold_freshness), day.py + shop.py (Tiệp). Nhánh này thêm:
+#  - game.contract.json: contract_version 1.2 + tuning.freshness (bộ chấm đọc thẳng, không cần CHONOI_CONTRACT)
+#  - items.to_file làm tròn fresh 3 chữ số như JSONL -> file kho khớp gather_end.inventory (sửa AC-P3-06, 07)
+#  - tests/legacy_v11.py: 12 module fixture kho đếm chạy manifest v1.1 tạm; test_lat0_v11 đổi kỳ vọng version 1.2
+#  - test_lat0_v12: assert file==event đặt lại SAU khi gán biến (trước gây UnboundLocalError); test ngất kỳ vọng hàng đã hao 1 bước
+#  - test_fresh_p3.PauseFresh: input tiếp tục bằng cạnh lên (Ticket-02 4.2), assert giữ nguyên
+
+$ python3 -m unittest discover -s tests
+Ran 233 tests in 56.274s
+
+OK
+
+$ QA_STRICT=1 python3 -m unittest test_fresh_p3 -v
+test_ac_p3_08_ban_giao_cung_tick_hang_khong_hao_them (test_fresh_p3.DayHandoff.test_ac_p3_08_ban_giao_cung_tick_hang_khong_hao_them) ... ok
+test_ac_p3_08_ngay_ke_cap_id_moi_theo_thu_tu_mang (test_fresh_p3.DayHandoff.test_ac_p3_08_ngay_ke_cap_id_moi_theo_thu_tu_mang) ... ok
+test_ac_p3_09_shop_giu_kho_ca_the_va_khong_hao (test_fresh_p3.DayHandoff.test_ac_p3_09_shop_giu_kho_ca_the_va_khong_hao) ... ok
+test_ac_p3_06_cap_ben_ghi_kho_theo_id_khop_gather_end (test_fresh_p3.FileOut.test_ac_p3_06_cap_ben_ghi_kho_theo_id_khop_gather_end) ... ok
+test_ac_p3_06_cham_ticks_truoc_gather_end_khong_tao_file (test_fresh_p3.FileOut.test_ac_p3_06_cham_ticks_truoc_gather_end_khong_tao_file) ... ok
+test_ac_p3_17_giu_cho_mau_thuan_ma_2 (test_fresh_p3.FixtureValidation.test_ac_p3_17_giu_cho_mau_thuan_ma_2) ... ok
+test_ac_p3_03_gio_hao_0_5_moi_giay (test_fresh_p3.GatherDecay.test_ac_p3_03_gio_hao_0_5_moi_giay) ... ok
+test_ac_p3_03_hang_moi_hai_duoc_fresh_100_hao_tu_buoc_sau (test_fresh_p3.GatherDecay.test_ac_p3_03_hang_moi_hai_duoc_fresh_100_hao_tu_buoc_sau) ... ok
+test_ac_p3_04_id_tiep_tuc_tang_va_hang_uon_van_chiem_o (test_fresh_p3.GatherIds.test_ac_p3_04_id_tiep_tuc_tang_va_hang_uon_van_chiem_o) ... ok
+test_ac_p3_05_ngat_bo_theo_lifo_lost_la_mang_ca_the_kho_rong (test_fresh_p3.GatherLoss.test_ac_p3_05_ngat_bo_theo_lifo_lost_la_mang_ca_the_kho_rong) ... ok
+test_ac_p3_07_kho_dem_cu_hoac_sai_schema_ma_2 (test_fresh_p3.Handoff.test_ac_p3_07_kho_dem_cu_hoac_sai_schema_ma_2) ... ok
+test_ac_p3_07_quan_nhan_ca_hang_uon (test_fresh_p3.Handoff.test_ac_p3_07_quan_nhan_ca_hang_uon) ... ok
+test_ac_p3_07_scenario_dem_cu_ma_2 (test_fresh_p3.Handoff.test_ac_p3_07_scenario_dem_cu_ma_2) ... ok
+test_ac_p3_07_smoke_hai_tien_trinh_giu_id_kind_fresh (test_fresh_p3.Handoff.test_ac_p3_07_smoke_hai_tien_trinh_giu_id_kind_fresh) ... ok
+test_ac_p3_10_pause_dung_hao_tuoi (test_fresh_p3.PauseFresh.test_ac_p3_10_pause_dung_hao_tuoi) ... ok
+test_ac_p3_14_gia_chot_theo_tuoi_floor (test_fresh_p3.PriceByFreshness.test_ac_p3_14_gia_chot_theo_tuoi_floor) ... ok
+test_ac_p3_14_gia_theo_trung_binh_nhieu_ca_the (test_fresh_p3.PriceByFreshness.test_ac_p3_14_gia_theo_trung_binh_nhieu_ca_the) ... ok
+test_ac_p3_15_boa_tinh_tren_gia_da_chot (test_fresh_p3.PriceByFreshness.test_ac_p3_15_boa_tinh_tren_gia_da_chot) ... ok
+test_ac_p3_11_kho_quan_hao_0_25_ke_ca_hang_dang_giu_cho (test_fresh_p3.QuanDecay.test_ac_p3_11_kho_quan_hao_0_25_ke_ca_hang_dang_giu_cho) ... ok
+test_ac_p3_12_cap_theo_order_tick_roi_id_ban (test_fresh_p3.ReserveById.test_ac_p3_12_cap_theo_order_tick_roi_id_ban) ... ok
+test_ac_p3_12_fixture_thieu_reserved_lay_tuoi_nhat_hoa_id_nho (test_fresh_p3.ReserveById.test_ac_p3_12_fixture_thieu_reserved_lay_tuoi_nhat_hoa_id_nho) ... ok
+test_ac_p3_12_khach_moi_giu_ca_the_tuoi_nhat (test_fresh_p3.ReserveById.test_ac_p3_12_khach_moi_giu_ca_the_tuoi_nhat) ... ok
+test_ac_p3_13_giu_cho_vua_uon_thi_nha_het_va_giu_lai_mot_lan (test_fresh_p3.SpoilRetry.test_ac_p3_13_giu_cho_vua_uon_thi_nha_het_va_giu_lai_mot_lan) ... ok
+test_ac_p3_13_khong_du_thi_unfulfillable_khach_van_cho (test_fresh_p3.SpoilRetry.test_ac_p3_13_khong_du_thi_unfulfillable_khach_van_cho) ... ok
+test_ac_p3_16_hang_uon_khong_dung_nau_no_dish (test_fresh_p3.SpoiledNotCookable.test_ac_p3_16_hang_uon_khong_dung_nau_no_dish) ... ok
+test_ac_p3_02_nhieu_ca_the_cung_vuot_nguong_phat_theo_id_dung_mot_lan (test_fresh_p3.SpoiledOnce.test_ac_p3_02_nhieu_ca_the_cung_vuot_nguong_phat_theo_id_dung_mot_lan) ... ok
+test_ac_p3_01_fresh_30_5_chua_uon_den_buoc_61 (test_fresh_p3.Threshold.test_ac_p3_01_fresh_30_5_chua_uon_den_buoc_61) ... ok
+test_ac_p3_01_vi_du_ticket_uon_o_buoc_dau_dung_nguong_30 (test_fresh_p3.Threshold.test_ac_p3_01_vi_du_ticket_uon_o_buoc_dau_dung_nguong_30) ... ok
+Ran 28 tests in 8.665s
+OK
+
+## Ví dụ ngưỡng của Ticket-03 (gather 1 bước, fresh 30)
+{"type":"event","tick":1,"phase":"gather","name":"spoiled","data":{"item_id":"I1","kind":"ca_linh","location":"hold"}}
+
+## Smoke bàn giao file của Ticket-03 (fresh 100, cập bến frame 0, quan --inventory --ticks 0)
+kho.json: {"items":[{"id":"I1","kind":"ca_linh","fresh":99.992}]}
+gather_end: "inventory":{"items":[{"id":"I1","kind":"ca_linh","fresh":99.992}]}
+quan stock tick 0: [{"id": "I1", "kind": "ca_linh", "fresh": 99.992}]
+
+$ python3 -m chonoi.headless --mode day --days 5 --seed 7 --ticks 200000 --out d5.jsonl
+exit 0
+{"type":"end","ticks":111000,"sim_tick":111000,"mode":"day","state":"finished","reason":"days_complete","money":0,"earned":0,"reputation":3.0,"score":300,"days_completed":5}
+
+# file kho kiểu đếm cũ ở v1.2
+đầu vào sai: file kho: contract v1.2 cần MẢNG cá thể {id, kind, fresh}, không nhận kho đếm cũ
+exit 2 (mong đợi 2)

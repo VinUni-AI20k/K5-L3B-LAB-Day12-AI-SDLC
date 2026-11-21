@@ -1,8 +1,8 @@
 # Changelog
 ## Unreleased
 
-### Phase 3 — đã vào `main` (chạy được cả v1.1 lẫn v1.2; manifest chính còn `"1.1"`)
-- Kho cá thể dùng chung `chonoi/items.py`, file kho / scenario / giỏ cá thể, giữ chỗ theo id, hao kho quán, giá theo tươi (lát 0, 3, 4). Bật bằng khối `tuning.freshness`; chưa có khối này thì mọi thứ chạy như v1.1.
+### Phase 3 — v1.2 đã bật trên `main` (`contract_version: "1.2"`)
+- Kho cá thể dùng chung `chonoi/items.py`, file kho / scenario / giỏ cá thể, giữ chỗ theo id, hao kho quán, giá theo tươi (lát 0, 3, 4). Code vẫn nhận manifest v1.1 (không có `tuning.freshness`).
 - Test hộp đen Phase 3 `tests/test_fresh_p3.py` (28 test) và ma trận `docs/verification/phase-3.md`.
 - HUD (`chonoi/web/index.html`) đọc được cả kho đếm (v1.1) lẫn kho cá thể (v1.2): thanh độ tươi, gạch chéo và cảnh báo hàng ươn, kho khả dụng bỏ phần giữ chỗ và hàng ươn.
 
@@ -12,14 +12,11 @@
 - Shop: giữ kho cá thể theo id, hàng thô không hao tươi; kho dư bị bỏ khi Shop đóng.
 - `tests/test_day_p2.py` sửa để đúng ở cả v1.1 và v1.2 (fixture qua `mk_hold` / `mk_stock` / `stock_counts` trong `tests/qa_helpers.py`).
 
-### Còn nợ trước khi bật v1.2
-- **Gather:** hao tươi giỏ 0.5/s và `spoiled` (6 test QA `@pending`: AC-P3-01, 02, 03, 10).
-- **56 test cũ ở 12 file sẽ vỡ khi bật v1.2** (đo bằng suite chạy với manifest v1.2 tạm): `test_quan_lat3` 11, `test_quan_p1` 10, `test_gather_p1` 7,
-  `test_quan_lat4` 6, `test_lat2` 5, `test_quan_p2` 4, `test_gather_lat1_p2` 4, `test_gather_lat1` 3, `test_smoke_p1` 2, `test_lat0_v11` 2,
-  `test_python_starter_units` 1, `test_p2_lat2_fish` 1. Lý do chung: fixture theo kho đếm. Chi tiết người đổi: `docs/verification/phase-3.md` AC-P3-19.
-  Phải sửa **cùng PR** với việc đổi `contract_version` sang `"1.2"` để `main` không đỏ.
+### Phase 3 — gather: hao giỏ và `spoiled` (lát 2)
+- `GatherSim._tick_hold_freshness`: giỏ giảm 0.5/s ở đầu bước (sau hồi nút), hàng mới hao từ bước sau; `spoiled {item_id, kind, location: "hold"}` đúng một lần, theo id. Ví dụ ngưỡng `fresh: 30` của ticket phát `spoiled` ở tick 1.
+- `test_lat0_v12`: hàng rơi khi bị cắn/ngất đã hao từ đầu bước (đổi vì luật mới).
 
-### Dự kiến v1.2 — Ticket-03 "Mùa Nước Nổi" (manifest chính chưa bật; bảng dưới là hợp đồng sẽ có hiệu lực khi bật)
+### v1.2 — Ticket-03 "Mùa Nước Nổi" (hợp đồng)
 **BREAKING — kho đếm theo loại → kho cá thể.** `contract_version` đổi `"1.1"` → `"1.2"`, thêm `tuning.freshness`
 `{initial: 100, gather_decay_per_s: 0.5, quan_decay_per_s: 0.25, spoiled_below: 30}`.
 
@@ -37,3 +34,17 @@
 **Cách cập nhật fixture:** đổi `"hold": ["ca_loc"]` thành `"hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100}]`; `"stock": {"ca_loc": 1}`
 thành mảng cá thể; `"reserved": {"ca_loc": 1}` thành `"reserved": ["I1"]`; file kho cũ phải sinh lại bằng gather v1.2.
 Test cũ bị thay bởi luật mới sẽ liệt kê (kèm lý do) ở `docs/verification/phase-3.md` mục AC-P3-19.
+
+**Bật v1.2 (trongnghia2304):**
+- `game.contract.json`: `contract_version: "1.2"`, thêm `tuning.freshness`. Bộ chấm và CI đọc thẳng file này, không cần `CHONOI_CONTRACT`.
+- **Test cũ dùng fixture kho đếm** chạy trên manifest v1.1 tạm qua `tests/legacy_v11.py` (Ticket-03 mục 3: "hỗ trợ hai phiên bản nội bộ trong lúc chuyển"); code vẫn nhận v1.1. Các module đang ghim (12):
+  `test_smoke_p1`, `test_gather_p1`, `test_quan_p1`, `test_gather_lat1`, `test_gather_lat1_p2`, `test_lat2`, `test_p2_lat2_fish`,
+  `test_quan_lat3`, `test_quan_lat4`, `test_quan_p2`, `test_lat0_v11`, `test_python_starter_units`.
+  Lý do: luật các test này bảo vệ (bơi, oxy, Cá Sấu, cá bơi, khách, bếp) không đổi ở v1.2; chỉ dạng kho đổi.
+  Chủ mỗi file chuyển fixture sang kho cá thể (có thể dùng `mk_hold` / `mk_stock` như `test_day_p2`) rồi bỏ dòng `from legacy_v11 import ...`.
+- Test đổi vì luật mới: `test_lat0_v11.test_so_chuan_v11` kiểm `contract_version` `"1.1"` → `"1.2"` (số chuẩn giữ nguyên).
+- File kho làm tròn `fresh` 3 chữ số như JSONL (`items.to_file`) để file **khớp** `gather_end.inventory` (PRD-0 mục G); vẫn đọc lại đúng đơn vị 1/240.
+  `test_lat0_v12.test_smoke_ban_giao_file...`: đưa `assertEqual(end["inventory"], saved)` về **sau** khi gán `end`/`saved` (trước đó đứng trước, gây `UnboundLocalError`).
+- Kiểm v1.2 trên manifest thật: `test_lat0_v12`, `test_quan_p3`, `test_day_p2`, `test_fresh_p3` (QA, không cần `CHONOI_CONTRACT`).
+- `test_fresh_p3.PauseFresh` (AC-P3-10): input cũ THẢ nút pause để tiếp tục, trong khi Ticket-02 4.2 cần cạnh lên kế tiếp — đổi input thành hai lần nhấn (`press`), assert giữ nguyên. `test_lat0_v12` ngất: hàng mất đã hao 1 bước.
+- Kết quả: 233 test OK, QA Phase 3 28/28 trên manifest v1.2 thật (`docs/proof/phase-3/enable-v12.txt`).

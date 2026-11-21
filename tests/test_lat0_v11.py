@@ -16,8 +16,10 @@ from chonoi.rng import Streams
 from chonoi.scenario import load_scenario
 from chonoi.sim.gather import GatherSim
 from helpers import Workdir, events, read_jsonl, run_headless, snapshots, write_json
+from legacy_v11 import setUpModule, tearDownModule  # noqa: F401  v1.2: fixture kho đếm chạy trên manifest v1.1 tạm, xem tests/legacy_v11.py
 
 TUNING = load_contract()["tuning"]
+TUNING.pop("freshness", None)  # v1.2: đọc lúc import (trước setUpModule) -> giữ luật v1.1 cho fixture kho đếm
 G = TUNING["gather"]
 
 
@@ -33,7 +35,8 @@ def gather_rows(w, block=None, seed=1, ticks=0, out="o.jsonl"):
 class ContractV11(unittest.TestCase):
     def test_so_chuan_v11(self):
         with open("game.contract.json", encoding="utf-8") as f:
-            self.assertEqual(json.load(f)["contract_version"], "1.1")
+            # Ticket-03 thay contract_version 1.1 -> 1.2; số chuẩn v1.1 bên dưới giữ nguyên ở v1.2
+            self.assertEqual(json.load(f)["contract_version"], "1.2")
         self.assertEqual(G["fish_initial"], 8)
         self.assertEqual(G["fish_yield"], {"ca_linh": 3, "ca_loc": 1, "ca_keo": 2})
         self.assertEqual([n["id"] for n in G["nodes"]], ["N1", "N2", "N3", "N4", "N5", "N6"])

@@ -211,7 +211,9 @@ class DayHandoff(unittest.TestCase):
 class PauseFresh(unittest.TestCase):
     
     def test_ac_p3_10_pause_dung_hao_tuoi(self):
-        inputs = [{"tick": 10, "pause": True}, {"tick": 70, "pause": False}]
+        # Ticket-02 4.2: "Cạnh lên tiếp theo phát resumed" -> tiếp tục bằng một lần NHẤN nữa ở tick 70,
+        # không phải thả nút (bản trước thả nút nên game không bao giờ tiếp tục). Assert giữ nguyên.
+        inputs = press(10, "pause") + press(70, "pause")
         rows, _ = run_case(self, "gather", scenario=gsc(hold=[it("I1", "ca_loc", 100)]), inputs=inputs, ticks=120)
         self.assertTrue(close(snap_at(rows, 120)["hold"][0]["fresh"], 99.5, TOL))  # chỉ 60 bước chạy thật
 
