@@ -1,8 +1,55 @@
-# Hợp đồng tích hợp — Test Contract v1.1 (Phase 2)
+# Hợp đồng tích hợp — Test Contract v1.2 (Phase 3)
 
-> **Người giữ:** Integrator. **Trạng thái:** CHỐT theo TICKET-02 (Phase 2).
+> **Người giữ:** Integrator. **Trạng thái:** v1.2 theo PRD Phase 3; phần v1.1 bên dưới giữ làm lịch sử.
 > Nguồn chuẩn: PRD-0 mục A–G (Test Contract v1.0). File này là bản tóm tắt cho nhóm/agent; chỗ nào lệch PRD thì PRD thắng.
 > Đổi hợp đồng: báo cả nhóm trước, ghi lý do (ADR trong `docs/adr/` hoặc nhật ký cuối file), commit riêng.
+
+## v1.2 — Phase 3: kho cá thể và độ tươi (thay các mục v1.1 tương ứng bên dưới)
+
+Nguồn chuẩn: `docs/prd/phase-3.md`, giao diện chung v1.2. Các mục v1.0/v1.1
+bên dưới chỉ giữ làm lịch sử; schema đếm, giữ theo lượng và giá niêm yết đã bị thay thế.
+
+- `contract_version: "1.2"`; `tuning.freshness` có đúng `initial:100`,
+  `gather_decay_per_s:0.5`, `quan_decay_per_s:0.25`, `spoiled_below:30`.
+  Initial/ngưỡng trong [0,100], decay hữu hạn không âm; tick_hz = 60.
+- File kho có đúng `{"items":[{"id":"I1","kind":"ca_loc","fresh":100}]}`;
+  kho rỗng `{"items":[]}`. Cá thể có đúng ba trường; id khác rỗng, duy nhất,
+  kind thuộc danh mục, fresh hữu hạn trong [0,100]. Kho đếm, trường lạ, id trùng,
+  kind lạ, bool/số ngoài miền → `BadInput`, headless mã 2 trước khi ghi đầu ra.
+- Nội bộ `{id,kind,fresh_u}` với `UNITS=240`, `fresh_u=round(fresh*240)`.
+  `read_inventory(path,tuning)` trả list nội bộ theo `sort_by_id`;
+  `write_inventory(path,items)` xuất `round(fresh_u/240,6)` theo id, file tạm cùng
+  thư mục rồi thay nguyên tử. Giữ chính xác đơn vị khi đọc lại, kể cả 7199/7200.
+  Tham số tuning của reader là tùy chọn để tương thích các CLI hiện có.
+- `gather.hold`, `quan.stock` và snapshot hold/stock là mảng `{id,kind,fresh}`;
+  hold giữ thứ tự vào giỏ, stock/file kho theo id. Sức chứa chỉ áp giỏ. Id `I<n>`
+  tiếp tục qua pha/Ngày kể cả cá thể đã dùng/mất. Ngày đầu giữ id mẫu; các Ngày
+  sau cấp mới theo thứ tự mảng mẫu, giữ kind/fresh ban đầu.
+- Hao mỗi bước `round(decay_per_s*240/tick_hz)`: gather 2, quan 1, kẹp 0;
+  chỉ hàng có ở đầu bước bị hao. Ươn khi `fresh_u < 7200` trước khi làm tròn.
+  Mỗi lần đi từ chưa ươn sang ươn phát `spoiled {item_id,kind,location}`;
+  location là `hold`/`stock`, cùng tick theo id. Pause dừng hao; món chín không hao.
+- `customers[].reserved` là mảng id chưa ươn trong stock, đủ đúng công thức,
+  không dùng chung. Thiếu trường ở đơn reserved để QuanSim cấp theo order_tick
+  rồi id bàn, chọn tươi nhất rồi id nhỏ (khóa số từ `ids.sort_by_id`). Khi dùng
+  `--inventory`, scenario kiểm hình dạng trước, runner kiểm đối chiếu sau khi đọc
+  kho; day kiểm lại lúc bàn giao. Vừa ươn: phát hết spoiled rồi nhả toàn bộ phần
+  giữ bị ảnh hưởng, thử giữ lại đúng một lần theo thứ tự đơn nêu trên.
+- `cook_started.data.items` xuất cá thể theo kind rồi id. Giá món chốt lúc bắt
+  đầu nấu: `floor(menu.price * sum(fresh_u)/(240*100*len(items)))`;
+  boa tính trên giá đã chốt, payload món giữ `{order_id,dish_id,base_price}`.
+  `monster_hit`/`faint` xuất lost là mảng cá thể theo thứ tự bỏ LIFO.
+- Gather xuất kho đúng một lần khi gather_end; tick limit trước đó không ghi.
+  Day chuyển kho trong cùng tick, không hao thêm; quán bước từ tick kế tiếp.
+  Snapshot/event gather_end không bị thay bởi quán hoặc hàng Chợ.
+- Shop không hao kho dư/hàng chờ. Nếu có `shop.vendor` theo TICKET-02, bán một
+  cá thể chưa ươn tươi nhất (hòa theo id); mua một kind chờ tối Ngày kế, nhập
+  fresh initial và id mới sau hàng gather. Không tự bật vendor khi tuning thiếu.
+
+Kiểm riêng nền tảng (không cần ghép sim B/C):
+`PYTHONPATH=tests:. python3 -m unittest test_python_starter_units.FreshInventoryP3 test_day_p2.DayAdapterP3 -v`.
+DayAdapterP3 dùng double tại ranh giới GatherSim/QuanSim; sau ghép phải chạy lại
+smoke file và DayIntegration với sim thật.
 
 ## 0. Quy tắc chung (mọi module)
 - 60 tick/s, độc lập cửa sổ/GPU. Đơn vị mét. gather `[x, d]` (x hướng đông, d tăng xuống, 0° = +x, 90° = xuống); quan `[x, z]` (z hướng bắc).

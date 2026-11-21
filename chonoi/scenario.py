@@ -11,6 +11,7 @@ import math
 
 from .errors import BadInput
 from .inventory import KINDS, validate_items
+from .fresh import is_spoiled, to_units
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks", "monsters", "day"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
@@ -76,7 +77,7 @@ def _validate_block(block, mode, tuning):
 
 
 def _num(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and (isinstance(v, int) or math.isfinite(v))
 
 
 def _nonneg_int(name, v):
@@ -106,9 +107,8 @@ def _validate_gather(b, tuning):
     if "random_fish" in b and not isinstance(b["random_fish"], bool):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
-        h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS for k in h):
-            raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
+        h = validate_items(b["hold"])
+        b["hold"] = h
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
     p = b.get("player", {})
@@ -197,7 +197,7 @@ def _validate_quan(b, tuning):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate_items(b["stock"])
+        b["stock"] = validate_items(b["stock"])
     qb = tuning["quan"]["bounds"]
     for arr, keys in (("customers", QUAN_CUSTOMER_KEYS), ("stoves", QUAN_STOVE_KEYS), ("tables", QUAN_TABLE_KEYS)):
         for e in b.get(arr, []):
@@ -234,6 +234,49 @@ def _validate_quan(b, tuning):
             raise BadInput(f"stoves.{s['id']}.state phải là chuỗi")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    _validate_reserved(b, tuning)
+
+
+def _validate_reserved(b, tuning, stock=None):
+    """Validate explicit reservations. Missing reservations are allocated by QuanSim
+    in (order_tick, table id) order, including at the day inventory handoff.
+    """
+    known_stock = stock is not None or "stock" in b
+    stock = b.get("stock", []) if stock is None else stock
+    by_id = {it["id"]: it for it in stock}
+    used = set()
+    for c in b.get("customers", []):
+        if c.get("dish_id") not in tuning["menu"]:
+            raise BadInput("customer.dish_id phải có trong menu")
+        if "order_tick" in c:
+            _nonneg_int("customer.order_tick", c["order_tick"])
+        if "reserved" not in c:
+            continue
+        reserved = c["reserved"]
+        if (not isinstance(reserved, list) or
+                any(not isinstance(ident, str) or not ident for ident in reserved) or
+                len(set(reserved)) != len(reserved)):
+            raise BadInput("customers.reserved phải là mảng id duy nhất")
+        status = c.get("order_status", "served" if c.get("state") == "eating" else "reserved")
+        if status != "reserved":
+            if reserved:
+                raise BadInput("chỉ đơn reserved được giữ cá thể")
+            continue
+        counts = {}
+        for ident in reserved:
+            if ident in used:
+                raise BadInput("cá thể không được giữ chung bởi nhiều đơn")
+            used.add(ident)
+            # --inventory is read after scenario by existing CLI adapters. Resolve
+            # membership/freshness in runner once its stock is available.
+            if not known_stock:
+                continue
+            it = by_id.get(ident)
+            if it is None or is_spoiled(to_units(it["fresh"]), tuning):
+                raise BadInput("phần giữ phải trỏ tới cá thể chưa ươn trong stock")
+            counts[it["kind"]] = counts.get(it["kind"], 0) + 1
+        if known_stock and counts != tuning["menu"][c["dish_id"]]["recipe"]:
+            raise BadInput("phần giữ phải đủ đúng công thức")
 
 
 def _validate_day(data, tuning):
@@ -246,7 +289,10 @@ def _validate_day(data, tuning):
             raise BadInput(f"{mode} phải là object")
         if mode == "quan" and ({"stock", "reputation"} & set(block)):
             raise BadInput("day cấm quan.stock và quan.reputation")
+        # In day, stock may include items caught later in gather. Validate the
+        # reservation shape now; resolve membership/recipe at the handoff.
         _validate_block(block, mode, tuning)
+    _check_physical_ids(result)
     d = result.get("day", {})
     if not isinstance(d, dict) or set(d) - {"money", "earned", "reputation", "upgrades", "day_plan"}:
         raise BadInput("day có trường lạ hoặc sai kiểu")
@@ -291,3 +337,12 @@ def _validate_day(data, tuning):
     d["day_plan"] = plans
     result["day"] = d
     return result
+
+
+def _check_physical_ids(data):
+    seen = set()
+    for mode, field in (("gather", "hold"), ("quan", "stock")):
+        for it in data.get(mode, {}).get(field, []):
+            if it["id"] in seen:
+                raise BadInput("id cá thể trùng xuyên nơi chứa")
+            seen.add(it["id"])

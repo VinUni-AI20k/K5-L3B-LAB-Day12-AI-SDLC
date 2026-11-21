@@ -1,6 +1,7 @@
 """Đọc game.contract.json và kiểm dải hợp lệ của tuning P1 (PRD mục 13.2, Test Contract)."""
 
 import json
+import math
 import os
 
 from .errors import BadInput
@@ -9,7 +10,7 @@ DEFAULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__fi
 
 
 def _num(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and (isinstance(v, int) or math.isfinite(v))
 
 
 def _between(name, v, lo, hi):
@@ -23,6 +24,8 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
+    if not isinstance(c, dict) or c.get("contract_version") != "1.2":
+        raise BadInput("contract_version phải là 1.2")
     validate_tuning(c.get("tuning"))
     return c
 
@@ -114,7 +117,16 @@ def _validate_gather(g):
 
 def validate_tuning(t):
     if not isinstance(t, dict):
-        raise BadInput("thiếu khối tuning")
+        raise BadInput("tuning phải là object")
+    _int_between("tick_hz", t.get("tick_hz"), 60, 60)
+    freshness = t.get("freshness")
+    if not isinstance(freshness, dict) or set(freshness) != {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}:
+        raise BadInput("tuning.freshness cần đúng initial, gather_decay_per_s, quan_decay_per_s, spoiled_below")
+    for key in ("initial", "spoiled_below"):
+        _between(f"freshness.{key}", freshness[key], 0, 100)
+    for key in ("gather_decay_per_s", "quan_decay_per_s"):
+        if not _num(freshness[key]) or freshness[key] < 0:
+            raise BadInput(f"freshness.{key} phải là số hữu hạn không âm")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
@@ -177,9 +189,20 @@ def _validate_day_plan(plan, menu):
 def _validate_phase2(t):
     """Reject malformed shared data before constructing or writing a simulation."""
     shop = t.get("shop")
-    if not isinstance(shop, dict) or set(shop) != {"max_ticks", "upgrades"}:
+    if not isinstance(shop, dict) or not {"max_ticks", "upgrades"} <= set(shop) or set(shop) - {"max_ticks", "upgrades", "vendor"}:
         raise BadInput("tuning.shop cần max_ticks và upgrades")
     _int_between("shop.max_ticks", shop["max_ticks"], 1, 1_000_000)
+    if "vendor" in shop:
+        from .inventory import KINDS
+        vendor = shop["vendor"]
+        if not isinstance(vendor, dict) or set(vendor) != {"buy_multiplier", "sell_prices"}:
+            raise BadInput("shop.vendor cần buy_multiplier, sell_prices")
+        _between("shop.vendor.buy_multiplier", vendor["buy_multiplier"], 0, 100)
+        prices = vendor["sell_prices"]
+        if not isinstance(prices, dict) or set(prices) != set(KINDS):
+            raise BadInput("shop.vendor.sell_prices cần đủ các kind")
+        for kind, price in prices.items():
+            _int_between(f"shop.vendor.sell_prices.{kind}", price, 0, 1_000_000)
     upgrades = shop["upgrades"]
     if not isinstance(upgrades, dict) or set(upgrades) != {"oxygen", "hp"}:
         raise BadInput("tuning.shop.upgrades cần oxygen và hp")
