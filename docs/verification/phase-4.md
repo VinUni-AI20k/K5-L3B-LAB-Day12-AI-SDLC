@@ -40,10 +40,10 @@ Clone nhánh `huydn8816` vào thư mục mới (không dùng bản làm việc),
 2. `python3 -m chonoi.headless --mode gather --seed 1 --ticks 60 --out out.jsonl`: thoát mã 0.
 3. `python3 -m chonoi.bench --seed 42 --duration 3 --out bench.json`: thoát mã 0, trả về 5 trường (`avg_fps` 59,99; `p1_low_fps` 58,48).
 
-- macOS: chạy bởi Phạm Đức Vinh (vindpd203). Thành công.
-- Linux: chạy bởi Nguyễn Thế Bảo (NTheBao). Thành công.
+- macOS 14.5, Python 3.14.8: chạy bởi Phạm Đức Vinh (vindpd203). Thành công.
+- Linux 24.04, Python 3.14.8: chạy bởi Nguyễn Thế Bảo (NTheBao). Thành công.
 
-[Còn thiếu: phiên bản hệ điều hành và Python, log đính kèm trong docs/proof/phase-4/.]
+[Còn thiếu: log đính kèm trong docs/proof/phase-4/.]
 
 Kết luận AC-P4-07: đạt trên Windows, macOS và Linux.
 
