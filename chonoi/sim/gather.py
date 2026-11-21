@@ -25,7 +25,7 @@ v1.1 (Ticket-02, thứ tự một bước theo mục 4.5):
   snapshot `monsters[]`, thứ tự step().
   TODO(A): `_update_monsters` (Cá Sấu: patrol/chase/recoil, hit, bất tử, ngất do quái).
   8 đàn đầu ca (`_pick_spawn`, `_initial_fish`): A viết để main xanh, B sở hữu (review, test, chỉnh theo clarify).
-  TODO(B): `_fish_swim`, `_spawn_fish` (cá bơi, phản xạ mép, đổi hướng theo seed, nối lịch sinh).
+  ĐÃ LÀM (B): `_fish_swim`, `_spawn_fish` (cá bơi, phản xạ mép, đổi hướng theo seed, nối lịch sinh).
 """
 
 import math
@@ -251,15 +251,45 @@ class GatherSim:
                               "age_ticks": 0})
 
     def _fish_swim(self):
-        """TODO(B, Ticket-02 mục 1.1): mỗi đàn bơi fish_speed trong x thuộc fish_x và dải fish_depths của loài.
-        Ở bước bơi thứ fish_turn_ticks * k (theo age_ticks) đổi hướng theo seed (luồng `fish_turn`) TRƯỚC khi
-        di chuyển. Tới mép: phản xạ phần quãng còn lại, đảo thành phần hướng vuông góc với mép (góc: đảo cả hai).
-        Tăng age_ticks mỗi bước bơi."""
+        """Cá bơi (Ticket-02 mục 1.1), mỗi bước còn giờ, duyệt đàn theo id: age_ticks += 1; ở bước bơi thứ
+        fish_turn_ticks * k đổi hướng theo seed (luồng `fish_turn`) TRƯỚC khi đi; đi fish_speed / 60 m trong
+        x thuộc fish_x và dải fish_depths của loài. Tới mép: phản xạ phần quãng còn lại và đảo thành phần
+        hướng vuông góc với mép (chạm góc: đảo cả hai); heading_deg cập nhật theo hướng mới."""
+        t = self.t
+        step = float(t["fish_speed"]) / TICK
+        turn = int(t["fish_turn_ticks"])
+        xlo, xhi = t["fish_x"]
+        rng = self.rng.get("fish_turn")
+        for f in sort_by_id(self.fish):
+            f["age_ticks"] += 1
+            if f["age_ticks"] % turn == 0:
+                f["heading_deg"] = rng.uniform(0.0, 360.0)
+            a = math.radians(f["heading_deg"])
+            dx, dd = math.cos(a) * step, math.sin(a) * step
+            dlo, dhi = t["fish_depths"][f["kind"]]
+            x, flip_x = _reflect(f["pos"][0] + dx, xlo, xhi)
+            d, flip_d = _reflect(f["pos"][1] + dd, dlo, dhi)
+            if flip_x or flip_d:
+                dx = -dx if flip_x else dx
+                dd = -dd if flip_d else dd
+                f["heading_deg"] = math.degrees(math.atan2(dd, dx)) % 360.0
+            f["pos"] = [x, d]
 
     def _spawn_fish(self, events):
-        """TODO(B, Ticket-02 mục 1.1): tại phase_tick = fish_spawn_ticks * k (k >= 1), sau khi cá bơi, nếu còn
-        dưới fish_max: pick = self._pick_spawn(self.rng.get("fish_spawn")); None thì bỏ lượt; có thì thêm đàn id
-        self.ids.new("F"), age_ticks 0, phát fish_spawned{id, kind, pos}. Cá mới tham gia từ bước sau."""
+        """Cá sinh (Ticket-02 mục 1.1): tại phase_tick = fish_spawn_ticks * k (k >= 1), sau khi cá bơi, nếu còn
+        dưới fish_max đàn: chọn bằng `_pick_spawn` với luồng `fish_spawn`; hết điểm hợp lệ thì bỏ lượt; có thì
+        thêm đàn (id mới, age_ticks 0) và phát fish_spawned{id, kind, pos}. Cá mới bơi từ bước sau."""
+        if self.phase_tick % int(self.t["fish_spawn_ticks"]) != 0:
+            return
+        if len(self.fish) >= int(self.t["fish_max"]):
+            return
+        pick = self._pick_spawn(self.rng.get("fish_spawn"))
+        if pick is None:
+            return
+        kind, pos, heading = pick
+        fid = self.ids.new("F")
+        self.fish.append({"id": fid, "kind": kind, "pos": list(pos), "heading_deg": heading, "age_ticks": 0})
+        events.append(("fish_spawned", {"id": fid, "kind": kind, "pos": list(pos)}))
 
     # --- lát 2: hái, bắt cá (B viết thân hàm) ---------------------------------------
     def _try_harvest(self, events):
@@ -342,3 +372,12 @@ class GatherSim:
             elif self.pos[i] >= hi:
                 self.pos[i] = hi
                 self.vel[i] = min(0.0, self.vel[i])
+
+
+def _reflect(v, lo, hi):
+    """Phản xạ tọa độ `v` vào [lo, hi]: vượt mép thì phần quãng còn lại đi ngược. Trả (giá trị, có đảo hướng)."""
+    if v > hi:
+        return min(max(2 * hi - v, lo), hi), True
+    if v < lo:
+        return max(min(2 * lo - v, hi), lo), True
+    return v, False
