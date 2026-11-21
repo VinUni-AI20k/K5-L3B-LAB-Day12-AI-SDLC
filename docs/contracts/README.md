@@ -161,3 +161,41 @@ Trong day, vỏ event có thêm `day`; snapshot mọi pha có `day`, `day_plan`,
 - Mỗi bước duyệt quái theo id. `recoil`: lùi `recoil_dist / recoil_ticks` mét theo `recoil_dir` rồi chặn; hết đếm thì về `patrol`, xét phát hiện và chạm từ bước kế. `patrol`/`chase`: đổi trạng thái theo người chơi (vào `chase` khi người chơi ở d >= `depths[0]` và cách <= `detect_radius`; về `patrol` khi cách > `exit_radius` hoặc người chơi lên d < `depths[0]`), rồi đi `patrol_speed` về waypoint (tới nơi đổi `target_idx` cho bước sau) hoặc `chase_speed` về phía người chơi. Chặn theo biên map và dải `depths` của loài.
 - Sau khi cả hai đã di chuyển: tối đa một hit, con gần nhất (hòa id), không ở recoil, trong `hit_radius`, người chơi ở d >= `depths[0]` và `invuln_ticks == 0`. Hit: -1 Máu, bỏ `floor(len(hold) × loss_ratio)` theo LIFO, `invuln_ticks = 90`, `monster_hit`, con đó vào `recoil` 60 bước từ bước sau với hướng xa người chơi (trùng tâm dùng +x).
 - Máu 0 do quái: `faint{cause: "monster", lost: phần giỏ còn lại theo LIFO, hp: 0}` rồi `gather_end(fainted)`. Ngạt xét trước quái trong cùng tick.
+
+## 6. Thêm và đổi ở v1.2 (Ticket-03, kho cá thể và độ tươi)
+
+Quyết định và thứ tự tích hợp: [`docs/adr/0001-kho-ca-the.md`](../adr/0001-kho-ca-the.md). Trong lúc chuyển, code chạy được cả 1.1 và 1.2; manifest bật 1.2 khi mọi lát đã sẵn sàng.
+
+### 6.1. Manifest và đơn vị
+
+- `contract_version: "1.2"` bắt buộc `tuning.freshness = {initial: 100, gather_decay_per_s: 0.5, quan_decay_per_s: 0.25, spoiled_below: 30}`; 1.1 không được có khối này. Code chọn đường v1.2 bằng `chonoi.fresh.enabled(tuning)`.
+- 240 đơn vị = 1 điểm tươi. Giỏ trừ 2 đơn vị/tick, kho quán trừ 1 đơn vị/tick, ươn khi `u < 7200`. Dùng `fresh.cfg(tuning)` để đọc các hằng số này.
+
+### 6.2. Cá thể
+
+- Trong code: `{"id": "I1", "kind": "ca_linh", "u": 24000}`. Ra ngoài: `{"id", "kind", "fresh"}` qua `fresh.public` / `fresh.public_list` / `fresh.out`.
+- Helper (`chonoi/fresh.py`): `new_item(ids, kind, tuning)` (id `I<n>` nối tiếp, fresh 100), `from_public`, `is_spoiled`, `decay(items, units, tuning)` (trả cá thể vừa ươn, sắp theo id).
+- Một `IdAllocator` cho cả lượt (day dùng chung qua các Ngày). Id trong fixture được `reserve`.
+
+### 6.3. File kho
+
+- v1.2: `{"items": [cá thể public…]}` sắp theo id, `fresh` ghi repr đầy đủ. Kho rỗng `{"items": []}`. Đọc ở v1.2 mà gặp kho đếm, id trùng, kind lạ, fresh ngoài [0, 100] thì mã 2.
+- `inventory.read_inventory(path, version)` trả cá thể trong code ở v1.2, dict đếm ở v1.1 (version None thì đọc từ manifest). `write_inventory(path, data, version)`.
+- `GatherSim.inventory_items()` trả mảng cá thể public sắp theo id ở v1.2. `gather_end.data.inventory` cùng schema.
+
+### 6.4. Scenario và snapshot
+
+- `gather.hold`, `quan.stock` là mảng cá thể `{id, kind, fresh}` (v1.2). Khung `GatherSim`/`QuanSim` chuyển sang cá thể trong code và giữ nguyên id.
+- `customers[].reserved` là mảng id (C kiểm trong `scenario.py`).
+- Snapshot `hold`, `stock` (quán, Shop) là mảng cá thể public; `lost` trong `monster_hit`/`faint` là mảng cá thể theo thứ tự bỏ LIFO.
+
+### 6.5. Việc của các lát (khung đã có chỗ gọi)
+
+| Việc | Ai | Chỗ trong code |
+|---|---|---|
+| Hao tươi giỏ, `spoiled{item_id, kind, location: "hold"}` | B | `GatherSim._decay_hold` (gọi ở đầu bước khi `fresh_on`) |
+| Hái/bắt thêm `fresh.new_item` | B | `_try_harvest`, `_try_catch` |
+| Hao tươi kho, `spoiled{…, location: "stock"}` | D | `QuanSim` (sau đồng hồ, trước giữ lại) |
+| Giữ chỗ theo id, giữ lại khi ươn, `unfulfillable` | C | `QuanSim` |
+| Nấu tiêu đúng id, `base_price = floor(giá × trung bình fresh / 100)`, `cook_started.items` là cá thể sắp theo kind rồi id | D | `QuanSim._interact` |
+| Bàn giao cá thể trong day, id Ngày kế | C | `chonoi/day.py` |
