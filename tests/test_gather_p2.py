@@ -21,6 +21,18 @@ from chonoi.rng import Streams
 from chonoi.sim.gather import GatherSim
 
 
+# P3 [THAY THẾ]: fixture giỏ là cá thể có id và fresh, theo thứ tự nhặt.
+def items(kinds, fresh=100, start=1):
+    return [{"id": f"I{i}", "kind": kind, "fresh": fresh}
+            for i, kind in enumerate(kinds, start)]
+
+
+# P3 [THAY THẾ]: bộ nhớ sim dùng fresh_u nguyên, đầu ra dùng fresh.
+def internal_items(kinds, fresh_u=24000, start=1):
+    return [{"id": f"I{i}", "kind": kind, "fresh_u": fresh_u}
+            for i, kind in enumerate(kinds, start)]
+
+
 def make_sim(scenario=None, seed=42):
     contract = load_contract()
     tuning = contract["tuning"]
@@ -43,8 +55,10 @@ class TestGatherP2(unittest.TestCase):
         self.assertEqual(g_data["node_id"], "N5")
         self.assertEqual(g_data["kind"], "keo_neo")
         self.assertEqual(g_data["amount"], 1)
-        self.assertEqual(sim.hold, ["keo_neo"])
-        self.assertEqual(sim.inventory_items(), {"keo_neo": 1})
+        # P3 [THAY THẾ]: cá thể có id và độ tươi, lost vẫn theo LIFO.
+        self.assertEqual(sim.hold, internal_items(["keo_neo"]))
+        # P3 [THAY THẾ]: cá thể có id và độ tươi, lost vẫn theo LIFO.
+        self.assertEqual(sim.inventory_items(), internal_items(["keo_neo"]))
 
     def test_ca_keo_catching(self):
         # Place player near a ca_keo fish at [30, 25] (underwater d=25)
@@ -59,7 +73,8 @@ class TestGatherP2(unittest.TestCase):
         self.assertEqual(fc_data["fish_id"], "F1")
         self.assertEqual(fc_data["kind"], "ca_keo")
         self.assertEqual(fc_data["yield"], 2)
-        self.assertEqual(sim.hold, ["ca_keo", "ca_keo"])
+        # P3 [THAY THẾ]: cá thể có id và độ tươi, lost vẫn theo LIFO.
+        self.assertEqual(sim.hold, internal_items(["ca_keo", "ca_keo"]))
         self.assertEqual(sim.catch_cd_ticks, 30)
 
     def test_fish_swimming_and_edge_reflection(self):
@@ -144,7 +159,7 @@ class TestGatherP2(unittest.TestCase):
         hold_items = ["ca_loc", "bong_sung", "ca_linh", "keo_neo", "ca_keo"]
         sim = make_sim({
             "player": {"pos": [60, 20], "hp": 3, "invuln_ticks": 0},
-            "hold": list(hold_items),
+            "hold": items(hold_items),
             "monsters": [
                 {"id": "M1", "kind": "ca_sau", "pos": [60, 21], "waypoints": [[60, 24], [64, 24]],
                  "target_idx": 1, "state": "patrol", "state_ticks_left": 0, "recoil_dir": None}
@@ -158,8 +173,10 @@ class TestGatherP2(unittest.TestCase):
         self.assertEqual(hit_data["monster_id"], "M1")
         self.assertEqual(hit_data["hp"], 2)
         # Drop floor(5/2) = 2 items LIFO: last 2 items were "ca_keo", then "keo_neo"
-        self.assertEqual(hit_data["lost"], ["ca_keo", "keo_neo"])
-        self.assertEqual(sim.hold, ["ca_loc", "bong_sung", "ca_linh"])
+        # P3 [THAY THẾ]: cá thể có id và độ tươi, lost vẫn theo LIFO.
+        self.assertEqual(hit_data["lost"], list(reversed(items(["keo_neo", "ca_keo"], round(100 - 2 / 240, 6), start=4))))
+        # P3 [THAY THẾ]: cá thể có id và độ tươi, lost vẫn theo LIFO.
+        self.assertEqual(sim.hold, internal_items(["ca_loc", "bong_sung", "ca_linh"], fresh_u=23998))
         # Player invulnerable for 90 ticks (decremented to 89 at end of next step or 90 during hit)
         self.assertEqual(sim.invuln_ticks, 90)
         # M1 entered recoil with timer 60
@@ -172,7 +189,7 @@ class TestGatherP2(unittest.TestCase):
         # Player at hp=1 touched by M1 -> Máu becomes 0 -> faint with cause "monster"
         sim = make_sim({
             "player": {"pos": [60, 20], "hp": 1, "invuln_ticks": 0},
-            "hold": ["ca_loc", "bong_sung"],
+            "hold": items(["ca_loc", "bong_sung"]),
             "monsters": [
                 {"id": "M1", "kind": "ca_sau", "pos": [60, 20.5], "waypoints": [[60, 24], [64, 24]],
                  "target_idx": 1, "state": "patrol", "state_ticks_left": 0, "recoil_dir": None}
@@ -189,7 +206,12 @@ class TestGatherP2(unittest.TestCase):
         faint_data = next(e[1] for e in evs if e[0] == "faint")
         self.assertEqual(faint_data["cause"], "monster")
         self.assertEqual(faint_data["hp"], 0)
-        self.assertEqual(sim.inventory_items(), {})
+        # P3 [THAY THẾ]: hit bỏ cá thể mới nhất, faint bỏ nốt phần còn lại.
+        hit_data = next(data for name, data in evs if name == "monster_hit")
+        self.assertEqual(hit_data["lost"], items(["bong_sung"], round(100 - 2 / 240, 6), start=2))
+        self.assertEqual(faint_data["lost"], items(["ca_loc"], round(100 - 2 / 240, 6)))
+        # P3 [THAY THẾ]: cá thể có id và độ tươi, lost vẫn theo LIFO.
+        self.assertEqual(sim.inventory_items(), [])
 
 
 if __name__ == "__main__":

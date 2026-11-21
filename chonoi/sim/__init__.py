@@ -8,3 +8,7 @@
 
 event = (name, data_dict). Runner lo tick, phase, thứ tự ghi và dòng 'end'.
 """
+
+# v1.2: raw ingredients use {id, kind, fresh_u} internally; snapshots and
+# events export fresh via chonoi.fresh.item_out. inventory_items() returns a
+# separate list sorted by id, and QuanSim accepts that internal list unchanged.

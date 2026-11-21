@@ -1,5 +1,9 @@
 """TICKET-02: deterministic gather → quan → shop, shared by CLI and live."""
 from copy import deepcopy
+import math
+from ..fresh import freshest_first, is_spoiled, item_out, to_units
+from ..ids import sort_by_id
+from ..scenario import _validate_reserved
 from ..errors import BadInput
 from .gather import GatherSim
 from .quan import QuanSim
@@ -22,7 +26,8 @@ class DaySim:
         self.active_upgrades = {}
         self.plans = data.get("day_plan", tuning["day_plan"])
         self.done, self.reason = False, None
-        self.stock = {}
+        self.stock = []
+        self.pending_purchases = []
         self.sales = {}
         self.stats = {}
         self._new_day()
@@ -58,16 +63,24 @@ class DaySim:
                 g[field] = row[field]
         sc = deepcopy(self.scenario.get("gather", {}))
         sc["day"] = self.day
+        self._template_ids = {}
+        for it in sc.get("hold", []):
+            old_id = it["id"]
+            if self.day == 1:
+                self.ids.reserve(old_id)
+            else:
+                it["id"] = self.ids.new("I")
+            self._template_ids[old_id] = it["id"]
         self.active = GatherSim(self.effective_tuning, sc, self.streams, self.ids)
         self.stats = {"served": 0, "left": 0, "money": 0, "tips": 0,
                       "reputation_start": self.reputation, "reputation_delta": 0}
-        self.stock = {}
+        self.stock = []
 
     def _carry(self):
         return {"money": self.money, "earned": self.earned, "reputation": self.reputation}
 
     def snapshot(self):
-        body = {"stock": dict(self.stock)} if self.phase == "shop" else self.active.snapshot()
+        body = {"stock": [item_out(it) for it in sort_by_id(self.stock)]} if self.phase == "shop" else self.active.snapshot()
         body.update(day=self.day, day_plan=deepcopy(self.day_plan),
                     upgrades=dict(self.upgrades), active_upgrades=dict(self.active_upgrades),
                     days_completed=self.days_completed, day_result=dict(self.stats), sales=dict(self.sales))
@@ -103,8 +116,22 @@ class DaySim:
         if not self.active.done:
             return events
         if old_phase == "gather":
-            self.stock = self.active.inventory_items()
-            self.active = QuanSim(self.tuning, deepcopy(self.scenario.get("quan", {})),
+            # Copy before the next sim mutates stock: gather_end is an immutable
+            # handoff record, and the new shift does not step on this tick.
+            self.stock = deepcopy(self.active.inventory_items())
+            for it in self.stock:
+                self.ids.reserve(it["id"])
+            for kind in self.pending_purchases:
+                self.stock.append({"id": self.ids.new("I"), "kind": kind,
+                                   "fresh_u": to_units(self.tuning["freshness"]["initial"])})
+            self.pending_purchases = []
+            self.stock = sort_by_id(self.stock)
+            quan_scenario = deepcopy(self.scenario.get("quan", {}))
+            for c in quan_scenario.get("customers", []):
+                if "reserved" in c:
+                    c["reserved"] = [self._template_ids.get(ident, ident) for ident in c["reserved"]]
+            _validate_reserved(quan_scenario, self.tuning, stock=[item_out(it) for it in self.stock])
+            self.active = QuanSim(self.tuning, quan_scenario,
                                   self.streams, self.ids, inventory=self.stock,
                                   plan_dishes=self.day_plan["dishes"], carry=self._carry())
             if any(c["dish_id"] not in self.day_plan["dishes"] for c in self.active.customers):
@@ -112,7 +139,7 @@ class DaySim:
             self._orders = {c["id"]: c["dish_id"] for c in self.active.customers}
             self.phase = "quan"
         else:
-            self.stock = dict(self.active.stock)
+            self.stock = deepcopy(self.active.stock)
             self.phase = "shop"
             self._phase_tick = 0
             self.shop_left = self.tuning["shop"]["max_ticks"]
@@ -125,11 +152,16 @@ class DaySim:
         events = []
         if inp.buy is not None:
             kind = inp.buy
+            if ":" in kind and "vendor" in self.tuning["shop"]:
+                events.extend(self._vendor_trade(kind))
+                kind = None
             rows = self.tuning["shop"]["upgrades"].get(kind)
             level = self.upgrades.get(kind, 0)
             reason = ("unknown" if rows is None else "max_level" if level >= len(rows)
                       else "funds" if self.money < rows[level]["price"] else None)
-            if reason:
+            if kind is None:
+                pass
+            elif reason:
                 events.append(self._event("buy_failed", {"action": kind, "reason": reason}))
             else:
                 row = rows[level]
@@ -147,3 +179,29 @@ class DaySim:
                 self._new_day()
                 events.extend(self._day_events())
         return events
+
+    def _vendor_trade(self, command):
+        action, kind = command.split(":", 1)
+        vendor = self.tuning["shop"]["vendor"]
+        price = vendor["sell_prices"].get(kind)
+        if action not in {"buy", "sell"} or price is None:
+            reason = "unknown"
+        elif action == "buy":
+            price = math.floor(price * vendor["buy_multiplier"])
+            reason = "funds" if self.money < price else None
+            if reason is None:
+                self.money -= price
+                # No freshness clock until next evening's stock admission.
+                self.pending_purchases.append(kind)
+        else:
+            candidates = freshest_first(it for it in self.stock
+                                        if it["kind"] == kind and not is_spoiled(it["fresh_u"], self.tuning))
+            reason = None if candidates else "out_of_stock"
+            if candidates:
+                self.stock.remove(candidates[0])
+                self.money += price
+                self.earned += price
+        if reason:
+            return [self._event("buy_failed", {"action": command, "reason": reason})]
+        return [self._event("vendor_trade", {"action": action, "kind": kind,
+                                              "price": price, "money": self.money})]
