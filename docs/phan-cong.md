@@ -29,3 +29,17 @@ Bàn giao hai ca chơi được, HUD và smoke hai tiến trình theo Test Contr
 | 55–60 | TV5 đẩy tag phase-1 trỏ đúng commit bàn giao trước mốc 1:00. Cả nhóm hoàn tất clarify, AI usage log, retro và phản tư cá nhân theo mục 6.3. |
 
 Trong cả buổi lab, mỗi người cần ít nhất 3 commit có nội dung bằng tài khoản đã khai. Nhóm 5 người cần hoàn thành ít nhất một mục mở rộng trong cả buổi. Bổ sung phase kế tiếp vào file này khi có đề.
+
+## Phase 2 · Một ngày ở chợ nổi · 55 phút
+
+Dùng [TICKET-02](../PHASE-2.md) và [hợp đồng v1.1](contracts/phase-2.md). Giữ số TV theo Phase 1. TV1 điều phối tích hợp, TV5 phụ trách release.
+
+| Người | Phần sở hữu và cách bắt đầu ngay | Kiểm chứng bàn giao |
+|---|---|---|
+| TV1 · Trưởng nhóm | Giữ GatherSim.step, chuẩn hóa bơi/oxy/Máu, ghép Cá Sấu và nhận day/active_upgrades từ TV4. Dựng fixture quái trùng tâm, giỏ lẻ và HP=1. | Một hit mỗi bước, rơi LIFO, recoil đủ 60 bước, ngạt xuyên bất tử. D3 có M2. Ngất vẫn mở quán với kho rỗng. |
+| TV2 · Thu hoạch | Làm bảng điểm sinh, 3 loài cá, chuyển động/phản xạ, đổi hướng, sinh theo seed, N5/N6 và 6 loại nguyên liệu ở bộ đọc kho. Viết logic cá độc lập rồi ghép với TV1. | Kiểm tra 8 vị trí ban đầu khác nhau, đúng tick 120/360, giới hạn 12 đàn, random_fish=false và bắt trước khi cá bơi. |
+| TV3 · Quán và kế hoạch | Phụ trách dữ liệu 6 món, 2 bếp/4 bàn, kế hoạch D1–D5 và tổng nguyên liệu theo công thức. Dùng fixture kho mẫu để kiểm tra giữ chỗ, lọc món, bếp và thu tiền. | Quán độc lập dùng đủ menu. Trong day, đơn chỉ thuộc kế hoạch, suất dự kiến không giới hạn số bán. Hai đơn không tiêu trùng nguyên liệu. |
+| TV4 · Vòng ngày | Phụ trách CLI, scenario chung, runner, pause và Shop. Dùng fixture ở bến và ca tối rút ngắn để triển khai chuyển pha ngay. Nhận kho từ TV1/2 và API kế hoạch từ TV3. | Smoke 1 ngày và 2 ngày. Mua đúng giá ở tick đóng Shop, cấp có hiệu lực ngày sau, pause đứng timer, ngày cuối chỉ hoàn tất khi đóng Shop. |
+| TV5 · UI/QA | Dùng snapshot mẫu theo hợp đồng để làm menu, intro, HUD hai ca, pause, kết quả, Shop và Summary. Sở hữu smoke liên tiến trình, đối chiếu snapshot và đo hiệu năng. | Ảnh HUD 1280×720, đo FPS và thời gian headless, log smoke, regression P1, ma trận kiểm chứng và tag. |
+
+**Phút 0–5** chốt owner và fixture. **5–20** mỗi người triển khai/test lát mình. **Phút 20** TV2, TV3 và TV5 đối chiếu kho thật giữa hai tiến trình, lưu integration.* vào docs/proof/phase-2/. **20–35** TV1 ghép gather, TV4 ghép vòng ngày. **35–45** chạy day một/nhiều ngày, regression P1 và ghi lý do cho test đổi theo v1.1. **45–55** cập nhật verification, clarify, AI log, retro và đẩy tag phase-2 trên main của fork trước 1:55.
