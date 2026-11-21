@@ -95,6 +95,11 @@ class DaySim:
             ("phase_start", {}, "gather", self.day),
         ]
 
+    def live_hints(self) -> dict:
+        if self.phase == "shop" or self._sub is None:
+            return {}
+        return self._sub.live_hints()
+
     def snapshot(self) -> dict:
         plan = self._current_plan()
         base = {
