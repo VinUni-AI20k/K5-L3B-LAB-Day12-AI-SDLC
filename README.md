@@ -35,13 +35,21 @@ Trạng thái kiểm chứng Phase 1 hiện tại: 46/47 test đạt; test ngấ
 
 ### Hợp đồng file kho (`inventory`)
 
-Hai buổi có thể chạy bằng hai tiến trình headless: `gather --inventory-out kho.json` ghi kho khi có `gather_end`, rồi `quan --inventory kho.json` đọc cùng file. File JSON chỉ có khóa gốc `items`; mỗi khóa con là một trong `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`, giá trị là số nguyên không âm. Loại vắng mặt tính là 0; bên ghi bỏ khóa có lượng 0. Ví dụ hợp lệ:
+Hai buổi có thể chạy bằng hai tiến trình headless: `gather --inventory-out kho.json` ghi kho khi có `gather_end`, rồi `quan --inventory kho.json` đọc cùng file. File JSON chỉ có khóa gốc `items`; mỗi khóa con là một trong `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`, `ca_keo`, `keo_neo` (6 loại theo v1.1), giá trị là số nguyên không âm. Loại vắng mặt tính là 0; bên ghi bỏ khóa có lượng 0. Ví dụ hợp lệ:
 
 ```json
 {"items":{"bong_sung":2,"ca_loc":1}}
 ```
 
 Kho rỗng là `{"items":{}}`. Nếu Gather kết thúc do ngất thì ghi kho rỗng. Nếu chỉ dừng vì giới hạn `--ticks` trước khi kết thúc buổi sáng thì không tạo hoặc ghi đè file kho. Khi có `gather_end`, nội dung file phải khớp `gather_end.inventory` và được ghi bằng cách thay thế nguyên tử. Quán từ chối file sai schema hoặc nguyên liệu lạ (mã thoát 2).
+
+## P2-04 — Quán mở rộng
+
+Quán độc lập có 2 bếp B1/B2, 4 bàn T1–T4 và 6 món theo TICKET-02. Chơi bằng `python3 -m chonoi.live --mode quan --inventory kho.json`; WASD di chuyển, E nấu/bưng/phục vụ. Mọi công thức, giá và thời gian nằm trong `game.contract.json`.
+
+Chạy kiểm chứng bằng `python3 tools/verify_p2_04.py --integration-ref origin/lehuyanh`. Verifier chạy toàn suite, ca 4 khách có thao tác thực, so JSONL/file kho từng byte và ghép thử với Day Loop của người 3 trong thư mục tạm. Bằng chứng tại `docs/proof/phase-2/`, chi tiết tại [`docs/notes/P2-04.md`](docs/notes/P2-04.md).
+
+**Trạng thái nhánh:** Quán PASS; Day Loop/Shop và Gather v1.1 còn chờ tích hợp từ các thành viên. `contract_version:1.1` là đích hợp đồng; nhánh này chưa hoàn thành toàn bộ Test Contract v1.1. `--mode day --days 1` chưa chạy trực tiếp trên nhánh này; các lượt day đã kiểm chứng dùng bản xuất riêng của `origin/lehuyanh` (`380e679`) ghép phần P2-04.
 
 ## Tự do sáng tạo
 

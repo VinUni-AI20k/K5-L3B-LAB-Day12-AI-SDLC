@@ -1,0 +1,74 @@
+{
+  "day": {
+    "money": 200,
+    "earned": 450,
+    "day_plan": [
+      {
+        "day": 1,
+        "dishes": {
+          "canh_chua_ca_loc": 1,
+          "ca_keo_nuong": 1,
+          "lau_mam": 1,
+          "goi_bong_sung": 1
+        }
+      },
+      {
+        "day": 2,
+        "dishes": {
+          "canh_chua_ca_loc": 1,
+          "ca_keo_nuong": 1,
+          "lau_mam": 1,
+          "goi_bong_sung": 1
+        }
+      }
+    ]
+  },
+  "gather": {
+    "hold": [
+      "ca_loc",
+      "bong_dien_dien",
+      "bong_dien_dien",
+      "ca_keo",
+      "ca_keo",
+      "ca_keo",
+      "ca_linh",
+      "ca_linh",
+      "keo_neo",
+      "bong_sung",
+      "bong_sung"
+    ],
+    "random_fish": false,
+    "monsters": []
+  },
+  "quan": {
+    "random_customers": false,
+    "player": {
+      "pos": [
+        2,
+        8
+      ]
+    },
+    "customers": [
+      {
+        "id": "C10",
+        "table_id": "T1",
+        "dish_id": "canh_chua_ca_loc"
+      },
+      {
+        "id": "C2",
+        "table_id": "T2",
+        "dish_id": "ca_keo_nuong"
+      },
+      {
+        "id": "C30",
+        "table_id": "T3",
+        "dish_id": "lau_mam"
+      },
+      {
+        "id": "C4",
+        "table_id": "T4",
+        "dish_id": "goi_bong_sung"
+      }
+    ]
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "gather": {
+    "hold": [
+      "ca_loc",
+      "ca_linh",
+      "bong_dien_dien",
+      "bong_sung",
+      "ca_keo",
+      "keo_neo"
+    ],
+    "random_fish": false
+  }
+}
