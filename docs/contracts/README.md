@@ -1,103 +1,123 @@
-# Hợp đồng tích hợp — contract v1.0 (Phase 1)
+# Hợp đồng tích hợp — Test Contract v1.0 (Phase 1)
 
-> **Người giữ:** Integrator. **Trạng thái:** CHỐT cho phase 1 (2026-11-21).
-> Nguồn: khung `chonoi/` + `tests/test_smoke_p1.py` (mã hóa Test Contract) + `game.contract.json`.
-> Mục ghi **[giả định]** là chỗ PRD-0 chưa nói rõ / chưa đối chiếu được; câu hỏi tương ứng nằm ở [`docs/clarify.md`](../clarify.md). PO trả lời xong thì Integrator cập nhật và bỏ nhãn.
-> Đổi hợp đồng: báo cả nhóm trước, ghi lý do (ADR trong `docs/adr/` hoặc ghi chú cuối file), commit riêng.
+> **Người giữ:** Integrator. **Trạng thái:** CHỐT theo PRD-0 (phát hành 2026-11-21 08:02).
+> Nguồn chuẩn: PRD-0 mục A–G (Test Contract v1.0). File này là bản tóm tắt cho nhóm/agent; chỗ nào lệch PRD thì PRD thắng.
+> Đổi hợp đồng: báo cả nhóm trước, ghi lý do (ADR trong `docs/adr/` hoặc nhật ký cuối file), commit riêng.
 
-## 0. Quy tắc chung (áp cho mọi module)
-- Số liệu chỉ đọc từ `game.contract.json` → `tuning.*`; không hard-code trong luật.
-- 60 tick/s. Ngẫu nhiên chỉ qua `Streams` (`chonoi/rng.py`); không đồng hồ hệ thống. Cùng seed + cùng input → JSONL giống từng byte.
-- Danh sách thực thể luôn sắp bằng `ids.sort_by_id`; id mới cấp bằng `IdAllocator`.
-- Số thực trong JSONL làm tròn 3 chữ số (do `chonoi/jsonl.py` lo).
-- Mã thoát headless: `0` bình thường · `2` tham số/đầu vào sai (kiểm **trước** khi ghi bất kỳ đầu ra nào) · `1` lỗi chạy/ghi.
+## 0. Quy tắc chung (mọi module)
+- 60 tick/s, độc lập cửa sổ/GPU. Đơn vị mét. gather `[x, d]` (x hướng đông, d tăng xuống, 0° = +x, 90° = xuống); quan `[x, z]` (z hướng bắc).
+- Số liệu chỉ đọc từ `game.contract.json` → `tuning.*`. Thời gian `_s` quy ra tick nguyên ở 60 Hz. Tiền là số nguyên (nghìn đồng).
+- Ngẫu nhiên chỉ qua `Streams`; không đồng hồ thực. Cùng bản chạy + seed + tham số + đầu vào → JSONL **và** file kho giống từng byte. Duyệt ứng viên theo thứ tự cố định, id món theo mã Unicode.
+- Sắp id bằng khóa (tiền tố, hậu tố số hoặc −1, id gốc): `F2` trước `F10`. Id mới nối sau hậu tố lớn nhất của họ id đã nạp/phát (`IdAllocator`).
+- Khoảng cách Euclid, **tính cả đúng mép** bán kính. So bán kính và tính giá trước khi làm tròn; tọa độ xuất 3 chữ số thập phân.
+- Mã thoát headless: `0` kết thúc lượt hoặc chạm `--ticks` · `2` cờ/dữ liệu sai hoặc fixture mâu thuẫn (kiểm **trước** khi ghi JSONL/kho) · `1` lỗi thực thi/ghi. Chẩn đoán qua stderr.
+- Dung sai khi chấm: tọa độ ±0.1 m, uy tín ±0.01, đo thời gian ±2 tick. Tiền, điểm, id, số lượng, countdown, lý do, tick của event biên: **chính xác**.
 
-## 1. Schema file kho (PRD-0 mục G)
+## 1. Schema file kho (mục G)
 
 ```json
-{"items": {"<id nguyên liệu>": <số nguyên >= 1>}}
+{"items": {"bong_sung": 2, "ca_loc": 1}}
 ```
 
 | Quy tắc | Chi tiết |
 |---|---|
-| Khóa gốc | Đúng một khóa `items`. Khóa khác → mã 2. |
-| Id hợp lệ (v1.0) | `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`. Id lạ → mã 2. |
-| Giá trị | Số nguyên ≥ 0 (không bool). Âm / không nguyên → mã 2. Khi **đọc**, mục bằng 0 được chấp nhận rồi bỏ đi. |
-| Ghi | Bỏ mục bằng 0, sắp khóa theo id, JSON gọn (`,` `:`), UTF-8, có `\n` cuối; ghi qua file tạm cùng thư mục rồi `os.replace` (nguyên tử). |
-| Khi nào ghi | **Đúng một lần**, khi có sự kiện `gather_end` (`docked` / `time` / `fainted`). Chạy hết `--ticks` mà chưa `gather_end` → **không đụng** file đích. |
-| `fainted` | Giỏ mất hết → ghi `{"items":{}}`. |
-| Nối buổi | `gather --inventory-out kho.json` → `quan --inventory kho.json`. `--inventory` và `scenario.quan.stock` không dùng cùng lúc (mã 2). |
+| Khóa gốc | Đúng một khóa `items`: object kind → số nguyên ≥ 0. Kind vắng tính 0. Kho rỗng `{"items":{}}`. |
+| Kind hợp lệ | `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`. Sai schema / kind lạ / giá trị ngoài miền → mã 2. |
+| Ghi | Bỏ khóa có lượng 0, sắp theo kind, ghi file tạm cùng thư mục rồi thay thế nguyên tử. |
+| Khi nào ghi | `gather --inventory-out` ghi **đúng một lần** khi có `gather_end`; nội dung khớp `data.inventory` của event đó. Ngất → `{"items":{}}`. Chạm `--ticks` trước khi buổi sáng kết thúc → không tạo, không ghi đè. |
+| Bên đọc (quan) | `--inventory` hoặc `scenario.quan.stock`, không cả hai (mã 2). Thiếu cả hai → kho rỗng. Trần giỏ không áp lên kho quán. Tiền/`earned` đầu lượt = 0; uy tín theo tuning trừ khi scenario khai. |
 
 Mẫu hợp lệ: [`inventory.sample.json`](inventory.sample.json). Code: `chonoi/inventory.py`.
 
+**Smoke hai tiến trình (bắt buộc chạy trên `main` trước khi tag):**
+```bash
+echo '{"gather":{"hold":["ca_loc","bong_sung","bong_sung"]}}' > dock.json
+echo '{"frames":[{"tick":0,"interact":true}]}' > dock-inputs.json
+python3 -m chonoi.headless --mode gather --seed 42 --scenario dock.json --inputs dock-inputs.json --ticks 1 --out gather.jsonl --inventory-out catch.json
+python3 -m chonoi.headless --mode quan --seed 42 --inventory catch.json --ticks 0 --out quan.jsonl
+```
+Snapshot quán tick 0 phải có `"stock":{"bong_sung":2,"ca_loc":1}`.
+
 ## 2. Giao diện `sim/*` ↔ `client/ui`
 
-UI (cửa sổ `chonoi.live` hoặc client của nhóm) **chỉ đọc snapshot** và **chỉ gửi input**; không gọi hàm luật, không sửa trạng thái sim. Cả headless và live dùng chung `runner.Session`.
+UI **chỉ gửi input** và **chỉ đọc snapshot**; không gọi hàm luật, không sửa trạng thái sim. Headless và `chonoi.live` dùng chung `runner.Session`. Phần sáng tạo của nhóm phải tắt ở headless hoặc không đổi tick/event/tiền/uy tín/snapshot.
 
-### 2.1 Lệnh UI gửi vào (Contract C, v1.0)
+### 2.1 Lệnh UI gửi vào (mục C)
 | Trường | Kiểu | Ý nghĩa |
 |---|---|---|
-| `move` | `[a, b]`, mỗi số ∈ [-1, 1] | gather: `[x, d]` (d dương = lặn xuống); quan: `[x, z]`. Độ dài > 1 thì chuẩn hóa. Giữ nguyên tới khi đổi. |
-| `interact` | bool | Kích hoạt theo **cạnh lên** (false→true). Phím E. |
-| `catch` | bool | Cạnh lên. Phím Space. Chỉ có nghĩa ở gather. |
+| `move` | `[a, b]` hữu hạn, mỗi số ∈ [-1, 1] | gather `[x, d]` (b dương = xuống); quan `[x, z]` (b dương = bắc). Độ dài > 1 thì chuẩn hóa. |
+| `interact` | bool, **cạnh lên** | gather: cập bến / hái. quan: nấu / bưng / phục vụ. Phím E. |
+| `catch` | bool, **cạnh lên** | gather: bắt cá. Phím Space. Sai pha thì bỏ qua. |
 
-File inputs headless: `{"frames":[{"tick":k, ...}]}`, `tick` tăng ngặt, trường vắng = giữ giá trị cũ; bước k đọc frame có `tick == k`. Trường lạ → mã 2.
+File inputs: `{"frames":[{"tick":k,...}]}`, `tick` nguyên ≥ 0 tăng nghiêm ngặt; frame chỉ cập nhật trường có mặt; trước frame đầu `move=[0,0]`, nút `false`. Trường lạ, sai kiểu, tick lặp/giảm → mã 2.
 
-### 2.2 Snapshot UI được đọc
-Chung mọi mode (`runner._common`): `type, tick, sim_tick, mode, phase, phase_tick, state (playing|finished), time_left_ticks, money, earned, reputation, score`
-với `score = earned + reputation_multiplier * floor(reputation)`.
+### 2.2 Snapshot (mục E)
+Chụp ở tick 0 (sau dựng fixture), ở bội số `--snapshot-every` (mặc định 10) và ở tick dừng; mỗi tick tối đa một snapshot.
 
-**gather** (`GatherSim.snapshot`):
-- `player`: `pos [x,d], vel, heading_deg, oxygen_ticks, oxygen_max_ticks, hp, hp_max, zero_oxy_ticks, invuln_ticks, catch_cd_ticks, at_surface`
-- `hold` (mảng id theo thứ tự nhặt, cuối = mới nhất), `hold_count`, `hold_capacity`
-- `nodes[]`: `id, pos, kind, ready, regrow_ticks` · `fish[]`: `id, pos, kind, heading_deg`
+**Chung:** `type:"snapshot", tick, sim_tick, mode, phase, phase_tick, state (playing|finished), time_left_ticks, money, earned, reputation, score` với `score = earned + 100 × floor(reputation)`.
 
-**quan** (`QuanSim.snapshot`):
-- `player.pos [x,z]`, `stock` (bỏ mục 0, sắp id), `hand` (null hoặc id món đang bưng)
-- `stoves[]`: `id, pos, state, dish, cook_ticks_left, ready_ticks`
-- `tables[]`: `id, pos, customer_id`
-- `customers[]` (sắp id): tối thiểu `id, table_id, reserved` + trường vòng đời — **[giả định]** `state` ∈ `waiting|assigned|eating`, `dish`, `patience_ticks`, `eat_ticks_left`, `price`, `tip` (chờ PRD-0 mục E, xem clarify #6).
+**gather:**
+- `player`: `pos, vel, heading_deg, oxygen_ticks, hp, zero_oxy_ticks, catch_cd_ticks` + `oxygen_max_ticks, hp_max, at_surface`
+- `hold` (mảng kind theo thứ tự nhặt, mới nhất cuối), `hold_count`, `hold_capacity`
+- `nodes[]`: `id, kind, pos, regrow_ticks, ready` (`ready` = `regrow_ticks == 0`) · `fish[]`: `id, kind, pos, heading_deg`
 
-Thêm trường mới vào snapshot: được (UI bỏ qua trường lạ), nhưng **không đổi tên / bỏ** trường đã liệt kê ở trên.
+**quan:**
+- `player {pos, vel}`, `stock` (gồm cả phần giữ chỗ), `hand` (payload món `{order_id, dish_id, base_price}` hoặc `null`)
+- `stoves[]`: `id, pos, state (idle|cooking|ready), dish, cook_ticks_left, ready_ticks`
+- `tables[]`: `id, pos, customer_id` (trống = `null`)
+- `customers[]` (chỉ khách còn ngồi): `id, table_id, dish_id, order_tick, state, patience_ticks_left, eat_ticks_left, order_status (reserved|assigned|unfulfillable|served), reserved {kind: số}, base_price, tip`
 
-## 3. Danh sách sự kiện
+Dòng cuối: `{"type":"end", ticks, sim_tick, mode, state, reason, money, earned, reputation, score}`; `reason` ∈ `time|docked|fainted` (gather), `time` (quan), hoặc `tick_limit`. Kết thúc đúng bước cuối được cấp thì ưu tiên lý do gameplay.
 
-Dòng event: `{"type":"event","tick":k+1,"phase":..,"name":..,"data":{..}}`. Trong một tick, sự kiện ghi **theo thứ tự xử lý** của bước, trước snapshot của tick đó. Người phát = module sim; người nghe = UI (hiệu ứng/HUD), QA (test), và runner (chỉ `gather_end` để ghi kho).
+## 3. Sự kiện (mục E) — phát bởi `sim/*`, nghe bởi UI (HUD/hiệu ứng), QA (test), runner (`gather_end` → ghi kho)
 
-### 3.1 gather — phát bởi `sim/gather.py`
-Thứ tự một bước: (1) đồng hồ, bộ đếm, nút mọc lại → (2) bơi + chặn mép → (3) dive/surface, oxy, ngạt, ngất → (4) `interact`: **bến trước**, rồi hái → (5) `catch` → (6) hết giờ.
+Dòng event: `{"type":"event","tick":k+1,"phase":..,"name":..,"data":{..}}`, ghi theo thứ tự xử lý rồi mới tới snapshot. `items` và `lost` là **mảng kind**; `lost` theo LIFO (nhặt sau bỏ trước).
 
-| Sự kiện | `data` | Khi nào |
-|---|---|---|
-| `node_regrown` | `{node_id}` | `regrow_ticks` của nút về 0 |
-| `dive` | `{pos}` | d đầu bước ≤ `surface_depth` và d cuối bước > `surface_depth` |
-| `surface` | `{pos}` | ngược lại |
-| `oxygen_empty` | `{}` **[giả định]** | oxy từ dương xuống 0 |
-| `choke` | `{hp}` **[giả định]** | đủ `choke_interval_ticks` tick ở oxy 0 dưới nước → −1 Máu |
-| `faint` | `{}` **[giả định]** | Máu về 0; ngay sau đó `gather_end{reason:"fainted"}` với kho rỗng, dừng bước |
-| `gather` | `{node_id, kind}` **[giả định]** | hái được (ở mặt nước, nút `ready` gần nhất trong `interact_radius`, hòa thì id nhỏ) |
-| `fish_caught` | `{fish_id, kind, count}` **[giả định]** | `catch` dưới nước, hết hồi chiêu, có đàn trong `catch_radius`; nhận `fish_yield[kind]` con |
-| `hold_full` | `{source}` **[giả định]** (`node`/`fish`) | giỏ không còn chỗ khi hái/bắt |
-| `gather_end` | `{reason, inventory:{items}}` | `docked` / `time` / `fainted` — **chốt** (smoke test kiểm) |
+### 3.1 gather — `sim/gather.py`
+Thứ tự một bước (mục F):
+1. Đồng hồ, timer ca, hồi bắt, hồi nút. Nút 1 → 0 phát `node_regrown` (theo id), hái được ngay.
+2. Bơi, chặn biên; so đầu/cuối bước → `dive`/`surface`.
+3. Oxy theo d **cuối** bước: mặt nước (`d ≤ 0.5`) +6, kẹp max, reset đếm ngạt; dưới nước −1, kẹp 0. Mỗi bước kết thúc dưới nước với oxy 0 (kể cả bước vừa chạm 0) → `zero_oxy_ticks += 1`; đủ 60 → đặt 0, −1 Máu, `choke`. Máu 0 → bỏ giỏ LIFO, `faint`, `gather_end fainted` (kho rỗng), dừng.
+4. Cạnh `interact`: bến trước (khoảng cách tới `dock_pos` ≤ `dock_radius` → `gather_end docked`). Ngoài bến, chỉ hái khi ở mặt nước: nút `ready` gần nhất trong `interact_radius`, hòa theo id.
+5. Cạnh `catch`: hết hồi **và** dưới nước → đàn gần nhất trong `catch_radius`, hòa theo id. Đủ chỗ: thêm toàn bộ yield, xóa đàn, đặt hồi. Thiếu chỗ: `hold_full`, giữ đàn, **không** đặt hồi, không thử đàn khác. Không có đàn trong tầm: không event, không hồi.
+6. Timer ca 0 → `gather_end time` ở mọi độ sâu, giữ giỏ sau các hành động trên.
 
-### 3.2 quan — phát bởi `sim/quan.py`
-Tên sự kiện **chốt** theo khung; `data` là **[giả định]**, chờ PRD-0 mục E (clarify #6).
+| Sự kiện | `data` |
+|---|---|
+| `node_regrown` | `{node_id}` |
+| `dive` / `surface` | `{pos}` (vị trí sau di chuyển) |
+| `oxygen_empty` | `{oxygen_ticks: 0}` |
+| `choke` | `{hp}` (sau khi trừ) |
+| `faint` | `{cause: "choke", lost: [kind…] (LIFO), hp: 0}` |
+| `gather` | `{node_id, kind, amount}` |
+| `fish_caught` | `{fish_id, kind, yield}` — một event mỗi đàn |
+| `hold_full` | `{action: "gather"\|"catch", node_id \| fish_id, required, free}` |
+| `gather_end` | `{reason: "time"\|"docked"\|"fainted", inventory: {items}}` |
 
-| Sự kiện | `data` đề xuất | Khi nào |
-|---|---|---|
-| `customer_arrived` **[giả định tên]** | `{customer_id, table_id, dish}` | khách tới theo lịch `first_customer_tick` + `customer_interval_s`, có bàn trống và món nấu được → giữ chỗ nguyên liệu |
-| `no_dish` | `{table_id}` | tới lượt khách nhưng không món nào đủ nguyên liệu |
-| `customer_left` | `{customer_id, reputation}` | hết kiên nhẫn → `left_reputation_delta`, trả lại nguyên liệu đã giữ |
-| `cook_started` | `{stove_id, dish}` | `interact` tại bếp rảnh |
-| `dish_ready` | `{stove_id, dish}` | nấu đủ `cook_s` |
-| `dish_picked` | `{stove_id, dish}` | `interact` tại bếp `ready`, tay trống (`carry_limit` = 1) |
-| `served` | `{customer_id, dish}` | `interact` tại bàn có khách đúng món |
-| `paid` | `{customer_id, price, tip, reputation}` | ăn xong `eat_s`; boa `tip_rate` nếu kiên nhẫn còn ≥ `tip_min_patience_ratio` (+`tip_reputation`) |
-| `quan_end` | `{reason, money, earned, shift_earned, reputation}` | hết giờ — **chốt** (khung đã phát) |
+### 3.2 quan — `sim/quan.py`
+Thứ tự một bước (mục F):
+1. Đồng hồ, timer ca, nấu, ăn, kiên nhẫn. `ready_ticks` chỉ tăng cho món đã ready từ đầu bước.
+2. Bếp theo id: nấu xong → `ready`, `ready_ticks = 0` (`burn_s: null`, không cháy).
+3. Di chuyển, rồi tối đa **một** interact chọn theo (khoảng cách, bếp trước bàn, id); đối tượng không tương tác được → bỏ lượt.
+   - Bếp `idle`: lấy đơn `reserved` cũ nhất (order_tick, rồi id bàn), tiêu đúng nguyên liệu giữ, chốt giá, nấu.
+   - Bếp `ready` + tay trống: giao món, bếp về `idle`.
+   - Bàn nhận đúng `order_id`: khách ăn với timer đầy; boa = `floor(base_price × tip_rate)` nếu tỷ lệ kiên nhẫn còn lại (sau bước 1) ≥ `tip_min_patience_ratio`, không thì 0.
+4. Theo id bàn: ăn xong → trả tiền, rời bàn. Còn giờ: khách `waiting` kiên nhẫn 0 rời, uy tín `+ left_reputation_delta`. Hết ca: khách đang ăn trả ngay, khách chờ rời `closing` không trừ uy tín, rồi `quan_end`. Khách rời: nhả phần giữ, bỏ món của đơn (bếp/tay); nguyên liệu đã dùng không hoàn. Boa dương: `+ tip_reputation`. Uy tín kẹp `[reputation_min, reputation_max]`.
+5. Còn giờ: lượt khách tại `first_customer_tick`, rồi mỗi `customer_interval_s × 60` (theo `phase_tick`). Không bàn trống → bỏ lượt. Có bàn → bàn trống id nhỏ nhất; chọn đều theo seed trong các món đủ nguyên liệu khả dụng (tồn − giữ); không món nào → `no_dish`. Khách mới giữ công thức ngay, `order_tick = phase_tick`, kiên nhẫn đầy, giảm từ bước sau.
 
-Một bước quan tối đa **một** `interact`; chọn đối tượng theo (khoảng cách, bếp trước bàn, id nhỏ).
+| Sự kiện | `data` |
+|---|---|
+| `customer_arrived` | `{order_id, table_id, dish_id}` |
+| `no_dish` | `{}` |
+| `cook_started` | `{stove_id, order_id, dish_id, items: [kind…] (sắp theo kind), base_price}` |
+| `dish_ready` / `dish_picked` | `{stove_id, order_id, dish_id}` |
+| `served` | `{order_id, table_id, dish_id, patience_ticks_left, base_price, tip}` |
+| `paid` | `{order_id, table_id, base_price, tip, amount, reason: "finished_eating"\|"closing"}` |
+| `customer_left` | `{order_id, table_id, reason: "patience"\|"closing", reputation}` |
+| `quan_end` | `{reason: "time", money, earned, shift_earned, reputation}` |
 
 ## Nhật ký đổi hợp đồng
 | Ngày | Đổi gì | Lý do | Ai |
 |---|---|---|---|
-| 2026-11-21 | Chốt v1.0 phase 1 | Kickoff | Integrator |
+| 2026-11-21 | Chốt v1.0 bản nháp từ code khung | Kickoff, PRD chưa mở | Integrator |
+| 2026-11-21 | Đối chiếu PRD-0: sửa `data` sự kiện gather/quan, trường khách trong snapshot quan, thứ tự bước; bỏ toàn bộ nhãn [giả định] | PRD-0 phát hành 08:02 | QA (czx04) |
