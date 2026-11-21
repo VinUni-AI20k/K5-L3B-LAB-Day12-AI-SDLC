@@ -1,0 +1,4 @@
+gather_end.inventory == catch.json: {'items': {'bong_sung': 2, 'ca_loc': 1}}
+Quán tick 0 stock == catch.json.items: {'bong_sung': 2, 'ca_loc': 1}
+Cùng đầu vào và seed: cả hai JSONL và file kho giống nhau từng byte.
+tick_limit: file kho cũ giữ nguyên từng byte, đường dẫn mới không có file.

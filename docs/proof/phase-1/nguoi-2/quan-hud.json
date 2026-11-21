@@ -1,0 +1,15 @@
+{
+  "quan": {
+    "stock": {"ca_loc": 1, "bong_sung": 3},
+    "random_customers": false,
+    "customers": [{
+      "id": "C1",
+      "table_id": "T1",
+      "dish_id": "goi_bong_sung",
+      "state": "waiting",
+      "patience_ticks_left": 2700,
+      "order_status": "reserved",
+      "reserved": {"bong_sung": 2}
+    }]
+  }
+}

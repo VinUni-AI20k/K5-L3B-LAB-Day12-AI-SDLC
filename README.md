@@ -15,11 +15,23 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 
 ## Bắt đầu nhanh
 
+Cần Python 3 trên macOS hoặc Linux. Mở địa chỉ được in trong terminal để chơi.
+
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone '<URL fork của nhóm>' cho-noi && cd cho-noi
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+python3 -m chonoi.live --mode gather --inventory-out catch.json
 ```
+
+Để chơi **Mở Quán** độc lập, chạy lệnh dưới đây ở thư mục repo. Có thể chạy song song với Gather vì hai ca dùng cổng khác nhau. Thay đường dẫn kho mẫu bằng `catch.json` để dùng nguyên liệu của chính ca Gather vừa kết thúc.
+
+```bash
+python3 -m chonoi.live --mode quan --port 8001 --inventory docs/contracts/inventory.sample.json
+```
+
+**Điều khiển** — WASD hoặc phím mũi tên để bơi hoặc đi. `E` để hái, cập bến hoặc tương tác với bếp/bàn. `Space` để bắt cá khi lặn. `R` để chơi lại.
+
+**Điểm Phase 1** — Tổng tiền kiếm được (nghìn đồng) cộng `100 × floor(uy tín)`. Uy tín được làm tròn xuống trước khi nhân.
 
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
