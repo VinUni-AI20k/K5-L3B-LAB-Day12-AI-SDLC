@@ -20,7 +20,7 @@ class QuanSim(CustomerMixin):
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, allowed_dishes=None):
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
@@ -48,7 +48,7 @@ class QuanSim(CustomerMixin):
             for s in self._merge(t["stoves"], scenario.get("stoves", []))
         ]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        self._init_customers(scenario)  # M3: khách dựng sẵn từ scenario + giữ chỗ (quan_customers.py)
+        self._init_customers(scenario, allowed_dishes)  # M3: khách dựng sẵn từ scenario + giữ chỗ (quan_customers.py)
         self.money = 0
         self.earned = 0
         self.shift_earned = 0

@@ -102,20 +102,24 @@ class Arrivals(unittest.TestCase):
             self.assertEqual(c["patience_ticks_left"], PATIENCE)  # bắt đầu giảm từ bước sau
             self.assertEqual(snap_at(rows, 121)["customers"][0]["patience_ticks_left"], PATIENCE - 1)
 
-    def test_c5_no_free_table_skips_round(self):  # AC-P1-C5
+    # v1.1 có 4 bàn (T1–T4): bản Phase 1 giả định 1 bàn nên được viết lại, xem docs/plan/phase-2.md mục M3.
+    def test_c5_all_tables_busy_skips_round(self):  # AC-P1-C5
         with Workdir() as w:
-            rows = run_quan(w, {"stock": {"ca_loc": 1}}, 1100)  # lượt 2 ở tick 1020, bàn T1 còn khách
-            self.assertEqual(len(events(rows, "customer_arrived")), 1)
+            full = [cust(id=f"C{i}", table_id=f"T{i}") for i in range(1, 5)]
+            rows = run_quan(w, {"random_customers": True, "stock": {"ca_loc": 4}, "customers": full}, 1100)
+            self.assertEqual(events(rows, "customer_arrived"), [])  # lượt 120 và 1020 đều hết bàn
             self.assertEqual(events(rows, "no_dish"), [])
 
-    def test_c5_table_freed_by_patience_gets_next_round(self):  # AC-P1-C5: lượt 120 + 4×900 trùng lúc K1 rời
+    def test_c5_reservation_released_by_patience_lets_next_round_order(self):  # AC-P1-C5, C4
         with Workdir() as w:
             rows = run_quan(w, {"stock": {"ca_loc": 1}}, 3730)
             arr = events(rows, "customer_arrived")
-            self.assertEqual([(e["tick"], e["data"]["order_id"]) for e in arr], [(120, "K1"), (3720, "K2")])
+            # K1 giữ cá lóc duy nhất suốt 3600 tick nên các lượt 1020/1920/2820 là no_dish; K1 rời lúc 3720 thì K2 được gọi
+            self.assertEqual([(e["tick"], e["data"]["order_id"], e["data"]["table_id"]) for e in arr],
+                             [(120, "K1", "T1"), (3720, "K2", "T1")])
+            self.assertEqual([e["tick"] for e in events(rows, "no_dish")], [1020, 1920, 2820])
             left = events(rows, "customer_left")
             self.assertEqual([(e["tick"], e["data"]["reason"]) for e in left], [(3720, "patience")])
-            self.assertEqual(events(rows, "no_dish"), [])
 
     def test_c6_no_dish_when_stock_empty(self):  # AC-P1-C6
         with Workdir() as w:
