@@ -8,6 +8,7 @@ from chonoi.ids import IdAllocator, id_key, sort_by_id
 from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer, InputState, LiveInputs, load_frames
 from chonoi.runner import Session
+from chonoi.scenario import load_scenario
 
 from helpers import Workdir, frames, write_json
 
@@ -180,6 +181,44 @@ class GatherCore(unittest.TestCase):
             path = write_json(w.path("inventory.json"), {"items": {"ca_loc": 3}})
             s.write_inventory_if_done(path)
             self.assertEqual(read_inventory(path), {})
+
+    def test_hold_preserves_pickup_order_and_latest_item_is_last(self):
+        original = ["ca_loc", "bong_sung"]
+        s = self.session(hold=original)
+        self.assertEqual(s.sim._store_in_hold("ca_linh", 3), 3)
+        self.assertEqual(s.snapshot()["hold"], original + ["ca_linh"] * 3)
+        self.assertEqual(original, ["ca_loc", "bong_sung"])
+        self.assertEqual(s.sim.hold.pop(), "ca_linh")
+        self.assertEqual(s.sim.inventory_items(), {"bong_sung": 1, "ca_linh": 2, "ca_loc": 1})
+
+    def test_hold_capacity_reads_tuning_and_reports_actual_count(self):
+        self.g["hold_capacity"] = 4
+        s = self.session(hold=["bong_sung"] * 3)
+        self.assertEqual(s.sim._store_in_hold("ca_linh", 3), 1)
+        self.assertEqual(s.sim._store_in_hold("ca_loc", 1), 0)
+        snapshot = s.snapshot()
+        self.assertEqual(snapshot["hold"], ["bong_sung"] * 3 + ["ca_linh"])
+        self.assertEqual(snapshot["hold_count"], 4)
+        self.assertEqual(snapshot["hold_capacity"], 4)
+
+    def test_snapshot_keeps_player_and_hold_values_after_next_step(self):
+        s = self.session(hold=["ca_loc"])
+        before = s.snapshot()
+        self.step(s, (1, 0))
+        s.sim._store_in_hold("bong_sung", 1)
+        self.assertEqual(before["hold"], ["ca_loc"])
+        self.assertEqual(before["hold_count"], 1)
+        self.assertEqual(before["player"]["pos"], self.g["start_pos"])
+        self.assertEqual(before["player"]["vel"], [0, 0])
+
+    def test_scenario_accepts_full_hold_and_rejects_over_capacity(self):
+        with Workdir() as w:
+            hold = ["ca_loc"] * self.g["hold_capacity"]
+            path = write_json(w.path("scenario.json"), {"gather": {"hold": hold}})
+            self.assertEqual(load_scenario(path, "gather", self.tuning)["hold"], hold)
+            write_json(path, {"gather": {"hold": hold + ["ca_loc"]}})
+            with self.assertRaises(BadInput):
+                load_scenario(path, "gather", self.tuning)
 
 
 if __name__ == "__main__":

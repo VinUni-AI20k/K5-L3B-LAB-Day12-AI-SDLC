@@ -1,0 +1,110 @@
+$ python -m unittest discover -s tests -v
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_choke_interval_reads_tuning (test_python_starter_units.GatherCore.test_choke_interval_reads_tuning) ... ok
+test_choking_starts_on_tick_oxygen_reaches_zero (test_python_starter_units.GatherCore.test_choking_starts_on_tick_oxygen_reaches_zero) ... ok
+test_dive_surface_use_end_position_and_emit_once (test_python_starter_units.GatherCore.test_dive_surface_use_end_position_and_emit_once) ... ok
+test_faint_clears_hold_before_end_and_precedes_docking_and_time (test_python_starter_units.GatherCore.test_faint_clears_hold_before_end_and_precedes_docking_and_time) ... ok
+test_faint_writes_empty_inventory_through_runner (test_python_starter_units.GatherCore.test_faint_writes_empty_inventory_through_runner) ... ok
+test_hold_capacity_reads_tuning_and_reports_actual_count (test_python_starter_units.GatherCore.test_hold_capacity_reads_tuning_and_reports_actual_count) ... ok
+test_hold_preserves_pickup_order_and_latest_item_is_last (test_python_starter_units.GatherCore.test_hold_preserves_pickup_order_and_latest_item_is_last) ... ok
+test_oxygen_empty_only_on_positive_to_zero (test_python_starter_units.GatherCore.test_oxygen_empty_only_on_positive_to_zero) ... ok
+test_oxygen_refill_reads_tuning (test_python_starter_units.GatherCore.test_oxygen_refill_reads_tuning) ... ok
+test_scenario_accepts_full_hold_and_rejects_over_capacity (test_python_starter_units.GatherCore.test_scenario_accepts_full_hold_and_rejects_over_capacity) ... ok
+test_snapshot_keeps_player_and_hold_values_after_next_step (test_python_starter_units.GatherCore.test_snapshot_keeps_player_and_hold_values_after_next_step) ... ok
+test_surface_boundary_refills_and_clamps_oxygen (test_python_starter_units.GatherCore.test_surface_boundary_refills_and_clamps_oxygen) ... ok
+test_surface_resets_choking_before_damage (test_python_starter_units.GatherCore.test_surface_resets_choking_before_damage) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 45 tests in 3.354s
+
+OK
+Exit code: 0
+
+$ python -m unittest tests.test_python_starter_units -v
+test_choke_interval_reads_tuning (tests.test_python_starter_units.GatherCore.test_choke_interval_reads_tuning) ... ok
+test_choking_starts_on_tick_oxygen_reaches_zero (tests.test_python_starter_units.GatherCore.test_choking_starts_on_tick_oxygen_reaches_zero) ... ok
+test_dive_surface_use_end_position_and_emit_once (tests.test_python_starter_units.GatherCore.test_dive_surface_use_end_position_and_emit_once) ... ok
+test_faint_clears_hold_before_end_and_precedes_docking_and_time (tests.test_python_starter_units.GatherCore.test_faint_clears_hold_before_end_and_precedes_docking_and_time) ... ok
+test_faint_writes_empty_inventory_through_runner (tests.test_python_starter_units.GatherCore.test_faint_writes_empty_inventory_through_runner) ... ok
+test_hold_capacity_reads_tuning_and_reports_actual_count (tests.test_python_starter_units.GatherCore.test_hold_capacity_reads_tuning_and_reports_actual_count) ... ok
+test_hold_preserves_pickup_order_and_latest_item_is_last (tests.test_python_starter_units.GatherCore.test_hold_preserves_pickup_order_and_latest_item_is_last) ... ok
+test_oxygen_empty_only_on_positive_to_zero (tests.test_python_starter_units.GatherCore.test_oxygen_empty_only_on_positive_to_zero) ... ok
+test_oxygen_refill_reads_tuning (tests.test_python_starter_units.GatherCore.test_oxygen_refill_reads_tuning) ... ok
+test_scenario_accepts_full_hold_and_rejects_over_capacity (tests.test_python_starter_units.GatherCore.test_scenario_accepts_full_hold_and_rejects_over_capacity) ... ok
+test_snapshot_keeps_player_and_hold_values_after_next_step (tests.test_python_starter_units.GatherCore.test_snapshot_keeps_player_and_hold_values_after_next_step) ... ok
+test_surface_boundary_refills_and_clamps_oxygen (tests.test_python_starter_units.GatherCore.test_surface_boundary_refills_and_clamps_oxygen) ... ok
+test_surface_resets_choking_before_damage (tests.test_python_starter_units.GatherCore.test_surface_resets_choking_before_damage) ... ok
+test_bad_frames_raise (tests.test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (tests.test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (tests.test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (tests.test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (tests.test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (tests.test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (tests.test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+
+----------------------------------------------------------------------
+Ran 20 tests in 0.023s
+
+OK
+Exit code: 0
+
+$ python -m chonoi.headless --mode gather --seed 1 --ticks 600 --snapshot-every 10 --out D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\gather_run.jsonl
+Exit code: 0
+
+$ python -m chonoi.headless --mode quan --seed 1 --ticks 600 --out D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\quan_run.jsonl
+Exit code: 0
+
+$ python -m chonoi.headless --mode gather --seed 1 --ticks 32 --snapshot-every 1 --out D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\oxygen-cycle.jsonl --scenario D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\oxygen-cycle.scenario.json --inputs D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\oxygen-cycle.inputs.json
+Exit code: 0
+
+$ python -m chonoi.headless --mode gather --seed 1 --ticks 220 --snapshot-every 10 --out D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\faint.jsonl --scenario D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\faint.scenario.json --inventory-out D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\faint.inventory.json
+Exit code: 0
+
+$ python -m chonoi.headless --mode gather --seed 1 --ticks 1 --snapshot-every 10 --out D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\dock.jsonl --scenario D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\dock.scenario.json --inputs D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\dock.inputs.json --inventory-out D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\dock.inventory.json
+Exit code: 0
+
+$ python -m chonoi.headless --mode gather --seed 1 --ticks 220 --snapshot-every 10 --out C:\Users\Admin\AppData\Local\Temp\chonoi-tv2-j0f057nj\repeat.jsonl --scenario D:\Vinuni\K5-L3B-LAB-Day12-AI-SDLC-DoAnhBatDuocEm\docs\proof\phase-1\member-2\faint.scenario.json
+Exit code: 0
+
+$ python tools/check_team.py
+KIỂM TRA DANH SÁCH THÀNH VIÊN KHÔNG ĐẠT:
+  - thành viên #3: GitHub handle chưa điền hoặc không hợp lệ ('<github-handle-3>')
+  - thành viên #4: GitHub handle chưa điền hoặc không hợp lệ ('<github-handle-4>')
+  - thành viên #5: GitHub handle chưa điền hoặc không hợp lệ ('<github-handle-5>')
+  - thành viên #6: GitHub handle chưa điền hoặc không hợp lệ ('<github-handle-6>')
+Exit code: 1
