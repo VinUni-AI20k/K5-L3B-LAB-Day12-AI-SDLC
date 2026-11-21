@@ -343,7 +343,7 @@ func _overlay() -> void:
     var canvas := CanvasLayer.new()
     add_child(canvas)
     var hint := Label.new()
-    hint.text = "CHO NOI TAY NAM BO | PHOI CANH 3D | F1: SONG | F2: QUAN BE | F3: LAN BAT CA 2.5D | CHUOT PHAI: XOAY | CUON: ZOOM"
+    hint.text = "F1: SONG | F2: QUAN BE | F3: LAN BAT CA | F4: XEM LONG SONG\nCHUOT PHAI: XOAY | CUON: ZOOM"
     hint.position = Vector2(18, 15)
     hint.add_theme_color_override("font_color", Color("#fff1cb"))
     hint.add_theme_font_size_override("font_size", 16)
@@ -351,7 +351,7 @@ func _overlay() -> void:
     if loaded_models == 0:
         var missing := Label.new()
         missing.text = "Chua cai asset: chay 'python3 tools/download_assets.py --all' roi mo lai project"
-        missing.position = Vector2(18,48)
+        missing.position = Vector2(18, 64)
         missing.add_theme_color_override("font_color", Color("#ffcb9d"))
         canvas.add_child(missing)
 
@@ -360,6 +360,7 @@ func _unhandled_input(ev: InputEvent) -> void:
         if ev.keycode == KEY_F1: get_tree().change_scene_to_file("res://scenes/GatherRiver.tscn")
         if ev.keycode == KEY_F2: get_tree().change_scene_to_file("res://scenes/RestaurantNight.tscn")
         if ev.keycode == KEY_F3: get_tree().change_scene_to_file("res://scenes/DiveUnderwater.tscn")
+        if ev.keycode == KEY_F4: get_tree().change_scene_to_file("res://scenes/UnderwaterRiver.tscn")
     elif ev is InputEventMouseButton:
         if ev.button_index == MOUSE_BUTTON_RIGHT: orbit = ev.pressed
         elif ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_UP:
