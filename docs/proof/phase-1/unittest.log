@@ -1,3 +1,10 @@
+test_dive_from_surface_boundary_counts_first_empty_tick (test_gather_oxygen.GatherOxygen.test_dive_from_surface_boundary_counts_first_empty_tick) ... ok
+test_faint_precedes_docking_and_timeout_and_empties_inventory (test_gather_oxygen.GatherOxygen.test_faint_precedes_docking_and_timeout_and_empties_inventory) ... ok
+test_invulnerability_is_not_a_v10_fixture_field (test_gather_oxygen.GatherOxygen.test_invulnerability_is_not_a_v10_fixture_field) ... ok
+test_surface_on_choke_tick_refills_and_clears_counter (test_gather_oxygen.GatherOxygen.test_surface_on_choke_tick_refills_and_clears_counter) ... ok
+test_catch_fish_underwater_cooldown_and_hold_full (test_gather_rules.GatherHarvestAndCatchTests.test_catch_fish_underwater_cooldown_and_hold_full) ... ok
+test_harvest_blocked_underwater_and_dock_priority (test_gather_rules.GatherHarvestAndCatchTests.test_harvest_blocked_underwater_and_dock_priority) ... ok
+test_harvest_nearest_node_tiebreak_regrow_and_lifo (test_gather_rules.GatherHarvestAndCatchTests.test_harvest_nearest_node_tiebreak_regrow_and_lifo) ... ok
 test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
 test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
 test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
@@ -6,6 +13,16 @@ test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
 test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
 test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
 test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_arrival_reserves_stock_and_new_customer_waits_from_next_step (test_quan_customers.QuanCustomers.test_arrival_reserves_stock_and_new_customer_waits_from_next_step) ... ok
+test_closing_does_not_penalize_waiting_customer (test_quan_customers.QuanCustomers.test_closing_does_not_penalize_waiting_customer) ... ok
+test_waiting_customer_leaves_and_releases_order (test_quan_customers.QuanCustomers.test_waiting_customer_leaves_and_releases_order) ... ok
+test_closing_pays_eating_and_leaves_waiting_without_rep_loss (test_quan_slice4.QuanSlice4Tests.test_closing_pays_eating_and_leaves_waiting_without_rep_loss) ... ok
+test_cook_picks_oldest_order_then_table_id (test_quan_slice4.QuanSlice4Tests.test_cook_picks_oldest_order_then_table_id) ... ok
+test_full_cook_pick_serve_pay_with_tip (test_quan_slice4.QuanSlice4Tests.test_full_cook_pick_serve_pay_with_tip) ... ok
+test_interact_priority_does_not_fall_through (test_quan_slice4.QuanSlice4Tests.test_interact_priority_does_not_fall_through) ... ok
+test_no_tip_when_patience_below_threshold (test_quan_slice4.QuanSlice4Tests.test_no_tip_when_patience_below_threshold) ... ok
+test_patience_leave_cleans_hand_and_reduces_reputation_without_refund (test_quan_slice4.QuanSlice4Tests.test_patience_leave_cleans_hand_and_reduces_reputation_without_refund) ... ok
+test_serve_at_exact_zero_patience_tick_succeeds (test_quan_slice4.QuanSlice4Tests.test_serve_at_exact_zero_patience_tick_succeeds) ... ok
 test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
 test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
 test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
@@ -36,6 +53,6 @@ test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 32 tests in 8.827s
+Ran 49 tests in 8.995s
 
 OK

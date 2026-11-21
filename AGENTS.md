@@ -27,3 +27,4 @@
 
 ## Skills / hooks của nhóm
 - (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `qa-verify-phase` (`.agents/skills/qa-verify-phase/SKILL.md`, chủ: `hungdt31`): chạy trước khi gắn tag `phase-N` hoặc khi review PR đổi contract. Gồm test, smoke, tất định, e2e nối kho; nhớ `git add -f` file `*.jsonl` bằng chứng.
