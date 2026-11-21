@@ -12,12 +12,9 @@ def tuning():
         return json.load(f)["tuning"]
 
 
-def make(scn=None, seed=1, inventory=None, two_tables=False):
+def make(scn=None, seed=1, inventory=None):
     block = (scn or {}).get("quan", {})  # Session nhận đúng khối `quan` (như scenario.load_scenario trả về)
-    t = tuning()
-    if two_tables:  # preset chỉ có T1; scenario không được thêm bàn mới -> thêm vào tuning cho test
-        t["quan"]["tables"].append({"id": "T2", "pos": [12, 2]})
-    return Session("quan", t, block, seed, inventory)
+    return Session("quan", tuning(), block, seed, inventory)  # contract v1.1: preset đã có T1..T4
 
 
 def idle():
@@ -60,9 +57,10 @@ class Customers(unittest.TestCase):
         self.assertEqual(s.sim.customers, [])
 
     def test_no_free_table_skips_without_no_dish(self):
-        s = make({"quan": {"stock": {"ca_loc": 2}}})
-        ev = run(s, 120 + 900)
-        self.assertEqual(names(ev), ["customer_arrived"])  # T1 còn khách -> lượt 2 bỏ qua, không no_dish
+        # v1.1: preset có 4 bàn -> phải chiếm đủ T1..T4 thì lượt đến mới bị bỏ qua (không phát no_dish)
+        cs = [{"id": f"C{i}", "table_id": f"T{i}", "dish_id": "ca_loc_nuong_trui"} for i in range(1, 5)]
+        s = make({"quan": {"stock": {"ca_loc": 5}, "customers": cs}})
+        self.assertEqual(run(s, 120 + 900), [])
 
     def test_random_customers_false(self):
         s = make({"quan": {"stock": {"ca_loc": 1}, "random_customers": False}})
@@ -71,7 +69,7 @@ class Customers(unittest.TestCase):
     def test_reservation_excludes_available_stock(self):
         # kho chỉ đủ 1 phần; khách 1 giữ chỗ, khách 2 (bàn khác) phải no_dish
         sc = {"quan": {"stock": {"ca_loc": 1}}}
-        s = make(sc, two_tables=True)
+        s = make(sc)
         ev = run(s, 120 + 900)
         self.assertEqual(names(ev), ["customer_arrived", "no_dish"])
 
@@ -168,7 +166,7 @@ class Kitchen(unittest.TestCase):
                                   "base_price": 60, "tip": 12, "reserved": {}},
                                  {"id": "C2", "table_id": "T2", "dish_id": "goi_bong_sung"}],
                       stock={"bong_sung": 2})
-        s = make(sc, two_tables=True)
+        s = make(sc)
         ev = run(s, 2)
         self.assertEqual(names(ev), ["paid", "customer_left", "quan_end"])
         self.assertEqual(ev[0][2]["reason"], "closing")
