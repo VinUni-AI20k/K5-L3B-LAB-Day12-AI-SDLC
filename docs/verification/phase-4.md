@@ -1,6 +1,6 @@
 # Ma trận truy vết Phase 4 (TICKET-04 · Phát hành v1.0.0 · Test Contract v1.3)
 
-- **QA:** `hungdt31` · **Commit được kiểm:** `75698f3` (nhánh `feat/p4-qa-soak-verification`) · Python 3.14.4 / Linux.
+- **QA:** `hungdt31` · **Commit được kiểm:** `75698f3`, sau khi rebase lên `main` `4e124c3` thành `00d3e4c` (chỉ thêm file phản tư của `tranha1764`, không đổi code; test chạy lại 89/89 OK). Nhánh `feat/p4-qa-soak-verification` · Python 3.14.4 / Linux.
 - Ticket không đánh số AC, nên QA đặt mã `AC-P4-xx` theo thứ tự mục trong TICKET-04 và DoD.
 - **Phải chạy lại bảng này trên commit gắn tag `phase-4`** trước 3:00, rồi sửa cột Kết quả nếu khác.
 
