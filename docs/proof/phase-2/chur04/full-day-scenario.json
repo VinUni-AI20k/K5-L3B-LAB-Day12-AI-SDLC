@@ -1,0 +1,8 @@
+{
+  "gather": {
+    "random_fish": false
+  },
+  "quan": {
+    "random_customers": false
+  }
+}

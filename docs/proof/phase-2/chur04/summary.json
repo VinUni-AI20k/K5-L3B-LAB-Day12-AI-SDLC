@@ -1,0 +1,37 @@
+{
+  "tests_run": 104,
+  "tests_passed": true,
+  "legacy_tests_local_python": true,
+  "scope": "chur04 backend; random_fish=false, no monster validation",
+  "day_deterministic": true,
+  "day_sha256": "56b42d48b76d961fd6b2b526300ef3840e082c16fd87ea73f630e880db9cae4f",
+  "day_end": {
+    "type": "end",
+    "ticks": 6,
+    "sim_tick": 6,
+    "mode": "day",
+    "state": "finished",
+    "reason": "days_complete",
+    "money": 0,
+    "earned": 200,
+    "reputation": 3.0,
+    "score": 500,
+    "days_completed": 2
+  },
+  "full_day_seconds": 0.40249,
+  "full_day_end": {
+    "type": "end",
+    "ticks": 22200,
+    "sim_tick": 22200,
+    "mode": "day",
+    "state": "finished",
+    "reason": "days_complete",
+    "money": 0,
+    "earned": 0,
+    "reputation": 3.0,
+    "score": 300,
+    "days_completed": 1
+  },
+  "inventory_handoff": true,
+  "passed": true
+}

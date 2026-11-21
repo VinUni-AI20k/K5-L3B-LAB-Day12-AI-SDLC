@@ -1,0 +1,17 @@
+{
+  "gather": {
+    "fish_yield": {"ca_keo": 2, "ca_ro_dong": 1},
+    "nodes": [
+      {"id": "N7", "kind": "rau_muong", "pos": [36, 0]}
+    ],
+    "fish_initial": [
+      {"id": "F7", "kind": "ca_keo", "pos": [22, 6], "heading_deg": 0},
+      {"id": "F8", "kind": "ca_ro_dong", "pos": [38, 8], "heading_deg": 0}
+    ]
+  },
+  "menu": {
+    "ca_keo_kho_to": {"recipe": {"ca_keo": 2}, "cook_s": 7, "price": 75},
+    "canh_chua_ca_ro_keo_neo": {"recipe": {"ca_ro_dong": 1, "keo_neo": 1}, "cook_s": 8, "price": 85},
+    "rau_muong_xao": {"recipe": {"rau_muong": 2}, "cook_s": 4, "price": 45}
+  }
+}

@@ -1,0 +1,12 @@
+# Ma trận kiểm chứng Phase 2
+
+| Phạm vi / mục PRD Phase 2 | Cách kiểm chứng | Bằng chứng | Kết quả |
+|---|---|---|---|
+| **Contract v1.1 & 6 nguyên liệu** (`game.contract.json`, `inventory.py`, `contract.py`) | `load_contract()` kiểm `1.1`, 6 nút `N1..N6`, 8 cá đầu ca, 2 bếp, 4 bàn, 6 món, 5 ngày, shop; nạp kho chứa `ca_keo`, `keo_neo` | `tests/test_monsters.py`, [contract-monsters.txt](../proof/phase-2/contract-monsters.txt) | Đạt |
+| **Lát 1 — Cá bơi, phản xạ mép/góc & sinh cá (`gather_fish.py`)** | `tests/test_gather.py::GatherPhase2FishTest`: 8 đàn đầu ca ở 8 điểm khác nhau, bơi `1.5 m/s`, đổi hướng tick `120`, phản xạ mép/góc, sinh `360·k` trần `12`, `random_fish: false` đứng yên | `tests/test_gather.py` | Đạt |
+| **Lát 2 — Cá Sấu Năm Chèo `M1`/`M2` (`gather_monsters.py`)** | `tests/test_monsters.py`: M1 Ngày 1 / M2 Ngày 3, patrol `1.0 m/s` đổi waypoint, chase `3.0 m/s` ngưỡng `d >= 10`, hit mất 1 HP + `floor(hold/2)` LIFO + bất tử `90` tick, recoil `60` tick (`+x` khi trùng tâm), faint `cause="monster"`, scenario lỗi mã `2` | `tests/test_monsters.py`, [contract-monsters.txt](../proof/phase-2/contract-monsters.txt) | Đạt |
+| **Lát 3 — 2 bếp/4 bàn/6 món, ghế id nhỏ nhất, menu theo kế hoạch** | `tests/test_chur04_phase2.py::Quan11` + `tests/test_quan_service.py` (28 test) | [chur04/tests.txt](../proof/phase-2/chur04/tests.txt) | Đạt |
+| **Lát 4 — `--mode day`, Shop (`oxygen`/`hp`), `pause`/`resumed`, inputs v1.1** | `tests/test_chur04_phase2.py::DayAndShop`, `Inputs11`, `HeadlessDay`: đổi pha cùng tick, Shop áp cấp từ Ngày kế, pause đóng băng timer/lịch, 1 Ngày 22.200 tick ≤ 20s | [chur04/day-run1.txt](../proof/phase-2/chur04/day-run1.txt), [chur04/summary.json](../proof/phase-2/chur04/summary.json) | Đạt |
+| **Tích hợp kho `gather → inventory → quan` & determinism** | `check-contract` (`gather` & `quan` byte-identical) + smoke tích hợp CLI | [chur04/inventory.json](../proof/phase-2/chur04/inventory.json), [chur04/integration-quan.txt](../proof/phase-2/chur04/integration-quan.txt) | Đạt |
+| **Regression P1 trên số chuẩn v1.1** | `tests/test_smoke_p1.py` (cập nhật `fish_initial` đọc từ contract, `attack`/`day` hợp lệ ở v1.1), `tests/test_quan_service.py` (đứng trái `B1` tránh `B2 [5,8]`), `tests/test_ui_live.py` | Toàn bộ 118 test lõi + `check-contract` PASS | Đạt |
+| **UI Phase 2 (`live.py`, `index.html`) & gắn tag `phase-2`** | Chờ gộp nhánh `origin/duhocsinh` và chạy kiểm chứng cuối trên `main` trước khi gắn tag `phase-2` | Đang tích hợp | Đang hoàn thiện |
