@@ -7,6 +7,6 @@
 | 1 | czx04 | Codex CLI 0.169 (codex exec) | Viết tests/test_quan.py, ma trận truy vết docs/verification/phase-1.md, tools/smoke_p1.sh | chưa đo | Fixture test quan khai tip: 0 cho khách chờ, lệch quy ước của sim/quan |
 | 1 | czx04 | Codex CLI 0.169 (codex exec, read-only) | Review PR #3, #4 so với contracts | chưa đo | Gợi ý sai về node_yield (PRD ghi thêm 1 nguyên liệu) |
 | 1 | czx04 | Codex CLI 0.169 (codex exec) | Soạn khung docs/members/* và nhật ký này từ git log | chưa đo | — |
-| 1 | ToanLee5433 | TODO(ToanLee5433) | TODO(ToanLee5433): ghi công cụ AI đã dùng cho phần mình | TODO | TODO |
+| 1 | ToanLee5433 | Antigravity (Gemini) | Triển khai sim/gather; chốt contracts/clarify phase 1; sửa hồi chiêu và node_yield | ~45k tokens | AI tự ý gán hồi chiêu 30 tick khi giỏ đầy và hardcode thu hoạch 1 món thay vì lấy từ cấu hình |
 | 1 | Ishodayo | TODO(Ishodayo) | TODO(Ishodayo): ghi công cụ AI đã dùng cho phần mình | TODO | TODO |
 | 1 | itsbra1vo | TODO(itsbra1vo) | TODO(itsbra1vo): ghi công cụ AI đã dùng cho phần mình | TODO | TODO |
