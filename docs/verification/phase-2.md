@@ -32,3 +32,15 @@ Cách bật: đổi `contract_version` sang `"1.1"` rồi chạy `PYTHONPATH=tes
 - Điều cần chỉnh cho phase sau: Integrator đổi `contract_version` sang `1.1` khi tích hợp xong để 46 test Phase 2 chạy; người làm
   `day` cần nhận các nút `pause`, `shop_done`, chuỗi `buy` ở `/input` để UI dùng được; chạy lại bảng này sau khi bật test.
 - Giới hạn của bằng chứng: ảnh `*-snapshot-gia.png` dựng từ snapshot soạn tay, không phải từ mô phỏng thật.
+
+## Cập nhật triển khai lát 3–4 trên contract v1.2
+
+Bảng phía trên là ảnh chụp cũ tại commit QA. Worktree hiện chạy contract v1.2, do đó các kết quả lịch sử v1.0/v1.1 không xác nhận luật mới.
+
+| AC | Phần triển khai hiện tại | Bằng chứng | Kết quả |
+|---|---|---|---|
+| AC-P2-07 Quán | Kế hoạch ngày lọc món gọi; 2 bếp/4 bàn/6 món lấy từ contract | `chonoi/sim/quan.py`, `game.contract.json`, `docs/proof/phase-2/lit-3-4.md` | Đã triển khai; chưa chạy kiểm chứng mới |
+| AC-P2-08 Vòng ngày | `--mode day`, `--days`, event/snapshot theo ngày và chuyển pha | `chonoi/sim/day.py`, `chonoi/runner.py`, `chonoi/headless.py` | Đã triển khai; chưa chạy kiểm chứng mới |
+| AC-P2-09 Shop | Mua, thất bại mua, đóng sớm/timeout, nâng cấp hiệu lực từ ngày kế | `chonoi/sim/day.py`, `chonoi/inputs.py` | Đã triển khai; chưa chạy kiểm chứng mới |
+| AC-P2-10 Pause | Dừng simulation tick và timer; resume chạy gameplay ngay | `chonoi/runner.py`, `chonoi/inputs.py`, `chonoi/live.py` | Đã triển khai; chưa chạy kiểm chứng mới |
+| AC-P2-11 Hiệu năng | Test ≤20 s/22.200 tick | `tests/test_p2_rules.py::Hieunang` | Chưa đo |

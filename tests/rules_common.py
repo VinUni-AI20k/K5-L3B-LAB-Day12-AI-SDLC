@@ -34,6 +34,9 @@ requires_v11 = unittest.skipUnless(contract_version() == "1.1", "chờ contract_
 
 def run_day(w, scenario=None, inp=None, days=1, ticks=10, every=1, seed=1):
     """Chạy `--mode day` với scenario nhiều khối ({day, gather, quan}); trả danh sách dòng JSONL."""
+    scenario = {} if scenario is None else dict(scenario)
+    if "quan" in scenario and "random_reservations" not in scenario["quan"] and "reservations" not in scenario["quan"]:
+        scenario["quan"] = dict(scenario["quan"], random_reservations=False)
     args = ["--mode", "day", "--days", str(days), "--seed", str(seed), "--ticks", str(ticks),
             "--snapshot-every", str(every), "--out", w.path("o.jsonl")]
     if scenario is not None:
@@ -50,6 +53,9 @@ def run_mode(w, mode, block, inp=None, ticks=10, every=1, inv_out=None, seed=1):
 
     `every=1` cho snapshot mỗi tick để đọc trạng thái tại tick bất kỳ.
     """
+    block = dict(block)
+    if mode == "quan" and "random_reservations" not in block and "reservations" not in block:
+        block["random_reservations"] = False
     args = ["--mode", mode, "--seed", str(seed), "--ticks", str(ticks), "--snapshot-every", str(every),
             "--scenario", write_json(w.path("sc.json"), {mode: block}), "--out", w.path("o.jsonl")]
     if inp is not None:

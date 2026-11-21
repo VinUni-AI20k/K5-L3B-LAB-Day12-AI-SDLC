@@ -17,7 +17,8 @@ NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
 FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
 QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
-             "reputation", "time_left_ticks"}
+             "reputation", "time_left_ticks", "reservations", "random_reservations"}
+DAY_KEYS = {"money", "earned", "reputation", "upgrades", "day_plan"}
 
 
 def _check_ids(name, arr):
@@ -40,10 +41,65 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
             data = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
-    if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
-        raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
-    if set(data) - {mode}:
+    allowed_top = {"gather", "quan", "day"} if mode == "day" else {mode}
+    if not isinstance(data, dict) or not set(data) <= allowed_top:
+        raise BadInput("scenario có khối không hợp lệ cho mode đã chọn")
+    if mode != "day" and set(data) - {mode}:
         raise BadInput(f"khối sai mode: chạy --mode {mode} chỉ nhận khối '{mode}'")
+    if mode == "day":
+        for phase in ("gather", "quan"):
+            child = data.get(phase, {})
+            if not isinstance(child, dict):
+                raise BadInput(f"khối {phase} phải là object")
+            if phase == "quan" and ("stock" in child or "reputation" in child):
+                raise BadInput("không khai quan.stock hoặc quan.reputation khi chạy day")
+            _validate_block(child, phase, tuning)
+        day = data.get("day", {})
+        if not isinstance(day, dict) or set(day) - DAY_KEYS:
+            raise BadInput("day có trường lạ hoặc không phải object")
+        money, earned = day.get("money", 0), day.get("earned", 0)
+        if any(isinstance(v, bool) or not isinstance(v, int) or v < 0 for v in (money, earned)):
+            raise BadInput("day.money và day.earned phải là số nguyên không âm")
+        if money > earned:
+            raise BadInput("day.money không được lớn hơn day.earned")
+        if "reputation" in day:
+            rep, q = day["reputation"], tuning["quan"]
+            if not _num(rep) or not q["reputation_min"] <= rep <= q["reputation_max"]:
+                raise BadInput("day.reputation nằm ngoài giới hạn")
+        upgrades = day.get("upgrades", {})
+        if not isinstance(upgrades, dict):
+            raise BadInput("day.upgrades phải là object")
+        for name, level in upgrades.items():
+            options = tuning["shop"]["upgrades"].get(name)
+            if options is None or isinstance(level, bool) or not isinstance(level, int) or not any(u["level"] == level for u in options):
+                raise BadInput(f"day.upgrades.{name} không hợp lệ")
+        plan = day.get("day_plan")
+        if plan is not None:
+            if isinstance(plan, dict):
+                try:
+                    plan = [{"day": int(k), **v} for k, v in plan.items()]
+                except (TypeError, ValueError):
+                    raise BadInput("day.day_plan có khóa ngày sai")
+            if not isinstance(plan, list):
+                raise BadInput("day.day_plan phải là object hoặc mảng")
+            seen_days = set()
+            for item in plan:
+                if not isinstance(item, dict) or set(item) - {"day", "dishes", "ingredients"}:
+                    raise BadInput("mỗi mục day_plan chỉ có day, dishes, ingredients")
+                d = item.get("day")
+                if isinstance(d, bool) or not isinstance(d, int) or not 1 <= d <= 5 or d in seen_days:
+                    raise BadInput("day_plan.day phải duy nhất trong [1, 5]")
+                seen_days.add(d)
+                dishes = item.get("dishes")
+                if not isinstance(dishes, dict) or any(k not in tuning["menu"] or isinstance(v, bool) or not isinstance(v, int) or v <= 0 for k, v in dishes.items()):
+                    raise BadInput("day_plan.dishes không hợp lệ")
+                totals = {}
+                for dish, count in dishes.items():
+                    for kind, amount in tuning["menu"][dish]["recipe"].items():
+                        totals[kind] = totals.get(kind, 0) + amount * count
+                if item.get("ingredients", totals) != totals:
+                    raise BadInput("day_plan.ingredients không khớp tổng công thức")
+        return data
     block = data.get(mode, {})
     if not isinstance(block, dict):
         raise BadInput(f"khối {mode} phải là object")
@@ -61,6 +117,22 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
     else:
         _validate_quan(block, tuning)
     return block
+
+
+def _validate_block(block, mode, tuning):
+    allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
+    extra = set(block) - allowed
+    if extra:
+        raise BadInput(f"trường lạ/chưa hỗ trợ trong {mode}: {sorted(extra)}")
+    duration = int(round(tuning[mode]["duration_s"] * 60))
+    if "time_left_ticks" in block:
+        t = block["time_left_ticks"]
+        if isinstance(t, bool) or not isinstance(t, int) or not 1 <= t <= duration:
+            raise BadInput(f"time_left_ticks phải là số nguyên trong [1, {duration}]")
+    if mode == "gather":
+        _validate_gather(block, tuning)
+    else:
+        _validate_quan(block, tuning)
 
 
 def _num(v):
@@ -171,11 +243,16 @@ def _validate_gather(b, tuning):
 
 
 def _validate_quan(b, tuning):
-    for arr in ("stoves", "tables", "customers"):
+    for arr in ("stoves", "tables", "customers", "reservations"):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate_items(b["stock"])
+        if isinstance(b["stock"], list):
+            b["stock"] = validate_item_list(b["stock"])
+        else:
+            validate_items(b["stock"])
+    if "random_reservations" in b and not isinstance(b["random_reservations"], bool):
+        raise BadInput("random_reservations phải là boolean")
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")
@@ -191,3 +268,45 @@ def _validate_quan(b, tuning):
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    stock_by_id = {item["id"]: item for item in b.get("stock", [])} if isinstance(b.get("stock"), list) else {}
+    reserved_ids = set()
+    for customer in b.get("customers", []):
+        if "reserved" not in customer or isinstance(customer["reserved"], dict):
+            continue  # Historical count-based fixtures remain readable during fixture migration.
+        if "stock" not in b:
+            continue  # --inventory is checked against these IDs when QuanSim is constructed.
+        reserved = customer["reserved"]
+        if (not isinstance(reserved, list) or
+                any(not isinstance(iid, str) or iid not in stock_by_id for iid in reserved)):
+            raise BadInput(f"customers.{customer['id']}.reserved phải trỏ tới id có trong quan.stock")
+        if len(reserved) != len(set(reserved)) or reserved_ids.intersection(reserved):
+            raise BadInput("customers.reserved không được dùng chung id cá thể")
+        for iid in reserved:
+            if stock_by_id[iid]["fresh"] < tuning["freshness"]["spoiled_below"]:
+                raise BadInput(f"customers.{customer['id']}.reserved không được giữ hàng đã ươn")
+        reserved_ids.update(reserved)
+    reservation_ids = set()
+    reservation_tables = set()
+    reservation_cfg = tuning["quan"]["reservations"]
+    for reservation in b.get("reservations", []):
+        rid = reservation["id"]
+        if set(reservation) != {"id", "table_id", "dish_id", "arrival_tick"}:
+            raise BadInput(f"reservations.{rid} chỉ có id, table_id, dish_id, arrival_tick")
+        if rid in reservation_ids:
+            raise BadInput(f"reservations: id trùng {rid}")
+        reservation_ids.add(rid)
+        if reservation.get("table_id") not in known or reservation["table_id"] in reservation_tables:
+            raise BadInput("reservations.table_id phải là bàn có thật và khác các đơn khác")
+        reservation_tables.add(reservation["table_id"])
+        if reservation.get("dish_id") not in tuning["menu"]:
+            raise BadInput(f"reservations.{rid}.dish_id không thuộc menu")
+        tick = reservation.get("arrival_tick")
+        duration = int(round(tuning["quan"]["duration_s"] * 60))
+        if isinstance(tick, bool) or not isinstance(tick, int) or not 0 < tick < duration:
+            raise BadInput(f"reservations.{rid}.arrival_tick phải thuộc (0, {duration})")
+    for customer in b.get("customers", []):
+        reservation_id = customer.get("reservation_id")
+        if reservation_id is not None and reservation_id not in reservation_ids:
+            raise BadInput(f"customers.{customer['id']}.reservation_id không có trong quan.reservations")
+    if len(b.get("reservations", [])) > reservation_cfg["count"]:
+        raise BadInput(f"reservations tối đa {reservation_cfg['count']} đơn")

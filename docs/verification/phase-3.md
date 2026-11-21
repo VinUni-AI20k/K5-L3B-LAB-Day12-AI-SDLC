@@ -1,4 +1,4 @@
-# Ma trận truy vết Phase 3 (Lát 2: Ngô Duy Khánh)
+# Ma trận truy vết Phase 3
 
 | AC | Nội dung yêu cầu | Cách kiểm chứng | Bằng chứng | Kết quả |
 |---|---|---|---|---|
@@ -13,3 +13,15 @@
 ## Đánh giá ngắn
 - **Đạt**: Hoàn thành toàn bộ chuyển đổi schema kho cá thể, cơ chế độ tươi, hao tươi trong giỏ, sự kiện `spoiled` và tương thích 2 chiều giữa Lặn & Quán.
 - **Lưu ý**: Contract v1.2 là breaking change so với v1.0, các test mới được lưu trữ tập trung tại `tests/test_phase3_slice2.py`.
+
+## Lát 3–4 — Quán, đơn đặt trước và tích hợp
+
+| AC | Nội dung yêu cầu | Cách kiểm chứng | Bằng chứng | Kết quả |
+|---|---|---|---|---|
+| AC-P3-08 | Kho Quán hao 0.25/s; loại cá thể dưới 30 và phát `spoiled` theo ID | `test_phase3_slice3_4.py::QuanFreshness.test_stock_decays_and_spoils_before_order_handling` | Snapshot kho rỗng sau spoiled ở tick 1 | Đã triển khai; chưa chạy |
+| AC-P3-09 | Đơn giữ chỗ theo ID, dùng cá thể tươi nhất; `cook_started.items` gồm cá thể và giá khóa theo fresh | `test_phase3_slice3_4.py::QuanFreshness.test_cook_locks_exact_item_and_fresh_adjusted_price` | Khóa I7, giá theo fresh sau hao của tick đầu | Đã triển khai; chưa chạy |
+| AC-P3-10 | Reservation giữ bàn, kiểm occupied/stock, phát arrival và failure, trừ uy tín một lần | `test_phase3_slice3_4.py::ReservationOrders` | Fixture R1; snapshot có reservation_id và ID kho được giữ | Đã triển khai; chưa chạy |
+| AC-P3-11 | Day công bố 2 reservation sau phase_start và cấp ID kho mới/tươi đầu ngày | `test_phase3_slice3_4.py::ReservationOrders` | Event R1/R2; fixture I7 thành I8, fresh 100 ở Ngày 2 | Đã triển khai; chưa chạy |
+| AC-P3-12 | HUD thể hiện fresh của giỏ/kho và reservation | Kiểm tra giao diện từ snapshot v1.2 | `chonoi/web/index.html` | Đã triển khai; chưa chụp lại |
+
+Giá theo fresh đang dùng trung bình độ tươi của các cá thể trong món, lấy floor; giá reservation nhân hệ số rồi floor trước khi tính boa. Đây là giả định đang chờ PO xác nhận trong `docs/clarify.md`.
