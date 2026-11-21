@@ -48,6 +48,17 @@ python3 -m unittest -v tests.test_quan tests.test_smoke_p1.Integration.test_inv_
 - Quán đọc đúng kho tại tick 0. Khi gather dừng do giới hạn tick trước khi kết thúc, file kho đích giữ nguyên.
 - Kết quả thuộc nhánh quán tại `2090b6e`. Chờ chạy lại trên bản tích hợp Phase 2.
 
+## Bàn giao nguyên liệu mới tại `9f4c078`
+
+- **Gather → quán:** Dùng seed 42, `gather.hold=["ca_keo","ca_keo","keo_neo"]`, `random_fish:false` và `interact:true` ở input tick 0. Gather trả mã 2 với lỗi `hold phải là mảng id nguyên liệu hợp lệ`. Luồng dừng ở bước kiểm tra fixture gather.
+- **Quán độc lập:** Nạp trực tiếp `{"items":{"ca_keo":2,"keo_neo":1}}` bằng `--inventory`, chạy với seed 42 và `--ticks 0`. Snapshot tick 0 có `stock: {"ca_keo":2,"keo_neo":1}`. Kết quả: đạt.
+
+## Kiểm chứng tích hợp trên `main` tại `8c1d93c`
+
+- Windows PowerShell, Python 3.11.9. Chạy `$env:PYTHONPATH = 'tests;.'` rồi `python3 -m unittest discover -s tests -v`.
+- Kết quả: 51/54 đạt trong 11,224 giây. Ca Cá Sấu gây ngất ở 1 Máu và hai ca bàn giao kho cũ đều đạt.
+- Ba ca chưa đạt: test Cá Sấu không gây ngất bị chặn khi kiểm tra `gather.hold`; CLI từ chối `--days 2`; parser từ chối `pause` tại frame 0.
+- Chạy lại smoke nguyên liệu mới với seed 42 và `gather.hold=["ca_keo","ca_keo","keo_neo"]`. Gather trả mã 2 với lỗi `hold phải là mảng id nguyên liệu hợp lệ`, nên chưa xuất kho để chạy quán.
 ## Kiểm chứng trên main Phase 2
 
 - Ngày kiểm 2026-11-21, Windows PowerShell, Python 3.12.10 và Node.js. Bản vừa pull là `881c4c41413115bc1bc99cc8d76bf7875b86576f`, trùng `refs/heads/main` trên GitHub.
