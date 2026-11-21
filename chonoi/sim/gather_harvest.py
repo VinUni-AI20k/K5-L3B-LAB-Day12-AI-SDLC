@@ -6,7 +6,8 @@
 
 Dùng được trên `sim` (GatherSim):
   sim.t (tuning gather), sim.pos, sim.nodes, sim.fish, sim.hold, sim.catch_cd_ticks, sim._at_surface()
-  sim._add_to_hold(kind, n, events) -> bool   # thêm cuối giỏ; thiếu chỗ thì tự phát hold_full, trả False
+  sim._add_to_hold(kind, n, events, source) -> bool   # thiếu chỗ: tự phát hold_full {**source, required, free}
+      source = {"action": "catch", "fish_id": id} hoặc {"action": "gather", "node_id": id}
 Số liệu chỉ đọc từ sim.t (interact_radius, node_yield, regrow_s, catch_radius, catch_cooldown_s, fish_yield).
 Sự kiện: events.append((tên, data)).
 """

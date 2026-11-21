@@ -127,7 +127,10 @@ class Hold(unittest.TestCase):
         sim, ev = self.make(["ca_loc"] * (cap - 2)), []
         self.assertFalse(sim._add_to_hold("ca_linh", 3, ev))
         self.assertEqual(len(sim.hold), cap - 2)
-        self.assertEqual(ev[0][0], "hold_full")
+        self.assertEqual(ev[0], ("hold_full", {"required": 3, "free": 2}))
+        ev2 = []
+        sim._add_to_hold("ca_linh", 3, ev2, {"action": "catch", "fish_id": "F1"})
+        self.assertEqual(ev2[0][1], {"action": "catch", "fish_id": "F1", "required": 3, "free": 2})
         self.assertTrue(sim._add_to_hold("bong_sung", 2, ev))
         self.assertEqual(len(sim.hold), cap)
 
