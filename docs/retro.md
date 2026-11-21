@@ -45,7 +45,7 @@
 ### 1. Rà hành động đã chốt ở retro P2 (và P3)
 | Hành động | Người nhận | Đã làm chưa | Bằng chứng / vì sao |
 |---|---|---|---|
-| Trả nợ Phase 2 trước khi bật v1.2 | invzble-z | 🟡 phần lớn | `sim/day.py` (`721088a`), `sim/monsters.py` đã vào `main`; adapter `Item` + `freshness` (`0748ff3`); `day` giữ id xuyên Ngày (`48c96b3`). Chưa lật `"1.2"`, kho cá thể ở quán chưa xong, chưa có tag `phase-3` |
+| Trả nợ Phase 2 trước khi bật v1.2 | invzble-z | ✅ Đã hoàn thành | `sim/day.py`, `sim/monsters.py` đã vào `main`; adapter `Item` + `freshness` (`0748ff3`); `day` giữ id xuyên Ngày (`48c96b3`). Đã gộp toàn bộ PR P3/P4 và gắn tag `phase-3` tại `edd0a71` |
 | Kiên pair với Bào làm `day.py` | ttkien0710, invzble-z | ❌ | `git log -- chonoi/sim/day.py`: Bào viết chính (`721088a`, `0748ff3`), Tú nối pha ngày đêm (`6e5cd3c`) và Cá Sấu (`8251ef0`); không có commit của Kiên. Kiên chuyển sang giá theo độ tươi (PR #12) |
 | (P3) Smoke đầu-cuối với manifest thật trước khi lật `"1.2"` | WorkOfMinh, invzble-z | ❌ | Chưa lật `"1.2"`; lỗi chép `contract_version` vào `tuning` (clarify #9) chưa sửa |
 | Mỗi PR có 1 review của người dự phòng trước khi gộp | invzble-z | ❌ | `gh pr list --json reviews`: 14/14 PR đã gộp đều có 0 review, kể cả #13 và #14 sau retro P2. Một số commit lớn (`721088a`, `0748ff3`, `48c96b3`) đẩy thẳng lên `main` |
@@ -57,7 +57,7 @@
 - **Test tăng đều:** 44 (P1) → 96 → 127 (P2) → 182 (`48c96b3` + nhánh PO).
 
 ### 3. Điều tệ
-- **Đường găng dồn vào Integrator suốt buổi:** số chuẩn, `day.py`, adapter, Release đều qua một người. Đến `48c96b3` vẫn chưa có tag `phase-3`, contract v1.3, `bench.py`, `soak.py`, `LICENSE`.
+- **Đường găng dồn vào Integrator suốt buổi:** số chuẩn, `day.py`, adapter, Release đều qua một người. Đến cuối Phase 4, toàn bộ đã được giải phóng khi gắn tag `phase-3`, contract v1.3, gộp PR #16 bench và PR #17 soak, hoàn thiện `LICENSE` và Release v1.0.0.
 - **Không review chéo** (mục 1): thỏa thuận trong `TEAM.md` không được thực hiện lần nào.
 - **Hợp đồng viết sau code** nên lệch tên trường. Ví dụ: `customer_id`/`order_id`, `dish_burned`, `state:"running"`, quái phát `species` trong khi mock dùng `kind` (`docs/contracts/README.md` §10).
 - **Câu hỏi chờ PO quá lâu:** Q3 D-01..D-09, Q4-F1, `no_dish` mở từ P1 tới cuối P2 mới chốt (clarify #10–#15).

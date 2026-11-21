@@ -2,13 +2,16 @@
 
 > Nháp do PO (nganhduong123) viết ở Phase 3, Integrator (invzble-z) duyệt và chốt khi gắn tag. Mỗi mục ghi theo phase và `contract_version`.
 
-## Unreleased — Phase 4, Contract v1.3 "Phát hành v1.0.0" (đang làm)
+## Phase 4 — Contract v1.3 "Phát hành v1.0.0" (tag `phase-4`, `v1.0.0`)
 
 ### Thêm
 - **Manifest v1.3 (AC-P4-01)**: Nâng `contract_version: "1.3"`, khai báo `bench_cmd: "python3 -m chonoi.bench"` và `soak_cmd: "python3 -m chonoi.soak"`.
 - Bổ sung hàm `validate_contract(c)` trong `chonoi/contract.py` kiểm tra bắt buộc phải có `bench_cmd` và `soak_cmd`.
 - Bộ test đơn vị `tests/test_p4_contract.py` kiểm tra cấu hình Contract v1.3.
-- Client web & live server: 3 cảnh báo bằng chữ và biểu tượng (Thủy quái gần, Oxy sắp hết, Khách sắp giận) và chế độ Độ tương phản cao (High Contrast, phím H).
+- **Benchmark render (AC-P4-02)**: Cài đặt module `chonoi/bench.py` tự động đo render 30s với Chromium headless (`?bench=1`), thu thập frame_ms và tính toán 5 chỉ số (avg_fps ~46.92, p1_low ~29.79).
+- **Soak testing DaySim (AC-P4-03)**: Cài đặt module `chonoi/soak.py` kiểm thử 10 ngày đêm liên tục, đạt 0 crash và tính tất định tuyệt đối.
+- **Client Web & Live Server (AC-P4-04)**: Tích hợp 3 cảnh báo trực quan bằng chữ và biểu tượng (Thủy quái gần, Oxy sắp hết, Khách sắp giận) và chế độ Độ tương phản cao (High Contrast, phím H hoặc nút toggle).
+- **Phát hành & Đóng gói (AC-P4-05, AC-P4-07)**: Kiểm chứng clone sạch trong ≤ 3 lệnh (`docs/proof/phase-4/clean-clone.txt`), thêm `LICENSE`, Release Notes (`docs/release-notes-v1.0.0.md`), gói ZIP `cho-noi-v1.0.0.zip` và GitHub Release v1.0.0.
 - ADR 0003: Bench có render, bot soak và bản đóng gói v1.0.0.
 
 ## Phase 3 — Contract v1.2 "Mùa Nước Nổi"
