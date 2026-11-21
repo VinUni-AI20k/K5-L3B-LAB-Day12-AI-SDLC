@@ -9,6 +9,21 @@
 Bản tải về: GitHub Release **v1.0.0** → `quan-an-cho-noi-v1.0.0.zip` (giải nén, chạy `./run.sh`; macOS có thể bấm đúp `run.command`).
 Ghi chú phát hành: [`docs/release/RELEASE_NOTES_v1.0.0.md`](docs/release/RELEASE_NOTES_v1.0.0.md) · thay đổi: [`CHANGELOG.md`](CHANGELOG.md).
 
+### Video demo (1:55, 2 Ngày chơi)
+
+[![Xem video demo Quán Ăn Chợ Nổi](docs/media/screenshots/01-title-key-art.png)](docs/media/demo.mp4)
+
+▶ **[Xem video demo — `docs/media/demo.mp4`](docs/media/demo.mp4)** (1280×720, không tiếng; bấm ảnh hoặc link để mở trình phát của GitHub).
+Ngày 1: lặn bắt cá → thuê Bé Tí, Chú Bảy và trang trí quán với Bà Tư → mở quán, nhân viên phục vụ → kết sổ → mua nâng cấp ở chợ đêm Chú Sáu. Ngày 2: lặn sâu hơn với bình oxy mới, hạ Cá Sấu Năm Chèo → món đặc sản được phục vụ.
+
+| Lặn & lao móc | Cá Sấu Năm Chèo | Quán nhà bè đông khách |
+|---|---|---|
+| ![Lao móc](docs/media/screenshots/07-harpoon-in-flight.png) | ![Cá Sấu](docs/media/screenshots/09-ca-sau-chase-warning.png) | ![Quán đông khách](docs/media/screenshots/14-busy-service.png) |
+| **Thuê người & trang trí** | **Chợ Chú Sáu — nâng cấp** | **Món đặc sản** |
+| ![Trang trí quán](docs/media/screenshots/20-decorated-raft.png) | ![Nâng cấp](docs/media/screenshots/22-upgrades-shop.png) | ![Món đặc sản](docs/media/screenshots/24-premium-dish-served.png) |
+
+Toàn bộ 24 ảnh và cách quay lại: [`docs/media/README.md`](docs/media/README.md).
+
 ### Yêu cầu môi trường
 - macOS hoặc Linux, **Python ≥ 3.9** (chỉ thư viện chuẩn, không `pip install`), `git`.
 - Trình duyệt hiện đại có ES modules + WebAudio (Chrome/Edge/Firefox/Safari bản gần đây). Màn hình ≥ 1280×720, có bàn phím.
