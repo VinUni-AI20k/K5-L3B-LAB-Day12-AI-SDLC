@@ -4,6 +4,7 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:  # chạy tay từ tab Actions (bằng chứng clone sạch, P4-05)
 
 jobs:
   # CI là TÙY CHỌN: nhóm dùng, sửa hay xóa file này đều được.
@@ -25,3 +26,13 @@ jobs:
         run: bash -c "$(python3 -c 'import json;print(json.load(open("game.contract.json"))["build_cmd"])')"
       - name: Test (hộp đen qua headless_cmd + unit của nhóm)
         run: PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+      # P4-05: clone sạch rồi chạy đúng các lệnh "Chạy nhanh" của README (lệnh 1 là clone bản đang kiểm).
+      - name: Clone sạch theo README (3 lệnh)
+        run: |
+          git clone --quiet "file://$GITHUB_WORKSPACE" "$RUNNER_TEMP/clean"
+          cd "$RUNNER_TEMP/clean"
+          timeout 5 python3 -m chonoi.live --port 0 > live.log 2>&1 || true
+          cat live.log
+          grep -q "Mở trình duyệt tại http://127.0.0.1:" live.log
+          python3 -m chonoi.headless --mode day --days 1 --seed 1 --ticks 600 --out out.jsonl
+          tail -1 out.jsonl
