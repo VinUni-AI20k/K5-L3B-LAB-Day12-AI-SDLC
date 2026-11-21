@@ -1,4 +1,45 @@
-# Day 12 — AI SDLC: Quán Ăn Chợ Nổi
+# Day 12 — AI SDLC: Quán Ăn Chợ Nổi — Nhóm T77
+
+## Chạy game (từ clone sạch, macOS/Linux, chỉ cần Python 3)
+
+```bash
+git clone https://github.com/Ngochung1772k4/K5-L3B-LAB-Day12-AI-SDLC-T77.git && cd K5-L3B-LAB-Day12-AI-SDLC-T77
+python3 -m chonoi.live --mode gather --inventory-out kho.json     # buổi sáng: mở địa chỉ in ra trong trình duyệt
+python3 -m chonoi.live --mode quan --inventory kho.json           # buổi tối: quán dùng đúng kho mang về
+```
+
+Headless (Test Contract v1.0): `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl` (thêm `--scenario`, `--inputs`, `--inventory`, `--inventory-out` theo [PRD-0 mục B](docs/prd/PRD-0.md)).
+
+**Test (1 lệnh):** `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
+
+> Windows: nếu không có lệnh `python3`, copy `python.exe` thành `python3.exe` trong thư mục cài Python (smoke test gọi `headless_cmd` = `python3 -m chonoi.headless`).
+
+## Điều khiển
+
+| Phím | Buổi sáng (lặn & hái) | Buổi tối (quán) |
+|---|---|---|
+| WASD / mũi tên | Bơi (S/↓ = lặn xuống) | Đi lại |
+| E | Hái nút trên mặt nước · cập bến (kết thúc buổi sáng) | Nấu ở bếp · bưng món chín · phục vụ ở bàn |
+| Space | Bắt đàn cá khi đang lặn | — |
+| R | Chơi lại | Chơi lại |
+
+## Cách chơi và tính điểm
+
+- **Sáng:** lặn tốn oxy (30 s), nổi lên hồi oxy. Hết oxy dưới nước thì cứ 1 s mất 1 Máu (3 Máu); hết Máu là ngất, mất cả giỏ. Giỏ chứa 12 món. Cập bến hoặc hết 3 phút thì giỏ thành kho của quán.
+- **Tối:** khách gọi món nấu được từ kho và giữ nguyên liệu. Nấu → bưng → phục vụ trước khi khách hết kiên nhẫn (60 s). Phục vụ khi khách còn ≥ 50% kiên nhẫn thì được boa 20% và +0.2 uy tín; khách bỏ đi −0.5 uy tín.
+- **Điểm** = `earned + 100 × floor(uy tín)` (tiền tính bằng nghìn đồng).
+
+## Tài liệu của nhóm
+
+[TEAM.md](TEAM.md) · [PRD-0](docs/prd/PRD-0.md) · [Hợp đồng tích hợp](docs/contracts/README.md) · [Chia việc Phase 1](docs/plan/phase-1-chia-viec.md) · [Kiểm chứng](docs/verification/phase-1.md) · [Clarify](docs/clarify.md) · [Nhật ký AI](docs/ai-usage-log.md)
+
+## Sáng tạo của nhóm
+
+(Chưa có. Phần thêm chỉ chạy ở `chonoi.live`, tắt ở headless; ghi kèm bằng chứng lõi vẫn đúng.)
+
+---
+
+# Đề bài gốc của lab
 
 > **Làm theo nhóm 4–6 người** · Dùng AI để xây game 2D qua **4 phase** trong **3 giờ**: Út Sen lặn bắt cá, hái rau trên mặt nước rồi tối mở quán phục vụ khách.
 > **Yêu cầu từng phase mở đúng mốc giờ tại lab board:** **[Chợ Nổi Lab](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg)** (cần đăng nhập claude.ai; có trợ giảng AI cho từng phase).
