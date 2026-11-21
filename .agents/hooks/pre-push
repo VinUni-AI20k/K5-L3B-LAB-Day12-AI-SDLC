@@ -4,8 +4,17 @@
 # Bỏ qua khẩn cấp (ghi lý do trong standup): git push --no-verify
 ROOT="$(git rev-parse --show-toplevel)" || exit 1
 cd "$ROOT" || exit 1
-echo "[pre-push] Đang chạy test: PYTHONPATH=tests:. python3 -m unittest discover -s tests"
-if ! PYTHONPATH=tests:. python3 -m unittest discover -s tests -q; then
+# Windows thường chỉ có `python`; chọn lệnh python nào chạy được (python3 giả của Microsoft Store bị loại).
+PY=""
+for c in python3 python; do
+  if "$c" -c "import sys" >/dev/null 2>&1; then PY="$c"; break; fi
+done
+if [ -z "$PY" ]; then
+  echo "[pre-push] Không tìm thấy python3 hoặc python trong PATH; không chạy được test." >&2
+  exit 1
+fi
+echo "[pre-push] Đang chạy test: PYTHONPATH=tests:. $PY -m unittest discover -s tests"
+if ! PYTHONPATH=tests:. "$PY" -m unittest discover -s tests -q; then
   echo "[pre-push] TEST ĐỎ -> chặn push. Sửa luật (không sửa test cho xanh) rồi đẩy lại." >&2
   exit 1
 fi
