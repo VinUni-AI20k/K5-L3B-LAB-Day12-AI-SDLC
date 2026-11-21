@@ -131,14 +131,41 @@ class GatherSim:
     def _update_oxygen(self, events, was_surface) -> bool:
         """Gọi SAU khi bơi. Trả True nếu người chơi vừa ngất (đã gọi _finish("fainted")).
 
-        TODO(nhóm, lát 1):
-          - so was_surface với self._at_surface() -> sự kiện dive / surface (data: pos).
-          - oxy theo d CUỐI bước: mặt nước +oxygen_refill_per_tick, dưới nước -1, kẹp [0, oxygen_max];
-            oxygen_empty khi từ dương xuống 0.
-          - oxy = 0 và dưới nước: zero_oxy_ticks += 1; đủ choke_interval_ticks -> choke, hp -= 1, đếm lại.
-          - hp == 0 -> faint, self.hold = [] rồi self._finish("fainted", events), return True.
+        PRD-0 mục F, Gather bước 2 (docs/prd/phase-1.md):
+          - dive / surface khi đổi phía biên mặt nước (d <= surface_depth), data: pos sau di chuyển.
+          - oxy theo d CUỐI bước: mặt nước +oxygen_refill_per_tick (kẹp tối đa) và reset đếm ngạt;
+            dưới nước -1 (kẹp 0), oxygen_empty khi từ dương xuống 0.
+          - mỗi bước dưới nước kết thúc với oxy 0 (kể cả bước vừa chạm 0): zero_oxy_ticks += 1;
+            đủ choke_interval_ticks -> đặt lại 0, hp -= 1, choke {hp}. Chạm 0 ở t -> ngạt lần đầu ở t+59.
+          - hp == 0 -> bỏ giỏ theo LIFO, faint {cause, lost, hp}, gather_end("fainted") với kho rỗng.
         """
-        return False
+        t = self.t
+        surface = self._at_surface()
+        if surface != was_surface:
+            events.append(("surface" if surface else "dive", {"pos": list(self.pos)}))
+        if surface:
+            self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + t["oxygen_refill_per_tick"])
+            self.zero_oxy_ticks = 0
+            return False
+        before = self.oxygen_ticks
+        self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
+        if before > 0 and self.oxygen_ticks == 0:
+            events.append(("oxygen_empty", {"oxygen_ticks": 0}))
+        if self.oxygen_ticks > 0:
+            return False
+        self.zero_oxy_ticks += 1
+        if self.zero_oxy_ticks < t["choke_interval_ticks"]:
+            return False
+        self.zero_oxy_ticks = 0
+        self.hp = max(0, self.hp - 1)
+        events.append(("choke", {"hp": self.hp}))
+        if self.hp > 0:
+            return False
+        lost = list(reversed(self.hold))  # nhặt sau bỏ trước
+        self.hold = []
+        events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
+        self._finish("fainted", events)
+        return True
 
     # --- lát 2 (sở hữu: người làm gather lát 2) ---------------------------------
     def _try_gather(self, events):
