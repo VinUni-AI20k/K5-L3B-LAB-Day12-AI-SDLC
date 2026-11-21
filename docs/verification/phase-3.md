@@ -2,6 +2,8 @@
 
 ## Kho Quán và giữ chỗ P3-03
 
+Sau khi ghép kho v1.2 và hao tươi Gather, **201/201 test đạt**. Headless bàn giao kho qua file và kết thúc trọn một ngày. [Lệnh và kết quả](../proof/phase-3/quan-stock.md).
+
 | Yêu cầu P3-03 | Cách kiểm chứng | Bằng chứng | Kết quả |
 |---|---|---|---|
 | Ticket-03 §1 · kho theo ID | Headless Quán v1.2 nạp mảng cá thể gồm hàng ươn, giữ độ tươi khi nạp và từ chối kho đếm/fixture sai | [Kiểm chứng P3-03](../proof/phase-3/quan-stock.md) | Đạt ở Quán |

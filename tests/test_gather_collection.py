@@ -217,7 +217,7 @@ class GatherCollection(unittest.TestCase):
             self.assertEqual(code, 0, err)
             rows = read_jsonl(w.path("g.jsonl"))
             self.assertEqual([r["name"] for r in events(rows)], ["choke", "faint", "gather_end"])
-            self.assertEqual(events(rows, "faint")[0]["data"]["lost"], ["bong_sung", "ca_loc"])
+            self.assertEqual([u["kind"] for u in events(rows, "faint")[0]["data"]["lost"]], ["bong_sung", "ca_loc"])
             self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": []})
             with open(inventory, encoding="utf-8") as f:
                 self.assertEqual(json.load(f), {"items": []})

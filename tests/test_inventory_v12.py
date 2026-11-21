@@ -103,13 +103,17 @@ class InventoryV12(unittest.TestCase):
                                      "--scenario", scenario, "--inputs", inputs,
                                      "--inventory-out", inventory, "--out", work.path("gather.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(read_inventory(inventory), original)
-            self.assertEqual(events(read_jsonl(work.path("gather.jsonl")), "gather_end")[0]
-                             ["data"]["inventory"]["items"], original)
+            self.assertEqual([(i["id"], i["kind"]) for i in read_inventory(inventory)], [("I7", "ca_loc")])
+            self.assertAlmostEqual(read_inventory(inventory)[0]["fresh"], 65.5 - 0.5 / 60, places=9)
+            end_items = events(read_jsonl(work.path("gather.jsonl")), "gather_end")[0]["data"]["inventory"]["items"]
+            self.assertEqual([(i["id"], i["kind"]) for i in end_items], [("I7", "ca_loc")])
+            self.assertAlmostEqual(end_items[0]["fresh"], 65.5 - 0.5 / 60, delta=0.01)  # JSONL làm tròn 3 chữ số
             code, err = run_headless("--mode", "quan", "--seed", "1", "--ticks", "0",
                                      "--inventory", inventory, "--out", work.path("quan.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(work.path("quan.jsonl")))[0]["stock_items"], original)
+            stock = snapshots(read_jsonl(work.path("quan.jsonl")))[0]["stock_items"]
+            self.assertEqual([(i["id"], i["kind"]) for i in stock], [("I7", "ca_loc")])
+            self.assertAlmostEqual(stock[0]["fresh"], 65.5 - 0.5 / 60, delta=0.01)  # JSONL làm tròn 3 chữ số
 
     def test_day_registry_continues_after_handoff_and_resets_hold(self):
         tuning = load_contract()["tuning"]
@@ -122,7 +126,9 @@ class InventoryV12(unittest.TestCase):
         neutral = InputState((0, 0), {}, set())
         rows = session.step(press)
         first = next(row["data"]["inventory"]["items"] for row in rows if row["name"] == "gather_end")
-        self.assertEqual(first, [item("I8", "ca_loc", 72.5), item("I9", "bong_sung", 100.0)])
+        self.assertEqual([(i["id"], i["kind"]) for i in first], [("I8", "ca_loc"), ("I9", "bong_sung")])
+        self.assertAlmostEqual(first[0]["fresh"], 72.5 - 0.5 / 60, places=9)  # hao 1 tick trước bến
+        self.assertEqual(first[1]["fresh"], 100.0)
         self.assertEqual(session.snapshot()["stock"], first)
         session.step(neutral)  # Quán -> Shop
         session.step(InputState((0, 0), {}, {"shop_done"}))

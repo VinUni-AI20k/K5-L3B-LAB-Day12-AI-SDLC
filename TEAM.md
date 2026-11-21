@@ -4,7 +4,7 @@
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
-| | | `sim/gather` | | |
+| Đoàn Công Hải | rawser246 | `sim/gather` | (chưa điền) | (chưa điền) |
 | | | `sim/quan` | | |
 | | | `client/ui` | | |
 | | | `qa` | | |

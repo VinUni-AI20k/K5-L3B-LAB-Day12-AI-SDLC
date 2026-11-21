@@ -7,7 +7,7 @@
   "headless_cmd": "python3 -m chonoi.headless",
   "tuning": {
     "tick_hz": 60,
-    "inventory": {"gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoil_threshold": 30.0},
+    "inventory": {"initial_fresh": 100.0, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoil_threshold": 30.0},
     "gather": {
       "duration_s": 180,
       "bounds": {"x": [0, 100], "d": [0, 30]},

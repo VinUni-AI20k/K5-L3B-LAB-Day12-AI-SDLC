@@ -155,9 +155,10 @@ class MonsterSurvival(unittest.TestCase):
             self.assertEqual(code, 0, err)
             rows = read_jsonl(w.path("out.jsonl"))
             self.assertEqual([e["name"] for e in events(rows)], ["monster_hit", "faint", "gather_end"])
-            self.assertEqual(events(rows, "monster_hit")[0]["data"]["lost"],
+            self.assertEqual([u["kind"] for u in events(rows, "monster_hit")[0]["data"]["lost"]],
                              ["ca_loc", "bong_dien_dien"])
-            self.assertEqual(events(rows, "faint")[0]["data"],
+            faint = events(rows, "faint")[0]["data"]
+            self.assertEqual({**faint, "lost": [u["kind"] for u in faint["lost"]]},
                              {"cause": "monster", "lost": ["bong_sung", "ca_linh", "ca_loc"], "hp": 0})
             self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": []})
             with open(inventory, encoding="utf-8") as f:
@@ -170,8 +171,8 @@ class MonsterSurvival(unittest.TestCase):
         rows = s.step(InputPlayer([]).advance(0))
         self.assertEqual([name for name, _ in rows],
                          ["choke", "monster_hit", "faint", "gather_end"])
-        self.assertEqual(rows[1][1]["lost"], ["bong_dien_dien", "bong_sung"])
-        self.assertEqual(rows[2][1]["lost"], ["ca_linh", "ca_loc"])
+        self.assertEqual([u["kind"] for u in rows[1][1]["lost"]], ["bong_dien_dien", "bong_sung"])
+        self.assertEqual([u["kind"] for u in rows[2][1]["lost"]], ["ca_linh", "ca_loc"])
         s = self.sim({"player": {"pos": [20, 24], "oxygen_ticks": 0,
                                  "zero_oxy_ticks": 59, "invuln_ticks": 10, "hp": 2},
                       "monsters": []})
