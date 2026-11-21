@@ -23,6 +23,7 @@
 
 | Phase | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|
+| 1 | Claude Code (Sonnet 5.5) | Viết `quan_service.py`, test lát 4, docs Scrum | (điền) | Lần đầu viết khi chưa có khung của Lead nên dùng thêm state `assigned`/`left` ngoài hợp đồng khách; sửa lại sau khi rebase |
 
 ## Kaylez-TXL
 
