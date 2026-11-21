@@ -83,6 +83,7 @@ class QuanSim:
         self.eat_ticks_full = round(self.t["eat_s"] * self.tick_hz)
         self.customer_interval_ticks = round(self.t["customer_interval_s"] * self.tick_hz)
         self.carry_limit = int(self.t["carry_limit"])
+        self.burn_ticks = round(float(self.t["burn_s"]) * self.tick_hz) if self.t.get("burn_s") is not None else None
         self.random_customers = bool(scenario.get("random_customers", True))
 
         self.money = int(initial_money)
@@ -302,6 +303,7 @@ class QuanSim:
             self._try_reserve_customer(c)
 
     def _resolve_stoves_after_timers(self, already_ready: set[str], events: list):
+        by_cust = {c["id"]: c for c in self.customers}
         for st in sort_by_id(self.stoves):
             if st["id"] not in already_ready and st["state"] == "cooking" and st["cook_ticks_left"] == 0:
                 st["state"] = "ready"
@@ -311,6 +313,28 @@ class QuanSim:
                     "stove_id": st["id"],
                     "order_id": d["order_id"],
                     "dish_id": d["dish_id"],
+                }))
+            elif (
+                self.burn_ticks is not None
+                and st["id"] in already_ready
+                and st["state"] == "ready"
+                and st["ready_ticks"] > self.burn_ticks
+            ):
+                d = st["dish"]
+                st["state"] = "idle"
+                st["dish"] = None
+                st["cook_ticks_left"] = 0
+                st["ready_ticks"] = 0
+                c = by_cust.get(d["order_id"])
+                status = "unfulfillable"
+                if c is not None and c["state"] == "waiting":
+                    self._try_reserve_customer(c)
+                    status = c["order_status"]
+                events.append(("dish_burnt", {
+                    "stove_id": st["id"],
+                    "order_id": d["order_id"],
+                    "dish_id": d["dish_id"],
+                    "order_status": status,
                 }))
 
     def _move(self, inp):
