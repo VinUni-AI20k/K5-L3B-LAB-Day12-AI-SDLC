@@ -12,9 +12,9 @@ from .inventory import KINDS_P1, validate_items
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
-                      "invuln_ticks", "catch_cd_ticks"}
-NODE_KINDS = ("bong_dien_dien", "bong_sung")
-FISH_KINDS = ("ca_linh", "ca_loc")
+                      "catch_cd_ticks"}
+NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
+FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
 QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
              "reputation", "time_left_ticks"}
@@ -107,7 +107,7 @@ def _validate_gather(b, tuning):
         raise BadInput("player.vel phải là [x, d]")
     if "heading_deg" in p and not _num(p["heading_deg"]):
         raise BadInput("player.heading_deg phải là số")
-    for key in ("invuln_ticks", "catch_cd_ticks", "zero_oxy_ticks", "oxygen_ticks", "hp"):
+    for key in ("catch_cd_ticks", "zero_oxy_ticks", "oxygen_ticks", "hp"):
         if key in p:
             _nonneg_int(f"player.{key}", p[key])
     omax = int(round(g["oxygen_max_s"] * 60))
@@ -161,3 +161,108 @@ def _validate_quan(b, tuning):
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    _validate_quan_rules(b, tuning)
+
+
+ORDER_STATUSES = ("reserved", "assigned", "unfulfillable", "served")
+DISH_PAYLOAD_KEYS = {"order_id", "dish_id", "base_price"}
+
+
+def _dish_payload(name, v, menu):
+    """Payload món (PRD-0 mục D): {order_id, dish_id, base_price}; hand và stoves[].dish là null hoặc payload."""
+    if v is None:
+        return None
+    if not isinstance(v, dict) or set(v) != DISH_PAYLOAD_KEYS:
+        raise BadInput(f"{name} phải là null hoặc {{order_id, dish_id, base_price}}")
+    if not isinstance(v["order_id"], str) or not v["order_id"]:
+        raise BadInput(f"{name}.order_id phải là chuỗi khác rỗng")
+    if not isinstance(v["dish_id"], str) or v["dish_id"] not in menu:
+        raise BadInput(f"{name}.dish_id phải là một món trong menu")
+    _nonneg_int(f"{name}.base_price", v["base_price"])
+    return v
+
+
+def _validate_quan_rules(b, tuning):
+    """Mâu thuẫn mức luật của quán (PRD-0 mục D): payload món, đơn assigned/unfulfillable/served,
+    khách eating, giữ chỗ khác công thức hoặc quá tồn, bếp và tay giữ cùng đơn hoặc món không khớp đơn."""
+    menu = tuning["menu"]
+    q = tuning["quan"]
+    if "reputation" in b:
+        r = b["reputation"]
+        if not _num(r) or not (q["reputation_min"] <= r <= q["reputation_max"]):
+            raise BadInput(f"reputation phải trong [{q['reputation_min']}, {q['reputation_max']}]")
+
+    customers = {c["id"]: c for c in b.get("customers", [])}
+    held = {}  # order_id -> nơi giữ món ("hand" hoặc "stoves.<id>")
+
+    def hold_payload(where, payload):
+        if payload is None:
+            return
+        oid = payload["order_id"]
+        if oid not in customers:
+            raise BadInput(f"{where}: order_id {oid!r} không phải khách nào trong scenario")
+        dish = customers[oid].get("dish_id")
+        if dish is not None and dish != payload["dish_id"]:
+            raise BadInput(f"{where}: món {payload['dish_id']!r} không khớp đơn của khách {oid!r} ({dish!r})")
+        if oid in held:
+            raise BadInput(f"{where} và {held[oid]} cùng giữ đơn {oid!r}")
+        held[oid] = where
+
+    hold_payload("hand", _dish_payload("hand", b.get("hand"), menu))
+    for s in b.get("stoves", []):
+        where = f"stoves.{s['id']}"
+        hold_payload(where, _dish_payload(f"{where}.dish", s.get("dish"), menu))
+        for key in ("cook_ticks_left", "ready_ticks"):
+            if key in s:
+                _nonneg_int(f"{where}.{key}", s[key])
+
+    reserved_total = {}
+    for cid, c in customers.items():
+        status = c.get("order_status", "reserved")
+        if status not in ORDER_STATUSES:
+            raise BadInput(f"customers.{cid}.order_status phải thuộc {ORDER_STATUSES}")
+        reserved = validate_items(c["reserved"]) if "reserved" in c else None
+        dish = c.get("dish_id")
+        if dish is not None and dish not in menu:
+            raise BadInput(f"customers.{cid}.dish_id không có trong menu ({dish!r})")
+        if status == "reserved" and reserved is not None and dish is not None and reserved != menu[dish]["recipe"]:
+            raise BadInput(f"customers.{cid}: phần giữ chỗ khác công thức của {dish}")
+        if status == "assigned":
+            if cid not in held:
+                raise BadInput(f"customers.{cid}: đơn assigned phải có đúng một món ở bếp hoặc tay")
+            if reserved:
+                raise BadInput(f"customers.{cid}: đơn assigned phải có phần giữ rỗng")
+        if status == "unfulfillable":
+            if reserved:
+                raise BadInput(f"customers.{cid}: đơn unfulfillable phải có phần giữ rỗng")
+            if cid in held:
+                raise BadInput(f"customers.{cid}: đơn unfulfillable không có món")
+        if c.get("state") == "eating":
+            if status != "served":
+                raise BadInput(f"customers.{cid}: khách eating phải có order_status served")
+            eat = c.get("eat_ticks_left")
+            if isinstance(eat, bool) or not isinstance(eat, int) or eat <= 0:
+                raise BadInput(f"customers.{cid}: khách eating cần eat_ticks_left dương")
+            for key in ("base_price", "tip"):
+                _nonneg_int(f"customers.{cid}.{key}", c.get(key))
+        for k, v in (reserved or {}).items():
+            reserved_total[k] = reserved_total.get(k, 0) + v
+    # Kho đến từ --inventory thì load_scenario không biết; headless gọi check_reserved_within_stock sau khi đọc kho.
+    if "stock" in b:
+        _check_within_stock(reserved_total, b["stock"])
+
+
+def _check_within_stock(need, stock):
+    for k in sorted(need):
+        if need[k] > stock.get(k, 0):
+            raise BadInput(f"khách giữ chỗ {k} = {need[k]} vượt kho ({stock.get(k, 0)})")
+
+
+def check_reserved_within_stock(block, stock):
+    """Phần giữ chỗ nguyên liệu của khách (ghi rõ trong `customers[].reserved`) không được vượt kho (PRD-0 mục D, mã 2).
+    Dùng cho kho nạp từ --inventory; `block` là khối quan đã qua load_scenario nên `reserved` đã hợp lệ."""
+    need = {}
+    for c in block.get("customers", []):
+        for k, v in (c.get("reserved") or {}).items():
+            need[k] = need.get(k, 0) + v
+    _check_within_stock(need, stock)
