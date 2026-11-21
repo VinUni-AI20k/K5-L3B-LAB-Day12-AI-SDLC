@@ -4,6 +4,7 @@
 
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
+- Kiểm tất định: `python3 tools/check_determinism.py` (cùng seed, output giống từng byte)
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 
@@ -26,4 +27,6 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- **Skill `check-determinism`** (`.agents/skills/check-determinism/SKILL.md`, chạy `python3 tools/check_determinism.py`): chạy headless hai lần cùng seed rồi so từng byte. Dùng sau khi sửa luật trong `chonoi/sim/`, trước khi mở PR và trước khi gắn tag.
+- **Hook `protect_locked_files`** (`.agents/hooks/protect_locked_files.py`, nối trong `.claude/settings.json`): hỏi lại người dùng trước khi agent sửa `game.contract.json`, `docs/contracts/` hay `chonoi/inventory.py` (schema kho). Chỉ đồng ý khi Integrator đã báo cả nhóm.
+- Windows không có `python3` thì gõ `python`; hai công cụ trên tự dùng python đang chạy.
