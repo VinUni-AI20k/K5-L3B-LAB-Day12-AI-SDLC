@@ -4,6 +4,15 @@ import json
 import os
 
 from .errors import BadInput
+from .inventory import KINDS_P1
+
+# PRD-0 mục A: cố định id + công thức 3 món, 1 bếp B1, 1 bàn T1.
+FIXED_RECIPES = {
+    "ca_loc_nuong_trui": {"ca_loc": 1},
+    "goi_bong_sung": {"bong_sung": 2},
+    "lau_ca_linh_dien_dien": {"ca_linh": 3, "bong_dien_dien": 1},
+}
+FIXED_LAYOUT = {"stoves": ("B1",), "tables": ("T1",)}
 
 DEFAULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json")
 
@@ -136,8 +145,43 @@ def validate_tuning(t):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
         raise BadInput("burn_s phải là null ở Phase 1")
-    # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
+    _validate_quan_layout(q)
+    if {k: (d.get("recipe") if isinstance(d, dict) else None) for k, d in menu.items()} != FIXED_RECIPES:
+        raise BadInput(f"tuning.menu phải có đúng 3 món và công thức cố định (PRD-0 mục A, 5): {FIXED_RECIPES}")
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")
-        if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
-            raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+        if (isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook)
+                or int(round(cook * 60)) < 1):
+            raise BadInput(f"menu.{dish_id}: price nguyên dương, cook_s quy đổi ra số tick dương")
+        recipe = d.get("recipe")
+        if not isinstance(recipe, dict) or not recipe:
+            raise BadInput(f"menu.{dish_id}: recipe phải là object không rỗng")
+        for k, n in recipe.items():
+            if k not in KINDS_P1:
+                raise BadInput(f"menu.{dish_id}: nguyên liệu lạ {k}")
+            _int_between(f"menu.{dish_id}.recipe.{k}", n, 1, 10_000)
+    score = t.get("score")
+    if not isinstance(score, dict) or not _num(score.get("reputation_multiplier")) or score["reputation_multiplier"] < 0:
+        raise BadInput("tuning.score.reputation_multiplier phải là số >= 0")
+
+
+def _validate_quan_layout(q):
+    """Lát 3 (TV2): kiểm bếp/bàn, vị trí đầu, uy tín, carry_limit — chỉ kiểm cấu trúc/mâu thuẫn, không tự đặt dải."""
+    qb = q["bounds"]
+    _pos_in("quan.start_pos", q.get("start_pos"), qb, ("x", "z"))
+    _int_between("quan.carry_limit", q.get("carry_limit"), 1, 10_000)
+    rmin, rmax, rinit = q.get("reputation_min"), q.get("reputation_max"), q.get("reputation_initial")
+    if not (_num(rmin) and _num(rmax) and _num(rinit) and rmin < rmax and rmin <= rinit <= rmax):
+        raise BadInput("quan: cần reputation_min < reputation_max và reputation_initial nằm giữa")
+    for name in ("stoves", "tables"):
+        arr = q.get(name)
+        if not isinstance(arr, list) or not arr:
+            raise BadInput(f"tuning.quan.{name} phải là mảng không rỗng")
+        seen = set()
+        for e in arr:
+            if not isinstance(e, dict) or not isinstance(e.get("id"), str) or e["id"] in seen:
+                raise BadInput(f"tuning.quan.{name}: mỗi phần tử cần id duy nhất")
+            seen.add(e["id"])
+            _pos_in(f"quan.{name}.{e['id']}.pos", e.get("pos"), qb, ("x", "z"))
+        if sorted(seen) != list(FIXED_LAYOUT[name]):
+            raise BadInput(f"tuning.quan.{name} phải đúng {list(FIXED_LAYOUT[name])} (PRD-0 mục A)")
