@@ -32,7 +32,10 @@ def headless_cmd():
 
 def run_headless(*args, cwd=ROOT):
     """Chạy `<headless_cmd> <args>`; trả (mã thoát, stderr)."""
-    p = subprocess.run([*headless_cmd(), *args], cwd=cwd, capture_output=True, text=True)
+    env = os.environ.copy()
+    pythonpath = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = ROOT if not pythonpath else os.pathsep.join((ROOT, pythonpath))
+    p = subprocess.run([*headless_cmd(), *args], cwd=cwd, env=env, capture_output=True, text=True)
     return p.returncode, p.stderr
 
 

@@ -80,6 +80,8 @@ Client không chứa luật; chỉ đọc snapshot và gửi input. Chi tiết �
 | `GET /state` | sim → client | Snapshot hiện tại (mục 6) + `meta` (tuning của pha đang chạy: `gather`/`quan`/`shop`), `menu` (tuning menu), `events` (event mới từ lần đọc trước), `finished`, `reason`, `error` |
 | `POST /input` | client → sim | `{"move":[a,b], "interact":bool, "catch":bool, "pause":bool, "shop_done":bool, "attack":bool, "photo":bool, "buy":"oxygen", "customer_choice":{"customer_id":"C1","dish_id":"ca_loc_nuong_trui"}}`, mọi trường tùy chọn. Sai kiểu → HTTP 400 |
 | `POST /restart` | client → sim | Dựng lại lượt từ đầu |
+| `POST /bench` | client → sim | Chỉ ở `/?bench=1` (P4): `{frame_ms[] (ms, > 0), frames, measured_s > 0, warmup_s, first_frame_epoch_ms, width, height, dpr}`. Body tối đa 1 MB. Sai kiểu → HTTP 400 |
+| `GET /bench` | sim → bench | `{ready, result}`; `chonoi/bench.py` cũng chờ được `LiveGame.bench_event` trong cùng tiến trình |
 | `GET /<file>` | — | File tĩnh trong `chonoi/web/`, chặn thoát thư mục |
 
 - `/state` của bản chơi có thêm trường **chỉ để hiển thị** (không có trong JSONL): `shift_earned` (pha quán), `days_completed`, `max_days` (mode day). `chonoi.live --mode day --days 1–5`, mặc định 5.
@@ -180,6 +182,6 @@ PO rà bằng cách đọc `chonoi/sim/*.py` và chạy `headless --mode day --s
 | `state` trong snapshot/end của `day` | `playing`/`finished`/`paused` | `running`/`finished`/`paused` (gather/quan riêng vẫn `playing`) | invzble-z |
 | `money`, `earned`, `score` trong pha quán của `day` | tăng khi khách trả tiền | chỉ cộng khi đóng ca (`DaySim` giữ riêng). Bản chơi hiện `shift_earned` để bù | invzble-z |
 | Event đổi pha đầu Ngày 1 | ở tick dựng Ngày | `day_start`/`day_plan`/`phase_start` phát ở tick 1 (bước đầu tiên), snapshot tick 0 đã là pha gather | invzble-z |
-| `gather.monsters[]`, `monster_hit`, `invuln_ticks` | v1.1 | chưa có (`sim/monsters.py` chưa vào `main`) | comtrang378-ship-it |
+| `monsters[]` trong snapshot | `kind` (theo mock/§6) | `sim/monsters.py` đã có, nhưng phát `species` (+ `waypoint_index`, `recoil_ticks`). Client đọc cả hai | comtrang378-ship-it |
 
 Client web đọc được cả hai cách đặt tên (`dish_id`/`dish`, `price`) nên không vỡ khi các lát đổi theo hợp đồng.

@@ -25,24 +25,14 @@ from dataclasses import dataclass
 from fractions import Fraction
 
 from ..ids import sort_by_id
-from ..inventory import hold_to_items
+from ..inventory import Item, hold_to_items
 from .monsters import MonsterSystem
 from .ramp import ramp_velocity
 
 TICK = 60.0
 AXES = ("x", "d")
 
-
-@dataclass
-class _HoldItem:
-    """Kiểu tạm cho Gather trong lúc chờ Item của adapter kho."""
-
-    id: str
-    kind: str
-    fresh: Fraction
-
-    def snapshot(self):
-        return {"id": self.id, "kind": self.kind, "fresh": float(self.fresh)}
+_HoldItem = Item
 
 
 class GatherSim:
@@ -66,15 +56,23 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.individual_hold = tuning.get("contract_version") == "1.2"
+        self.individual_hold = tuning.get("contract_version") in ("1.2", "1.3")
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
         if self.individual_hold:
             freshness = tuning["freshness"]
             self.initial_freshness = Fraction(str(freshness["initial"]))
             self.freshness_decay = Fraction(str(freshness["gather_decay_per_s"])) / tuning["tick_hz"]
             self.spoiled_below = Fraction(str(freshness["spoiled_below"]))
-            self.hold = [_HoldItem(item["id"], item["kind"], Fraction(str(item["fresh"])))
-                         for item in self.hold]
+            normalized = []
+            for item in self.hold:
+                if isinstance(item, Item):
+                    normalized.append(item)
+                elif isinstance(item, dict):
+                    normalized.append(_HoldItem(item["id"], item["kind"], Fraction(str(item["fresh"]))))
+                else:
+                    # Upgrade legacy fixture kinds into physical inventory at initial freshness.
+                    normalized.append(_HoldItem(self.ids.new("I"), item, self.initial_freshness))
+            self.hold = normalized
             for item in self.hold:
                 ids.reserve(item.id)
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))

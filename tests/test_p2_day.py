@@ -59,7 +59,7 @@ class DaySimTests(unittest.TestCase):
         self.assertIn("gather_end", names2)
         self.assertIn("phase_start", names2)
         self.assertEqual(sess.sim.phase, "quan")
-        self.assertEqual(sess.sim.inventory, {"ca_loc": 1})
+        self.assertEqual([item.kind for item in sess.sim.inventory], ["ca_loc"])
 
         # Tick 3: Quán chạy (còn 1 tick)
         sess.step(InputState((0, 0), {}, set()))
@@ -192,7 +192,8 @@ class DayHeadlessCLITests(unittest.TestCase):
             })
             inp = write_json(w.path("in.json"), frames({"tick": 4, "shop_done": True}))
             code, err = run_headless("--mode", "day", "--days", "1", "--seed", "1",
-                                     "--ticks", "10", "--scenario", sc, "--inputs", inp, "--out", out)
+                                     "--ticks", "10", "--scenario", sc, "--inputs", inp, "--out", out,
+                                     cwd=os.path.dirname(out))
             self.assertEqual(code, 0, err)
             rows = read_jsonl(out)
             self.assertEqual(rows[0]["type"], "snapshot")

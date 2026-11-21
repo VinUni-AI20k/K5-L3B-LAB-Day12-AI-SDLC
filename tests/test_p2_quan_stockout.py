@@ -19,6 +19,7 @@ from chonoi.sim.quan import QuanSim
 class QuanStockoutTests(unittest.TestCase):
     def setUp(self):
         self.tuning = copy.deepcopy(load_contract()["tuning"])
+        self.tuning["contract_version"] = "1.1"
 
     def _events(self, sim, count):
         player = InputPlayer([])
@@ -212,10 +213,10 @@ class QuanStockoutTests(unittest.TestCase):
                 os.chdir(previous_directory)
 
             self.assertEqual(code, 0)
-            self.assertEqual(
-                json.loads((root / "inventory.json").read_text(encoding="utf-8")),
-                {"items": {"ca_loc": 1}},
-            )
+            inventory = json.loads((root / "inventory.json").read_text(encoding="utf-8"))
+            self.assertEqual(len(inventory["items"]), 1)
+            self.assertEqual(inventory["items"][0]["id"], "I1")
+            self.assertEqual(inventory["items"][0]["kind"], "ca_loc")
 
     def test_headless_customer_choice_frame_is_typed_and_one_shot(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -240,17 +241,21 @@ class QuanStockoutTests(unittest.TestCase):
             "gather": {"time_left_ticks": 1, "random_fish": False, "nodes": []},
             "quan": {"time_left_ticks": 1, "random_customers": False},
         }
-        session = Session("day", self.tuning, scenario, 1, inventory={"ca_loc": 2}, days=2)
+        tuning = copy.deepcopy(self.tuning)
+        tuning["contract_version"] = "1.3"
+        session = Session("day", tuning, scenario, 1, inventory={"ca_loc": 2}, days=2)
 
         session.step(InputState((0, 0), {}, set()))
         session.step(InputState((0, 0), {}, set()))
         session.step(InputState((0, 0), {"shop_done": True}, {"shop_done"}))
 
         self.assertEqual(session.sim.day, 2)
-        self.assertEqual(session.sim.stock, {"ca_loc": 2})
+        carried = session.sim.inventory_items()
+        self.assertEqual(len(carried), 2)
+        self.assertEqual({item["kind"] for item in carried}, {"ca_loc"})
         session.step(InputState((0, 0), {}, set()))
         self.assertEqual(session.sim.phase, "quan")
-        self.assertEqual(session.sim.inventory_items(), {"ca_loc": 2})
+        self.assertEqual(len(session.sim.inventory_items()), 2)
 
 
 if __name__ == "__main__":

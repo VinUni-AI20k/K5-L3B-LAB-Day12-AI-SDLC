@@ -1,23 +1,22 @@
-# Ma trận truy vết Phase 3
+# Ma trận truy vết Phase 3 — Q3/Quoosc
 
-| AC | Nội dung | Cách kiểm chứng | Bằng chứng (link `docs/proof/phase-3/...`) | Kết quả (đạt / chưa đạt — ghi trung thực) | Người |
-|---|---|---|---|---|---|
-| AC-P3-01 | v1.2: file kho đếm, sai schema, kind lạ, id trùng, fresh ngoài miền → mã 2 | test đơn vị + headless | — | chưa đạt (chờ adapter) | invzble-z |
-| AC-P3-02 | Hàng mới fresh=100, hao 0.5/s ở giỏ, 0.25/s ở kho, kẹp 0, pause dừng hao, món chín không hao | test | — | chưa đạt (chờ gộp) | Dũng, Quốc |
-| AC-P3-03 | spoiled đúng 1 lần khi từ ≥ 30 xuống < 30, theo id, đúng location | scenario mẫu ticket | — | chưa đạt (chờ gộp) | Dũng, Quốc |
-| AC-P3-04 | Giữ theo id tươi nhất. Hàng giữ vừa ươn → nhả, giữ lại 1 lần, thiếu → unfulfillable | test | — | chưa đạt (chờ gộp) | Quoosc |
-| AC-P3-05 | `base_price` theo trung bình fresh, boa trên giá đã chốt, `cook_started.items` đúng thứ tự kind -> id. Món chín không hao tươi | 4 unit tests trong `tests/test_p3_quan_price.py` | [`quan-price-test.txt`](docs/proof/phase-3/quan-price-test.txt) | đạt | ttkien0710 |
-| AC-P3-06 | lost trong faint/monster_hit là mảng cá thể LIFO | test | — | chưa đạt | comtrang378-ship-it |
-| AC-P3-07 | Bàn giao file giữ đúng id/kind/fresh (smoke ticket) | smoke 2 tiến trình | — | chưa đạt | WorkOfMinh |
-| AC-P3-08 | Bàn giao trong day cùng tick, id tăng xuyên Ngày | smoke day --days 2 | — | chưa đạt | invzble-z |
-| AC-P3-09 | HUD cho thấy độ tươi hoặc hàng ươn | ảnh chụp live | — | chưa đạt | nganhduong123 |
-| AC-P3-10 | Regression P1–P2 còn hiệu lực đạt, test đổi có lý do. CHANGELOG có breaking change | chạy toàn bộ test (100/100 tests pass) | [`quan-price-test.txt`](docs/proof/phase-3/quan-price-test.txt) | đạt (100/100 test xanh) | WorkOfMinh, ttkien0710 |
+Main hiện dùng contract v1.3. Q3 đã thêm kiểm tra inventory/scenario vật lý theo contract root, ID và freshness được giữ qua gather → inventory file → quan, và kho được bàn giao qua Day. Kết quả tích hợp ở [v1.3 tests](../proof/phase-4/q3-focused-tests.txt), [headless Day](../proof/phase-4/day-headless-run.txt), và [full regression](../proof/phase-4/q3-full-regression.txt).
 
-## Đánh giá ngắn
-- **Yêu cầu AC-P3-05 (ttkien0710 phụ trách):**
-  - Đã cài đặt cơ chế tiêu thụ nguyên liệu theo mảng cá thể `{id, kind, fresh}` hoặc id reserved `["I1", "I2"]`.
-  - Tính `base_price = floor(menu_price * avg_fresh / 100)` sử dụng `Fraction`, đảm bảo tính tất định byte-by-byte không sai số float.
-  - Tính tiền boa `tip = floor(base_price * 0.2)` trên giá đã chốt khi kiên nhẫn $\ge 50\%$.
-  - Mảng `cook_started.items` được sắp xếp theo đúng quy ước: `kind` tăng dần rồi `id` tăng dần.
-  - Món đã chín trên bếp không bị hao thêm độ tươi theo thời gian.
-  - Giữ tương thích ngược hoàn hảo với kho đếm v1.0/v1.1 (100/100 test của toàn bộ repo chạy xanh).
+| AC | Cách kiểm chứng | Bằng chứng | Kết quả trên Quoosc |
+|---|---|---|---|
+| AC-P3-01 | Inventory parse/validate v1.2/v1.3 và legacy v1.1 | `tests.test_p3_inventory`, `tests.test_p3_v13_integration` | Đạt; mặc định root v1.3 dùng physical Item list; v1.1 tương thích khi chỉ định rõ |
+| AC-P3-02 | Freshness Gather/Quan, pause Day | `tests.test_p3_gather`, `tests.test_p3_q3_freshness`, `test_day_pause_freezes_physical_freshness_and_ticks` | Đạt trong simulation tests; UI v1.3 chưa được chụp/review riêng |
+| AC-P3-03 | Threshold crossing và event `spoiled` một lần theo ID | `tests.test_p3_gather`, `tests.test_p3_q3_freshness` | Đạt theo test |
+| AC-P3-04 | Freshest-first, ID tie, atomic reservation, retry, idempotency | `tests.test_p3_q3_freshness` | Hành vi kỹ thuật đạt; event schema `unfulfillable` còn chờ PO/Integrator ở clarify #16 |
+| AC-P3-05 | Giá theo freshness và tip | [`quan-price-test.txt`](../proof/phase-3/quan-price-test.txt) | Đạt; thứ tự decay trước interaction được phản ánh trong oracle |
+| AC-P3-06 | Monster hit/faint, mất item LIFO theo Item | `tests.test_p2_monsters.MonsterBehaviorTest`, full suite | Đạt; test kiểm tra kind/order; inventory vật lý giữ ID |
+| AC-P3-07 | Headless gather → file kho → Quan đọc lại | `tests.test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it`, `test_root_version_is_propagated_and_gather_to_file_to_quan_keeps_id_fresh` | Đạt; ID/freshness giữ qua file và mã thoát 0 |
+| AC-P3-08 | Day handoff và allocator liên tục | `tests.test_p3_inventory.InventoryPhase3Tests.test_day_handoff_individual_items_and_id_continuity` | Đạt; vật phẩm còn lại chuyển đúng một lần và ID kế tiếp không đụng |
+| AC-P3-09 | HUD live/mock v1.2 | [`hud-fresh/README.md`](../proof/phase-3/hud-fresh/README.md), [`hud-fresh/run.txt`](../proof/phase-3/hud-fresh/run.txt) | Bằng chứng UI v1.2 cũ vẫn áp dụng; chưa xác nhận HUD khi root manifest là v1.3 |
+| AC-P3-10 | Full repository regression | [`q3-full-regression.txt`](../proof/phase-4/q3-full-regression.txt) | 216 tests, OK, exit 0; Phase 1 verifier 9/9 bước |
+
+## Giới hạn nghiệm thu
+
+- `unfulfillable` hiện phát `{customer_id, table_id, dish_id}` theo đề xuất, đơn vẫn waiting, reservation rỗng. Cần đóng clarify #16 trước khi gọi schema này là contract đã duyệt.
+- Không sửa `game.contract.json` hay schema shared; implementation theo manifest v1.3 đã có trên main `dd090f6`.
+- Chưa có xác nhận UI v1.3 hoặc review QA/Integrator cho toàn ma trận AC-P3.
