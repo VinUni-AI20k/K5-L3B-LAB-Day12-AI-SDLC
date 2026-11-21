@@ -1,6 +1,6 @@
 // Side-view drawing helpers for the night floating restaurant (nhà bè) in scene_quan.js.
 // Everything draws on the low-res `px` canvas with integer rects so it reads as pixel art.
-import { W } from "./engine.js";
+import { W, txt } from "./engine.js";
 import { P, R, ghe, lantern, dishIcon, ripple } from "./art.js";
 
 const TAU = Math.PI * 2;
@@ -19,7 +19,8 @@ export function scaled(c, s, ax, ay, fn) {
 }
 
 // ---------- side-view chibi (faces right when face = 1) ----------
-// o: { face, shirt, pants, hair, skin, hat, bun, apron, walk, sit, carry, arm: "stir"|"eat"|"wave", t, angry }
+// o: { face, shirt, pants, hair, skin, hat, bun, apron, walk, sit, carry, arm: "stir"|"eat"|"wave"|"talk", t, angry,
+//      band (headband colour), cap (cap colour), mustache, towel (towel over the shoulder colour) }
 export function personSide(c, x, y, o = {}) {
   const f = o.face < 0 ? -1 : 1;
   const walk = o.walk || 0, moving = walk > 0 && !o.sit;
@@ -44,6 +45,7 @@ export function personSide(c, x, y, o = {}) {
   else if (o.arm === "stir") { const k = Math.round(Math.sin(t * 6) * 1.5); r(1, -11, 3, 2, shirt); r(3, -10, 4, 2, skin); r(6 + k, -15, 1, 7, P.woodD); r(5 + k, -9, 3, 1, P.woodL); }
   else if (o.arm === "eat") { const k = Math.sin(t * 5) > 0 ? 1 : 0; r(1, -11, 3, 2, shirt); r(3, -10 - k, 4, 2, skin); r(6, -13 - k, 1, 4, P.straw); r(7, -13 - k, 1, 4, P.straw); }
   else if (o.arm === "wave") { const k = Math.sin(t * 8) > 0 ? 1 : 0; r(1, -12, 3, 2, shirt); r(3 + k, -18, 2, 6, skin); }
+  else if (o.arm === "talk") { const k = Math.round(Math.sin(t * 5) * 1); r(1, -11, 3, 2, shirt); r(3, -12 + k, 3, 2, skin); r(5, -13 + k, 1, 2, skin); }
   else { const as = moving ? Math.round(Math.sin(walk * 10 + Math.PI)) : 0; r(-1 + as, -11, 2, 5, shirt); r(-1 + as, -6, 2, 1, skin); }
   // head
   r(-4, -21, 9, 9, skin); r(-4, -13, 9, 1, "rgba(0,0,0,.12)");
@@ -54,6 +56,10 @@ export function personSide(c, x, y, o = {}) {
     r(-5, -23, 10, 3, hair); r(-5, -21, 3, 6, hair); r(3, -21, 2, 2, hair);
     if (o.bun) { r(-8, -24, 4, 4, hair); r(-5, -22, 1, 1, o.bunTie || P.orange); }
   }
+  if (o.towel) { r(-3, -12, 3, 2, o.towel); r(-3, -10, 2, 5, o.towel); }
+  if (o.band) { r(-5, -21, 10, 2, o.band); r(-7, -20, 2, 3, o.band); }
+  if (o.cap) { r(-5, -23, 10, 3, o.cap); r(4, -21, 4, 1, o.cap); r(-5, -21, 10, 1, "rgba(0,0,0,.2)"); }
+  if (o.mustache) r(2, -15, 4, 1, o.hairCol || "#3a2a22");
   if (o.angry) { r(1, -19, 3, 1, P.ink); r(2, -17, 1, 1, P.ink); r(3, -14, 2, 1, P.redD); }
   else { r(2, -18, 1, 2, P.ink); r(3, -15, 1, 1, "#f07a7a"); }
   if (o.carry) c.drawImage(dishIcon(o.carry), x - 8 + f, Y - 37);
@@ -64,12 +70,13 @@ export function stool(c, x, y) {
   R(c, x - 4, y - 5, 8, 2, P.woodL); R(c, x - 4, y - 4, 8, 1, P.woodD);
   R(c, x - 3, y - 3, 1, 3, P.woodD); R(c, x + 2, y - 3, 1, 3, P.woodD);
 }
-export function sideTable(c, x, y) {
+export function sideTable(c, x, y, cloth = null) {
   c.fillStyle = "rgba(0,0,0,.25)"; c.beginPath(); c.ellipse(x, y, 16, 2, 0, 0, TAU); c.fill();
   R(c, x - 12, y - 11, 2, 11, P.woodD); R(c, x + 10, y - 11, 2, 11, P.woodD);
   R(c, x - 11, y - 5, 22, 1, P.woodD);
   R(c, x - 15, y - 14, 30, 2, P.woodL); R(c, x - 15, y - 12, 30, 2, P.woodD);
   R(c, x - 13, y - 14, 6, 1, "#d9a86a");
+  if (cloth) tableCloth(c, x, y, cloth);
   // chopstick cup + chili jar
   R(c, x - 10, y - 18, 3, 4, "#c9c2d4"); R(c, x - 10, y - 21, 1, 3, P.straw); R(c, x - 8, y - 20, 1, 2, P.straw);
   R(c, x - 5, y - 17, 3, 3, P.red); R(c, x - 5, y - 18, 3, 1, "#f2efe6");
@@ -134,13 +141,22 @@ export function roofAndPosts(c, xl, xr, yFront, t) {
   R(c, 0, 16, W, 3, "#3a2212"); R(c, 0, 16, W, 1, P.woodL);
 }
 // sagging string of lanterns from (x0,y0) to (x1,y0); returns lantern positions (for glows/reflections)
-export function lanternString(c, x0, x1, y0, sag, n, t, out) {
+// décor lantern sets: [lantern colour, glow "r,g,b"]; "do" is the original red/orange/gold string
+export const LANTERN_SETS = {
+  do: [[P.red, "255,170,80"], [P.orange, "255,170,80"], ["#f3c454", "255,190,90"], [P.red, "255,160,80"]],
+  vang: [["#f3c454", "255,205,110"], ["#ffd23a", "255,215,120"], ["#e9a23a", "255,190,90"]],
+  xanh: [["#2fb8a8", "110,230,210"], ["#5fd6c4", "140,240,220"], ["#1a8f86", "90,210,200"]],
+  bay_mau: [[P.red, "255,110,90"], [P.orange, "255,160,80"], ["#ffd23a", "255,220,110"], [P.leafL, "150,240,120"], ["#3fb6c4", "110,220,240"], ["#5a6ad8", "140,150,255"], ["#b060d0", "220,140,255"]],
+};
+export function lanternString(c, x0, x1, y0, sag, n, t, out, set = "do", phase = 0) {
   for (let x = x0; x <= x1; x++) { const u = (x - x0) / (x1 - x0); R(c, x, y0 + Math.round(sag * 4 * u * (1 - u)), 1, 1, "#2a1a12"); }
-  const cols = [P.red, P.orange, "#f3c454", P.red];
+  const cols = LANTERN_SETS[set] || LANTERN_SETS.do;
   for (let i = 0; i < n; i++) {
     const u = (i + 0.5) / n, x = Math.round(x0 + (x1 - x0) * u), y = y0 + Math.round(sag * 4 * u * (1 - u));
-    lantern(c, x, y, t, cols[i % cols.length]);
-    if (out) out.push([x, y + 7]);
+    // bảy màu: colours chase slowly along the string
+    const k = set === "bay_mau" ? (i + phase + Math.floor(t * 1.5)) % cols.length : (i + phase) % cols.length;
+    lantern(c, x, y, t, cols[k][0]);
+    if (out) out.push([x, y + 7, undefined, undefined, cols[k][1]]);
   }
 }
 // additive warm glow
@@ -232,4 +248,77 @@ export function moon(c, x, y) {
   c.fillStyle = "rgba(246,241,214,.12)"; c.beginPath(); c.arc(x, y, 11, 0, TAU); c.fill();
   c.fillStyle = "#f6f1d6"; c.beginPath(); c.arc(x, y, 7, 0, TAU); c.fill();
   R(c, x - 3, y - 2, 2, 2, "#ddd6b4"); R(c, x + 2, y + 2, 2, 1, "#ddd6b4");
+}
+
+// ---------- décor (Bà Tư's shop: meta.getDecor()) ----------
+// tablecloth over the side table top: "tre" bamboo mat, "ca_ro" red/white check, "hoa" lotus-embroidered pink
+export function tableCloth(c, x, y, kind) {
+  const top = y - 15;
+  if (kind === "tre") {
+    R(c, x - 14, top, 28, 3, "#d9bf7a");
+    for (let i = -13; i < 14; i += 3) R(c, x + i, top, 1, 3, "#b39352");
+    R(c, x - 14, top + 3, 28, 1, "#9a7a3e");
+  } else if (kind === "ca_ro") {
+    for (let i = 0; i < 16; i++) for (let j = 0; j < 3; j++) R(c, x - 16 + i * 2, top + j * 2, 2, 2, (i + j) % 2 ? "#f2efe6" : "#d94a3d");
+    for (const dx of [-16, 14]) { R(c, x + dx, top + 6, 2, 4, (dx > 0) ? "#d94a3d" : "#f2efe6"); }
+  } else if (kind === "hoa") {
+    R(c, x - 16, top, 32, 5, "#ffd0de"); R(c, x - 16, top + 5, 32, 1, "#e0a0b8");
+    R(c, x - 16, top + 6, 2, 4, "#ffd0de"); R(c, x + 14, top + 6, 2, 4, "#ffd0de");
+    for (const dx of [-9, 1, 10]) { R(c, x + dx, top + 1, 3, 2, "#ff8fb1"); R(c, x + dx + 1, top, 1, 1, "#e0567f"); R(c, x + dx - 1, top + 3, 2, 1, P.leaf); }
+  }
+}
+const BLOOM = ["#e0408a", "#ff6fb0", "#c42a78", "#ff9ccc"];
+function blossom(c, x, y, t, i) {
+  const sw = Math.round(Math.sin(t * 1.3 + i) * 0.6);
+  R(c, x - 2 + sw, y - 1, 4, 3, BLOOM[i % 4]); R(c, x - 1 + sw, y - 2, 2, 1, BLOOM[(i + 1) % 4]); R(c, x + sw, y, 1, 1, "#fff0a8");
+}
+// terracotta pot of bougainvillea (bông giấy)
+export function flowerPot(c, x, y, t, seed = 0) {
+  c.fillStyle = "rgba(0,0,0,.25)"; c.beginPath(); c.ellipse(x, y, 7, 1.5, 0, 0, TAU); c.fill();
+  R(c, x - 5, y - 7, 10, 7, "#b8582e"); R(c, x - 6, y - 8, 12, 2, "#d9743e"); R(c, x - 5, y - 2, 10, 2, "#8a3e20");
+  R(c, x - 4, y - 14, 1, 6, P.leafD); R(c, x + 2, y - 15, 1, 7, P.leafD);
+  for (let i = 0; i < 6; i++) {
+    const dx = ((i * 5 + seed * 3) % 11) - 5, dy = -10 - ((i * 7 + seed) % 8);
+    R(c, x + dx - 1, y + dy + 2, 3, 2, i % 2 ? P.leaf : P.leafD);
+    blossom(c, x + dx, y + dy, t, i + seed);
+  }
+}
+// bougainvillea arch over the gangway (x = left post, w = span, yb = deck level)
+export function flowerArch(c, x, w, yb, h, t) {
+  R(c, x, yb - h, 2, h, P.woodD); R(c, x + w - 2, yb - h, 2, h, P.woodD);
+  for (let k = 0; k <= w; k++) { const u = k / w, yy = yb - h - Math.round(Math.sin(u * Math.PI) * 8); R(c, x + k, yy, 1, 2, P.woodD); }
+  let i = 0;
+  for (let yy = yb - 4; yy > yb - h; yy -= 5, i++) { R(c, x - 2, yy, 3, 2, P.leaf); blossom(c, x + 1, yy - 2, t, i); R(c, x + w - 2, yy + 2, 3, 2, P.leafD); blossom(c, x + w - 1, yy, t, i + 2); }
+  for (let k = 2; k < w; k += 4, i++) { const u = k / w, yy = yb - h - Math.round(Math.sin(u * Math.PI) * 8); R(c, x + k - 1, yy + 1, 3, 2, P.leaf); blossom(c, x + k, yy - 1, t, i); }
+}
+// garland of blossoms along a beam (flowers level 2)
+export function flowerGarland(c, x0, x1, y, t) {
+  for (let x = x0, i = 0; x < x1; x += 7, i++) { R(c, x, y + (i % 2), 4, 2, i % 3 ? P.leaf : P.leafD); blossom(c, x + 2, y - 1 + (i % 2), t, i); }
+}
+// restaurant sign "QUÁN ĂN CHỢ NỔI": board on the pixel canvas, label on the UI layer (skip with label = false)
+// style: "go" carved wood · "den_neon_tre" pink/cyan neon in a bamboo frame (flickers) · "son_mai" red lacquer, gold
+export function quanSign(c, cx, y, style, t, label = true, text = "QUÁN ĂN CHỢ NỔI") {
+  const w = 112, h = 15, x = Math.round(cx - w / 2);
+  R(c, x + 14, y - 8, 1, 8, "#2a1a12"); R(c, x + w - 15, y - 8, 1, 8, "#2a1a12"); // hanging cords
+  let col = "#ffe9c4", stroke = "#3a2210", glowCol = null;
+  if (style === "den_neon_tre") {
+    R(c, x - 2, y - 2, w + 4, h + 4, "#c4a35e"); R(c, x, y, w, h, "#120c1a");
+    for (let k = x - 2; k < x + w + 2; k += 6) { R(c, k, y - 2, 1, 2, "#8a6a32"); R(c, k + 3, y + h, 1, 2, "#8a6a32"); }
+    R(c, x - 2, y - 2, 2, h + 4, "#a8843e"); R(c, x + w, y - 2, 2, h + 4, "#a8843e");
+    const flick = Math.sin(t * 23) > 0.96 ? 0.45 : 1;
+    col = `rgba(255,140,210,${flick})`; stroke = `rgba(90,20,70,${0.9 * flick})`; glowCol = "255,110,200";
+    c.save(); c.globalCompositeOperation = "lighter"; c.fillStyle = `rgba(255,110,200,${0.12 * flick})`; c.fillRect(x - 6, y - 6, w + 12, h + 12); c.restore();
+    R(c, x + 3, y + h - 3, w - 6, 1, `rgba(120,230,255,${0.8 * flick})`);
+  } else if (style === "son_mai") {
+    R(c, x - 2, y - 2, w + 4, h + 4, "#1a0c0c"); R(c, x, y, w, h, "#8e1f1a"); R(c, x, y, w, 2, "#b8342a");
+    R(c, x - 1, y - 1, w + 2, 1, P.gold); R(c, x - 1, y + h, w + 2, 1, P.gold); R(c, x - 1, y, 1, h, P.gold); R(c, x + w, y, 1, h, P.gold);
+    R(c, x + 3, y + 3, 2, 2, P.gold); R(c, x + w - 5, y + 3, 2, 2, P.gold); R(c, x + 3, y + h - 5, 2, 2, P.gold); R(c, x + w - 5, y + h - 5, 2, 2, P.gold);
+    col = "#ffd86a"; stroke = "#4a0e0a";
+  } else { // gỗ
+    R(c, x - 1, y - 1, w + 2, h + 2, "#3a2210"); R(c, x, y, w, h, P.wood); R(c, x, y, w, 1, P.woodL);
+    for (let k = 0; k < 3; k++) R(c, x + 2, y + 4 + k * 4, w - 4, 1, "rgba(60,30,12,.35)");
+    R(c, x + 2, y + 2, 2, 2, "#2a1a12"); R(c, x + w - 4, y + 2, 2, 2, "#2a1a12");
+  }
+  if (label) txt(text, cx, y + 11, { size: 8.5, align: "center", color: col, weight: 900, stroke, sw: 2.5 });
+  return glowCol;
 }

@@ -9,6 +9,7 @@ import { speedLines } from "./cutscene.js";
 const dishName = (k) => DISH_NAME[k] || k;
 import { riverWorld } from "./story.js";
 import { save, stats } from "./progress.js";
+import { freshCfg, newItem, decay, freshestFirst, freshBar, freshColor } from "./fresh.js";
 import { scaled, personSide, stool, sideTable, clayStove, passCounter, kitchenBack, roofAndPosts, lanternString, glow,
   nightWater, deck, backRail, landing, sampan, steam, smoke, coin, moon, quanSign, flowerPot, flowerArch, flowerGarland } from "./raft.js";
 // meta layer (staff, décor, chores, Bà Tư's dialog, phone messages). Loaded defensively: if meta.js (or one of its
@@ -97,7 +98,15 @@ export class QuanScene {
     const allowed = Array.isArray(opts && opts.menu) ? opts.menu.filter((k) => all[k]) : Object.keys(all);
     this.menu = Object.fromEntries(allowed.map((k) => [k, all[k]]));
     this.p = { x: t.start_pos[0], z: t.start_pos[1], vx: 0, vz: 0, face: 1, walk: 0 };
-    this.stock = stock ? { ...stock } : { ca_loc: 3, ca_linh: 6, bong_sung: 4, bong_dien_dien: 3, ca_keo: 4, keo_neo: 1 }; // null = demo stock; {} = empty basket
+    const counts = stock ? { ...stock } : { ca_loc: 3, ca_linh: 6, bong_sung: 4, bong_dien_dien: 3, ca_keo: 4, keo_neo: 1 }; // null = demo stock; {} = empty basket
+    // v1.2 freshness: item-level stock { id, kind, fresh, spoiled, res } (res = id of the guest holding it). opts.items =
+    // the gather handover (ids + fresh kept, spoiled included); without it (demo / shortcuts) fresh items are made from counts.
+    // this.stock stays the per-kind count of USABLE items (not reserved, not spoiled) so the rest of the quán reads it as before.
+    this.fresh = freshCfg(contract);
+    this.items = Array.isArray(opts.items)
+      ? opts.items.map((it) => ({ id: it.id, kind: it.kind, fresh: it.fresh, spoiled: it.fresh < this.fresh.spoiled_below, res: null }))
+      : Object.entries(counts).flatMap(([k, n]) => Array.from({ length: Math.max(0, n | 0) }, () => ({ ...newItem(k, this.fresh), res: null })));
+    this.syncStock();
     this.stoves = t.stoves.map((s) => ({ ...s, state: "idle", dish: null, cook: 0, cookMax: 0, pop: 0 }));
     // meta progression: stove upgrade multiplies cook time, décor multiplies patience, extra tables; day shifts the customer mix
     let st = null; try { st = stats(contract); } catch (e) {}
@@ -167,10 +176,55 @@ export class QuanScene {
   toast(x, z, txt, col) { this.toasts.push({ x, z, txt, col, life: 1.5, oy: 0 }); }
   // Ingredient reservation (contract §1.3): `stock` holds AVAILABLE amounts; a guest's order moves its recipe into
   // cu.reserved. Cooking a dish uses the oldest waiting order's reservation for that dish, else free stock.
+  // kinds seen once keep a 0 entry (as the old count-based stock did)
+  syncStock() { const o = {}; for (const k of Object.keys(this._stock || {})) o[k] = 0; for (const it of this.items) o[it.kind] = (o[it.kind] || 0) + (!it.res && !it.spoiled ? 1 : 0); this._stock = o; }
+  get stock() { return this._stock; }
+  // legacy setter (debug / tests): replaces the free usable items with fresh ones matching the counts
+  set stock(counts) {
+    this.items = (this.items || []).filter((it) => it.res || it.spoiled);
+    for (const [k, n] of Object.entries(counts || {})) for (let i = 0; i < n; i++) this.items.push({ ...newItem(k, this.fresh), res: null });
+    this.syncStock();
+  }
+  // freshest usable free items for a recipe (tie by id), or null when short
+  pickFree(recipe) {
+    const out = [];
+    for (const [k, n] of Object.entries(recipe)) {
+      const got = this.items.filter((it) => it.kind === k && !it.res && !it.spoiled).sort(freshestFirst).slice(0, n);
+      if (got.length < n) return null; out.push(...got);
+    }
+    return out;
+  }
+  reserveFor(cu, want) {
+    const got = this.pickFree(this.menu[want].recipe); if (!got) return false;
+    for (const it of got) it.res = cu.id;
+    cu.reserved = { ...this.menu[want].recipe }; cu.resIds = got.map((it) => it.id); this.syncStock(); return true;
+  }
+  // the items a cook of `key` would use right now (owner's reservation, else freshest free) → price that would be locked
+  lockPreview(key) {
+    const m = this.menu[key], owner = this.resFor(key);
+    const used = owner ? this.items.filter((it) => it.res === owner.id) : this.pickFree(m.recipe);
+    if (!used || !used.length) return null;
+    const mean = used.reduce((a, it) => a + it.fresh, 0) / used.length;
+    return { mean, price: Math.floor(m.price * mean / 100) };
+  }
+  // v1.2: stock (reserved items too) loses quan_decay_per_s; each newly spoiled item toasts once (by id); orders whose
+  // reservation lost an item release it and re-reserve once (by order time, then table), else the guest can't be served
+  decayStock(dt) {
+    const sp = decay(this.items, this.fresh.quan_decay_per_s, dt, this.fresh.spoiled_below);
+    if (!sp.length) return;
+    sp.forEach((it, i) => this.toast(this.p.x, this.p.z + 2.4 + i * 0.6, "Ươn! " + (KIND_NAME[it.kind] || it.kind) + " " + it.id, "#b8b8b8"));
+    const hit = new Set(sp.map((it) => it.res).filter(Boolean));
+    const affected = this.customers.filter((c) => hit.has(c.id) && c.reserved).sort((a, b) => a.orderT - b.orderT || (a.table < b.table ? -1 : 1));
+    for (const cu of affected) {
+      this.release(cu);
+      if (!this.reserveFor(cu, cu.want)) { cu.unfulfillable = true; this.toast(cu.x, cu.z + 1.6, cu.name + ": hết đồ tươi cho món này…", "#ff9a9a"); }
+    }
+    this.syncStock();
+  }
   freeOK(key) { const r = this.menu[key].recipe; return Object.entries(r).every(([k, n]) => (this.stock[k] || 0) >= n); }
   resFor(key) { return this.customers.filter((c) => c.state === "waiting" && c.want === key && c.reserved).sort((a, b) => a.orderT - b.orderT || (a.table < b.table ? -1 : 1))[0] || null; }
   canCook(key) { return !!this.resFor(key) || this.freeOK(key); }
-  release(cu) { if (!cu.reserved) return; for (const [k, n] of Object.entries(cu.reserved)) this.stock[k] = (this.stock[k] || 0) + n; cu.reserved = null; }
+  release(cu) { if (!cu.reserved) return; for (const it of this.items) if (it.res === cu.id) it.res = null; cu.reserved = null; cu.resIds = null; this.syncStock(); }
   reservedTotals() { const o = {}; for (const c of this.customers) if (c.reserved) for (const [k, n] of Object.entries(c.reserved)) o[k] = (o[k] || 0) + n; return o; }
 
   arrivalGap() { return this.t.customer_interval_s * (ARRIVE_MUL[0] + Math.random() * (ARRIVE_MUL[1] - ARRIVE_MUL[0])); }
@@ -217,9 +271,8 @@ export class QuanScene {
       ? keys.reduce((a, k) => (this.menu[k].price > this.menu[a].price ? k : a), keys[0])
       : keys[Math.floor(Math.random() * keys.length)];
     const patMax = this.basePatience * ty.patMul * this.patMul * this.decorMul;
-    const reserved = { ...this.menu[want].recipe };
-    for (const [k, n] of Object.entries(reserved)) this.stock[k] -= n;
-    Object.assign(cu, { want, reserved, orderT: this.time0 - this.time, state: "waiting", patience: patMax, patienceMax: patMax });
+    this.reserveFor(cu, want); // freshest usable items of each recipe kind (keys were filtered by freeOK)
+    Object.assign(cu, { want, orderT: this.time0 - this.time, state: "waiting", patience: patMax, patienceMax: patMax });
     this.toast(tb.pos[0], tb.pos[1] + 1, arriving ? ty.name + " tới!" : cu.name + " vào bàn", ty.col);
     if (cu.type === "sop" && arriving) sfx("coin");
   }
@@ -231,7 +284,7 @@ export class QuanScene {
     this.toast(cu.vis ? cu.vis.x - 1 : cu.x, (cu.vis ? cu.vis.z : cu.z) + 1, "Chờ lâu quá, về thôi…", "#ffb36b");
     this.depart(cu, false);
   }
-  payFor(cu) { return Math.floor(this.menu[cu.want].price * CUST_TYPES[cu.type || "quen"].priceMul); }
+  payFor(cu, base) { return Math.floor((base ?? this.menu[cu.want].price) * CUST_TYPES[cu.type || "quen"].priceMul); }
 
   nearStove() { return this.stoves.find((s) => Math.hypot(s.pos[0] - this.p.x, s.pos[1] - this.p.z) <= this.t.interact_radius); }
   nearTable() { const tb = this.tables.find((t) => Math.hypot(t.pos[0] - this.p.x, t.pos[1] - this.p.z) <= this.t.interact_radius); return tb ? this.activeAt(tb.id) || this.customers.find((c) => c.table === tb.id) : null; }
@@ -257,7 +310,8 @@ export class QuanScene {
       const st = this.nearStove();
       if (st) { this.toast(st.pos[0], st.pos[1] + 1, "Đổ " + dishName(this.hand.key), "#ff8a8a"); this.hand = null; sfx("whoosh"); return; }
       const cu = this.nearTable();
-      if (cu && cu.state === "waiting" && cu.want === this.hand.key) this.serve(cu);
+      if (cu && cu.state === "waiting" && cu.unfulfillable) { this.toast(cu.x, cu.z + 1, "Đồ giữ cho khách đã ươn — không phục vụ được", "#ff9a9a"); sfx("hurt"); }
+      else if (cu && cu.state === "waiting" && cu.want === this.hand.key) this.serve(cu);
       else if (cu && cu.state === "waiting") { this.toast(cu.x, cu.z + 1, "Sai món! (E ở bếp để đổ)", "#ff6b6b"); sfx("hurt"); }
       else this.toast(this.p.x, this.p.z + 1, "Không có khách ở đây", "#ffd23a");
       return;
@@ -265,7 +319,7 @@ export class QuanScene {
     if (this.nearBaTu()) { this.openBaTu(); return; }
     const s = this.nearStove();
     if (s) {
-      if (s.state === "ready") { const dish = s.dish; this.hand = { key: dish }; s.state = "idle"; s.dish = null; sfx("pick"); this.toast(s.pos[0], s.pos[1] + 1, "Bưng " + dishName(dish), "#9fe"); }
+      if (s.state === "ready") { const dish = s.dish; this.hand = { key: dish, lock: s.lock }; s.lock = null; s.state = "idle"; s.dish = null; sfx("pick"); this.toast(s.pos[0], s.pos[1] + 1, "Bưng " + dishName(dish), "#9fe"); }
       else if (s.state === "idle") { this.menuOpen = true; this.menuSel = 0; sfx("select"); }
       else this.toast(s.pos[0], s.pos[1] + 1, "Đang nấu...", "#ffd23a");
       return;
@@ -331,8 +385,14 @@ export class QuanScene {
   startCook(s, key, mul = 1, by = null) {
     if (!s || s.state !== "idle" || !this.menu[key] || !this.canCook(key)) return false;
     const owner = this.resFor(key);
-    if (owner) owner.reserved = null; // the oldest order's reserved ingredients go into the pot
-    else for (const [k, n] of Object.entries(this.menu[key].recipe)) this.stock[k] -= n;
+    // the oldest order's reserved items go into the pot, else the freshest free ones (v1.2: by id, not by amount)
+    const used = owner ? this.items.filter((it) => it.res === owner.id) : this.pickFree(this.menu[key].recipe);
+    if (!used) return false;
+    if (owner) { owner.reserved = null; owner.resIds = null; }
+    const ids = new Set(used.map((it) => it.id)); this.items = this.items.filter((it) => !ids.has(it.id)); this.syncStock();
+    // v1.2 price lock: floor(list price × mean fresh of the used items / 100); the dish carries it to the guest
+    const mean = used.length ? used.reduce((a, it) => a + it.fresh, 0) / used.length : 100;
+    s.lock = Math.floor(this.menu[key].price * mean / 100); s.lockFresh = mean;
     s.state = "cooking"; s.dish = key; s.cookMax = this.cookTime(key) * mul; s.cook = s.cookMax; s.by = by ? by.name : null;
     sfx("sizzle");
     this.toast(s.pos[0], s.pos[1] + 1, by ? by.name + " bắc bếp!" : "Bắc bếp!", "#ff8a3d");
@@ -348,7 +408,7 @@ export class QuanScene {
   }
   // the waiting guest a finished dish belongs to: orders already cooked (reservation used) first, then the oldest
   orderFor(key) {
-    return this.customers.filter((c) => c.state === "waiting" && c.want === key && c.table)
+    return this.customers.filter((c) => c.state === "waiting" && !c.unfulfillable && c.want === key && c.table)
       .sort((a, b) => (a.reserved ? 1 : 0) - (b.reserved ? 1 : 0) || a.orderT - b.orderT)[0] || null;
   }
   pickSpot(i) { const s = this.stoves[i]; return i < 2 ? [PASS.x + (i ? 0.7 : -0.1), PASS.z - 1.0] : [s.pos[0] + 0.9, s.pos[1] - 0.9]; }
@@ -364,12 +424,12 @@ export class QuanScene {
       if (!s || s.state !== "ready" || s.dish !== w.dish || !this.orderFor(w.dish)) { w.task = "idle"; return; }
       const [tx, tz] = this.pickSpot(w.stove);
       if (this.moveTo(w, tx, tz, sp, dt)) {
-        w.carry = s.dish; s.state = "idle"; s.dish = null; w.task = "deliver"; w.hold = 0; w.pause = 0.3; w.face = 1; sfx("pick");
+        w.carry = s.dish; w.carryLock = s.lock; s.lock = null; s.state = "idle"; s.dish = null; w.task = "deliver"; w.hold = 0; w.pause = 0.3; w.face = 1; sfx("pick");
       }
       return;
     }
     if (w.carry) {
-      const cu = w.cu && w.cu.state === "waiting" && w.cu.want === w.carry && w.cu.table ? w.cu : this.orderFor(w.carry);
+      const cu = w.cu && w.cu.state === "waiting" && !w.cu.unfulfillable && w.cu.want === w.carry && w.cu.table ? w.cu : this.orderFor(w.carry);
       w.cu = cu;
       if (!cu) { // nobody wants it any more: wait by the pass a while, then pour it out
         w.hold += dt; this.moveTo(w, WAITER_HOME.x, WAITER_HOME.z, sp * 0.6, dt);
@@ -420,11 +480,13 @@ export class QuanScene {
   // by = staff actor (waiter) or undefined for the player (whose hand is emptied)
   serve(cu, by) {
     const dish = this.menu[cu.want], ty = CUST_TYPES[cu.type || "quen"];
+    const lock = (by ? by.carryLock : this.hand?.lock) ?? dish.price; // v1.2: price locked at cook start by freshness
+    if (by) by.carryLock = null;
     const ratio = cu.patience / (cu.patienceMax || this.t.patience_s);
-    const baseTip = ratio >= this.t.tip_min_patience_ratio ? Math.floor(dish.price * this.t.tip_rate) * ty.tipMul : 0;
-    const hintTip = cu.hint ? Math.floor(dish.price * this.t.tip_rate) : 0; // sộp asked for this dish in conversation
+    const baseTip = ratio >= this.t.tip_min_patience_ratio ? Math.floor(lock * this.t.tip_rate) * ty.tipMul : 0;
+    const hintTip = cu.hint ? Math.floor(lock * this.t.tip_rate) : 0; // sộp asked for this dish in conversation
     const tip = baseTip + hintTip;
-    const gain = this.payFor(cu) + tip;
+    const gain = this.payFor(cu, lock) + tip;
     this.release(cu);
     this.money += gain; this.tips += tip; this.sold[cu.want] = (this.sold[cu.want] || 0) + 1; if (!by) this.hand = null; cu.state = "eating"; cu.eat = this.t.eat_s; this.served++;
     this.callMeta("trackChore", "served", 1);
@@ -520,6 +582,7 @@ export class QuanScene {
 
     if (this._menuOpen) { this.updateMenu(); return; }
     const t = this.t, p = this.p;
+    this.decayStock(dt); // v1.2 freshness (frozen while the cook menu / Bà Tư / pause is open)
     let [mx, mz] = input.axis(); mz = -mz; // up key = toward the back rail (+z)
     if (mx || mz) { const n = Math.hypot(mx, mz) || 1; mx /= n; mz /= n; this.started = true; this.hintT = 0; }
     p.vx = lerp(p.vx, mx * t.walk_speed, 0.25); p.vz = lerp(p.vz, mz * t.walk_speed, 0.25);
@@ -892,12 +955,18 @@ export class QuanScene {
     txt(this.rep.toFixed(1), rx + 88, ry + 11, { size: 8, align: "right", color: HUD.text, weight: 900 });
     // stock chips
     // stock chips: AVAILABLE amounts (reserved by waiting orders shown in grey as +n)
-    const resv = this.reservedTotals();
+    // v1.2: row 2 = mini bar (fill = freshest non-spoiled item, white tick = average) + spoiled count in red
+    const resv = this.reservedTotals(), kinds = [...new Set(this.items.map((it) => it.kind))];
     const keys = Object.keys({ ...this.stock, ...resv }).filter((k) => (this.stock[k] || 0) > 0 || (resv[k] || 0) > 0);
-    const sw2 = keys.some((k) => resv[k]) ? 40 : 30, sx0 = W - 6 - keys.length * sw2;
-    keys.forEach((k, i) => { const x = sx0 + i * sw2; panel(x, 5, sw2 - 2, 15, { fill: F, border: HUD.dim, r: 4 }); u.imageSmoothingEnabled = false; u.drawImage(icon(k), x + 2, 7, 10, 10);
+    for (const k of kinds) if (!keys.includes(k)) keys.push(k);
+    const sw2 = 42, sx0 = W - 6 - keys.length * sw2;
+    keys.forEach((k, i) => { const x = sx0 + i * sw2; panel(x, 5, sw2 - 2, 22, { fill: F, border: HUD.dim, r: 4 }); u.imageSmoothingEnabled = false; u.drawImage(icon(k), x + 2, 7, 10, 10);
       txt("×" + (this.stock[k] || 0), x + 13, 16, { size: 8, color: (this.stock[k] || 0) ? HUD.text : "#ff9a9a", weight: 900 });
-      if (resv[k]) txt("+" + resv[k], x + sw2 - 4, 16, { size: 7, align: "right", color: "rgba(200,200,200,.6)", weight: 800 }); });
+      if (resv[k]) txt("+" + resv[k], x + sw2 - 4, 16, { size: 7, align: "right", color: "rgba(200,200,200,.6)", weight: 800 });
+      const good = this.items.filter((it) => it.kind === k && !it.spoiled), nSp = this.items.filter((it) => it.kind === k && it.spoiled).length;
+      if (good.length) { const best = Math.max(...good.map((it) => it.fresh)), avg = good.reduce((a, it) => a + it.fresh, 0) / good.length;
+        freshBar(u, x + 3, 20, 18, 3, best, false); u.fillStyle = "#fff"; u.fillRect(x + 3 + Math.round(18 * avg / 100), 19, 1, 5); }
+      if (nSp) txt(nSp + "ươn", x + sw2 - 4, 25, { size: 7, align: "right", color: "#ff5a5a", weight: 900 }); });
     // early-close button (wood style, clickable) + confirmation / no-dish banners
     if (!this.result) {
       const b = this.closeBtn, armed = this.confirmClose > 0;
@@ -907,7 +976,7 @@ export class QuanScene {
       else if (this.noDish) { const a = 0.75 + 0.25 * Math.sin(time * 4); panel(W / 2 - 150, 52, 300, 16, { fill: `rgba(80,20,20,${0.9 * a})`, border: "#ff8a8a", r: 6 }); txt("Hết nguyên liệu — khách ghé rồi về · C: Đóng quán sớm", W / 2, 63, { size: 8, align: "center", color: "#ffe0d0", weight: 900 }); }
     }
     // hand indicator
-    if (this.hand) { const s = "Đang bưng: " + dishName(this.hand.key), hw = Math.max(86, Math.ceil(measure(s, 7, 800)) + 10); panel(W - 6 - hw, 23, hw, 14, { fill: "rgba(70,30,12,.9)", border: "#ff8a3d", r: 6 }); txt(s, W - 1 - hw, 33, { size: 7, color: "#ffd0a0", weight: 800 }); }
+    if (this.hand) { const s = "Đang bưng: " + dishName(this.hand.key), hw = Math.max(86, Math.ceil(measure(s, 7, 800)) + 10); panel(W - 6 - hw, 30, hw, 14, { fill: "rgba(70,30,12,.9)", border: "#ff8a3d", r: 6 }); txt(s, W - 1 - hw, 40, { size: 7, color: "#ffd0a0", weight: 800 }); }
     txt("WASD đi · E nấu/bưng/phục vụ/trò chuyện · C đóng quán sớm · Esc/P tạm dừng", W / 2, H - 4, { size: 7, align: "center", color: "rgba(255,233,196,.55)", weight: 700, stroke: "rgba(10,8,20,.6)", sw: 2 });
   }
   star(u, x, y, fill, time, i) {
@@ -923,7 +992,7 @@ export class QuanScene {
   }
   drawMenu(c, time) {
     c.fillStyle = "rgba(14,8,6,.55)"; c.fillRect(0, 0, W, H);
-    const keys = Object.keys(this.menu), rowH = keys.length > 4 ? 28 : 34, pw = 260, ph = 36 + Math.max(1, keys.length) * rowH;
+    const keys = Object.keys(this.menu), rowH = keys.length > 4 ? 28 : 34, pw = 300, ph = 36 + Math.max(1, keys.length) * rowH;
     const px = W / 2 - pw / 2, py = H / 2 - ph / 2;
     panel(px, py, pw, ph, { fill: "rgba(46,26,14,.97)", border: HUD.border, bw: 1.5, r: 6 });
     txt("CHỌN MÓN NẤU", W / 2, py + 15, { size: 11, align: "center", color: "#ffd23a", weight: 900 });
@@ -936,7 +1005,9 @@ export class QuanScene {
       txt(dishName(k), px + 36, y + 11, { size: 9, color: can ? HUD.text : "#ff9a9a", weight: 800 });
       const rec = Object.entries(m.recipe).map(([ik, n]) => `${KIND_NAME[ik] || ik}×${n}`).join(" + ");
       txt(rec, px + 36, y + 22, { size: 7, color: can ? "#c9a88a" : "#d98", weight: 700 });
-      txt(m.price + "k", px + pw - 12, y + 11, { size: 10, align: "right", color: "#ffe14d", weight: 900 });
+      { const pv = can ? this.lockPreview(k) : null; // v1.2: price that would be locked now, from the freshness of the items used
+        if (pv && pv.price !== m.price) txt(`${m.price}k → ${pv.price}k (tươi ${Math.floor(pv.mean)}%)`, px + pw - 12, y + 11, { size: 8, align: "right", color: freshColor(pv.mean, false), weight: 900 });
+        else txt(m.price + "k" + (pv ? " (tươi " + Math.floor(pv.mean) + "%)" : ""), px + pw - 12, y + 11, { size: pv ? 8 : 10, align: "right", color: "#ffe14d", weight: 900 }); }
       const eff = this.cookTime(k);
       if (eff !== m.cook_s) { // upgraded stove: effective time, base time dimmed beside it
         txt(fmtS(eff), px + pw - 12, y + 22, { size: 7, align: "right", color: "#7ee87e", weight: 900 });
