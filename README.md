@@ -90,7 +90,7 @@ PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
 $env:PATH = "$PWD\.venv\Scripts;$env:PATH"; $env:PYTHONPATH = "tests;."; $env:PYTHONUTF8 = "1"; python3 -m unittest discover -s tests -v
 ```
 
-Bộ test gồm: smoke hộp đen theo Test Contract (`test_smoke_p1.py`), luật buổi sáng (`test_gather_lat1.py`: oxy, ngạt, ngất · `test_gather_lat2.py`: hái, bắt cá), luật quán (`test_quan.py`), kiểm scenario (`test_scenario_gather.py`).
+Bộ test gồm: smoke hộp đen theo Test Contract (`test_smoke_p1.py`), luật buổi sáng (`test_gather_lat1.py`: oxy, ngạt, ngất · `test_gather_lat2.py`: hái, bắt cá), luật quán (`test_quan.py`), kiểm scenario mã 2 (`test_scenario_gather.py`, `test_scenario_quan.py`), cửa sổ thử (`test_live.py`), khung Python (`test_python_starter_units.py`), danh sách nhóm (`test_team_check.py`).
 
 ## Hợp đồng file kho (sáng → tối)
 
