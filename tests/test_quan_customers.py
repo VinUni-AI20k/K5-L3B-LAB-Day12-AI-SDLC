@@ -64,7 +64,9 @@ class Schedule(unittest.TestCase):
         self.assertEqual(arrived, [(FIRST, "T1"), (FIRST + INTERVAL, "T2")])
 
     def test_no_free_table_skips_turn(self):
-        sim = make(inventory={"bong_sung": 10, "ca_loc": 10})  # preset 1 bàn
+        one_table = copy.deepcopy(TUNING)  # v1.1 preset có 4 bàn; dựng quán 1 bàn để kiểm hết bàn
+        one_table["quan"]["tables"] = one_table["quan"]["tables"][:1]
+        sim = make(inventory={"bong_sung": 10, "ca_loc": 10}, tuning=one_table)
         ev = run_until(sim, FIRST + INTERVAL)
         names = [n for _, n, _ in ev]
         self.assertEqual(names.count("customer_arrived"), 1)
@@ -110,7 +112,8 @@ class DishChoice(unittest.TestCase):
         self.assertEqual([(n, d) for _, n, d in ev], [("no_dish", {})])
 
     def test_same_seed_same_choice_and_uniform_spread(self):
-        stock = {"bong_sung": 2, "ca_loc": 1, "ca_linh": 3, "bong_dien_dien": 1}
+        # v1.1: 6 món -> kho đủ cho từng món (thêm ca_keo, keo_neo)
+        stock = {"bong_sung": 2, "ca_loc": 1, "ca_linh": 3, "bong_dien_dien": 1, "ca_keo": 2, "keo_neo": 1}
         picks = []
         for seed in range(60):
             a, b = make(inventory=dict(stock), seed=seed), make(inventory=dict(stock), seed=seed)

@@ -1,4 +1,4 @@
-"""File kho v1.0 (Contract G): {"items": {id: số nguyên >= 0}}.
+"""File kho v1.0, giữ nguyên ở v1.1 (Contract G): {"items": {id: số nguyên >= 0}}.
 
 Đọc: từ chối sai schema / id lạ / số âm (BadInput -> mã 2).
 Ghi: bỏ mục bằng 0, qua file tạm cùng thư mục rồi thay thế, byte-ổn-định.
@@ -10,7 +10,9 @@ import tempfile
 
 from .errors import BadInput
 
-KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
+# v1.1: thêm ca_keo, keo_neo (TICKET-02 mục 1.3). Giữ tên KINDS_P1 làm bí danh cho code cũ.
+KINDS = ("ca_loc", "ca_linh", "ca_keo", "bong_dien_dien", "bong_sung", "keo_neo")
+KINDS_P1 = KINDS
 
 
 def validate_items(items, kinds=KINDS_P1):
