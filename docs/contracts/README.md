@@ -53,18 +53,20 @@ Mỗi sự kiện là một dòng JSONL `{"type":"event","tick":…,"phase":…,
 | `fish_caught` | gather | `fish_id`, `kind`, `yield` | `sim/gather` | UI, QA |
 | `node_regrown` | gather | `node_id` | `sim/gather` (khung đã có) | UI |
 | `gather_end` | gather | `reason` (`docked`, `fainted`, `time`), `inventory.items` | `sim/gather` (khung đã có) | `sim/quan`, QA |
-| `customer_left` | quan | `customer_id` | `sim/quan` | UI, QA |
-| `no_dish` | quan | `customer_id` | `sim/quan` | UI, QA |
-| `cook_started` | quan | `stove_id`, món | `sim/quan` | UI |
-| `dish_ready` | quan | `stove_id`, món | `sim/quan` | UI |
-| `dish_picked` | quan | `stove_id`, món | `sim/quan` | UI |
-| `served` | quan | `customer_id`, món | `sim/quan` | UI, QA |
-| `paid` | quan | `customer_id`, tiền, boa | `sim/quan` | UI, QA |
-| `quan_end` | quan | `reason`, `money`, `earned`, `shift_earned`, `reputation` | `sim/quan` (khung đã có) | QA |
+| `customer_arrived` | quan | `order_id`, `table_id`, `dish_id` | `sim/quan` | UI, QA |
+| `no_dish` | quan | `{}` (khi có bàn trống mà không có món đủ nguyên liệu) | `sim/quan` | UI, QA |
+| `cook_started` | quan | `stove_id`, `order_id`, `dish_id`, `items`, `base_price` | `sim/quan` | UI |
+| `dish_ready` | quan | `stove_id`, `order_id`, `dish_id` | `sim/quan` | UI |
+| `dish_picked` | quan | `stove_id`, `order_id`, `dish_id` | `sim/quan` | UI |
+| `served` | quan | `order_id`, `table_id`, `dish_id`, `patience_ticks_left`, `base_price`, `tip` | `sim/quan` | UI, QA |
+| `paid` | quan | `order_id`, `table_id`, `base_price`, `tip`, `amount`, `reason` (`finished_eating` hoặc `closing`) | `sim/quan` | UI, QA |
+| `customer_left` | quan | `order_id`, `table_id`, `reason` (`patience` hoặc `closing`), `reputation` | `sim/quan` | UI, QA |
+| `quan_end` | quan | `reason` (`time`), `money`, `earned`, `shift_earned`, `reputation` | `sim/quan` (khung đã có) | QA |
 
-Các sự kiện `gather` (từ `dive` đến `gather_end`) khớp code của P1-04 và P1-05 (PR #5), đã đối chiếu với PRD-0 mục D, E, F theo `docs/proof/phase-1/gather.md`. Cột `data` của các sự kiện `quan` vẫn là đề xuất ban đầu của Integrator để B thống nhất; chỉ `node_regrown`, `gather_end` và `quan_end` đã có trong khung. Chưa chốt: tên sự kiện khi khách đến quán (PRD-0 mục E chưa có trong repo, ghi vào `docs/clarify.md` và hỏi PO).
+Các sự kiện `gather` (từ `dive` đến `gather_end`) khớp code của P1-04 và P1-05 (PR #5) và PRD-0 mục E. Các sự kiện `quan` theo PRD-0 mục E (đối chiếu trên lab board); `order_id` bằng id khách. Khi code của B (P1-06, P1-07) khác bảng này thì sửa code hoặc ghi lý do ở đây.
 
 ## Lịch sử đổi
 
 - Bản đầu do Integrator viết ở nhánh `p1-01-03-kickoff`, cần A, B, C đọc và đồng ý trước khi viết luật.
 - Cập nhật bảng sự kiện `gather` và bỏ `invuln_ticks` khỏi snapshot theo code của P1-04 và P1-05 (v1.0 không có `invuln_ticks`). Phase 2 (v1.1) thêm lại `invuln_ticks`, `attack_cd_ticks`, `monsters[]` và các sự kiện `monster_hit`, `fish_spawned`, `day_start`, `phase_start`, `paused`, `resumed`, `bought`, `buy_failed`, `shop_end`; cần quyết định chấp nhận hay từ chối `invuln_ticks` theo `contract_version`.
+- Bảng sự kiện `quan` và `customer_arrived` viết lại theo PRD-0 mục E (bản đề xuất cũ dùng `customer_id` và thiếu `customer_arrived`).
