@@ -1,0 +1,27 @@
+test_catch_fish_underwater_cooldown_and_tie_break (tests.test_gather_harvest.GatherHarvestTests.test_catch_fish_underwater_cooldown_and_tie_break)
+Bắt cá dưới nước đúng mép, hòa theo ID (F2 trước F10), đặt cooldown dùng lại ở t+L. ... ok
+test_catch_hold_full_keeps_fish_and_cooldown_and_no_fallback (tests.test_gather_harvest.GatherHarvestTests.test_catch_hold_full_keeps_fish_and_cooldown_and_no_fallback)
+Giỏ thiếu chỗ giữ nguyên đàn cá, giữ cooldown=0, không thử đàn khác. ... ok
+test_catch_no_fish_in_range_and_not_at_surface (tests.test_gather_harvest.GatherHarvestTests.test_catch_no_fish_in_range_and_not_at_surface)
+Không có cá trong tầm -> không event, không cooldown; ở mặt nước -> không bắt được. ... ok
+test_dock_priority_over_harvest (tests.test_gather_harvest.GatherHarvestTests.test_dock_priority_over_harvest)
+Ở trong vùng bến và gần nút: interact ưu tiên cập bến (docked), không hái nút. ... ok
+test_harvest_hold_full_keeps_node_ready (tests.test_gather_harvest.GatherHarvestTests.test_harvest_hold_full_keeps_node_ready)
+Giỏ đầy khi hái phát hold_full và giữ nguyên nút ready. ... ok
+test_harvest_node_at_surface_and_edge_radius (tests.test_gather_harvest.GatherHarvestTests.test_harvest_node_at_surface_and_edge_radius)
+Hái nút ở mặt nước đúng mép interact_radius -> vào giỏ, đặt regrow_ticks, phát gather. ... ok
+test_harvest_requires_surface (tests.test_gather_harvest.GatherHarvestTests.test_harvest_requires_surface)
+Đang dưới nước (d > surface_depth) không hái được nút dù trong interact_radius. ... ok
+test_harvest_tie_break_by_id_and_regrow_immediate (tests.test_gather_harvest.GatherHarvestTests.test_harvest_tie_break_by_id_and_regrow_immediate)
+Hòa khoảng cách chọn N2 trước N10; nút vừa regrow từ 1 -> 0 hái được ngay trong bước. ... ok
+test_last_tick_harvest_and_dock_edge_and_tick_limit_inventory (tests.test_gather_harvest.GatherHarvestTests.test_last_tick_harvest_and_dock_edge_and_tick_limit_inventory)
+Hái ở bước cuối vẫn vào kho; cập bến đúng mép ở bước cuối cho docked; tick_limit giữ nguyên file kho. ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 0.601s
+
+OK
+
+--- Smoke 2 tiến trình (Mục G) ---
+catch.json: {"items":{"bong_sung":2,"ca_loc":1}}
+quan tick 0 stock: {"bong_sung": 2, "ca_loc": 1}
