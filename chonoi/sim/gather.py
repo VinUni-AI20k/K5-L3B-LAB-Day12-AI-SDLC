@@ -24,7 +24,7 @@ import math
 
 from ..ids import sort_by_id
 from ..inventory import hold_to_items
-from ..items import is_v12, new_item
+from ..items import is_v12, new_item, decay
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -196,6 +196,9 @@ class GatherSim:
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
 
+        # 1b. Hold freshness decay (items added this tick only decay from next tick)
+        self._tick_hold_freshness(events)
+        
         # 2. Player movement & oxygen/choke/faint
         was_surface = self._at_surface()
         self._move(inp)
@@ -484,6 +487,21 @@ class GatherSim:
                 "pos": list(spawned["pos"]),
             }))
             
+            
+    def _tick_hold_freshness(self, events):
+        if not self.v12 or not self.hold or not self.freshness:
+            return
+        per_tick = float(self.freshness["gather_decay_per_s"]) / TICK
+        newly_spoiled = decay(self.hold, per_tick, {"freshness": self.freshness})
+        for item in newly_spoiled:
+            events.append((
+                "spoiled",
+                {
+                    "item_id": item["id"],
+                    "kind": item["kind"],
+                    "location": "hold",
+                },
+            ))
 
     # --- dùng chung (lát 1 + lát 2): mọi thao tác thêm vào giỏ đi qua đây ----------
     def _add_to_hold(self, kinds) -> bool:

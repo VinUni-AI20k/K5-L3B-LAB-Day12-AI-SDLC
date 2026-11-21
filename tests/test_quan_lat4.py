@@ -9,9 +9,11 @@ from chonoi.rng import Streams
 from chonoi.runner import Session
 from chonoi.sim.quan import QuanSim
 from helpers import Workdir, events, read_jsonl, run_headless, snapshots, write_json
+from legacy_v11 import setUpModule, tearDownModule  # noqa: F401  v1.2: fixture kho đếm chạy trên manifest v1.1 tạm, xem tests/legacy_v11.py
 
 with open('game.contract.json', encoding='utf-8') as _f:
     TUNING = json.load(_f)['tuning']
+TUNING.pop('freshness', None)  # v1.2: sim dựng trực tiếp với fixture kho đếm -> giữ luật v1.1 (tests/legacy_v11.py)
 Q, MENU = TUNING['quan'], TUNING['menu']
 STOVE = Q['stoves'][0]
 TABLE = Q['tables'][0]

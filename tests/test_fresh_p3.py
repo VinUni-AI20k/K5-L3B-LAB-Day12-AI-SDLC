@@ -63,13 +63,11 @@ def spoiled_events(rows) -> list:
 
 
 class Threshold(unittest.TestCase):
-    @pending("gather v1.2")
     def test_ac_p3_01_vi_du_ticket_uon_o_buoc_dau_dung_nguong_30(self):
         rows, _ = run_case(self, "gather", scenario=gsc(hold=[it("I1", "ca_linh", 30)]), ticks=1)
         self.assertEqual([(e["tick"], e["phase"], e["data"]) for e in events(rows, "spoiled")],
                          [(1, "gather", {"item_id": "I1", "kind": "ca_linh", "location": "hold"})])
 
-    @pending("gather v1.2")
     def test_ac_p3_01_fresh_30_5_chua_uon_den_buoc_61(self):
         rows, _ = run_case(self, "gather", scenario=gsc(hold=[it("I1", "ca_linh", 30.5)]), ticks=62)
         self.assertEqual(spoiled_events(rows), [(61, "I1", "hold")])
@@ -77,7 +75,6 @@ class Threshold(unittest.TestCase):
 
 
 class SpoiledOnce(unittest.TestCase):
-    @pending("gather v1.2")
     def test_ac_p3_02_nhieu_ca_the_cung_vuot_nguong_phat_theo_id_dung_mot_lan(self):
         hold = [it("I2", "ca_loc", 30), it("I1", "ca_linh", 30)]
         rows, _ = run_case(self, "gather", scenario=gsc(hold=hold), ticks=120)
@@ -85,12 +82,11 @@ class SpoiledOnce(unittest.TestCase):
 
 
 class GatherDecay(unittest.TestCase):
-    @pending("gather v1.2")
     def test_ac_p3_03_gio_hao_0_5_moi_giay(self):
         rows, _ = run_case(self, "gather", scenario=gsc(hold=[it("I1", "ca_loc", 100)]), ticks=60)
         self.assertTrue(close(snap_at(rows, 60)["hold"][0]["fresh"], 99.5, TOL))
 
-    @pending("gather v1.2")
+    
     def test_ac_p3_03_hang_moi_hai_duoc_fresh_100_hao_tu_buoc_sau(self):
         nodes = [{"id": "N1", "kind": "bong_sung", "pos": [21, 0]}]
         rows, _ = run_case(self, "gather", scenario=gsc(player={"pos": SURF}, nodes=nodes), inputs=press(0, "interact"),
@@ -213,9 +209,11 @@ class DayHandoff(unittest.TestCase):
 
 
 class PauseFresh(unittest.TestCase):
-    @pending("gather v1.2")
+    
     def test_ac_p3_10_pause_dung_hao_tuoi(self):
-        inputs = [{"tick": 10, "pause": True}, {"tick": 70, "pause": False}]
+        # Ticket-02 4.2: "Cạnh lên tiếp theo phát resumed" -> tiếp tục bằng một lần NHẤN nữa ở tick 70,
+        # không phải thả nút (bản trước thả nút nên game không bao giờ tiếp tục). Assert giữ nguyên.
+        inputs = press(10, "pause") + press(70, "pause")
         rows, _ = run_case(self, "gather", scenario=gsc(hold=[it("I1", "ca_loc", 100)]), inputs=inputs, ticks=120)
         self.assertTrue(close(snap_at(rows, 120)["hold"][0]["fresh"], 99.5, TOL))  # chỉ 60 bước chạy thật
 

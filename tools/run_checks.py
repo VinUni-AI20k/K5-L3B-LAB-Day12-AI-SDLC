@@ -57,7 +57,10 @@ def check_two_process(tmp: str) -> tuple[bool, str]:
         return os.path.join(tmp, name)
 
     with open(p("dock.json"), "w", encoding="utf-8") as f:
-        json.dump({"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"]}}, f)
+        # v1.2 (Ticket-03): giỏ là mảng cá thể {id, kind, fresh}
+        json.dump({"gather": {"hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100},
+                                       {"id": "I2", "kind": "bong_sung", "fresh": 100},
+                                       {"id": "I3", "kind": "bong_sung", "fresh": 100}]}}, f)
     with open(p("dock-inputs.json"), "w", encoding="utf-8") as f:
         json.dump({"frames": [{"tick": 0, "interact": True}]}, f)
     code, err = sh([*headless_cmd(), "--mode", "gather", "--seed", "42", "--scenario", p("dock.json"),
@@ -73,9 +76,10 @@ def check_two_process(tmp: str) -> tuple[bool, str]:
         kho = json.load(f)
     with open(p("quan.jsonl"), encoding="utf-8") as f:
         stock = json.loads(f.readline())["stock"]
-    want = {"bong_sung": 2, "ca_loc": 1}
-    ok = kho == {"items": want} and stock == want
-    return ok, f"kho={json.dumps(kho)} · stock quán tick 0={json.dumps(stock)}"
+    # So CHÍNH XÁC id, kind, fresh giữa file kho (sau lần hao ở bước gather) và snapshot quán tick 0.
+    ids = [i["id"] for i in kho["items"]]
+    ok = ids == ["I1", "I2", "I3"] and stock == kho["items"]
+    return ok, f"kho={json.dumps(kho)} · stock quán tick 0 khớp={stock == kho['items']}"
 
 
 def check_team() -> tuple[bool, str]:

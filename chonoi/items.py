@@ -106,8 +106,12 @@ def validate_items(arr, kinds, where="items") -> list:
 
 
 def to_file(items) -> dict:
-    """Object file kho v1.2: {"items": [...]} theo thứ tự id. Kho rỗng {"items": []}."""
-    return {"items": [{"id": i["id"], "kind": i["kind"], "fresh": i["fresh"]}
+    """Object file kho v1.2: {"items": [...]} theo thứ tự id. Kho rỗng {"items": []}.
+
+    `fresh` làm tròn 3 chữ số như JSONL (`chonoi/jsonl.py`) để file KHỚP `gather_end.data.inventory` (PRD-0 mục G).
+    Vẫn "đủ chính xác khi đọc lại" (Ticket-03): lưới 1/240 ≈ 0.00417, sai số làm tròn ≤ 0.0005 = 0.12 đơn vị,
+    nên `units(fresh)` khôi phục đúng số nguyên và nhánh ở ngưỡng 30."""
+    return {"items": [{"id": i["id"], "kind": i["kind"], "fresh": round(i["fresh"], 3)}
                       for i in sorted(items, key=lambda i: id_key(i["id"]))]}
 
 

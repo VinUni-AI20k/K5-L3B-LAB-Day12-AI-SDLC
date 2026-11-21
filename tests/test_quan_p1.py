@@ -9,6 +9,7 @@ import unittest
 
 from helpers import Workdir, close, events, run_headless, write_json
 from qa_helpers import press, run_case, snap_at
+from legacy_v11 import setUpModule, tearDownModule  # noqa: F401  v1.2: fixture kho đếm chạy trên manifest v1.1 tạm, xem tests/legacy_v11.py
 
 CA_LOC = "ca_loc_nuong_trui"
 NEAR_STOVE = [2, 8]       # đúng vị trí B1
