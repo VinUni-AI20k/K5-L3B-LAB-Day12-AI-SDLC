@@ -93,3 +93,46 @@ Các mã AC-P3 dưới đây do nhóm đặt để truy vết yêu cầu TICKET-
 ### Mở rộng
 
 Kỳ vọng một mục mở rộng của nhóm 5 người tính trên cả lab. Khi lõi và bàn giao đã ổn, trưởng nhóm kiểm mục mở rộng đã có bằng chứng và quyết định còn cần bổ sung gì. Nếu chọn current hoặc reservations thì ghi người nhận, extensions, test và bằng chứng trước khi bắt đầu.
+
+## Phase 4 · Phát hành v1.0.0 · 30 phút
+
+Theo TICKET-04 (Test Contract v1.3, hạn đẩy tag `phase-4` và công bố GitHub Release `v1.0.0` lúc 3:00). Giữ số TV theo các phase trước.
+
+### Phân việc chạy song song
+
+| Người | Phần sở hữu / file cần đổi | Cách bắt đầu độc lập | Đầu ra và ca nghiệm thu |
+|---|---|---|---|
+| **TV1 · Release & Integrator** | Chốt tích hợp cuối Phase 3 vào `main`; bật `contract_version: "1.3"`, khai `bench_cmd` và `soak_cmd` trong `game.contract.json`; rà `CHANGELOG.md` (P1–P4), `CREDITS.md`, `LICENSE`, `TEAM.md` (khớp handle GitHub thật); viết Release notes, đẩy tag `phase-4` và công bố GitHub Release `v1.0.0` kèm gói phát hành. | Rà sẵn `CHANGELOG.md`, `CREDITS.md`, `LICENSE`, `TEAM.md` và bản nháp Release notes ngay khi vào phase; chốt tên lệnh `bench_cmd`/`soak_cmd` với TV2–TV3. | `game.contract.json` bản v1.3 hợp lệ; `CHANGELOG.md` đủ 4 phase; tag `phase-4` và Release `v1.0.0` (kèm bản đóng gói) trỏ cùng một commit trên `main` trước 3:00. |
+| **TV2 · Soak headless (`soak_cmd`)** | Viết `chonoi/soak.py` (`python3 -m chonoi.soak --seed <int> --days <N> --out <soak.json>`) chạy `N` Ngày (kiểm 10 Ngày) trong một tiến trình bằng bot/script tất định; lặp kế hoạch D1–D5 ở Ngày 6–10; giữ liên tục tiền, `earned`, `reputation`, nâng cấp, số Ngày và ID cá thể. | Xây vòng lặp `DaySim` 10 ngày + bot tất định độc lập, không phá giới hạn `--days 1..5` của `chonoi.headless --mode day`. | `soak.json` đủ 5 trường (`days`, `days_completed`, `crashes`, `results[{day,earned,reputation,score}]`, `duration_s`); `days_completed == days`, `crashes == 0`, lặp lại cùng seed cho kết quả gameplay giống nhau. |
+| **TV3 · Benchmark có render (`bench_cmd`)** | Viết `chonoi/bench.py` (`python3 -m chonoi.bench --seed <int> --duration <giây> --out <bench.json>`) dựng cảnh sáng lõi (độ tươi, cá bơi, Cá Sấu, Út Sen đứng yên ở bến) ở `1280×720`, làm nóng 3 s rồi đo 30 s. | Tận dụng `chonoi.live` + cửa sổ/trình duyệt 1280×720 đo `requestAnimationFrame`, tính `avg_fps = frames / measured_s`, `p1_low_fps` theo `max(1, ceil(0.01 * frames))` khung chậm nhất và `load_ms`. | Chạy được `<bench_cmd> --seed 42 --duration 30 --out bench.json`, tạo `bench.json` đúng 5 trường; lưu artifact từ commit nộp vào `docs/proof/phase-4/`. |
+| **TV4 · Đóng gói, Clone sạch & Retro** | Kiểm thử chạy bản có giao diện từ **clone sạch trong ≤ 3 lệnh** trên macOS/Linux; hoàn thiện `README.md` (môi trường, điều khiển, lệnh test, `headless`, `bench`, `soak`); đóng gói bản chạy được gửi TV1 đính kèm Release `v1.0.0`; điều phối `docs/retro.md` và gom đủ 5 file `docs/members/<handle>.md`. | Clone sang thư mục sạch để kiểm thực tế 3 lệnh chạy; tổng hợp hành động P2 để mở đầu retro và nhắc từng thành viên viết phản tư ≤ 200 từ. | Log kiểm clone sạch ≤ 3 lệnh; gói phát hành chạy được; `docs/retro.md` đã rà hành động P2 + nêu 1 lỗi AI và cách xác minh; đủ 5 file `docs/members/<handle>.md`. |
+| **TV5 · Cảnh báo, High Contrast & QA** | Thêm **chế độ tương phản cao (High Contrast)** vào `chonoi/web/index.html` và đảm bảo đủ **3 cảnh báo** bằng chữ/biểu tượng (thủy quái gần, oxy sắp hết, khách sắp giận); chạy regression P1–P3 + `soak` + `bench`, điền `docs/verification/phase-4.md`; chuẩn bị kịch bản Demo < 5 phút. | Thêm toggle High Contrast vào Menu/Cài đặt/Pause, chụp ảnh chơi thử cả 3 cảnh báo ở chế độ tương phản cao; dựng sẵn bảng truy vết AC-P4-xx. | Ảnh bằng chứng 3 cảnh báo ở High Contrast; toàn bộ regression P1–P3 đạt; `docs/verification/phase-4.md` và `docs/proof/phase-4/*` khớp commit gắn tag; checklist Demo sẵn sàng. |
+
+### Quyết định chốt lúc kickoff
+
+- `soak_cmd` dùng `python3 -m chonoi.soak`, hỗ trợ `--days 10` và lặp kế hoạch `(day - 1) % 5 + 1` cho Ngày 6–10; giữ nguyên kiểm tra `--days 1..5` của `chonoi.headless --mode day`.
+- `bench_cmd` dùng `python3 -m chonoi.bench`, xuất đúng 5 trường JSON (`avg_fps`, `p1_low_fps`, `frames`, `measured_s`, `load_ms`); báo cáo so với mốc `avg >= 60`, `1% low >= 30`, `load <= 10 s`.
+- Cả 5 thành viên tự viết xong `docs/members/<handle>.md` (≤ 200 từ, dẫn commit/bằng chứng thật) và cập nhật `docs/ai-usage-log.md` / `docs/clarify.md` trước phút 22.
+- Freeze code lúc phút 22–25 để TV5 chạy regression cuối, TV4 tạo gói đóng gói, và TV1 đẩy tag `phase-4` + công bố GitHub Release `v1.0.0` từ **cùng một commit trên `main`** trước 3:00.
+
+### Mốc bàn giao
+
+| Phút | Việc và người chịu trách nhiệm |
+|---|---|
+| 0–5 | TV1 chốt tên lệnh `bench_cmd`/`soak_cmd` với TV2–TV3 và rà `main` sau Phase 3. Cả nhóm chốt phạm vi 5 lát và bắt đầu song song. |
+| 5–15 | TV2 xong `soak_cmd`, TV3 xong `bench_cmd`, TV5 xong High Contrast + 3 cảnh báo, TV4 kiểm clone sạch ≤ 3 lệnh & cập nhật `README.md`, TV1 chuẩn bị `game.contract.json` v1.3, `CHANGELOG.md`, `CREDITS.md`, `LICENSE`, Release notes. |
+| 15–25 | Phút 20 standup nhanh. Ghép vào `main`, chạy `bench` + `soak` + regression P1–P3; hoàn tất `docs/retro.md` (rà hành động P2) và đủ 5 file `docs/members/<handle>.md`; TV4 tạo gói release. |
+| 25–30 | Dự phòng. TV5 chốt `docs/verification/phase-4.md` khớp commit bàn giao; TV1 đẩy tag `phase-4` và publish GitHub Release `v1.0.0` trước mốc 3:00; chuẩn bị Demo < 5 phút. |
+
+### Checklist nghiệm thu chung
+
+- **AC-P4-01 · TV1 + TV3** `contract_version: "1.3"`, khai đúng `bench_cmd` và `soak_cmd`; `<bench_cmd> --seed 42 --duration 30 --out bench.json` chạy cảnh sáng lõi `1280×720` và tạo đúng 5 trường JSON trong `docs/proof/phase-4/`.
+- **AC-P4-02 · TV2** `<soak_cmd> --seed 7 --days 10 --out soak.json` chạy đủ 10 Ngày lặp D1–D5, `days_completed == 10`, `crashes == 0`, tất định ở các trường gameplay.
+- **AC-P4-03 · TV5** Cả 3 cảnh báo (thủy quái gần, oxy sắp hết, khách sắp giận) có chữ/biểu tượng rõ ràng và đã chơi thử ở chế độ tương phản cao (có ảnh bằng chứng).
+- **AC-P4-04 · TV4 + TV1** Clone sạch chạy bản có giao diện trong ≤ 3 lệnh theo `README.md`; `CHANGELOG.md`, `CREDITS.md`, `LICENSE`, Release notes và gói đóng gói đầy đủ trên GitHub Release `v1.0.0`.
+- **AC-P4-05 · TV5 + TV1** Regression P1–P3 còn hiệu lực đạt; `docs/verification/phase-4.md`, `docs/clarify.md`, `docs/ai-usage-log.md` cập nhật và khớp commit gắn tag `phase-4` / Release `v1.0.0`.
+- **AC-P4-06 · TV4 + cả nhóm** `docs/retro.md` đã rà lại hành động P2 và nêu 1 lỗi AI + cách xác minh; đủ 5 file `docs/members/<handle>.md` (≤ 200 từ/người) và bằng chứng đóng góp trên repo chung.
+
+### Mở rộng
+
+Nhóm 5 người đã hoàn thành mục mở rộng *Settings & âm thanh* ở Phase 2 (đã khai trong `README.md` và `docs/verification/phase-2.md`). Chỉ làm thêm `leaderboard` hoặc *Phụ đề SFX* nếu toàn bộ lõi v1.3 và Release `v1.0.0` đã hoàn tất sớm.
