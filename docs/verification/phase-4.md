@@ -6,10 +6,10 @@
 | AC-P4-02 | `bench_cmd --seed 42 --duration 30 --out bench.json` chạy cảnh chuẩn, đủ 5 trường đúng công thức | Chạy đo 30s thực tế trên trình duyệt headless Chrome và unit tests `tests/test_p4_bench.py` | [`bench.json`](docs/proof/phase-4/bench.json) | đạt | ttkien0710, nganhduong123 |
 | AC-P4-03 | `soak_cmd --seed 7 --days 10`: `days_completed = 10`, `crashes = 0`, chạy lặp giống nhau ở trường gameplay | log soak `tests/test_p4_soak.py`, chạy thực tế `chonoi/soak.py` | [`soak.json`](docs/proof/phase-4/soak.json), [`soak-run.txt`](docs/proof/phase-4/soak-run.txt) | đạt | Quoosc |
 | AC-P4-04 | 3 cảnh báo có chữ hoặc biểu tượng, chế độ tương phản cao hoạt động | ảnh chụp CDP và unit tests `tests/test_p4_ui_bench_contrast.py` | [`ui-client/`](docs/proof/phase-4/ui-client/) | đạt | nganhduong123, comtrang378-ship-it |
-| AC-P4-05 | Clone sạch chạy bản giao diện trong ≤ 3 lệnh, README đủ thông tin | `clean-clone.txt` | [`clean-clone.txt`](docs/proof/phase-4/clean-clone.txt) | chờ đóng gói | NguyenQuangDunghe161764 |
-| AC-P4-06 | Regression P1–P3 còn hiệu lực đạt | log test toàn bộ 184+ tests | [`verify-run.txt`](docs/proof/phase-4/verify-run.txt) | đạt | WorkOfMinh |
-| AC-P4-07 | CHANGELOG theo phase, release notes, zip, tag `phase-4` và Release v1.0.0 cùng commit | GitHub Release v1.0.0 | GitHub Release | đang chuẩn bị | invzble-z |
-| AC-P4-08 | Retro rà hành động P2, đủ 7 phản tư cá nhân | `docs/retro.md`, `docs/members/` | [`docs/retro.md`](docs/retro.md) | đang hoàn thiện | nganhduong123, cả nhóm |
+| AC-P4-05 | Clone sạch chạy bản giao diện trong ≤ 3 lệnh, README đủ thông tin | `clean-clone.txt` | [`clean-clone.txt`](docs/proof/phase-4/clean-clone.txt) | đạt | NguyenQuangDunghe161764 |
+| AC-P4-06 | Regression P1–P3 còn hiệu lực đạt | log test toàn bộ 184+ tests | [`verify-run.txt`](docs/proof/phase-4/verify-run.txt) | đạt (207/207 OK) | WorkOfMinh |
+| AC-P4-07 | CHANGELOG theo phase, release notes, zip, tag `phase-4` và Release v1.0.0 cùng commit | GitHub Release v1.0.0 | [`release-notes-v1.0.0.md`](docs/release-notes-v1.0.0.md) | đạt | invzble-z |
+| AC-P4-08 | Retro rà hành động P2, đủ 7 phản tư cá nhân | `docs/retro.md`, `docs/members/` | [`docs/retro.md`](docs/retro.md) | đạt | nganhduong123, cả nhóm |
 
 ## Đánh giá ngắn
 - **Yêu cầu AC-P4-01 (invzble-z phụ trách):**
@@ -28,3 +28,10 @@
   - Đạt 10/10 ngày, 0 crash, exit 0; gameplay fields trùng khớp 2 lần chạy độc lập cùng seed 7.
 - **Yêu cầu AC-P4-04 (nganhduong123 & comtrang378-ship-it phụ trách):**
   - Đã tích hợp 3 cảnh báo có chữ và icon (Thủy quái gần, Oxy sắp hết, Khách sắp giận) và công tắc Độ tương phản cao (High Contrast). Đã kiểm thử qua [tests/test_p4_ui_bench_contrast.py](tests/test_p4_ui_bench_contrast.py) và chụp ảnh CDP tại `docs/proof/phase-4/ui-client/`.
+- **Yêu cầu AC-P4-05 & AC-P4-06 (NguyenQuangDunghe161764 & WorkOfMinh phụ trách):**
+  - Kiểm thử clone sạch 3 lệnh thành công: [`docs/proof/phase-4/clean-clone.txt`](docs/proof/phase-4/clean-clone.txt).
+  - Kiểm thử hồi quy toàn bộ: 207/207 unit tests đạt (5 expected failures theo spec): [`docs/proof/phase-4/verify-run.txt`](docs/proof/phase-4/verify-run.txt).
+- **Yêu cầu AC-P4-07 (invzble-z phụ trách):**
+  - Bổ sung `LICENSE` tại gốc repo.
+  - Soạn thảo Release Notes toàn diện: [`docs/release-notes-v1.0.0.md`](docs/release-notes-v1.0.0.md).
+  - Đóng gói ZIP `cho-noi-v1.0.0.zip`, gắn tag `phase-4` và tạo GitHub Release v1.0.0.
