@@ -100,7 +100,7 @@ class GatherFish(unittest.TestCase):
         caught = [r for r in rows if r["name"] == "fish_caught"]
         self.assertEqual(len(caught), 1)
         self.assertEqual(caught[0]["data"]["yield"], self.g["fish_yield"]["ca_keo"])
-        self.assertEqual(s.sim.hold, ["ca_keo"] * self.g["fish_yield"]["ca_keo"])
+        self.assertEqual([u["kind"] for u in s.sim.hold], ["ca_keo"] * self.g["fish_yield"]["ca_keo"])
 
     def test_snapshot_co_du_6_loai_nguyen_lieu(self):
         snap = Session("gather", self.tuning, {}, 1).sim.snapshot()

@@ -484,11 +484,18 @@ function gatherHint(s) {
   }
   return cooldown;
 }
+// giỏ: mỗi phần tử là {id, kind, fresh} (hoặc chuỗi loại ở dạng cũ)
+function kindOf(unit) {
+  return typeof unit === "string" ? unit : unit?.kind;
+}
 function holdSummary(hold) {
   if (!Array.isArray(hold)) return "Đang chờ dữ liệu giỏ";
   if (!hold.length) return "Giỏ trống";
   const counts = new Map();
-  for (const item of hold) counts.set(item, (counts.get(item) ?? 0) + 1);
+  for (const unit of hold) {
+    const item = kindOf(unit);
+    counts.set(item, (counts.get(item) ?? 0) + 1);
+  }
   return Array.from(counts, ([item, count]) => `${capitalize(String(itemName(item)))} ×${count}`).join(" · ");
 }
 function renderGather(s) {
@@ -504,7 +511,7 @@ function renderGather(s) {
   setHTML("slots", capacity === null || !Array.isArray(s.hold) ? "" :
     Array.from({ length: capacity }, (_, index) => {
       if (index >= hold.length) return '<span class="slot"></span>';
-      const icon = known(itemIcons, hold[index]);
+      const icon = known(itemIcons, kindOf(hold[index]));
       return `<span class="slot filled">${icon ? `<img alt="" src="${icon}">` : "?"}</span>`;
     }).join(""));
   setText("hold-summary", holdSummary(s.hold));

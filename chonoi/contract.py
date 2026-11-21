@@ -73,6 +73,9 @@ def _validate_gather(g):
     _int_between("gather.fish_turn_ticks", g.get("fish_turn_ticks"), 1, 10_000)
     _int_between("gather.fish_spawn_ticks", g.get("fish_spawn_ticks"), 1, 100_000)
     _int_between("gather.fish_max", g.get("fish_max"), 1, 100)
+    _between("gather.fresh_max", g.get("fresh_max"), 1, 100)
+    _between("gather.fresh_decay_per_s", g.get("fresh_decay_per_s"), 0, 10)
+    _between("gather.spoil_threshold", g.get("spoil_threshold"), 0, g.get("fresh_max") or 0)
     _pos_in("gather.dock_pos", g.get("dock_pos"), b, ("x", "d"))
     _pos_in("gather.start_pos", g.get("start_pos"), b, ("x", "d"))
     if not _num(g.get("start_heading_deg")):

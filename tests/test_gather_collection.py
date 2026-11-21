@@ -33,7 +33,7 @@ class GatherCollection(unittest.TestCase):
         first = self.step(s, p)
         self.assertEqual([(e["name"], e["data"]) for e in first], [
             ("gather", {"node_id": "N2", "kind": "bong_dien_dien", "amount": self.g["node_yield"]})])
-        self.assertEqual(s.sim.hold, ["bong_dien_dien"] * self.g["node_yield"])
+        self.assertEqual([u["kind"] for u in s.sim.hold], ["bong_dien_dien"] * self.g["node_yield"])
         self.assertEqual(next(n for n in s.sim.nodes if n["id"] == "N2")["regrow_ticks"],
                          int(round(self.g["regrow_s"] * 60)))
         self.assertEqual(self.step(s, p), [], "giữ interact không hái thêm")
@@ -54,7 +54,7 @@ class GatherCollection(unittest.TestCase):
         rows = self.step(s, InputPlayer([{"tick": 0, "interact": True}]))
         self.assertEqual([r["name"] for r in rows], ["gather_end"])
         self.assertEqual(rows[0]["data"]["reason"], "docked")
-        self.assertEqual(s.sim.hold, [])
+        self.assertEqual([u["kind"] for u in s.sim.hold], [])
 
     def test_regrown_node_can_be_harvested_same_tick(self):
         s = self.session({"player": {"pos": [20, 0]}, "nodes": [
@@ -70,9 +70,9 @@ class GatherCollection(unittest.TestCase):
         p = InputPlayer([{"tick": 0, "interact": True}])
         self.assertEqual(self.step(s, p), [])
         self.assertEqual(s.sim.nodes[0]["regrow_ticks"], 1)
-        self.assertEqual(s.sim.hold, [])
+        self.assertEqual([u["kind"] for u in s.sim.hold], [])
         self.assertEqual([r["name"] for r in self.step(s, p)], ["node_regrown"])
-        self.assertEqual(s.sim.hold, [], "nút được hái chỉ khi có cạnh lên mới")
+        self.assertEqual([u["kind"] for u in s.sim.hold], [], "nút được hái chỉ khi có cạnh lên mới")
 
     def test_harvest_full_does_not_change_node_or_try_another(self):
         hold = ["ca_loc"] * self.g["hold_capacity"]
@@ -83,7 +83,7 @@ class GatherCollection(unittest.TestCase):
         self.assertEqual([(r["name"], r["data"]) for r in rows], [
             ("hold_full", {"action": "gather", "node_id": "N2",
                            "required": self.g["node_yield"], "free": 0})])
-        self.assertEqual(s.sim.hold, hold)
+        self.assertEqual([u["kind"] for u in s.sim.hold], hold)
         self.assertTrue(all(n["regrow_ticks"] == 0 for n in s.sim.nodes))
 
     def test_node_yield_comes_from_tuning(self):
@@ -93,7 +93,7 @@ class GatherCollection(unittest.TestCase):
             {"id": "N1", "kind": "bong_sung", "pos": [20, 0]}]}, tuning=tuning)
         rows = self.step(s, InputPlayer([{"tick": 0, "interact": True}]))
         self.assertEqual(rows[0]["data"]["amount"], 2)
-        self.assertEqual(s.sim.hold, ["bong_sung", "bong_sung"])
+        self.assertEqual([u["kind"] for u in s.sim.hold], ["bong_sung", "bong_sung"])
 
     def test_catch_underwater_radius_tie_yield_and_edge(self):
         s = self.session({"player": {"pos": [20, 5]}, "fish": [
@@ -103,7 +103,7 @@ class GatherCollection(unittest.TestCase):
         rows = self.step(s, p)
         self.assertEqual([(r["name"], r["data"]) for r in rows], [
             ("fish_caught", {"fish_id": "F2", "kind": "ca_linh", "yield": self.g["fish_yield"]["ca_linh"]})])
-        self.assertEqual(s.sim.hold, ["ca_linh"] * self.g["fish_yield"]["ca_linh"])
+        self.assertEqual([u["kind"] for u in s.sim.hold], ["ca_linh"] * self.g["fish_yield"]["ca_linh"])
         self.assertEqual([f["id"] for f in s.sim.fish], ["F10"])
         self.assertEqual(s.sim.catch_cd_ticks, int(round(self.g["catch_cooldown_s"] * 60)))
         self.assertEqual(self.step(s, p), [], "giữ catch không bắt thêm")
@@ -145,7 +145,7 @@ class GatherCollection(unittest.TestCase):
                     ("hold_full", {"action": "catch", "fish_id": "F2",
                                    "required": self.g["fish_yield"]["ca_linh"],
                                    "free": self.g["hold_capacity"] - count})])
-                self.assertEqual(s.sim.hold, hold)
+                self.assertEqual([u["kind"] for u in s.sim.hold], hold)
                 self.assertEqual([f["id"] for f in s.sim.fish], ["F2", "F10"])
                 self.assertEqual(s.sim.catch_cd_ticks, 0)
 
@@ -216,7 +216,7 @@ class GatherCollection(unittest.TestCase):
             self.assertEqual(code, 0, err)
             rows = read_jsonl(w.path("g.jsonl"))
             self.assertEqual([r["name"] for r in events(rows)], ["choke", "faint", "gather_end"])
-            self.assertEqual(events(rows, "faint")[0]["data"]["lost"], ["bong_sung", "ca_loc"])
+            self.assertEqual([u["kind"] for u in events(rows, "faint")[0]["data"]["lost"]], ["bong_sung", "ca_loc"])
             self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": {}})
             with open(inventory, encoding="utf-8") as f:
                 self.assertEqual(json.load(f), {"items": {}})

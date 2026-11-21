@@ -116,7 +116,7 @@ class Hold(unittest.TestCase):
         with Workdir() as w:
             rows = run_gather(w, {"player": {"pos": [50, 10]}, "hold": ["ca_loc", "ca_linh", "ca_loc"]}, 1)
             s = snapshots(rows)[0]
-            self.assertEqual(s["hold"], ["ca_loc", "ca_linh", "ca_loc"])
+            self.assertEqual([u["kind"] for u in s["hold"]], ["ca_loc", "ca_linh", "ca_loc"])
             self.assertEqual(s["hold_count"], 3)
             self.assertEqual(s["hold_capacity"], 12)
 

@@ -51,7 +51,6 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
@@ -69,6 +68,21 @@ class GatherSim:
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
+        # giỏ: mỗi nguyên liệu là một cá thể {id, kind, fresh}; mảng thứ tự nhặt, cuối là mới nhất.
+        # Dạng chuỗi cũ (chỉ loại) được cấp id mới và fresh = fresh_max.
+        self.fresh_max = float(t["fresh_max"])
+        self.spoil_threshold = float(t["spoil_threshold"])
+        self.fresh_decay_tick = float(t["fresh_decay_per_s"]) / TICK
+        scen_hold = scenario.get("hold", [])
+        for u in scen_hold:
+            if isinstance(u, dict):
+                ids.reserve(u["id"])
+        self.hold = []
+        for u in scen_hold:
+            if isinstance(u, str):
+                self.hold.append(self._new_unit(u))
+            else:
+                self.hold.append({"id": u["id"], "kind": u["kind"], "fresh": float(u["fresh"]), "spoiled": False})
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -77,7 +91,7 @@ class GatherSim:
 
     # --- giao diện cho runner -------------------------------------------------
     def inventory_items(self) -> dict:
-        return hold_to_items(self.hold)
+        return hold_to_items([u["kind"] for u in self.hold])
 
     def snapshot(self) -> dict:
         return {
@@ -86,7 +100,7 @@ class GatherSim:
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": self.hold, "hold_count": len(self.hold),
+            "hold": [self._public(u) for u in self.hold], "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
@@ -107,6 +121,12 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        # hao tươi: hàng đã có trong giỏ từ tick trước (hàng nhặt ở tick này chưa hao)
+        for u in self.hold:
+            u["fresh"] = max(0.0, u["fresh"] - self.fresh_decay_tick)
+            if not u["spoiled"] and u["fresh"] < self.spoil_threshold:
+                u["spoiled"] = True
+                events.append(("spoiled", {"id": u["id"], "kind": u["kind"], "fresh": u["fresh"]}))
         # 2. bơi + chặn mép + sinh tồn
         was_at_surface = self._at_surface()
         self._move(inp)
@@ -137,7 +157,8 @@ class GatherSim:
                         events.append(("choke", {"hp": self.hp, "pos": list(self.pos)}))
                         if self.hp == 0:
                             events.append(("faint", {
-                                "cause": "choke", "lost": list(reversed(self.hold)), "hp": self.hp,
+                                "cause": "choke", "lost": [self._public(u) for u in reversed(self.hold)],
+                                "hp": self.hp,
                             }))
                             self.hold.clear()
                             self._finish("fainted", events)
@@ -160,7 +181,7 @@ class GatherSim:
                         events.append(("hold_full", {"action": "gather", "node_id": node["id"],
                                                      "required": amount, "free": free}))
                     else:
-                        self.hold.extend([node["kind"]] * amount)
+                        self.hold.extend(self._new_unit(node["kind"]) for _ in range(amount))
                         node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
                         events.append(("gather", {"node_id": node["id"], "kind": node["kind"],
                                                   "amount": amount}))
@@ -178,7 +199,7 @@ class GatherSim:
                         events.append(("hold_full", {"action": "catch", "fish_id": fish["id"],
                                                      "required": amount, "free": free}))
                     else:
-                        self.hold.extend([fish["kind"]] * amount)
+                        self.hold.extend(self._new_unit(fish["kind"]) for _ in range(amount))
                         self.fish.remove(fish)
                         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
                         events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"],
@@ -204,7 +225,25 @@ class GatherSim:
     def _finish(self, reason, events):
         self.done = True
         self.reason = reason
-        events.append(("gather_end", {"reason": reason, "inventory": {"items": self.inventory_items()}}))
+        # bàn giao: file kho giữ schema v1.0 (đếm theo loại); ID và độ tươi nằm trong `units`
+        events.append(("gather_end", {"reason": reason, "inventory": {"items": self.inventory_items()},
+                                      "units": [self._public(u) for u in self.hold]}))
+
+    # --- giỏ: cá thể nguyên liệu -------------------------------------------------
+    def _new_unit(self, kind, fresh=None):
+        return {"id": self.ids.new("NL"), "kind": kind,
+                "fresh": self.fresh_max if fresh is None else float(fresh), "spoiled": False}
+
+    @staticmethod
+    def _public(u):
+        return {"id": u["id"], "kind": u["kind"], "fresh": u["fresh"]}
+
+    def _drop_lifo(self, count, cause, events):
+        """Làm rơi tối đa `count` cá thể từ cuối giỏ (LIFO). Chưa có nguồn gây rơi trong luật hiện tại."""
+        dropped = [self.hold.pop() for _ in range(min(count, len(self.hold)))]
+        if dropped:
+            events.append(("dropped", {"cause": cause, "units": [self._public(u) for u in dropped]}))
+        return dropped
 
     def _move(self, inp):
         speed = self.t["swim_speed"]
