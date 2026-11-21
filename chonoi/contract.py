@@ -4,6 +4,7 @@ import json
 import os
 
 from .errors import BadInput
+from .inventory import KINDS_P1
 
 DEFAULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json")
 
@@ -136,8 +137,37 @@ def validate_tuning(t):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
         raise BadInput("burn_s phải là null ở Phase 1")
-    # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
+    _validate_quan_layout(q)
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+        recipe = d.get("recipe")
+        if not isinstance(recipe, dict) or not recipe:
+            raise BadInput(f"menu.{dish_id}: recipe phải là object không rỗng")
+        for k, n in recipe.items():
+            if k not in KINDS_P1 or isinstance(n, bool) or not isinstance(n, int) or n <= 0:
+                raise BadInput(f"menu.{dish_id}.recipe: {k!r} phải là nguyên liệu hợp lệ với số nguyên > 0")
+    m = (t.get("score") or {}).get("reputation_multiplier")
+    if not _num(m) or m < 0:
+        raise BadInput("tuning.score.reputation_multiplier phải là số không âm")
+
+
+def _validate_quan_layout(q):
+    """Bếp, bàn, vị trí đầu, uy tín, giới hạn mang (P1-08)."""
+    b = q["bounds"]
+    _pos_in("quan.start_pos", q.get("start_pos"), b, ("x", "z"))
+    _int_between("quan.carry_limit", q.get("carry_limit"), 1, 10_000)
+    for arr in ("stoves", "tables"):
+        items = q.get(arr)
+        if not isinstance(items, list) or not items:
+            raise BadInput(f"tuning.quan.{arr} phải là mảng không rỗng")
+        seen = set()
+        for e in items:
+            if not isinstance(e, dict) or not isinstance(e.get("id"), str) or not e["id"] or e["id"] in seen:
+                raise BadInput(f"tuning.quan.{arr}: mỗi phần tử cần id duy nhất")
+            seen.add(e["id"])
+            _pos_in(f"quan.{arr}.{e['id']}.pos", e.get("pos"), b, ("x", "z"))
+    lo, init, hi = q.get("reputation_min"), q.get("reputation_initial"), q.get("reputation_max")
+    if not (_num(lo) and _num(init) and _num(hi) and lo <= init <= hi):
+        raise BadInput("tuning.quan: cần reputation_min <= reputation_initial <= reputation_max (đều là số)")
