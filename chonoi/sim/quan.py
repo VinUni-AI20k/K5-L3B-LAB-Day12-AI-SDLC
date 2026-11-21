@@ -8,12 +8,13 @@ Nhóm viết tiếp (PRD-0 mục F, Quán):
 """
 
 from ..ids import sort_by_id
+from .quan_customers import CustomerMixin
 from .ramp import ramp_velocity
 
 TICK = 60.0
 
 
-class QuanSim:
+class QuanSim(CustomerMixin):
     mode = "quan"
     phase = "quan"
 
@@ -37,10 +38,7 @@ class QuanSim:
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        # TODO(nhóm): khách dựng sẵn từ scenario (customers[]) và suy ra giữ chỗ (reserved).
-        self.customers = [dict(c, reserved=c.get("reserved", {})) for c in scenario.get("customers", [])]
-        for e in self.customers:
-            ids.reserve(e["id"])
+        self._init_customers(scenario)  # M3: khách dựng sẵn từ scenario + giữ chỗ (quan_customers.py)
         self.money = 0
         self.earned = 0
         self.shift_earned = 0
@@ -66,17 +64,22 @@ class QuanSim:
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
             "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in self.tables],
-            "customers": sort_by_id(self.customers),
+            "customers": self._customers_snapshot(),
         }
 
     def step(self, inp):
         events = []
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # TODO(nhóm): giảm kiên nhẫn / nấu / ăn; bếp chín -> ready; xử lý khách theo thứ tự PRD-0 mục F.
+        self.phase_tick += 1
+        self._tick_customer_timers()  # M3: giảm kiên nhẫn / thời gian ăn
+        # TODO(nhóm, M4): nấu; bếp chín -> ready.
         self._move(inp)
-        # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
-        # TODO(nhóm): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.
-        if self.time_left_ticks <= 0:
+        # TODO(nhóm, M4): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
+        closing = self.time_left_ticks <= 0
+        self._resolve_customers(events, closing)  # M3: ăn xong trả tiền / khách rời
+        if not closing:
+            self._spawn_customer(events)  # M3: khách mới theo lịch, no_dish
+        if closing:
             self.done = True
             self.reason = "time"
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
