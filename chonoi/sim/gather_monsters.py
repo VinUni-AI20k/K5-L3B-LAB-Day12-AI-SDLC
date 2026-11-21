@@ -6,7 +6,7 @@
   - `snapshot(sim)`: mảng `monsters[]` trong snapshot.
 
 Số liệu: sim.t["monsters"] {species, spawns, invuln_ticks, loss_ratio}. Ngày hiện tại: sim.day.
-Ngất do chạm: gọi sim._faint(events, cause="monster").
+Ngất do chạm: gọi sim._faint(events, "monster").
 """
 
 from ..ids import sort_by_id
@@ -31,7 +31,7 @@ def update(sim, events) -> bool:
     cách ≤ 10 m / về patrol khi > 16 m hoặc người chơi lên d < 10 / recoil 60 bước, mỗi bước 2/60 m.
     Sau khi di chuyển: tối đa MỘT hit (gần nhất, hòa theo id) nếu ≤ 1.5 m, người chơi d ≥ 10, hết bất tử:
     -1 Máu, bỏ floor(len(hold) * loss_ratio) món theo LIFO, bất tử invuln_ticks, phát monster_hit
-    {monster_id, hp, lost, pos}. Máu 0 -> sim._faint(events, cause="monster"); return True."""
+    {monster_id, hp, lost, pos}. Máu 0 -> sim._faint(events, "monster"); return True."""
     return False
 
 

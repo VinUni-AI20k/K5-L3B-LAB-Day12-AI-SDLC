@@ -82,9 +82,7 @@ class Faint(unittest.TestCase):
                               "player": {"pos": [50, 5], "oxygen_ticks": 0, "hp": 1,
                                          "zero_oxy_ticks": G["choke_interval_ticks"] - 1}})
         data = events(rows, "faint")[0]["data"]
-        self.assertEqual(data["hp"], 0)
-        self.assertEqual(data["lost"], ["ca_keo", "bong_sung", "ca_loc"])
-        self.assertNotIn("cause", data)
+        self.assertEqual(data, {"cause": "choke", "hp": 0, "lost": ["ca_keo", "bong_sung", "ca_loc"]})
 
 
 if __name__ == "__main__":
