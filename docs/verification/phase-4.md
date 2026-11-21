@@ -6,7 +6,7 @@ Kết quả dưới đây thuộc bản baseline. Cập nhật SHA và chạy l�
 | AC | Yêu cầu | Bằng chứng / cách kiểm | Kết quả baseline |
 |---|---|---|---|
 | AC-P4-01 | Manifest v1.3 khai lệnh benchmark và soak | Đọc `game.contract.json` | Chưa đạt: `contract_version` là `1.1`, thiếu `bench_cmd` và `soak_cmd`. |
-| AC-P4-02 | Benchmark render seed 42, 1280×720, làm nóng 3 s, đo 30 s | [bench.json](../proof/phase-4/bench.json), chạy `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json` trên `d5e14bf` | Đạt các mốc báo cáo trên Windows: 144,03 FPS trung bình, 133,16 FPS 1% low, tải 941 ms. Runner báo v1.1. Chờ đo lại trên commit bàn giao v1.3. |
+| AC-P4-02 | Benchmark render seed 42, 1280×720, làm nóng 3 s, đo 30 s | [Kết quả đo QA](../proof/phase-4/bench-qa-d5e14bf.json) trên `d5e14bf` | Runner v1.1 xuất đủ 5 trường. FPS trung bình 144,03 và tải 941 ms đạt mốc. Giá trị 1% low 133,16 dùng nghịch đảo p99 thời gian khung. Chờ sửa công thức Ticket 04 và đo lại. |
 | AC-P4-03 | Soak 10 Ngày, không crash, kết quả gameplay lặp lại | Chạy seed 7 hai lần, so kết quả trừ `duration_s` | Chưa chạy: thiếu `soak_cmd`. |
 | AC-P4-04 | Regression P1–P3 còn hiệu lực | Lệnh chạy và lỗi bên dưới | 57/64 đạt tại `0538d68`. |
 | AC-P4-05 | Ba cảnh báo dễ nhận biết khi bật tương phản cao | Chơi thử cảnh thủy quái gần, oxy thấp và khách sắp giận | Chưa kiểm trên bản bàn giao. |
