@@ -4,6 +4,7 @@
 // title_hit, swish, splash_big, bell/bellN, drumroll, sting_win) are always synth, on their own bus. Babble = voice.js.
 import { createMusic } from "./music.js";
 import { createVoice } from "./voice.js";
+import { caption } from "./captions.js";
 const MUSIC_FILES = typeof location !== "undefined" && /[?&]music=files\b/.test(location.search);
 const MUSIC_GAIN = 0.35; // generative music level relative to sfx
 let ac = null, master = null, muted = false, gen = null, vox = null, musicBus = null;
@@ -345,7 +346,8 @@ const CINE = {
   },
 };
 
-export function sfx(name, arg) {
+export function sfx(name, arg, cap) {
+  caption(name, cap); // SFX captions (captions.js): before the mute check so they show while muted
   if (!ac || muted) return;
   const fn = CINE[name] || (/^bell\d+$/.test(name) ? () => CINE.bell(+name.slice(4)) : null);
   if (fn) { if (!cine) return; try { fn(arg); } catch (e) {} return; }

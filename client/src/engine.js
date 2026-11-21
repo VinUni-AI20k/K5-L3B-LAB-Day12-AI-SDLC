@@ -44,6 +44,7 @@ const MAP = {
   e: "interact", " ": "catch", shift: "sprint", enter: "confirm", escape: "back", m: "mute", r: "restart", p: "pause", c: "close",
   n: "next", tab: "tab", // N = "Mở quán" on the menu board · Tab = switch Shop tabs
   h: "contrast", // H = toggle high-contrast mode (a11y.js, handled by main.js)
+  u: "captions", // U = toggle SFX captions (captions.js, handled by main.js)
   o: "open", // O = "Mở quán" button on the pre-open raft (N works too)
 };
 addEventListener("keydown", (e) => {

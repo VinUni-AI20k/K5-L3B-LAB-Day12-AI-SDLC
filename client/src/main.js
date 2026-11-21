@@ -12,6 +12,7 @@ import { DockHub } from "./hub.js";
 import * as progress from "./progress.js";
 import * as meta from "./meta.js";
 import { toggleHighContrast, applyFilter, hcLabel, highContrast } from "./a11y.js";
+import { toggleCaptions, ccLabel, bindMuted, updateCaptions, drawCaptions } from "./captions.js";
 
 let CONTRACT = null, MANIFEST = [];
 // haul null = demo stock (title-menu shortcut), {} = empty basket (fainted).
@@ -118,7 +119,7 @@ class Title {
     const cur = this.items[this.sel];
     const note = cur[3] ? "Chơi thử: dùng đồ nghề hiện có, không tính ngày, không lưu tiến trình" : cur[2] || "";
     if (note) txt(note, art ? 12 : foot, H - 26, { size: 7.5, align: art ? "left" : "center", color: cur[3] ? "rgba(255,255,255,.55)" : "#ffe2a8", weight: 700, shadow: "rgba(0,0,0,.6)" });
-    txt("↑↓ chọn · Enter/Space chơi · M tắt tiếng · H " + hcLabel().toLowerCase(), art ? 12 : foot, H - 15, { size: 8, align: art ? "left" : "center", color: "rgba(255,255,255,.6)", weight: 700 });
+    txt("↑↓ chọn · Enter/Space chơi · M tắt tiếng · H " + hcLabel().toLowerCase() + " · U phụ đề", art ? 12 : foot, H - 15, { size: 8, align: art ? "left" : "center", color: "rgba(255,255,255,.6)", weight: 700 });
     txt(isMuted() ? "🔇" : "🔊", W - 12, 14, { size: 10, align: "right" });
     txt("Nhóm 001 · Day 12 AI-SDLC · Test Contract v1.2", art ? W - 8 : W / 2, H - 5, { size: 7, align: art ? "right" : "center", color: "rgba(255,255,255,.4)", weight: 700 });
     if (this.press > 0) { u.save(); u.fillStyle = `rgba(255,255,255,${this.press})`; u.fillRect(0, 0, W, H); u.restore(); }
@@ -307,7 +308,7 @@ function flat(by) { const a = []; for (const k in by) for (let i = 0; i < by[k];
 // ---------- pause (Esc / P) ----------
 const PAUSABLE = new Set(["gather", "quan", "shop", "hub"]);
 // pause menu: the quán adds "Đóng quán sớm" once it is open for service; every pause menu ends with the a11y toggle
-const pauseItems = () => [...(state.mode === "quan" && state.scene?.phase !== "preopen" ? PAUSE_ITEMS_QUAN : PAUSE_ITEMS), hcLabel()];
+const pauseItems = () => [...(state.mode === "quan" && state.scene?.phase !== "preopen" ? PAUSE_ITEMS_QUAN : PAUSE_ITEMS), hcLabel(), ccLabel()];
 function updatePause() {
   const p = state.paused, items = pauseItems();
   if (input.hit("pause") || input.hit("back")) { state.paused = null; sfx("click"); return; }
@@ -315,6 +316,7 @@ function updatePause() {
   if (input.hit("down")) { p.sel = (p.sel + 1) % items.length; sfx("click"); }
   if (input.hit("confirm") || input.hit("interact") || input.hit("catch")) {
     if (items[p.sel].startsWith("Tương phản cao")) { toggleHighContrast(); sfx("select"); return; } // stays paused
+    if (items[p.sel].startsWith("Phụ đề âm thanh")) { toggleCaptions(); sfx("select"); return; }
     sfx("select"); state.paused = null;
     if (items[p.sel] === "Đóng quán sớm") { state.scene?.closeEarly?.(); return; } // the menu choice is the confirmation
     if (items[p.sel] === "Về menu") { state.scene?.dispose?.(); const m = state.scene?._onMove; if (m) { removeEventListener("pointermove", m); removeEventListener("pointerdown", m); } transition(toTitle); }
@@ -350,7 +352,7 @@ const FALLBACK_CONTRACT = { tuning: {
 } };
 
 async function boot() {
-  screen.init(); applyFilter(); // a11y: high-contrast CSS filter from the saved setting
+  screen.init(); applyFilter(); bindMuted(isMuted); // a11y: high-contrast CSS filter from the saved setting; captions follow mute
   try {
     const r = await fetch("../game.contract.json", { cache: "no-store" });
     CONTRACT = r.ok ? await r.json() : FALLBACK_CONTRACT;
@@ -398,6 +400,8 @@ function frame(dt) {
   if (fx.stop > 0) { fx.stop -= dt; dt *= 0.08; }
   fx.update(dt);
   if (input.hit("contrast")) { toggleHighContrast(); sfx("click"); meta.globalToasts.push({ text: hcLabel(), sub: "Phím H để đổi" }); hcToast = 1.6; }
+  if (input.hit("captions")) { toggleCaptions(); sfx("click"); meta.globalToasts.push({ text: ccLabel(), sub: "Phím U để đổi" }); }
+  updateCaptions(dt);
 
   // update: scene runs except while the wipe is closing over it
   if (!wipe || wipe.phase === "out") {
@@ -424,6 +428,7 @@ function frame(dt) {
   if (state.paused) drawPause(state.paused.sel, pauseItems());
   if (state.overlay) state.overlay.draw();
   drawGlobalToast(dt);
+  drawCaptions({ txt, panel, measure, H, hc: highContrast });
   if (hcToast > 0) { hcToast -= dt; if (state.mode === "quan" || state.mode === "title") { const w = 150; panel(W / 2 - w / 2, 6, w, 16, { fill: "rgba(10,10,10,.92)", border: "#ffef00", r: 5, bw: 1.5 }); txt(hcLabel(), W / 2, 17.5, { size: 9, align: "center", color: "#ffef00", weight: 900 }); } }
   if (fx.flashT > 0) { px.globalAlpha = (fx.flashT / 0.2) * 0.6; px.fillStyle = fx.flashCol; px.fillRect(-8, -8, W + 16, H + 16); px.globalAlpha = 1; }
   drawWipe(dt);
