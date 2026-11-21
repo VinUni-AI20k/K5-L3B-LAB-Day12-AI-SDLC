@@ -1,4 +1,4 @@
-# Phạm Trấn Quốc — Quoosc (bản nháp factual)
+# Phạm Trấn Quốc — Quoosc · MSSV 2A202604113 (bản nháp factual)
 
 Q3 Phase 1: đóng góp logic khách, giữ chỗ, kiên nhẫn, test và [bằng chứng](../proof/phase-1/q3/README.md); review và ghi nhận món mồ côi Q4.
 
