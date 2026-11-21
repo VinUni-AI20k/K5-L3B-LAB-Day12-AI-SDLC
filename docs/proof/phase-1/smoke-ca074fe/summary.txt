@@ -1,0 +1,12 @@
+sha: ca074fe89b6ef2c3b23e0b0baffab772bc69747d
+time_utc: 2026-11-21T04:52:31Z
+PASS headless_cmd
+PASS gather_process
+PASS quan_process
+PASS catch_schema_and_items
+PASS quan_tick_zero_stock
+PASS gather_end_docked
+PASS repeat_gather_process
+PASS deterministic_jsonl
+PASS deterministic_inventory
+PASS unittest
