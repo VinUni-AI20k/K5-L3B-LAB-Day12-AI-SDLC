@@ -182,7 +182,16 @@ class Customers(QuanCase):
         first = Q["first_customer_tick"]
         interval = int(round(Q["customer_interval_s"] * HZ))
         # Chưa hết kiên nhẫn tại lượt thứ hai; bàn vẫn kín.
-        rows = run_quan(scenario(random_customers=True), ticks=first + interval)
+        # v1.1 có nhiều bàn: lấp mọi bàn trừ bàn id nhỏ nhất bằng khách chờ (unfulfillable, không giữ hàng)
+        # để lượt thứ hai vẫn không có bàn trống, giữ nguyên ý định của test.
+        def id_key(e):
+            import re
+            m = re.fullmatch(r"(.*?)(\d+)", e["id"])
+            return (m[1], int(m[2]), e["id"]) if m else (e["id"], -1, e["id"])
+        others = sorted(Q["tables"], key=id_key)[1:]
+        fillers = [customer(id=f"C{i + 2}", table_id=t["id"], order_status="unfulfillable", reserved={})
+                   for i, t in enumerate(others)]
+        rows = run_quan(scenario(random_customers=True, customers=fillers), ticks=first + interval)
         arrived = events(rows, "customer_arrived")
         self.assertGreaterEqual(len(arrived), 1)
         self.assertEqual(arrived[0]["tick"], first)
@@ -190,10 +199,6 @@ class Customers(QuanCase):
         self.fields(data, ("order_id", "table_id", "dish_id"))
         self.assertEqual(set(data), {"order_id", "table_id", "dish_id"})
         # Natural id ordering, không so chuỗi T10 trước T2.
-        def id_key(e):
-            import re
-            m = re.fullmatch(r"(.*?)(\d+)", e["id"])
-            return (m[1], int(m[2]), e["id"]) if m else (e["id"], -1, e["id"])
         self.assertEqual(data["table_id"], min(Q["tables"], key=id_key)["id"])
         self.assertEqual(data["dish_id"], DISH)  # chỉ công thức này đủ
         c = self.entity(self.snap(rows, first), "customers", data["order_id"])
@@ -421,7 +426,9 @@ class Kitchen(QuanCase):
 
     @lat4
     def test_outside_radius_no_action(self):
-        rows = run_quan(scenario(customers=[customer()], player={"pos": near(STOVE, Q["interact_radius"] * 2)}), PRESS)
+        # v1.1: B2 nằm cách B1 3 m theo x, nên lùi theo z (về phía giữa quán) để không trúng bếp/bàn khác.
+        pos = [STOVE["pos"][0], STOVE["pos"][1] - Q["interact_radius"] * 2]
+        rows = run_quan(scenario(customers=[customer()], player={"pos": pos}), PRESS)
         self.assertEqual(events(rows), [])
         self.assertEqual(self.snap(rows)["stock"], RECIPE)
 
