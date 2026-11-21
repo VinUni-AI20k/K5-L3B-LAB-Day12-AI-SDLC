@@ -6,6 +6,7 @@
 | Bàn giao kho cá thể qua file | So id, kind và fresh giữa gather_end, file xuất và snapshot quán tick 0 | [Test QA Phase 3](../../tests/test_qa_phase3.py) | Baseline `8739a9f` trả mã 2 khi đọc `gather.hold` dạng cá thể. Luồng dừng trước khi xuất kho. |
 | Từ chối kho đếm | Nạp `{"items":{"ca_loc":1}}` vào quán. Với v1.2, kiểm mã thoát 2 và không tạo JSONL | [Test QA Phase 3](../../tests/test_qa_phase3.py) | Baseline v1.1 tại `8739a9f` nhận kho đếm và thoát mã 0. Chờ kiểm lại khi bật v1.2. |
 | Giữ lại nguyên liệu và chốt giá | Nguyên liệu giữ chỗ vừa ươn ở tick 1. Kiểm chọn lại cá thể tươi nhất trước khi nấu và chốt giá 53 | [Test QA Phase 3](../../tests/test_qa_phase3.py) | Baseline v1.1 trả mã 2 với lỗi `items phải là object`. Chưa chạy tới bước giữ lại nguyên liệu và chốt giá. |
+| Hồi quy gather và suite trên main | Chạy suite gather freshness và toàn bộ test trên main | [Bằng chứng QA](../proof/phase-3/qa.md) | Tại `355ce0b`: gather freshness 3/3, toàn bộ suite 54/57. Ba lỗi Phase 2 vẫn còn. |
 
 ## Tác động lên regression P1–P2
 
