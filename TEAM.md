@@ -6,10 +6,10 @@
 
 | **Thành viên** | **GitHub handle** | **Module chính** | **Vai quy trình** | **Dự phòng cho** |
 |---|---|---|---|---|
-| … | … | `sim/gather` | PO · hỏi giảng viên, ghi quyết định | `sim/quan` |
-| … | … | `sim/quan` | Integrator · điều phối file chung, tích hợp, gắn tag | `sim/gather` |
-| … | … | `client/ui` | Scrum/Release · giữ nhịp, chuẩn bị demo và release | `qa` |
-| … | … | `qa` | QA lead · kiểm thử hộp đen, tổng hợp bằng chứng | `client/ui` |
+|Nguyễn Trung Dũng | … | `sim/gather` | PO · hỏi giảng viên, ghi quyết định | `sim/quan` |
+|Nguyễn Văn Lâm | … | `sim/quan` | Integrator · điều phối file chung, tích hợp, gắn tag | `sim/gather` |
+|Đặng Nguyễn Nhật Minh | … | `client/ui` | Scrum/Release · giữ nhịp, chuẩn bị demo và release | `qa` |
+|Nguyễn Duy Hưng | … | `qa` | QA lead · kiểm thử hộp đen, tổng hợp bằng chứng | `client/ui` |
 
 ## Phase 1
 
