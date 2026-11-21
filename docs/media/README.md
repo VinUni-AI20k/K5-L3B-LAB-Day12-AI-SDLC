@@ -12,17 +12,20 @@ Marketing screenshots (1280×720 PNG) and a short fast-play demo video, captured
 | `screenshots/06-dive-surface-fish-hud.png` | Diving near the surface: fish schools, O₂/HP HUD, today's needs list |
 | `screenshots/07-harpoon-in-flight.png` | Harpoon in flight toward a fish school |
 | `screenshots/08-deep-zone-40m.png` | Deep zone (~35 m): rocks, current warning, O₂ ×1.5 |
-| `screenshots/09-ca-sau-chase-warning.png` | Cá Sấu Năm Chèo on the hunt, "Thủy quái!" warning border |
+| `screenshots/09-ca-sau-chase-warning.png` | Cá Sấu Năm Chèo on the hunt, "Thủy quái!" warning border, empty basket (Giỏ 0/120) |
 | `screenshots/10-inventory-overlay.png` | Inventory (I): catches with freshness bars |
 | `screenshots/11-dusk-cutscene-lanterns.png` | Dusk cutscene: "Chiều tà", heading back to the raft |
 | `screenshots/12-preopen-raft-mo-quan.png` | Pre-open raft: lanterns, Bà Tư, tonight's menu, "Mở quán ▶" |
 | `screenshots/13-menu-board-dac-san.png` | Menu board pop-up: dishes, portions, plan tags |
-| `screenshots/14-busy-service.png` | Service rush: guests seated with order bubbles, stove cooking |
+| `screenshots/14-busy-service.png` | Service rush: several guests served and eating, coins flying, order bubbles, stove cooking |
 | `screenshots/15-ba-tu-dialog.png` | Bà Tư dialog: talk, decorate, chores, hire staff |
 | `screenshots/16-phone-overlay.png` | Sen's phone (T): chores, notebook, staff, décor, messages, market |
 | `screenshots/17-shop-popup-dock.png` | Night dock: Chợ Chú Sáu shop pop-up (Mua / Bán / Nâng cấp) |
 | `screenshots/18-high-contrast-dive-warning.png` | High-contrast mode (H) in the dive with the monster warning |
-| `demo.mp4` | Fast playthrough: title, intro, day card, dive, deep zone, Cá Sấu, dock, dusk, pre-open + menu board, service, result, night shop |
+| `screenshots/19-hire-staff-dialog.png` | Bà Tư dialog → Thuê người: Bé Tí (chạy bàn) and Chú Bảy (phụ bếp) just hired |
+| `screenshots/20-decorated-raft.png` | Pre-open raft after the décor purchases: bảy màu lanterns, hoa sen tablecloths, giàn bông, sơn mài sign |
+| `screenshots/21-staff-working.png` | Service with staff: Chú Bảy cooking at a stove, Bé Tí carrying a dish while Út Sen serves |
+| `demo.mp4` | ~90 s fast playthrough (≈3×): title, intro, Ngày 1, dive, deep zone, Cá Sấu chase with the "Thủy quái!" warning, dock, dusk, pre-open + menu board, Thuê người (hire Bé Tí + Chú Bảy) and Trang trí quán (lanterns, tablecloth, flowers, sign) in Bà Tư's dialog, the decorated raft, "Mở quán", service rush with staff, serves and coins, early close → DayResult, night dock shop pop-up |
 
 ## How it was made
 
@@ -34,9 +37,20 @@ that is already running; otherwise the script starts `python3 -m http.server` on
 - The game is opened with `?debug` and driven only through `window.__chonoi` (`go`, `step`, `input`, `phone`) and
   synthetic `KeyboardEvent`s. The game code is unchanged. Before load the script injects a seeded `Math.random` and a
   holdable `requestAnimationFrame`, so each captured frame comes from `__chonoi.step(n)` and runs are repeatable.
-- Diving, harpoon shots, flower picking and walking come from small key-steering helpers. A simple bot plays the
-  quán service (stove menu → carry → table). Deep-zone and Cá Sấu shots come from a separate demo dive (`go("gather")`),
-  so fainting never loses the campaign haul. The shop shot uses the debug shortcut `go("night")`.
-- Video: segments are recorded as JPEG frames with 2–6 game frames per video frame (2–6× speed). Caption cards are
+- Diving, harpoon shots, flower picking and walking come from small key-steering helpers. The quán service bot reads
+  the live state every step: it cooks a dish a seated guest ordered at a free stove (E, arrow keys to that dish's index
+  in the cook menu, E), waits, picks it up (E), walks to that guest's table and serves (E). It never presses Esc outside
+  a menu (Esc pauses the quán). Closing early is C twice within 3 s; the raft's closing panel then leads to the DayResult
+  pop-up and the night dock (`go("night")` is no longer needed).
+- One video run records in this order: title → demo dive `go("gather")` (deep zone, Cá Sấu chase + stun; recorded
+  before `go("new")` because a new game resets the save; during this unsaved demo dive only, a capture-side guard keeps
+  HP and O₂ topped up so the chase never ends in "Ngất xỉu") → the real campaign (intro → Ngày 1 → dive → dusk → pre-open →
+  Bà Tư dialog: hire + décor → Mở quán → the evening played off camera by the bot → early close → DayResult → night dock shop) → demo quán `go("quan")` (demo stock, so the service rush never
+  runs out; the staff and décor bought in the campaign carry into it, so Bé Tí and Chú Bảy work the rush). The
+  edit puts the segments back in story order. The hire / décor scenes drive Bà Tư's real dialog with arrow keys + E
+  (`__navGo(label)`); the only setup is a 2000k wallet (`progress.save.money`) so the purchases go through. Screenshots 09, 14, 19, 20 and 21 are written by this run
+  (`--video`); `--stills` writes the others.
+- Video: segments are recorded as JPEG frames, mostly 5–6 game frames per 30 fps video frame (≈2.5–3× speed; dialogue
+  and pop-ups 2×, the croc chase 1.5×). Frames are converted with `scale=out_range=tv,format=yuv420p`. Caption cards are
   rendered by Chrome (this ffmpeg build has no `drawtext`). ffmpeg joins everything with `xfade` cross-fades into
   H.264 yuv420p, CRF 23, `+faststart`, 30 fps, no audio (game audio is synthesized live and is not captured headless).
