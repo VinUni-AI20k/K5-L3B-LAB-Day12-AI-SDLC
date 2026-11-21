@@ -83,11 +83,13 @@ class QuanSim:
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         # 1. Bếp nấu (Lát 4)
         self._tick_stoves(events)
-        # TODO(nhóm): giảm kiên nhẫn / ăn; xử lý khách theo thứ tự PRD-0 mục F.
+        # 2. Khách ăn xong & thanh toán (Lát 4)
+        self._tick_customers_eating(events)
+        # TODO(nhóm, lát 3): giảm kiên nhẫn; xử lý khách theo thứ tự PRD-0 mục F.
         self._move(inp)
-        # 2. Tương tác Bếp & Bàn (Lát 4)
+        # 3. Tương tác Bếp & Bàn (Lát 4)
         self._interact(inp, events)
-        # TODO(nhóm): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.
+        # TODO(nhóm, lát 3): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"
@@ -107,6 +109,30 @@ class QuanSim:
                     events.append(("dish_ready", {"stove_id": s["id"], "dish": s["dish"]}))
             elif s["state"] == "ready":
                 s["ready_ticks"] = s.get("ready_ticks", 0) + 1
+
+    def _tick_customers_eating(self, events):
+        """Lát 4: Khách ăn xong trả tiền, tính boa, cộng uy tín, bắn paid."""
+        to_remove = []
+        for c in sort_by_id(self.customers):
+            if c.get("state") == "eating":
+                c["eat_ticks_left"] = c.get("eat_ticks_left", 0) - 1
+                if c["eat_ticks_left"] <= 0:
+                    dish = c["order"]
+                    price = self.menu[dish]["price"]
+                    ratio = c.get("patience_ratio_served", 1.0)
+                    tip = 0
+                    if ratio >= self.t["tip_min_patience_ratio"]:
+                        tip = int(round(price * self.t["tip_rate"]))
+                        self.reputation = min(self.t["reputation_max"],
+                                              round(self.reputation + self.t["tip_reputation"], 3))
+                    self.money += price + tip
+                    self.earned += price + tip
+                    self.shift_earned += price + tip
+                    events.append(("paid", {"customer_id": c["id"], "dish": dish,
+                                            "money": price, "tip": tip, "reputation": self.reputation}))
+                    to_remove.append(c)
+        for c in to_remove:
+            self.customers.remove(c)
 
     def _interact(self, inp, events):
         """Lát 4: Tương tác tại bếp (cook_started, dish_picked) hoặc bàn (served).
