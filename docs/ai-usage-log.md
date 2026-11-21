@@ -1,5 +1,7 @@
 # Nhật ký dùng AI (theo phase và theo người)
 
+2026-11-21 — P3-04, người 4 (chưa cung cấp handle), Codex: đọc TICKET-03 → TICKET-02 → PRD-0, spec/interface/ADR và source thực; thêm helper tiêu IDs/giá theo fresh, nối vào Kitchen, giữ v1.1 trong khi chờ migration người 2/3. Viết 17 test mới và fixture/mock P3-03 có nhãn; 182 test pass, CLI v1.1 quan/day pass. Không triển khai stock decay/re-reserve production hoặc đổi Day/Shop; ghi rõ PARTIAL và probe stock cá thể exit 2. Prompt chính: thực hiện P3-04 và kiểm giá tick 1 =59, không chiếm P3-03. Không đo token/chi phí; chưa có xác nhận người dùng đã tự đọc lại diff. Proof: `docs/proof/phase-3/P3-04-results.json`.
+
 | Phase | Người | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|---|
 | 3 | Người 3 (`hann1holic`) | Codex | Đọc Ticket-03, viết kho cá thể, giữ lại khi ươn, định giá theo cá thể và chạy hồi quy | Không đo | Dùng phân số để quyết định ngưỡng 30 và làm tròn xuống giá. Kiểm thử đầu nhận v1.2 với manifest riêng vì đầu ghi Lặn còn chờ tích hợp. |
