@@ -11,6 +11,8 @@ Ngẫu nhiên chỉ qua sim.rng.get("fish_spawn") / sim.rng.get("fish_turn").
 
 import math
 
+from ..ids import id_key as _id_key
+
 TICK = 60.0
 
 
@@ -67,8 +69,41 @@ def spawn_scheduled(sim, events):
         events.append(("fish_spawned", {"id": f["id"], "kind": f["kind"], "pos": list(f["pos"])}))
 
 
+def _reflect(v, lo, hi):
+    """Phản xạ phần vượt mép; trả (vị trí mới, có đảo hướng không)."""
+    flipped = False
+    for _ in range(4):  # quãng mỗi bước rất nhỏ so với miền; vài lần là đủ
+        if v < lo:
+            v, flipped = lo + (lo - v), not flipped
+        elif v > hi:
+            v, flipped = hi - (v - hi), not flipped
+        else:
+            break
+    return v, flipped
+
+
 def swim(sim, events):
-    """TODO(cá bơi): mỗi đàn (theo id) bơi fish_speed m/s trong fish_x × fish_depths[loài].
-    Ở bước bơi thứ fish_turn_ticks·k (theo age_ticks) đổi hướng theo seed TRƯỚC khi di chuyển.
-    Tới mép: phản xạ phần quãng đường còn lại, đảo thành phần hướng vuông góc mép (chạm góc đảo cả hai).
-    Tăng age_ticks sau mỗi bước bơi. Đàn vừa sinh tham gia từ bước sau."""
+    """Mỗi đàn (theo id) bơi fish_speed m/s trong fish_x × fish_depths[loài].
+    Ở bước bơi thứ fish_turn_ticks·k (đếm theo age_ticks) đổi hướng theo seed TRƯỚC khi di chuyển.
+    Tới mép: phản xạ phần quãng còn lại, đảo thành phần hướng vuông góc mép (góc: đảo cả hai)."""
+    t = sim.t
+    step = float(t["fish_speed"]) / TICK
+    turn = int(t["fish_turn_ticks"])
+    rng = sim.rng.get("fish_turn")
+    xlo, xhi = t["fish_x"]
+    for f in sorted(sim.fish, key=lambda f: _id_key(f["id"])):
+        if (f["age_ticks"] + 1) % turn == 0:
+            f["heading_deg"] = rng.uniform(0, 360)
+        a = math.radians(f["heading_deg"])
+        vx, vd = math.cos(a) * step, math.sin(a) * step
+        dlo, dhi = t["fish_depths"][f["kind"]]
+        x, fx = _reflect(f["pos"][0] + vx, xlo, xhi)
+        d, fd = _reflect(f["pos"][1] + vd, dlo, dhi)
+        if fx:
+            vx = -vx
+        if fd:
+            vd = -vd
+        f["pos"] = [x, d]
+        if fx or fd:
+            f["heading_deg"] = math.degrees(math.atan2(vd, vx)) % 360
+        f["age_ticks"] += 1
