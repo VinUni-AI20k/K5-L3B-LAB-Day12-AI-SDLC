@@ -66,9 +66,9 @@ def main(argv=None) -> int:
             raise BadInput("các đường dẫn đầu vào/đầu ra phải khác nhau")
         contract = load_contract()
         tuning = contract["tuning"]
-        scenario = load_scenario(a.scenario, a.mode, tuning)
+        scenario = load_scenario(a.scenario, a.mode, tuning)  # v1.2: hold/stock là cá thể (theo tuning.freshness)
         frames = load_frames(a.inputs)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        inventory = read_inventory(a.inventory, contract["contract_version"]) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
     except BadInput as e:

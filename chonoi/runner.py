@@ -16,6 +16,7 @@ import math
 
 from .ids import IdAllocator
 from .inputs import InputPlayer
+from . import fresh
 from .inventory import write_inventory
 from .jsonl import JsonlWriter
 from .rng import Streams
@@ -111,7 +112,8 @@ class Session:
     def write_inventory_if_done(self, inventory_out):
         """File kho: ghi MỘT lần khi có gather_end; chưa kết thúc thì giữ nguyên file đích."""
         if self.mode == "gather" and self.sim.done and inventory_out:
-            write_inventory(inventory_out, self.sim.inventory_items())
+            version = "1.2" if fresh.enabled(self.tuning) else "1.1"
+            write_inventory(inventory_out, self.sim.inventory_items(), version)
 
 
 def make_session(mode, tuning, scenario, seed, inventory=None, days=1, contract=None):

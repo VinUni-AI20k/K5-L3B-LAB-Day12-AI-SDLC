@@ -9,6 +9,7 @@ Nhóm viết tiếp (PRD-0 mục F, Quán):
 
 import math
 
+from .. import fresh
 from ..ids import id_key, sort_by_id
 from .ramp import ramp_velocity
 
@@ -43,7 +44,18 @@ class QuanSim:
         self._tgt = None
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
+        # v1.2 (khung): kho là mảng cá thể {id, kind, u} (chonoi.fresh). --inventory đã là cá thể trong code;
+        # scenario.stock là cá thể public {id, kind, fresh}. v1.1: dict đếm như cũ.
+        # TODO(C, D): chuyển phần giữ chỗ, kho khả dụng, nấu sang mảng cá thể khi self.fresh_on.
+        self.tuning = tuning
+        self.fresh_on = fresh.enabled(tuning)
+        if self.fresh_on:
+            src = inventory if inventory is not None else [fresh.from_public(it) for it in scenario.get("stock", [])]
+            self.stock = [dict(it) for it in src]
+            for it in self.stock:
+                ids.reserve(it["id"])
+        else:
+            self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", _ticks(t["duration_s"]))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
@@ -129,7 +141,8 @@ class QuanSim:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
         return {
             "player": {"pos": self.pos},
-            "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
+            "stock": (fresh.public_list(sort_by_id(self.stock)) if self.fresh_on
+                      else {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}),
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
