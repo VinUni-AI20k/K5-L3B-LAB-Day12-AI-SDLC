@@ -1,0 +1,35 @@
+{
+  "quan": {
+    "player": {"pos": [2.0, 7.5], "vel": [0, 0]},
+    "stock": {
+      "ca_loc": 2,
+      "bong_sung": 4,
+      "ca_linh": 6,
+      "bong_dien_dien": 2
+    },
+    "hand": null,
+    "stoves": [
+      {
+        "id": "B1",
+        "state": "idle",
+        "dish": null,
+        "cook_ticks_left": 0,
+        "ready_ticks": 0
+      }
+    ],
+    "customers": [
+      {
+        "id": "C1",
+        "table_id": "T1",
+        "dish_id": "ca_loc_nuong_trui",
+        "order_tick": 0,
+        "state": "waiting",
+        "patience_ticks_left": 3600,
+        "order_status": "reserved"
+      }
+    ],
+    "random_customers": true,
+    "reputation": 3.5,
+    "time_left_ticks": 10800
+  }
+}

@@ -18,10 +18,12 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 ```bash
 git clone <fork-của-nhóm> && cd <fork-của-nhóm>
 PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+python3 -m chonoi.live --mode day                                   # chơi vòng ngày trên trình duyệt
 ```
 
-Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
+Trong bản chơi, nhấn **E** ở menu để bắt đầu, **WASD/mũi tên** để di chuyển, **E** để tương tác, **Space** để bắt cá và **P/Esc** để tạm dừng. Ở Shop nhấn **1** mua oxy, **2** mua máu và **Enter** để đóng Shop; trong menu pause nhấn **M** để về menu. Có thể dùng `--mode gather` hoặc `--mode quan` để thử từng buổi.
+
+Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan|day …`) để được chạy và chấm tự động. Ví dụ một ngày: `python3 -m chonoi.headless --mode day --seed 1 --days 1 --ticks 22200 --out out.jsonl`. Điểm là `earned + 100 × floor(reputation)`. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
 ## Tự do sáng tạo
 
@@ -54,3 +56,8 @@ Hết giờ mỗi phase thì gắn tag rồi đi tiếp; chỗ chưa xong ghi tr
 
 - Dùng AI thoải mái; **không sao chép repo của nhóm khác**; bằng chứng phải thật.
 - Nhân vật, bối cảnh là bản gốc của lab; asset ngoài chỉ dùng CC0/CC-BY/MIT hoặc tự tạo, ghi nguồn trong `CREDITS.md`. Không commit API key, token, `.env`.
+
+## Sáng tạo của nhóm
+
+- Bản chơi trình duyệt hiển thị Cá Sấu đổi màu, gợn nước và phát âm báo ngắn khi đuổi người chơi; âm thanh cần người chơi nhấn phím trước. Các hiệu ứng chỉ ở giao diện và không thay đổi mô phỏng headless.
+- Kiểm chứng luật và hồi quy: xem `docs/proof/phase-2/crocodile.md`.

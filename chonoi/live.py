@@ -38,7 +38,7 @@ class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
     def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None):
-        self._args = (mode, tuning, scenario, seed, inventory)
+        self._args = (mode, tuning, scenario, seed, inventory, 5 if mode == "day" else 1)
         self.mode = mode
         self.tuning = tuning
         self.inventory_out = inventory_out
@@ -47,12 +47,34 @@ class LiveGame:
         self._thread = None
         self._reset()
 
+
     def _reset(self):
         self.session = Session(*self._args)
-        self.inputs = LiveInputs()
+        # STAMINA LIVE ONLY: never set on headless simulations.
+        if self.mode in ("gather", "day"):
+            sim = self.session.sim if self.mode == "gather" else self.session.sim.active
+            self._enable_live_stamina(sim)
+
+        # Live Game: 30 seconds until fainted
+        if self.mode == "gather":
+            self.session.sim.live_choke_interval_ticks = 600
+
+        self.inputs = LiveInputs(buttons=("interact", "catch", "sprint", "pause", "shop_done", "menu", "quit"))
         self.events = []
         self._saved = False
         self.error = None
+        self.ui_screen = "menu" if self.mode == "day" else None
+        self.ui_ticks_left = 0
+        self.day_stats = {"served": 0, "left": 0, "tips": 0}
+        self.sales_total = {}
+        self.day_start_reputation = self.session.sim.reputation
+
+    @staticmethod
+    def _enable_live_stamina(sim):
+        sim._live_stamina_enabled = True
+        sim._live_stamina = 100.0
+        sim._live_stamina_exhausted = False
+        sim._live_sprinting = False
 
     # --- luồng nền ----------------------------------------------------------------
     def start(self):
@@ -84,10 +106,45 @@ class LiveGame:
 
     def _tick_once(self):
         s = self.session
+        inp = self.inputs.advance()
+        if self.mode == "day" and self.ui_screen:
+            if self.ui_screen == "menu":
+                if inp.pressed("quit"):
+                    self.ui_screen = "exited"
+                elif inp.pressed("interact"):
+                    self.ui_screen, self.ui_ticks_left = "day_intro", int(4 * self.tuning["tick_hz"])
+            elif self.ui_screen != "exited":
+                self.ui_ticks_left = max(0, self.ui_ticks_left - 1)
+                if self.ui_ticks_left == 0 or inp.pressed("interact"):
+                    self.ui_screen = None
+            return
         if s.done:
             return
-        for row in s.step(self.inputs.advance()):
+        if self.mode == "day" and s.paused and inp.pressed("menu"):
+            self._reset()
+            return
+        old_phase = s.sim.phase
+        for row in s.step(inp):
             self.events.append(row)
+            if self.mode == "day":
+                if row["name"] == "served":
+                    self.day_stats["served"] += 1
+                    dish = row["data"].get("dish_id")
+                    if dish:
+                        self.sales_total[dish] = self.sales_total.get(dish, 0) + 1
+                elif row["name"] == "customer_left":
+                    self.day_stats["left"] += 1
+                elif row["name"] == "paid":
+                    self.day_stats["tips"] += row["data"].get("tip", 0)
+        if self.mode == "day" and old_phase != s.sim.phase and not s.done:
+            screen = {("gather", "quan"): "evening_intro", ("quan", "shop"): "day_result",
+                      ("shop", "gather"): "day_intro"}.get((old_phase, s.sim.phase))
+            if screen:
+                if screen == "day_intro":
+                    self.day_stats = {"served": 0, "left": 0, "tips": 0}
+                    self.day_start_reputation = s.sim.reputation
+                    self._enable_live_stamina(s.sim.active)
+                self.ui_screen, self.ui_ticks_left = screen, int(4 * self.tuning["tick_hz"])
         del self.events[:-RECENT_EVENTS]
         if s.done and not self._saved:
             self._saved = True
@@ -101,7 +158,29 @@ class LiveGame:
     def state_json(self) -> bytes:
         with self._lock:
             snap = self.session.snapshot()
-            snap["meta"] = self.tuning[self.mode]
+            # STAMINA LIVE ONLY: publish meter without changing headless snapshot contract.
+            if self.mode == "gather" or (self.mode == "day" and snap["phase"] == "gather"):
+                sim = self.session.sim if self.mode == "gather" else self.session.sim.active
+                snap["live_stamina"] = {
+                    "value": round(sim._live_stamina, 2),
+                    "max": 100.0,
+                    "sprinting": sim._live_sprinting,
+                    "exhausted": sim._live_stamina_exhausted,
+                }
+            if self.mode == "gather":
+                snap["live_choke_interval_ticks"] = (
+                    self.session.sim.live_choke_interval_ticks
+                )
+            phase = snap["phase"] if self.mode == "day" else self.mode
+            snap["meta"] = self.tuning.get(phase, {})
+            if self.mode == "day":
+                snap["shop_catalog"] = self.tuning["shop"]["upgrades"]
+                snap["ui_screen"] = self.ui_screen
+                snap["ui_ticks_left"] = self.ui_ticks_left
+                snap["day_stats"] = dict(self.day_stats)
+                snap["day_stats"]["reputation_delta"] = round(snap["reputation"] - self.day_start_reputation, 2)
+                snap["sales_total"] = dict(self.sales_total)
+                snap["menu_recipes"] = {name: item["recipe"] for name, item in self.tuning["menu"].items()}
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None
@@ -116,13 +195,16 @@ class LiveGame:
             if not ok:
                 raise ValueError("move phải là [a, b] trong [-1, 1]")
         buttons = {}
-        for b in ("interact", "catch"):
+        for b in ("interact", "catch", "sprint", "pause", "shop_done", "menu", "quit"):
             if b in body:
                 if not isinstance(body[b], bool):
                     raise ValueError(f"{b} phải là boolean")
                 buttons[b] = body[b]
+        buy = body.get("buy")
+        if buy is not None and (not isinstance(buy, str) or not buy):
+            raise ValueError("buy phải là chuỗi khác rỗng")
         with self._lock:
-            self.inputs.set(move, **buttons)
+            self.inputs.set(move, buy=buy, **buttons)
 
     def restart(self):
         with self._lock:
@@ -215,7 +297,7 @@ class LiveServer:
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="chonoi.live", description="Chơi trực tiếp trên trình duyệt (starter).")
-    p.add_argument("--mode", required=True, choices=["gather", "quan"])
+    p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--port", type=int, default=8000, help="0 = cổng ngẫu nhiên")
     p.add_argument("--host", default="127.0.0.1")
