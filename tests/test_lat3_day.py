@@ -126,6 +126,34 @@ class DayLoop(unittest.TestCase):
         self.assertEqual(s["sim_tick"], 11000 - 99)
 
 
+class DayBadInput(unittest.TestCase):
+    """Mâu thuẫn ở mode day qua headless thật: mã 2 và không tạo file đầu ra."""
+
+    def exit_code(self, w, *args, scenario=None):
+        out = w.path("out.jsonl")
+        cmd = ["--mode", "day", "--seed", "1", "--ticks", "10", "--out", out, *args]
+        if scenario is not None:
+            cmd += ["--scenario", write_json(w.path("sc.json"), scenario)]
+        code, _ = run_headless(*cmd)
+        return code, os.path.exists(out)
+
+    def test_quan_stock_hoac_reputation_trong_day_ma_2(self):
+        for block in ({"stock": {"ca_loc": 1}}, {"reputation": 4.0}):
+            with self.subTest(block=block), Workdir() as w:
+                self.assertEqual(self.exit_code(w, scenario={"quan": block}), (2, False))
+
+    def test_days_sai_ma_2(self):
+        for bad in ("0", "6", "1.5", "x"):
+            with self.subTest(days=bad), Workdir() as w:
+                self.assertEqual(self.exit_code(w, "--days", bad), (2, False))
+
+    def test_khoi_day_mau_thuan_ma_2(self):
+        for day in ({"money": 300, "earned": 200}, {"money": 100},
+                    {"day_plan": [{"day": 1, "dishes": {"ca_loc_nuong_trui": 1}, "ingredients": {"ca_loc": 2}}]}):
+            with self.subTest(day=day), Workdir() as w:
+                self.assertEqual(self.exit_code(w, scenario={"day": day}), (2, False))
+
+
 class Inp(InputState):
     def __init__(self, buy=None, done=False):
         super().__init__((0.0, 0.0), set(), {"shop_done"} if done else set(), buy)
