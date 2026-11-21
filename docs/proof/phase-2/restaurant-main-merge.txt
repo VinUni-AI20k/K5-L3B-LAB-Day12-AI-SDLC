@@ -1,0 +1,17 @@
+Merge origin/main c8430b1 into RESTAURANTEXPANSION (previously d505e17).
+Resolved seven conflicts: AGENTS.md, inventory.py, scenario.py, clarify.md,
+verification/phase-2.md, game.contract.json, test_quan_integration.py.
+Kept Restaurant source/hooks/tests, incoming Day/Gather/Monster and both docs.
+Manifest tables/ingredient tuple conflicts were equivalent formatting changes.
+
+Targeted verification only; full suite deliberately not rerun per user request:
+  PYTHONPATH=tests:. python3 -m unittest test_restaurant_expansion test_day test_quan_integration -v
+Windows used PYTHONPATH=tests;. and PYTHONUTF8=1, .venv/Scripts on PATH.
+Result: 37 tests in 9.636s, OK, exit 0.
+Full log: restaurant-main-merge-tests.txt
+
+python3 -m chonoi.headless --mode day --days 1 --seed 42 --ticks 22200 --out docs/proof/phase-2/restaurant-main-merge-day.jsonl
+Exit 0; days_complete, ticks=sim_tick=22200, days_completed=1,
+money=earned=0, reputation=3.0, score=300.
+Verifier's historical expected rejection of day was updated to require success.
+Its full suite/export runs were not rerun during this merge.

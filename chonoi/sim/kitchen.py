@@ -41,7 +41,12 @@ class KitchenServingMixin:
                 and self.t["reputation_min"] <= self.reputation <= self.t["reputation_max"]):
             raise BadInput("reputation ngoài miền")
         orders = {}
+        table_ids = {table["id"] for table in self.tables}
+        occupied = set()
         for c in self.customers:
+            if not isinstance(c.get("table_id"), str) or c["table_id"] not in table_ids or c["table_id"] in occupied:
+                raise BadInput("mỗi khách cần một bàn có thật, không trùng bàn")
+            occupied.add(c["table_id"])
             c.setdefault("order_tick", 0)
             self._require_counter(c, "order_tick")
         fixture_orders = sort_by_id(self.customers, key=lambda c: c["table_id"])
@@ -50,7 +55,7 @@ class KitchenServingMixin:
                          "eat_ticks_left", "order_status", "reserved", "base_price", "tip"}:
                 raise BadInput(f"customers.{c['id']}: trường ngoài contract")
             if (c["id"] in orders or not isinstance(c.get("dish_id"), str)
-                    or c["dish_id"] not in self.menu):
+                    or c["dish_id"] not in self.allowed_dishes):
                 raise BadInput(f"customers.{c['id']}: id trùng hoặc dish_id không hợp lệ")
             orders[c["id"]] = c
             c.setdefault("state", "waiting")
@@ -190,7 +195,8 @@ class KitchenServingMixin:
         elif stove["state"] == "idle":
             # Sort by table ID first; stable order_tick sort then yields FIFO.
             orders = sort_by_id([c for c in self.customers
-                                 if c["state"] == "waiting" and c["order_status"] == "reserved"],
+                                 if c["state"] == "waiting" and c["order_status"] == "reserved"
+                                 and c["dish_id"] in self.allowed_dishes],
                                 key=lambda c: c["table_id"])
             if not orders:
                 return
@@ -236,24 +242,22 @@ class KitchenServingMixin:
                                   "patience_ticks_left": c["patience_ticks_left"], "tip": tip}))
 
     def _settle_customers(self, events):
-        # Normal eating completions precede closing. Newly served diners keep
-        # their full eating timer but are also paid immediately on the last tick.
+        # One table-ordered pass, including mixed payments/departures. An eating
+        # timer that expires on closing still gets reason=finished_eating.
         for c in sort_by_id(self.customers, key=lambda c: c["table_id"]):
             if c["state"] == "eating" and c["eat_ticks_left"] == 0:
                 self._pay(c, "finished_eating", events)
-        if self.time_left_ticks == 0:
-            for c in sort_by_id(self.customers, key=lambda c: c["table_id"]):
+            elif self.time_left_ticks == 0:
                 if c["state"] == "eating":
                     self._pay(c, "closing", events)
                 else:
                     self._leave(c, "closing", events)
+            elif c["state"] == "waiting" and c["patience_ticks_left"] == 0:
+                self._leave(c, "patience", events)
+        if self.time_left_ticks == 0:
             self.done, self.reason = True, "time"
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
-        else:
-            for c in sort_by_id(self.customers, key=lambda c: c["table_id"]):
-                if c["state"] == "waiting" and c["patience_ticks_left"] == 0:
-                    self._leave(c, "patience", events)
 
     def _change_reputation(self, delta):
         # Decimal avoids repeated +0.2 drifting below an integer score boundary.

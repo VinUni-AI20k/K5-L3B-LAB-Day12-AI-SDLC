@@ -66,6 +66,8 @@ class QuanIntegration(unittest.TestCase):
             (self.first, "customer_arrived"), (self.first + 1, "cook_started"),
             (self.first + 361, "dish_ready"), (self.first + 361, "dish_picked"),
             (self.first + 398, "served"),
+            # v1.1 has other free tables at this scheduled arrival. Stock was
+            # consumed, so it emits no_dish while T1's customer is still eating.
             (self.first + round(self.q["customer_interval_s"] * self.hz), "no_dish"),
             (self.first + 998, "paid"),
         ])
