@@ -1,0 +1,25 @@
+Smoke --mode day v1.2 (kho cá thể) trên commit bàn giao; mã thoát 0
+Mẫu gather.hold: I1 ca_loc 100, I2 bong_sung 100, I3 bong_sung 30.004 (đủ gần ngưỡng để ươn trong ca quán)
+
+  tick      0 Ngày 1 gather day_start    {}
+  tick      0 Ngày 1 gather phase_start  {}
+  tick      1 Ngày 1 gather spoiled      {"item_id": "I3", "kind": "bong_sung", "location": "hold"}
+  tick      1 Ngày 1 gather gather_end   {"reason": "docked", "inventory": [["I1", "ca_loc", 99.992], ["I2", "bong_sung", 99.992], ["I3", "bong_sung", 29.996]]}
+  tick      1 Ngày 1 quan   phase_start  {}
+  tick  10801 Ngày 1 quan   quan_end     {"reason": "time", "money": 0, "earned": 0, "shift_earned": 0, "reputation": 3.0}
+  tick  10801 Ngày 1 shop   phase_start  {}
+  tick  10807 Ngày 1 shop   shop_end     {"reason": "done"}
+  tick  10807 Ngày 2 gather day_start    {}
+  tick  10807 Ngày 2 gather phase_start  {}
+  tick  10808 Ngày 2 gather spoiled      {"item_id": "I6", "kind": "bong_sung", "location": "hold"}
+  tick  10808 Ngày 2 gather gather_end   {"reason": "docked", "inventory": [["I4", "ca_loc", 99.992], ["I5", "bong_sung", 99.992], ["I6", "bong_sung", 29.996]]}
+  tick  10808 Ngày 2 quan   phase_start  {}
+  tick  21608 Ngày 2 quan   quan_end     {"reason": "time", "money": 0, "earned": 0, "shift_earned": 0, "reputation": 3.0}
+  tick  21608 Ngày 2 shop   phase_start  {}
+  tick  22208 Ngày 2 shop   shop_end     {"reason": "time"}
+
+Ngày 1 quán phase_tick 0 stock: [('I1', 'ca_loc', 99.992), ('I2', 'bong_sung', 99.992), ('I3', 'bong_sung', 29.996)]
+  = gather_end.inventory (bàn giao cùng tick, không hao thêm): True
+Ngày 1 Shop: stock đầu = [('I1', 54.992), ('I2', 54.992), ('I3', 0)] | cuối = [('I1', 54.992), ('I2', 54.992), ('I3', 0)] | không hao: True
+Ngày 2 gather hold (id mới, kind/fresh như mẫu): [('I4', 'ca_loc', 100), ('I5', 'bong_sung', 100), ('I6', 'bong_sung', 30.004)]
+end: {"ticks": 22208, "reason": "days_complete", "days_completed": 2}

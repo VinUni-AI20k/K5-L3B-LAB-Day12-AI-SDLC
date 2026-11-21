@@ -12,6 +12,19 @@
   - Chưa ai làm UI vòng ngày (AC-P2-45) và chưa chơi thử HUD lưu ảnh; chưa có mục Mở rộng.
 - 1 hành động cho Phase 3: mỗi lát mở PR nháp ngay khi có commit đầu và chạy toàn bộ test trước khi xin review; **không sửa test của lát khác** nếu không ghi lý do trong commit. Người nhận: nglngnguyen-gh (Integrator) nhắc ở standup phút 20.
 
+## Phase 3 (nhanh — đổi kho đếm → kho cá thể)
+> Nháp do Integrator soạn từ lịch sử repo; cả nhóm bổ sung.
+- Điều tốt:
+  - Ghi tác động + quyết định schema trước (`docs/plan/phase-3.md`), adapter `items.py` lên `main` khi manifest vẫn v1.1 → `main` luôn xanh trong lúc chuyển.
+  - Biểu diễn độ tươi bằng số nguyên đơn vị (240/điểm) → không lệch ở ngưỡng 30 và phép floor giá.
+  - Test v1.2 của `day` viết trước, tự bật khi manifest lên 1.2 → lúc bật đã có kiểm tích hợp.
+- Điều tệ:
+  - Bật v1.2 làm vỡ ~67 test P1–P2 vì fixture / kỳ vọng ghi cứng kho đếm; mất nhiều thời gian chuyển test (lý do ghi trong commit).
+  - Lát gather v1.2 không có commit tới phút ~25 → Integrator làm thay; PR #11 làm trùng phần đã có trong PR #9.
+  - Mở rộng (burn) vẫn chưa gộp.
+- Rút ra từ lần đổi kho: test nên đọc dữ liệu qua helper (`hold_items`, `counts_of`) thay vì ghi cứng schema.
+- 1 hành động cho Phase 4: phút 10 mỗi người báo commit đầu trong kênh; lát không có commit thì Integrator chia lại ngay. Người nhận: nglngnguyen-gh.
+
 ## Phase 4 (cuối)
 - Rà lại hành động Phase 2: đã làm chưa? vì sao?
 - Điều tốt / điều tệ:
