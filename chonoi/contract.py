@@ -139,9 +139,28 @@ def validate_tuning(t):
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
-        raise BadInput("burn_s phải là null ở Phase 1")
-    # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
+        raise BadInput("burn_s lõi phải là null (mở rộng burn mới hữu hạn)")
+    stoves, tables = q.get("stoves"), q.get("tables")
+    if not isinstance(stoves, list) or not stoves or not isinstance(tables, list) or not tables:
+        raise BadInput("quan.stoves và quan.tables phải là mảng không rỗng")
+    # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (uy tín, shop, ...).
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+        recipe = d.get("recipe")
+        if not isinstance(recipe, dict) or not recipe:
+            raise BadInput(f"menu.{dish_id}: recipe phải là object không rỗng")
+    day_plan = t.get("day_plan")
+    if day_plan is not None:
+        if not isinstance(day_plan, list) or len(day_plan) != 5:
+            raise BadInput("tuning.day_plan phải là mảng 5 Ngày")
+        from .day_plan import compute_ingredients
+        from .inventory import validate_items
+        for p in day_plan:
+            if not isinstance(p, dict) or p.get("day") not in (1, 2, 3, 4, 5):
+                raise BadInput("day_plan: mỗi mục cần day ∈ 1..5")
+            dishes = p.get("dishes")
+            got = compute_ingredients(menu, dishes)
+            if "ingredients" in p and validate_items(p["ingredients"]) != got:
+                raise BadInput(f"day_plan D{p['day']}: ingredients không khớp dishes × recipe")

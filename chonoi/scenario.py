@@ -18,7 +18,7 @@ NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
 FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
 QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
-             "reputation", "time_left_ticks"}
+             "reputation", "time_left_ticks", "day_plan"}
 
 
 def _check_ids(name, arr):
