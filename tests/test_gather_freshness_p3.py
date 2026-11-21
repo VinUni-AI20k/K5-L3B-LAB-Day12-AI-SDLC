@@ -15,6 +15,7 @@ from chonoi.sim.gather import GatherSim
 
 def make_v12_tuning():
     t = copy.deepcopy(load_contract()["tuning"])
+    t["_contract_version"] = "1.2"
     t["freshness"] = {
         "initial": 100,
         "gather_decay_per_s": 0.5,

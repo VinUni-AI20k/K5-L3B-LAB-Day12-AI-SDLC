@@ -110,7 +110,7 @@ def _validate_gather(b, tuning):
             raise BadInput("hold phải là mảng")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
-        if tuning.get("freshness"):
+        if tuning.get("freshness") and tuning.get("_contract_version", "1.2") == "1.2":
             seen_hold = set()
             for idx, item in enumerate(h):
                 if not isinstance(item, dict) or set(item) != {"id", "kind", "fresh"}:

@@ -15,7 +15,7 @@ PYTHONPATH=tests:. python3 -m unittest tests.test_quan_fresh_p3 -v
 | Nấu tiêu đúng id; `base_price = floor(giá × avg_fresh/100)` | Đạt (hỗ trợ TV4) |
 | Dual mode: kho đếm v1.1 vẫn chạy regression | Đạt |
 
-Helper: [`chonoi/freshness.py`](../../../chonoi/freshness.py) (`decay_units`, `pick_for_recipe`, …).  
+Helper: [`chonoi/freshness.py`](../../../chonoi/freshness.py) (`decay_units`, `pick_for_recipe`, …).
 Tuning: `game.contract.json` → `tuning.freshness` (TV1 sẽ bump `contract_version` 1.2 khi adapter file sẵn sàng).
 
 [Test](../../../tests/test_quan_fresh_p3.py)
