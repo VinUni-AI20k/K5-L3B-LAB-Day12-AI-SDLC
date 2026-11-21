@@ -161,3 +161,34 @@ def _validate_quan(b, tuning):
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    _validate_quan_rules(b, tuning)
+
+
+def _validate_quan_rules(b, tuning):
+    """Mâu thuẫn mức luật của quán (P1-08). Chỉ kiểm cái suy ra được từ scenario và game.contract.json;
+    các trạng thái khách/đơn chưa rõ thì ghi docs/clarify.md (PRD-0 mục D chưa có trong repo)."""
+    menu = tuning["menu"]
+    q = tuning["quan"]
+    if "reputation" in b:
+        r = b["reputation"]
+        if not _num(r) or not (q["reputation_min"] <= r <= q["reputation_max"]):
+            raise BadInput(f"reputation phải trong [{q['reputation_min']}, {q['reputation_max']}]")
+    # `hand` chưa kiểm: PRD-0 chưa nói rõ dạng giá trị (id món hay object); hỏi PO ở docs/clarify.md.
+    for s in b.get("stoves", []):
+        d = s.get("dish")
+        if d is not None and (not isinstance(d, str) or d not in menu):
+            raise BadInput(f"stoves.{s['id']}: dish phải là null hoặc một món trong menu ({d!r})")
+        for key in ("cook_ticks_left", "ready_ticks"):
+            if key in s:
+                _nonneg_int(f"stoves.{s['id']}.{key}", s[key])
+    # khách giữ chỗ nguyên liệu: mỗi món phải có trong kho, tổng giữ chỗ không vượt kho.
+    # Kho đến từ --inventory thì scenario không biết, nên chỉ so khi scenario tự khai stock.
+    reserved_total = {}
+    for c in b.get("customers", []):
+        if "reserved" in c:
+            for k, v in validate_items(c["reserved"]).items():
+                reserved_total[k] = reserved_total.get(k, 0) + v
+    if "stock" in b:
+        for k, need in reserved_total.items():
+            if need > b["stock"].get(k, 0):
+                raise BadInput(f"khách giữ chỗ {k} = {need} vượt kho ({b['stock'].get(k, 0)})")
