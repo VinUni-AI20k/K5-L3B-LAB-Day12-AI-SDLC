@@ -3,6 +3,44 @@
 > **Làm theo nhóm 4–6 người** · Dùng AI để xây game 2D qua **4 phase** trong **3 giờ**: Út Sen lặn bắt cá, hái rau trên mặt nước rồi tối mở quán phục vụ khách.
 > **Yêu cầu từng phase mở đúng mốc giờ tại lab board:** **[Chợ Nổi Lab](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg)** (cần đăng nhập claude.ai; có trợ giảng AI cho từng phase).
 
+## Nhóm ChoNoiCaMau — chạy game
+
+Thành viên và vai trò: [`TEAM.md`](TEAM.md). Yêu cầu từng phase (bản chép): [`docs/prd/`](docs/prd/). Chỉ cần Python 3 với thư viện chuẩn (nhóm đã chạy với 3.11 và 3.12), không cài thêm gì.
+
+**Chạy từ clone sạch (macOS / Linux, 3 lệnh):**
+
+```bash
+git clone https://github.com/trongnghia2304/K5-L3B-LAB-Day12-AI-SDLC-ChoNoiCaMau.git && cd K5-L3B-LAB-Day12-AI-SDLC-ChoNoiCaMau
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v      # test của nhóm (1 lệnh)
+python3 -m chonoi.live --mode gather --inventory-out kho.json    # chơi buổi sáng, mở địa chỉ in ra
+```
+
+- **Buổi tối:** chạy `python3 -m chonoi.live --mode quan --inventory kho.json`; quán nhận kho buổi sáng mang về.
+- **Windows (PowerShell):** đặt `$env:PYTHONPATH="tests;."` rồi chạy `python3 -m unittest discover -s tests -v`. Nếu báo không thấy `python3`, xem ghi chú Windows trong [`AGENTS.md`](AGENTS.md).
+
+**Headless (Test Contract v1.0):**
+`python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl [--scenario f.json] [--inputs f.json] [--inventory kho.json | --inventory-out kho.json]`
+
+**Điều khiển:**
+- **WASD / mũi tên:** bơi (sáng) hoặc đi (tối). Ở buổi sáng, phím xuống là lặn sâu hơn.
+- **E:** cập bến hoặc hái nút trên mặt nước (sáng); nấu, bưng, phục vụ (tối).
+- **Space:** bắt đàn cá khi đang dưới nước.
+- **R:** chơi lại.
+
+**Cách tính điểm** (mọi snapshot và dòng `end`): `điểm = earned + 100 × floor(uy tín)`.
+- `earned` là tổng thu của lượt, gồm tiền món và tiền boa, đơn vị nghìn đồng.
+- Uy tín bắt đầu từ 3.0, kẹp trong [0, 5].
+  - Khách được boa thì +0.2.
+  - Khách hết kiên nhẫn bỏ đi khi ca còn giờ thì −0.5.
+
+**Tiến độ** (ghi trung thực):
+- Phase 1: gather (lát 1, 2) và quán lát 3 xong. Quán lát 4 (bếp, phục vụ, tiền) chưa xong.
+- Chi tiết: [`docs/verification/phase-1.md`](docs/verification/phase-1.md).
+
+**Sáng tạo của nhóm:** chưa có (làm lõi đúng trước).
+
+---
+
 ## Bắt buộc (chỉ có thế)
 
 Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair, có hay không CI…). Cái bắt buộc:

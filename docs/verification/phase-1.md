@@ -1,55 +1,43 @@
 # Ma trận truy vết Phase 1
 
-Mã AC do QA đánh theo PRD-0 (`docs/prd/phase-1.md`): mục F (luật bước), E (sự kiện / snapshot), G (kho), D (fixture), DoD mục 7.
-Cách kiểm chứng chung: `python3 tools/run_checks.py` (skill `run-checks`); test `@pending` chạy bằng `QA_STRICT=1`.
-Bằng chứng ghi ở commit gắn tag: `docs/proof/phase-1/checks-<commit>.txt`.
+**Nguồn:** PRD-0 (`docs/prd/phase-1.md`).
+**Bằng chứng tổng:** chạy `python .agents/skills/verify-phase/verify.py --phase 1` trên commit `7d85efa` (main sau khi merge lát 1, 2, 3), xem [`docs/proof/phase-1/summary.md`](../proof/phase-1/summary.md).
+**Kết quả chạy:** 58 test, OK (2 skipped); tất định đạt; kho gather → quán đạt; `check_team` đạt.
+**Mã AC:** nhóm tự đặt `AC-P1-xx` theo các mục của PRD-0, vì PRD không có mã AC.
+**Test chi tiết của QA:** [`phase-1-qa-tests.md`](phase-1-qa-tests.md) (mã theo từng test, có cột đối chiếu về AC ở bảng này).
 
-Trạng thái: **pending** = test đã viết, chờ lát merge (lát 1–3 đã merge; còn chờ lát 4) · **đạt** / **chưa đạt** = đã chạy trên `main`.
-
-## Buổi sáng (gather)
-
-| AC | Yêu cầu (PRD-0) | Cách kiểm chứng | Lát | Kết quả |
-|---|---|---|---|---|
-| AC-P1-01 | Oxy theo d cuối bước: dưới nước −1/tick, mặt nước +6, kẹp [0, max] (F Gather) | `test_gather_p1.Oxygen.test_ac_p1_01_*` | 1 | đạt (local, chưa ở commit tag) |
-| AC-P1-02 | `dive` / `surface` một lần khi đổi phía mặt nước, `data.pos` sau di chuyển (E) | `Oxygen.test_ac_p1_02_*` | 1 | đạt (local, chưa ở commit tag) |
-| AC-P1-03 | `oxygen_empty` khi chạm 0; ngạt lần đầu ở t+59, `choke{hp}`, đếm về 0 (F) | `Oxygen.test_ac_p1_03_*` | 1 | đạt (local, chưa ở commit tag) |
-| AC-P1-04 | Máu 0 → `choke`,`faint{cause,lost LIFO,hp:0}`,`gather_end fainted`, kho rỗng, dừng lượt (F, G) | `Oxygen.test_ac_p1_04_*` | 1 | đạt (local, chưa ở commit tag) |
-| AC-P1-05 | Nổi lên đúng bước đáng lẽ ngạt → hồi oxy, không ngạt (F) | `Oxygen.test_ac_p1_05_*` | 1 | đạt (local, chưa ở commit tag) |
-| AC-P1-06 | Hái ở mặt nước: nút ready gần nhất (tính mép), hòa theo id, `gather`, `regrow_ticks=1200`, `node_regrown` (F) | `Gathering.test_ac_p1_06_*` | 2 | đạt (local, chưa ở commit tag) |
-| AC-P1-07 | Không hái dưới nước / ngoài bán kính / nút chưa ready (F) | `Gathering.test_ac_p1_07_*` | 2 | đạt (local, chưa ở commit tag) |
-| AC-P1-08 | Giỏ đầy khi hái → `hold_full{action:gather,node_id,required,free}`, nút giữ nguyên (E, F) | `Gathering.test_ac_p1_08_*` | 2 | đạt (local, chưa ở commit tag) |
-| AC-P1-09 | Bắt cá dưới nước: đàn gần nhất, hòa id (F2 < F10), `fish_caught`, xóa đàn, hồi 30 tick dùng lại từ t+L (F) | `Catching.test_ac_p1_09_*` | 2 | đạt (local, chưa ở commit tag) |
-| AC-P1-10 | Không bắt ở mặt nước / ngoài tầm; thiếu chỗ → `hold_full`, giữ đàn, không thử đàn khác (F) | `Catching.test_ac_p1_10_*` | 2 | đạt (local, chưa ở commit tag) |
-| AC-P1-11 | Cập bến xét trước hái, tính đúng mép bán kính; kho = `gather_end.inventory` (F, G) | `DockAndInventory.test_ac_p1_11_*` | khung | đạt (local, chưa ở commit tag) |
-| AC-P1-12 | Hái hợp lệ ở bước cuối vẫn vào kho, kết thúc `time` (F) | `DockAndInventory.test_ac_p1_12_*` | 2 | đạt (local, chưa ở commit tag) |
-
-## Buổi tối (quan)
-
-| AC | Yêu cầu (PRD-0) | Cách kiểm chứng | Lát | Kết quả |
-|---|---|---|---|---|
-| AC-P1-20 | Khách đầu ở `first_customer_tick`, `customer_arrived`, giữ chỗ đúng công thức, kiên nhẫn giảm từ bước sau (F Quán) | `test_quan_p1.Customers.test_ac_p1_20_*` | 3 | đạt (local, chưa ở commit tag) |
-| AC-P1-21 | Chỉ chọn món đủ kho khả dụng (mọi seed) (F) | `Customers.test_ac_p1_21_*` | 3 | đạt (local, chưa ở commit tag) |
-| AC-P1-22 | Không món → `no_dish {}`; hết bàn → bỏ lượt; lịch mỗi 900 tick (F) | `Customers.test_ac_p1_22_*` | 3 | đạt (local, chưa ở commit tag) |
-| AC-P1-23 | Hết kiên nhẫn → `customer_left patience`, uy tín −0.5, nhả giữ chỗ, bàn trống (F) | `Customers.test_ac_p1_23_*` | 3 | đạt (local, chưa ở commit tag) |
-| AC-P1-24 | Bếp idle → `cook_started{items,base_price}`, trừ kho, đơn `assigned` (F, E) | `Kitchen.test_ac_p1_24_25_*` | 4 | pending |
-| AC-P1-25 | Nấu xong `dish_ready`; bếp ready + tay trống → `dish_picked`, `hand` = payload (F) | `Kitchen.test_ac_p1_24_25_*` | 4 | pending |
-| AC-P1-26 | Phục vụ đúng đơn → `served`, khách ăn 600 tick; phục vụ đúng tick kiên nhẫn về 0 vẫn hợp lệ (F) | `ServeAndPay.test_ac_p1_26_*` | 4 | pending |
-| AC-P1-27 | Ăn xong `paid`, boa = floor(giá × 0.2) nếu kiên nhẫn ≥ 50%, uy tín +0.2; điểm = earned + 100×floor(uy tín) (F, E) | `ServeAndPay.test_ac_p1_26_27_*`, `test_ac_p1_27_*` | 4 | pending |
-| AC-P1-28 | Hết ca: khách chờ rời `closing` không trừ uy tín, khách ăn trả `closing`, `quan_end` (F) | `Closing.test_ac_p1_28_*` | 3+4 | phần khách chờ: đạt (local); phần khách đang ăn: pending lát 4 |
-| AC-P1-29 | Fixture quán mâu thuẫn → mã 2, không ghi output (D): món lạ, giữ khác công thức, giữ quá tồn | `FixtureValidation.test_ac_p1_29_mon_la_*` | 3 | đạt (local, chưa ở commit tag) |
-| AC-P1-29b | Fixture quán: tay cầm món của đơn `reserved`, đơn `assigned` không có món, món trên tay khác đơn, khách `eating` thiếu timer/giá → mã 2 (D) | `FixtureValidation.test_ac_p1_29_don_va_mon_*` | 3/4 | chưa đạt (headless trả 0) |
-| AC-P1-30 | Quán cùng seed + kho → JSONL giống từng byte (E) | `Determinism.test_ac_p1_30_*` | khung | đạt (local, chưa ở commit tag) |
-
-## Test Contract và DoD
-
-| AC | Yêu cầu | Cách kiểm chứng | Kết quả |
+| AC | Cách kiểm chứng | Bằng chứng | Kết quả |
 |---|---|---|---|
-| AC-P1-40 | Smoke hai tiến trình: quán tick 0 có `stock` đúng file kho (G) | `run_checks.py` bước "smoke hai tiến trình" + `test_smoke_p1` (`test_inv_01_*`) | đạt (local, chưa ở commit tag) |
-| AC-P1-41 | Cùng seed → JSONL gather giống từng byte (E) | `run_checks.py` bước "tất định" + `test_con_02_*` | đạt (local, chưa ở commit tag) |
-| AC-P1-42 | Mã thoát 0/1/2, cờ sai / fixture sai → 2 trước khi ghi (B, C, D) | `test_smoke_p1.Contract`, `ScenarioModes` | đạt (local, chưa ở commit tag) |
-| AC-P1-43 | HUD đọc được: sáng (thời gian, oxy, Máu, giỏ); tối (kho khả dụng, món gọi, kiên nhẫn, trạng thái bếp, món trên tay, tiền, uy tín) | Chơi thử `python3 -m chonoi.live --mode gather` / `--mode quan`, chụp màn hình vào `docs/proof/phase-1/` | chưa kiểm (HUD sáng chơi được ngay; HUD tối chờ lát 4) |
-| AC-P1-44 | TEAM.md đủ người, `team_size` khớp | `run_checks.py` bước "check_team" | đạt (local, chưa ở commit tag) |
+| AC-P1-01 Headless đúng CLI, mã thoát 0/1/2, lỗi đầu vào thoát **trước** khi ghi (mục B, C) | `test_smoke_p1.Contract.test_con_01/03*`, `ScenarioModes.*`, `test_scenario_out_of_domain_exit_2` | [tests.txt](../proof/phase-1/tests.txt) | đạt |
+| AC-P1-02 Cùng seed → JSONL giống từng byte (mục E) | `test_con_02_deterministic_bytes`, `test_gather_lat1...test_tat_dinh_tung_byte`; verify chạy gather + quán 2 lần, 600 tick | [determinism.txt](../proof/phase-1/determinism.txt) | đạt |
+| AC-P1-03 Bơi: ramp ≤ 6 tick, 4 m/s, chặn mép, `d` không âm, hướng 90° = xuống (mục F chung) | `test_smoke_p1.Movement.*` | [tests.txt](../proof/phase-1/tests.txt) | đạt |
+| AC-P1-04 Oxy theo `d` cuối bước: dưới nước −1, mặt nước +6 kẹp tối đa, `oxygen_empty` một lần | `test_gather_lat1.Oxygen.*` | [lat1.md](../proof/phase-1/lat1.md) | đạt |
+| AC-P1-05 Ngạt: chạm 0 ở t → `choke` ở t+59, mỗi 60 tick −1 Máu; nổi lên kịp thì không ngạt | `test_gather_lat1.Choke.*` | [lat1.md](../proof/phase-1/lat1.md) | đạt |
+| AC-P1-06 Ngất: bỏ giỏ LIFO, `faint` → `gather_end fainted`, kho `{"items":{}}`; ngất thắng hết giờ cùng tick | `test_gather_lat1.Faint.*` | [lat1.md](../proof/phase-1/lat1.md) | đạt |
+| AC-P1-07 `dive` / `surface` chỉ khi đổi phía, `pos` sau di chuyển | `test_gather_lat1.DiveSurface.*` | [lat1.md](../proof/phase-1/lat1.md) | đạt |
+| AC-P1-08 Hái nút ở mặt nước (gần nhất, hòa theo id), `regrow`, `hold_full` (mục F bước 4) | `test_gather_p1.Gathering.*` (7 test: mép bán kính, hòa id, ready, hold_full, regrow) | [qa-tests](phase-1-qa-tests.md) | đạt (chạy local trên `feat/qa` sau merge `main`; chờ merge PR #5, chưa có bằng chứng ở commit tag) |
+| AC-P1-09 Bắt cá dưới nước, lấy toàn bộ yield, hồi 30 tick, thiếu chỗ → `hold_full` giữ đàn (mục F bước 5) | `test_gather_p1.Catching.*` (hòa F2 < F10, hồi chiêu t+L, ngoài tầm, thiếu chỗ giữ đàn) | [qa-tests](phase-1-qa-tests.md) | đạt (chạy local trên `feat/qa`, chờ merge PR #5) |
+| AC-P1-10 Cập bến hoặc hết giờ giữ giỏ, ghi kho đúng một lần; chạm `--ticks` trước thì không ghi (mục G) | `test_time_ends_gather_and_keeps_hold`, `Integration.test_inv_01_*` | [tests.txt](../proof/phase-1/tests.txt) | đạt |
+| AC-P1-11 Kho gather → quán: quán tick 0 có đúng `stock`; schema sai → mã 2 (mục G) | `Integration.*`; verify bước kho | [inventory.txt](../proof/phase-1/inventory.txt) | đạt |
+| AC-P1-12 Khách đến theo lịch, chọn món đủ nguyên liệu, giữ chỗ, `no_dish`, hết bàn bỏ lượt (mục F quán bước 5) | `test_quan_lat3.Arrival.*` | [tests.txt](../proof/phase-1/tests.txt) | đạt; 1 test cần ≥ 2 bàn đang skip (preset P1 chỉ có T1) |
+| AC-P1-13 Kiên nhẫn, khách rời `patience` (−0.5 uy tín) hoặc `closing` (không trừ), kẹp uy tín | `test_quan_lat3.Leaving.*` | [tests.txt](../proof/phase-1/tests.txt) | đạt |
+| AC-P1-14 Khách dựng từ scenario, suy ra giữ chỗ, fixture mâu thuẫn → mã 2 | `test_quan_lat3.ScenarioCustomers.*` | [tests.txt](../proof/phase-1/tests.txt) | đạt một phần (1 test skip vì cần ≥ 2 bàn); còn TODO kiểm mâu thuẫn trong `scenario.py` |
+| AC-P1-15 Bếp, bưng, phục vụ, trả tiền, boa, uy tín (`cook_started` … `paid`) | `test_quan_lat4.*` (lát 4) và `test_quan_p1.Kitchen/ServeAndPay/Closing` (QA) | [qa-tests](phase-1-qa-tests.md) | đạt (lát 4 đã merge PR #6; test QA chạy local trên `feat/qa`, chờ merge PR #5; cần chạy lại `verify-phase` để có bằng chứng ở commit tag) |
+| AC-P1-16 Chơi được cả hai buổi, HUD đọc được (DoD 1) | Chơi thử `chonoi.live` | — | **chưa đạt**: buổi tối chưa nấu và phục vụ được (phụ thuộc AC-P1-15) |
+| AC-P1-17 `TEAM.md` đủ 5 người, `team_size` = 5, handle hợp lệ | `tools/check_team.py` | [team.txt](../proof/phase-1/team.txt) | đạt; mục "Kênh liên lạc" trong thỏa thuận còn trống |
+| AC-P1-18 Hợp đồng kho có schema + ví dụ; giao diện sim↔UI; danh sách sự kiện | Đọc lại `docs/contracts/README.md` | [contracts](../contracts/README.md) | đạt |
+| AC-P1-19 README: chạy từ clone sạch ≤ 3 lệnh, điều khiển, cách tính điểm, test 1 lệnh | Đọc `README.md`, mục "Nhóm ChoNoiCaMau" | [README](../../README.md) | đạt (chưa thử clone sạch trên macOS/Linux) |
+| AC-P1-20 Tag `phase-1` trên `main` chậm nhất 1:00 | `git tag` | — | **trễ hạn**: gắn sau 1:00, ghi trung thực |
 
 ## Đánh giá ngắn
-- Yêu cầu nào đạt / chưa đạt: (điền lúc 0:50 trên commit gắn tag)
-- Điều cần chỉnh cho phase sau:
+- **Đạt:** Test Contract v1.0 (CLI, mã thoát, tất định, file kho), toàn bộ buổi sáng (bơi, oxy, ngạt, ngất, cập bến), và phần khách của quán (lát 3).
+- **Chưa đạt / chưa kiểm chứng:**
+  - Quán lát 4 (bếp, phục vụ, tiền, boa), nên chưa chơi trọn hai buổi.
+  - Lát 2 (hái, bắt cá) có code nhưng chưa có test.
+  - Kiểm mâu thuẫn scenario quán còn TODO.
+  - Tag `phase-1` trễ hạn.
+- **Cần chỉnh cho phase sau:**
+  - Viết test hộp đen cùng lúc với code, không để dồn về cuối.
+  - Chốt `docs/contracts/` ngay trong 15 phút đầu.
+  - Hoàn tất lát 4 và test lát 2 như nợ Phase 1, trước khi lên v1.1.
+  - Integrator chạy `verify-phase` trước mỗi lần gắn tag.
