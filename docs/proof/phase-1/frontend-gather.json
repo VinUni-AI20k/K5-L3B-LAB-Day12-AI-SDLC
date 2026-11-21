@@ -1,0 +1,15 @@
+{
+  "gather": {
+    "player": {"pos": [15, 5], "oxygen_ticks": 270, "hp": 2, "catch_cd_ticks": 30},
+    "hold": [
+      "ca_linh", "ca_linh", "ca_linh", "ca_loc", "ca_loc", "bong_sung",
+      "bong_sung", "bong_sung", "bong_dien_dien", "ca_loc", "bong_dien_dien", "ca_linh"
+    ],
+    "nodes": [
+      {"id": "N1", "kind": "bong_dien_dien", "pos": [12, 0]},
+      {"id": "N2", "kind": "bong_dien_dien", "pos": [28, 0], "regrow_ticks": 1200},
+      {"id": "N3", "kind": "bong_sung", "pos": [44, 0]},
+      {"id": "N4", "kind": "bong_sung", "pos": [60, 0]}
+    ]
+  }
+}

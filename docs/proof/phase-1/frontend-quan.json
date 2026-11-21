@@ -1,0 +1,14 @@
+{
+  "quan": {
+    "stock": {"ca_loc": 2, "ca_linh": 6, "bong_dien_dien": 2},
+    "customers": [
+      {"id": "C1", "table_id": "T1", "state": "assigned", "dish_id": "lau_ca_linh_dien_dien",
+       "patience_ticks_left": 660, "reserved": {"ca_linh": 3, "bong_dien_dien": 1}}
+    ],
+    "stoves": [
+      {"id": "B1", "state": "cooking", "dish": {"dish_id": "lau_ca_linh_dien_dien", "customer_id": "C1"},
+       "cook_ticks_left": 240}
+    ],
+    "hand": null
+  }
+}

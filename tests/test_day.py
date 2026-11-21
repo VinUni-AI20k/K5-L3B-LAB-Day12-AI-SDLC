@@ -63,6 +63,21 @@ class DayContractTest(unittest.TestCase):
         self.assertEqual([sum(plan["data"]["ingredients"].values()) for plan in plans], [9, 10, 12, 9, 10])
         self.assertEqual(rows[-1]["days_completed"], 5)
 
+    def test_faint_opens_quan_with_empty_stock_on_same_tick(self):
+        self.short_day["gather"].update(
+            player={"pos": [20, 5], "oxygen_ticks": 0, "hp": 1, "zero_oxy_ticks": 59},
+            hold=["ca_loc", "bong_sung"],
+        )
+        rows = self.run_game(1, scenario=self.short_day)
+        outcomes = [(e["tick"], e["phase"], e["name"]) for e in events(rows) if e["tick"]]
+        self.assertEqual(outcomes, [
+            (1, "gather", "choke"), (1, "gather", "faint"), (1, "gather", "gather_end"),
+            (1, "quan", "phase_start"),
+        ])
+        self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": {}})
+        evening = snapshots(rows)[-1]
+        self.assertEqual((evening["phase"], evening["phase_tick"], evening["stock"]), ("quan", 0, {}))
+
     def test_shop_purchases_and_failures_apply_to_next_day(self):
         self.short_day["day"] = {"money": 850, "earned": 900, "reputation": 4.1}
         commands = ["oxygen", "hp", "oxygen", "oxygen", "hp", "invalid"]

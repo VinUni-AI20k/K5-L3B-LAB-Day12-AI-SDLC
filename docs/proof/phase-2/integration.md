@@ -13,8 +13,9 @@ python -m chonoi.headless --mode day --days 5 --seed 17 --ticks 111000 --snapsho
 | Năm ngày, không thao tác | Tick 111.000 hoàn tất, `days_completed: 5`. Thời gian đo trên máy thử khoảng 1,34 giây. |
 | Hai tiến trình Gather → Quán | Fixture giỏ có 1 cá lóc, 2 bông súng, 1 cá kèo và 1 kèo nèo. Cập bến ở tick 1. File kho và `stock` của Quán tại tick 0 đều có `{"bong_sung":2,"ca_keo":1,"ca_loc":1,"keo_neo":1}`. |
 | Nối bếp với Shop | Cập bến tick 1. Nấu ở tick 3, món chín và bưng ở tick 363, phục vụ tick 502, trả 72 ở tick 1102. Tick 1202 dùng đúng 200 tiền để mua bình oxy rồi đóng Shop. Ngày 2 bắt đầu với 2.700 tick oxy và `earned: 200`. |
+| Ngất khi đang có hàng | Ở tick 1, Gather phát `choke`, `faint`, `gather_end`. Quán mở cùng tick với `phase_tick: 0` và kho rỗng. |
 
-**85/85 test qua**, gồm 11 test mới của P2-03. Lệnh hồi quy trên Windows dùng trình Python chạy unittest cho tiến trình headless vì alias `python3` trên máy trỏ tới Microsoft Store.
+**114/114 test qua** sau khi đồng bộ Phase 1 từ `main`, gồm 12 test của P2-03. Lệnh hồi quy trên Windows dùng trình Python chạy unittest cho tiến trình headless vì alias `python3` trên máy trỏ tới Microsoft Store.
 
 ```powershell
 $env:PYTHONPATH = 'tests;.'
