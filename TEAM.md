@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | (Thành viên 1) | member1 | `sim/gather` | Gameplay Dev (Lặn & Sinh tồn) | `sim/gather` |
 | Phạm Quang Tuấn (2A202603824) | phamtuan2xx3-alt | `sim/gather` | Gameplay Dev (Hái hoa & Bắt cá) | `sim/quan` |
-| (Thành viên 3) | member3 | `sim/quan` | Gameplay Dev (Khách & Bàn ăn) | `sim/gather` |
+| Lê Ngọc Khánh (2A202603804) | lekhanh2k5-dotcom | `sim/quan` | Gameplay Dev (Khách & Bàn ăn) | `sim/gather` |
 | (Thành viên 4) | member4 | `sim/quan` | Gameplay Dev (Kho & Giữ chỗ menu) | `sim/quan` |
 | (Thành viên 5) | member5 | `sim/quan` | Gameplay Dev (Bếp nấu & Kinh tế) | `client/ui` |
 
