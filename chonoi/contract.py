@@ -1,4 +1,4 @@
-"""Đọc game.contract.json và kiểm dải hợp lệ của tuning P1 (PRD mục 13.2, Test Contract)."""
+"""Đọc game.contract.json và kiểm dải hợp lệ của tuning (PRD mục 13.2, Test Contract v1.2)."""
 
 import json
 import os
@@ -51,7 +51,7 @@ def _bounds(name, b, keys):
 
 
 def _validate_gather(g):
-    """Dải hợp lệ P1 theo PRD mục 13.2."""
+    """Dải hợp lệ P1/P2/P3 theo PRD và Test Contract."""
     _between("gather.duration_s", g.get("duration_s"), 60, 600)
     _bounds("gather", g.get("bounds"), ("x", "d"))
     b = g["bounds"]
@@ -86,15 +86,18 @@ def _validate_gather(g):
         if not isinstance(n, dict) or not isinstance(n.get("id"), str) or n["id"] in seen:
             raise BadInput("tuning.gather.nodes: mỗi nút cần id duy nhất")
         seen.add(n["id"])
-        if n.get("kind") not in ("bong_dien_dien", "bong_sung"):
+        if n.get("kind") not in ("bong_dien_dien", "bong_sung", "keo_neo"):
             raise BadInput(f"tuning.gather.nodes.{n['id']}: kind phải là bong_dien_dien hoặc bong_sung")
         kinds.add(n["kind"])
         _pos_in(f"gather.nodes.{n['id']}.pos", n.get("pos"), b, ("x", "d"))
         if n["pos"][1] != 0:
             raise BadInput(f"tuning.gather.nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
-    if kinds != {"bong_dien_dien", "bong_sung"}:
+    if not {"bong_dien_dien", "bong_sung"} <= kinds:
         raise BadInput("tuning.gather.nodes phải có ít nhất một nút mỗi loại (bong_dien_dien, bong_sung)")
     fish = g.get("fish_initial")
+    if isinstance(fish, int) and not isinstance(fish, bool):
+        _int_between("gather.fish_initial", fish, 0, g["fish_max"])
+        return
     if not isinstance(fish, list) or len(fish) != 6:
         raise BadInput("tuning.gather.fish_initial phải là danh sách đúng 6 đàn")
     seen = set()
@@ -135,8 +138,16 @@ def validate_tuning(t):
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
-        raise BadInput("burn_s phải là null ở Phase 1")
-    # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
+        if not (_num(q["burn_s"]) and q["burn_s"] > 0):
+            raise BadInput("burn_s phải là null hoặc số dương")
+    if "freshness" in t:
+        f = t["freshness"]
+        if not isinstance(f, dict):
+            raise BadInput("tuning.freshness phải là object")
+        _between("freshness.initial", f.get("initial"), 0, 100)
+        _between("freshness.gather_decay_per_s", f.get("gather_decay_per_s"), 0, 100)
+        _between("freshness.quan_decay_per_s", f.get("quan_decay_per_s"), 0, 100)
+        _between("freshness.spoiled_below", f.get("spoiled_below"), 0, 100)
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:

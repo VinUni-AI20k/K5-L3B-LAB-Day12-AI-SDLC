@@ -42,7 +42,8 @@ class Contract(unittest.TestCase):
             for key in ("oxygen_ticks", "hp", "oxygen_max_ticks", "hp_max", "at_surface"):
                 self.assertIn(key, s["player"])
             self.assertEqual(s["hold_capacity"], tuning_gather()["hold_capacity"])
-            self.assertEqual(len(s["fish"]), 6)
+            # Phase 2 thay sáu đàn cố định bằng số đàn đầu ca trong contract.
+            self.assertEqual(len(s["fish"]), tuning_gather()["fish_initial"])
             self.assertTrue(all(n["pos"][1] == 0 for n in s["nodes"]))
 
     def test_con_02_deterministic_bytes(self):
@@ -67,11 +68,10 @@ class Contract(unittest.TestCase):
                 self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", unk, "--out", out)[0], 2, button)
             self.assertFalse(os.path.exists(out))
 
-    def test_con_03_old_and_future_modes_rejected(self):
+    def test_con_03_unknown_mode_rejected(self):
         with Workdir() as w:
             out = w.path("o.jsonl")
-            for mode in ("river", "day"):
-                self.assertEqual(run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out)[0], 2, mode)
+            self.assertEqual(run_headless("--mode", "river", "--seed", "1", "--ticks", "0", "--out", out)[0], 2)
             self.assertFalse(os.path.exists(out))
             old = write_json(w.path("old.json"), {"river": {"hold": []}})
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "0", "--scenario", old, "--out", out)[0], 2)
@@ -194,7 +194,11 @@ class Movement(unittest.TestCase):
             self.assertEqual(end_ev[0]["data"]["reason"], "time")
             self.assertEqual(rows[-1]["reason"], "time")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"ca_loc": 1}})
+                saved = json.load(f)
+            if isinstance(saved.get("items"), list):
+                self.assertEqual([it["kind"] for it in saved["items"]], ["ca_loc"])
+            else:
+                self.assertEqual(saved, {"items": {"ca_loc": 1}})
 
 
 class Integration(unittest.TestCase):
@@ -209,14 +213,22 @@ class Integration(unittest.TestCase):
             self.assertEqual(code, 0, err)
             with open(inv, encoding="utf-8") as f:
                 saved = json.load(f)
-            self.assertEqual(saved, {"items": {"bong_sung": 2, "ca_loc": 1}})
+            if isinstance(saved.get("items"), list):
+                kinds = sorted([it["kind"] for it in saved["items"]])
+                self.assertEqual(kinds, ["bong_sung", "bong_sung", "ca_loc"])
+            else:
+                self.assertEqual(saved, {"items": {"bong_sung": 2, "ca_loc": 1}})
             end = events(read_jsonl(w.path("r.jsonl")), "gather_end")[0]["data"]
             self.assertEqual(end["reason"], "docked")
             self.assertEqual(end["inventory"], saved)
             code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], {"bong_sung": 2, "ca_loc": 1})
+            snap = snapshots(read_jsonl(w.path("q.jsonl")))[0]
+            if isinstance(snap["stock"], list):
+                self.assertEqual(sorted([it["kind"] for it in snap["stock"]]), ["bong_sung", "bong_sung", "ca_loc"])
+            else:
+                self.assertEqual(snap["stock"], {"bong_sung": 2, "ca_loc": 1})
 
     def test_inv_01_not_written_when_tick_limit_first(self):
         with Workdir() as w:

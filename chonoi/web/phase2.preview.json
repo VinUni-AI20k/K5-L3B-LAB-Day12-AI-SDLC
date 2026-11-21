@@ -1,0 +1,53 @@
+{
+  "contract_version": "1.1",
+  "extensions": [],
+  "tuning": {
+    "tick_hz": 60,
+    "ingredients": ["ca_loc", "ca_linh", "ca_keo", "bong_dien_dien", "bong_sung", "keo_neo"],
+    "gather": {
+      "duration_s": 180, "bounds": {"x":[0,100],"d":[0,30]}, "dock_pos":[2,0], "dock_radius":3,
+      "surface_depth":0.5, "interact_radius":2, "catch_radius":2, "catch_cooldown_s":0.5,
+      "regrow_s":20, "choke_interval_ticks":60, "oxygen_max_s":30, "hp_max":3,
+      "hold_capacity":12, "danger_depth":10, "deep_depth":20, "monster_alert_radius":7,
+      "nodes":[
+        {"id":"N1","kind":"bong_dien_dien","pos":[12,0]}, {"id":"N2","kind":"bong_dien_dien","pos":[28,0]},
+        {"id":"N3","kind":"bong_sung","pos":[44,0]}, {"id":"N4","kind":"bong_sung","pos":[60,0]},
+        {"id":"N5","kind":"keo_neo","pos":[73,0]}, {"id":"N6","kind":"keo_neo","pos":[89,0]}
+      ],
+      "fish_initial":[
+        {"id":"F1","kind":"ca_linh","pos":[15,5],"heading_deg":0}, {"id":"F2","kind":"ca_loc","pos":[38,8],"heading_deg":0},
+        {"id":"F3","kind":"ca_keo","pos":[50,22],"heading_deg":180}, {"id":"F4","kind":"ca_linh","pos":[62,10],"heading_deg":180},
+        {"id":"F5","kind":"ca_loc","pos":[77,16],"heading_deg":0}, {"id":"F6","kind":"ca_keo","pos":[88,24],"heading_deg":180}
+      ]
+    },
+    "quan": {
+      "duration_s":180, "bounds":{"x":[0,16],"z":[0,10]}, "start_pos":[8,5], "interact_radius":1.5,
+      "patience_s":60, "eat_s":10, "tip_min_patience_ratio":0.5, "reputation_initial":3, "reputation_max":5,
+      "stoves":[{"id":"B1","pos":[2,8]},{"id":"B2","pos":[5,8]}],
+      "tables":[{"id":"T1","pos":[9,2]},{"id":"T2","pos":[13,2]},{"id":"T3","pos":[9,6]},{"id":"T4","pos":[13,6]}]
+    },
+    "menu": {
+      "ca_loc_nuong_trui":{"recipe":{"ca_loc":1},"cook_s":6,"price":60},
+      "goi_bong_sung":{"recipe":{"bong_sung":2},"cook_s":4,"price":40},
+      "lau_ca_linh_dien_dien":{"recipe":{"ca_linh":3,"bong_dien_dien":1},"cook_s":10,"price":120},
+      "ca_keo_kho_to":{"recipe":{"ca_keo":2},"cook_s":8,"price":95},
+      "canh_chua_ca_keo":{"recipe":{"ca_keo":1,"bong_sung":1},"cook_s":7,"price":80},
+      "keo_neo_xao_ca_linh":{"recipe":{"keo_neo":1,"ca_linh":1},"cook_s":5,"price":65}
+    },
+    "day_plan": [
+      {"day":1,"dishes":["lau_ca_linh_dien_dien","goi_bong_sung"],"ingredients":{"ca_linh":6,"bong_dien_dien":2,"bong_sung":2}},
+      {"day":2,"dishes":["ca_loc_nuong_trui","ca_keo_kho_to"],"ingredients":{"ca_loc":2,"ca_keo":4}},
+      {"day":3,"dishes":["canh_chua_ca_keo","keo_neo_xao_ca_linh"],"ingredients":{"ca_keo":2,"bong_sung":2,"keo_neo":2,"ca_linh":2}},
+      {"day":4,"dishes":["lau_ca_linh_dien_dien","keo_neo_xao_ca_linh"],"ingredients":{"ca_linh":6,"bong_dien_dien":2,"keo_neo":2}},
+      {"day":5,"dishes":["ca_keo_kho_to","goi_bong_sung","ca_loc_nuong_trui"],"ingredients":{"ca_keo":4,"bong_sung":2,"ca_loc":2}}
+    ],
+    "shop": {
+      "duration_ticks":600,
+      "upgrades":{
+        "oxygen":[{"level":1,"price":200,"oxygen_max_s":45},{"level":2,"price":400,"oxygen_max_s":60}],
+        "hp":[{"level":1,"price":250,"hp_max":4},{"level":2,"price":500,"hp_max":5}]
+      }
+    },
+    "score":{"reputation_multiplier":100}
+  }
+}
