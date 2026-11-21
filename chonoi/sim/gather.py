@@ -107,11 +107,12 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-        # 2. bơi + chặn mép
+        # 2. bơi + chặn mép, rồi dive/surface và oxy theo d cuối bước
+        was_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
+        self._surface_events(was_surface, events)
+        if self._oxygen_and_choke(events):
+            return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
@@ -130,6 +131,39 @@ class GatherSim:
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
+
+    def _surface_events(self, was_surface, events):
+        """dive/surface khi đổi phía biên mặt nước giữa đầu và cuối bước."""
+        now = self._at_surface()
+        if was_surface and not now:
+            events.append(("dive", {"pos": list(self.pos)}))
+        elif not was_surface and now:
+            events.append(("surface", {"pos": list(self.pos)}))
+
+    def _oxygen_and_choke(self, events) -> bool:
+        """Oxy theo d cuối bước; ngạt/ngất. Trả True nếu vừa ngất (step() phải return ngay)."""
+        if self._at_surface():
+            self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + self.t["oxygen_refill_per_tick"])
+            self.zero_oxy_ticks = 0
+            return False
+        before = self.oxygen_ticks
+        self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
+        if before > 0 and self.oxygen_ticks == 0:
+            events.append(("oxygen_empty", {"oxygen_ticks": 0}))
+        # đếm ngạt (kể cả bước vừa chạm 0); đủ chu kỳ thì choke, Máu 0 thì ngất
+        if self.oxygen_ticks == 0:
+            self.zero_oxy_ticks += 1
+        if self.zero_oxy_ticks >= self.t["choke_interval_ticks"]:
+            self.zero_oxy_ticks = 0
+            self.hp -= 1
+            events.append(("choke", {"hp": self.hp}))
+            if self.hp <= 0:
+                lost = list(reversed(self.hold))  # LIFO: nhặt sau bỏ trước
+                self.hold = []
+                events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
+                self._finish("fainted", events)
+                return True
+        return False
 
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]
