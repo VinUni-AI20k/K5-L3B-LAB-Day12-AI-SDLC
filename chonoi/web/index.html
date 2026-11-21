@@ -373,6 +373,8 @@ function setHTML(id, value) {
 let snap = null, day = null, problem = "", restartPending = false, epoch = 0;
 let actionPending = false, actionError = "", exited = false, hitUntil = 0;
 let previousPose = null, poseAt = 0, poseMs = 0;
+const motionCycles = { quan: { frames: 4, distance: .5 }, gather: { frames: 5, distance: .55 } };
+let walkRow = 0, walkFacing = 1, motionOffset = 0, motionDelta = 0;
 const stages = ["menu", "day_intro", "gather", "evening_intro", "quan", "day_result", "shop", "summary"];
 let eventWindow = [], messages = [], messageTimer = 0;
 const held = new Set();
@@ -592,13 +594,28 @@ function acceptState(state) {
     actionError = "";
     held.clear();
     lastInput = "";
+    walkRow = motionOffset = 0;
+    walkFacing = 1;
     if (nextSnap) needsRelease = true;
   }
   const now = performance.now();
-  if (changed || nextDay?.paused || day?.paused || nextSnap?.error || nextSnap?.finished) previousPose = null;
-  else if (nextDay && num(nextSnap?.tick) && nextSnap.tick !== snap?.tick && snap) {
+  if (changed || nextDay?.paused || day?.paused || nextSnap?.error || nextSnap?.finished) {
+    previousPose = null;
+    motionDelta = 0;
+  } else if (num(nextSnap?.tick) && nextSnap.tick !== snap?.tick && snap) {
     previousPose = snap;
     poseMs = Math.min(100, Math.max(1, now - poseAt));
+    const cycle = motionCycles[nextSnap.mode];
+    if (cycle && position(snap.player?.pos) && position(nextSnap.player?.pos)) {
+      const dx = nextSnap.player.pos[0] - snap.player.pos[0];
+      const dz = nextSnap.player.pos[1] - snap.player.pos[1];
+      motionOffset = (motionOffset + motionDelta) % (cycle.frames * cycle.distance);
+      motionDelta = Math.hypot(dx, dz);
+      if (nextSnap.mode === "quan" && motionDelta > 0) {
+        walkRow = Math.abs(dx) >= Math.abs(dz) - 1e-6 ? 2 : dz > 0 ? 1 : 0;
+        walkFacing = walkRow === 2 && dx < 0 ? -1 : 1;
+      }
+    }
   }
   if (changed || nextSnap?.tick !== snap?.tick) poseAt = now;
   snap = nextSnap;
@@ -1028,10 +1045,10 @@ const itemIcons = {
   bong_dien_dien: plants.bong_dien_dien.toDataURL()
 };
 
-function drawSprite(image, x, y, size, angle = 0, facing = 1, anchor = .5) {
+function drawSprite(image, x, y, size, angle = 0, facing = 1, anchor = .5, crop = null) {
   const pixelArt = image instanceof HTMLCanvasElement;
-  const iw = pixelArt ? image.width : image.naturalWidth;
-  const ih = pixelArt ? image.height : image.naturalHeight;
+  const iw = crop?.[2] ?? (pixelArt ? image.width : image.naturalWidth);
+  const ih = crop?.[3] ?? (pixelArt ? image.height : image.naturalHeight);
   if (!iw || !ih) return;
   const scale = size / Math.max(iw, ih);
   const width = iw * scale, height = ih * scale;
@@ -1040,7 +1057,9 @@ function drawSprite(image, x, y, size, angle = 0, facing = 1, anchor = .5) {
   ctx.rotate(angle);
   ctx.scale(facing, 1);
   ctx.imageSmoothingEnabled = !pixelArt;
-  ctx.drawImage(image, -width / 2, -height * anchor, width, height);
+  const destination = [-width / 2, -height * anchor, width, height];
+  if (crop) ctx.drawImage(image, ...crop, ...destination);
+  else ctx.drawImage(image, ...destination);
   ctx.restore();
 }
 function ellipse(x, y, rx, ry, fill) {
@@ -1066,12 +1085,21 @@ function project(bounds, gather, w, h) {
 }
 
 let visualBlend = 1;
+function motionFrame(mode) {
+  if (motionDelta === 0 || reducedMotion.matches) return 0;
+  const { frames, distance } = motionCycles[mode];
+  return 1 + Math.floor((motionOffset + motionDelta * visualBlend) / distance) % frames;
+}
+function blendPosition(pos, earlier) {
+  return visualBlend < 1 && position(earlier) ? earlier.map((v, i) => v + (pos[i] - v) * visualBlend) : pos;
+}
 function visualPos(entity, key) {
-  if (visualBlend === 1) return entity.pos;
+  if (!day || visualBlend === 1) return entity.pos;
   const earlier = list(previousPose?.[key]).find(old => old.id === entity.id);
-  return position(earlier?.pos) ? earlier.pos.map((v, i) => v + (entity.pos[i] - v) * visualBlend) : entity.pos;
+  return blendPosition(entity.pos, earlier?.pos);
 }
 
+let swimAtlas;
 function drawGather(at, size) {
   if (position(snap.meta.dock_pos)) pin(...at(snap.meta.dock_pos), "Bến");
   for (const node of list(snap.nodes)) {
@@ -1104,7 +1132,7 @@ function drawGather(at, size) {
   }
   const player = snap.player;
   if (!position(player?.pos)) return;
-  const [x, y] = at(player.pos);
+  const [x, y] = at(blendPosition(player.pos, previousPose?.player?.pos));
   const heading = num(player.heading_deg) ? player.heading_deg * Math.PI / 180 : 0;
   const facing = Math.cos(heading) < 0 ? -1 : 1;
   const standing = player.at_surface !== false && near(player.pos, snap.meta.dock_pos, snap.meta.dock_radius);
@@ -1114,12 +1142,19 @@ function drawGather(at, size) {
   } else {
     // The swimming artwork faces left at rest.
     const tilt = player.at_surface === false ? Math.atan2(Math.sin(heading) * facing, Math.abs(Math.cos(heading))) : 0;
-    if (swimmer.naturalWidth) drawSprite(swimmer, x, y, size, tilt, -facing);
+    swimAtlas ??= loadSprite("ba-ut-nhip-boi");
+    if (swimAtlas.naturalWidth) {
+      // The glide pose is followed by five strokes, in row order.
+      const pose = motionFrame("gather");
+      const width = swimAtlas.naturalWidth / 3, height = swimAtlas.naturalHeight / 2;
+      drawSprite(swimAtlas, x, y, size, tilt, -facing, .5,
+        [pose % 3 * width, Math.floor(pose / 3) * height, width, height]);
+    } else if (swimmer.naturalWidth) drawSprite(swimmer, x, y, size, tilt, -facing);
     else drawSprite(protagonist, x, y, size, facing * .53, facing);
     label("Bà Út", x, y + size * .45 + 11, true);
   }
 }
-let quanFixtures;
+let quanFixtures, walkAtlas;
 function drawQuan(at, size, w) {
   quanFixtures ??= {
     B1: loadSprite("bep-mot"), B2: loadSprite("bep-hai"),
@@ -1150,10 +1185,18 @@ function drawQuan(at, size, w) {
     pin(x, y, table.id ?? "Bàn", Boolean(customer));
   }
   if (!position(snap.player?.pos)) return;
-  const [x, y] = at(snap.player.pos);
+  const [x, y] = at(blendPosition(snap.player.pos, previousPose?.player?.pos));
   ellipse(x, y, size * .25, size * .09, "#211b14a8");
   ellipse(x, y, size * .19, size * .06, "#f7cf86");
-  drawSprite(protagonist, x, y, size, 0, 1, 1);
+  walkAtlas ??= loadSprite("ba-ut-di-bo");
+  if (walkAtlas.naturalWidth) {
+    // Rows face front, back and right. Column zero is the matching idle pose.
+    const width = walkAtlas.naturalWidth / 5, height = walkAtlas.naturalHeight / 3;
+    const column = motionFrame("quan");
+    drawSprite(walkAtlas, x, y, size, 0, walkFacing, 1, [column * width, walkRow * height, width, height]);
+  } else {
+    drawSprite(protagonist, x, y, size, 0, 1, 1);
+  }
   if (snap.hand) {
     ellipse(x + size * .33, y - size * .38, size * .14, size * .09, "#fff0d5");
     ellipse(x + size * .33, y - size * .39, size * .09, size * .05, "#ac6940");
@@ -1183,18 +1226,21 @@ function draw() {
 
 function invalidate() { paintPending = true; }
 function frame(now) {
-  const playing = day && snap && !day.paused && !snap.finished && !snap.error && !problem && !document.hidden;
-  if (paintPending || playing) {
+  const active = snap && !day?.paused && !snap.finished && !snap.error && !problem && !document.hidden;
+  const playingDay = day && active;
+  const blend = active && (playingDay || motionDelta > 0) && previousPose && !reducedMotion.matches ?
+    Math.max(0, Math.min(1, (now - poseAt) / poseMs)) : 1;
+  if (paintPending || playingDay || blend !== visualBlend) {
     paintPending = false;
-    visualBlend = playing && previousPose && !reducedMotion.matches ?
-      Math.max(0, Math.min(1, (now - poseAt) / poseMs)) : 1;
-    $("hit-feedback").hidden = !playing || reducedMotion.matches || now >= hitUntil;
+    visualBlend = blend;
+    $("hit-feedback").hidden = !playingDay || reducedMotion.matches || now >= hitUntil;
     draw();
   }
   requestAnimationFrame(frame);
 }
 new ResizeObserver(invalidate).observe(canvas);
 addEventListener("resize", invalidate);
+reducedMotion.addEventListener("change", invalidate);
 requestAnimationFrame(frame);
 poll();
 </script>
