@@ -24,10 +24,11 @@ def frame_metrics(intervals, load_ms):
         raise RuntimeError("Không có đủ hai khung hình trong khoảng đo.")
     frames = len(intervals)
     elapsed = math.fsum(intervals)
-    p99_dt = sorted(intervals)[math.ceil(.99 * frames) - 1]
+    slowest_count = max(1, math.ceil(.01 * frames))
+    slowest = sorted(intervals, reverse=True)[:slowest_count]
     return {
         "avg_fps": round(frames / elapsed, 2),
-        "p1_low_fps": round(1 / p99_dt, 2),
+        "p1_low_fps": round(slowest_count / math.fsum(slowest), 2),
         "frames": frames,
         "measured_s": round(elapsed, 3),
         "load_ms": load_ms,
