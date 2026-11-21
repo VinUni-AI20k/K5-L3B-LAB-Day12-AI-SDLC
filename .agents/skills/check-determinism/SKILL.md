@@ -14,7 +14,7 @@ Bài chấm tự động chạy headless với cùng seed và so output từng b
 
 ## Cách chạy
 ```
-python3 tools/check_determinism.py                      # cả gather và quan, seed 1, 600 tick
+python3 tools/check_determinism.py                      # gather, quan (600 tick) và day (2 Ngày đầy đủ), seed 1
 python3 tools/check_determinism.py --mode quan --seed 7 --ticks 3600
 python3 tools/check_determinism.py --inputs path/to/inputs.json
 ```

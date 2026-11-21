@@ -4,7 +4,7 @@
 
 Kiểm luồng gather --inventory-out -> quan --inventory theo luật v1.1 (quán 2 bếp, 4 bàn, 6 món): cá thể sinh động
 (fish_spawned), kho bàn giao, khách chỉ gọi món có trong menu v1.1, tất định từng byte qua hai
-lần chạy. (`pause` và chế độ day: kiểm ở P2-10.) Chỉ dùng thư viện chuẩn.
+lần chạy. pause ở gather và quan, `--mode day --days 2` chạy hết (thứ tự pha, days_complete), đầu vào day sai. Chỉ dùng thư viện chuẩn.
 """
 
 import json
@@ -64,6 +64,51 @@ def main():
     gf = rows(p("gf1.jsonl"))
     check("gather: có fish_spawned (cá thể sinh động, P2-03)", len(names(gf, "fish_spawned")) > 0,
           f"{len(names(gf, 'fish_spawned'))} sự kiện")
+
+    # 3. pause (v1.1) ở gather và quan: cạnh pause đầu -> paused (tick 2), sim đứng yên; cạnh kế (tick 6) -> resumed
+    pause = write(p("pause.json"), {"frames": [{"tick": 2, "pause": True}, {"tick": 3, "pause": False},
+                                               {"tick": 6, "pause": True}]})
+    for mode, extra in (("gather", []), ("quan", ["--inventory", p("kho.json")])):
+        code, _ = run(["--mode", mode, "--seed", "1", "--ticks", "10", "--inputs", pause, "--snapshot-every", "1",
+                       "--out", p(f"pause-{mode}.jsonl"), *extra])
+        r = rows(p(f"pause-{mode}.jsonl")) if code == 0 else []
+        ev = [x["name"] for x in r if x["type"] == "event" and x["name"] in ("paused", "resumed")]
+        snaps = {x["tick"]: x for x in r if x["type"] == "snapshot"}
+        frozen = bool(snaps) and snaps[3]["state"] == "paused" and snaps[3]["sim_tick"] == snaps[2]["sim_tick"]
+        check(f"{mode}: pause -> paused, đứng yên, resumed", code == 0 and ev == ["paused", "resumed"] and frozen,
+              f"mã {code}, sự kiện {ev}")
+
+    # 4. --mode day --days 2 chạy hết: thứ tự pha, ngày, days_complete, tất định
+    runs = []
+    for k in (1, 2):
+        code, err = run(["--mode", "day", "--days", "2", "--seed", "3", "--ticks", "200000", "--snapshot-every", "600",
+                         "--out", p(f"day{k}.jsonl")])
+        runs.append((code, sha(p(f"day{k}.jsonl")) if code == 0 else None))
+    d = rows(p("day1.jsonl")) if runs[0][0] == 0 else [{}]
+    seq = [(r["day"], r["name"], r["phase"]) for r in d if r.get("type") == "event"
+           and r["name"] in ("day_start", "day_plan", "phase_start", "gather_end", "quan_end", "shop_end")]
+    want = []
+    for day in (1, 2):
+        want += [(day, "day_start", "gather"), (day, "day_plan", "gather"), (day, "phase_start", "gather"),
+                 (day, "gather_end", "gather"), (day, "phase_start", "quan"), (day, "quan_end", "quan"),
+                 (day, "phase_start", "shop"), (day, "shop_end", "shop")]
+    check("day: thứ tự sự kiện qua 2 Ngày đúng mục 4.5", runs[0][0] == 0 and seq == want, f"mã {runs[0][0]}, {len(seq)} sự kiện")
+    end = d[-1]
+    check("day: kết thúc days_complete, days_completed = 2",
+          end.get("type") == "end" and end.get("reason") == "days_complete" and end.get("days_completed") == 2, str(end))
+    check("day: tất định từng byte qua 2 lần", runs[0][0] == runs[1][0] == 0 and runs[0][1] == runs[1][1])
+    snap = next((r for r in d if r.get("type") == "snapshot" and r.get("phase") == "shop"), {})
+    check("day: snapshot có day, day_plan, upgrades, active_upgrades",
+          all(k in snap for k in ("day", "day_plan", "upgrades", "active_upgrades")), f"khóa {sorted(snap)[:6]}")
+
+    # 5. đầu vào sai của chế độ day -> mã 2, không ghi tệp
+    bad = {"--days 0": ["--days", "0"], "--days 6": ["--days", "6"], "--inventory với day": ["--inventory", p("kho.json")]}
+    for name, extra in bad.items():
+        out = p("bad.jsonl")
+        if os.path.exists(out):
+            os.remove(out)
+        code, _ = run(["--mode", "day", "--seed", "1", "--ticks", "1", "--out", out, *extra])
+        check(f"day: {name} -> mã 2", code == 2 and not os.path.exists(out), f"mã {code}")
 
     failed = [r for r in RESULTS if not r[1]]
     width = max(len(r[0]) for r in RESULTS)
