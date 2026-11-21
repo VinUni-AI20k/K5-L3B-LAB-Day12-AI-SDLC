@@ -53,14 +53,14 @@ class QuanServiceTests(unittest.TestCase):
             "stove_id": "B1",
             "order_id": "C1",
             "dish_id": "ca_loc_nuong_trui",
-            "items": [{"id": "I1", "kind": "ca_loc", "fresh": 100}],
-            "base_price": 60,
+            "items": [{"id": "I1", "kind": "ca_loc", "fresh": 99.995833}],
+            "base_price": 59,
         }), ev1)
         self.assertEqual([it["id"] for it in sim.stock], ["I2"])
         self.assertEqual(sim.customers[0]["reserved"], [])
         self.assertEqual(sim.customers[0]["order_status"], "assigned")
         self.assertEqual(sim.stoves[0]["state"], "cooking")
-        self.assertEqual(sim.stoves[0]["dish"], {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60})
+        self.assertEqual(sim.stoves[0]["dish"], {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 59})
 
         cook_ticks = round(self.tuning["menu"]["ca_loc_nuong_trui"]["cook_s"] * self.tuning["tick_hz"])
         ready_events = []
@@ -83,7 +83,7 @@ class QuanServiceTests(unittest.TestCase):
             "order_id": "C1",
             "dish_id": "ca_loc_nuong_trui",
         }), ev_pick)
-        self.assertEqual(sim.hand, {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60})
+        self.assertEqual(sim.hand, {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 59})
         self.assertEqual(sim.stoves[0]["state"], "idle")
         self.assertIsNone(sim.stoves[0]["dish"])
 

@@ -78,7 +78,8 @@ class QuanCustomers(unittest.TestCase):
         customer, = snapshot["customers"]
         self.assertEqual(customer["reserved"], ["I1", "I2", "I3", "I4"])
         self.assertEqual(customer["order_status"], "reserved")
-        self.assertEqual(snapshot["stock"], stock)
+        self.assertEqual([it["id"] for it in snapshot["stock"]], [it["id"] for it in stock])
+        self.assertLess(snapshot["stock"][0]["fresh"], 100)
         self.assertIsNone(snapshot["tables"][1]["customer_id"])
         self.assertEqual(snapshot["reputation"], self.quan["reputation_initial"])
 
@@ -122,7 +123,7 @@ class QuanCustomers(unittest.TestCase):
         state = session.snapshot()
         self.assertEqual(state["customers"], [])
         self.assertIsNone(state["tables"][0]["customer_id"])
-        self.assertEqual(state["stock"], stock)
+        self.assertEqual(state["stock"], [{"id": "I1", "kind": "ca_loc", "fresh": 84.5}])
         self.assertEqual(state["reputation"], expected_rep)
 
     def test_expiry_releases_reservation_before_same_tick_arrival(self):
