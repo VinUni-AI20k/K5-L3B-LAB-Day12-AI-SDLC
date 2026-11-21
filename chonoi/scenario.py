@@ -12,7 +12,8 @@ import json
 import math
 
 from .errors import BadInput
-from .inventory import KINDS_P1, validate_items
+from .inventory import (FRESH_SCALE, KINDS_P1, fresh_to_units, uses_individuals,
+                        validate_individuals, validate_items)
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks", "monsters"}  # monsters: v1.1
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
@@ -104,47 +105,47 @@ def _load_day(data, tuning, version=None):
 
 
 # --- v1.2: kho cá thể (TV6, T305) --------------------------------------------------------------
-# Schema TỪNG cá thể ({id, kind, fresh}) là của TV1 (`inventory.validate_items_v12`, T301); phần dưới chỉ
-# kiểm mức scenario: id vật lý duy nhất giữa các nơi chứa, `customers[].reserved` là mảng id trỏ cá thể
-# chưa ươn trong kho, đúng công thức, không dùng chung. Sau đó trả "góc nhìn đếm" để các kiểm v1.0/v1.1
-# (`_validate_gather`, `_validate_quan` — khối của TV3) chạy nguyên vẹn trên cùng dữ liệu.
+# Schema từng cá thể: TV1 `inventory.validate_individuals` / `uses_individuals` / `fresh_to_units`.
+# Phần dưới chỉ kiểm mức scenario (id duy nhất giữa nơi chứa, reserved mảng id hợp lệ), rồi trả
+# "góc nhìn đếm" để `_validate_gather` / `_validate_quan` (TV3) chạy y nguyên.
 
-UNITS_PER_POINT = 240  # ADR-0001: độ tươi nội bộ là số nguyên 240 đơn vị/điểm
+UNITS_PER_POINT = FRESH_SCALE  # alias ADR-0001; nguồn chuẩn là inventory.FRESH_SCALE
 
 
 def is_v12(version) -> bool:
-    try:
-        return tuple(int(x) for x in str(version).split(".")) >= (1, 2)
-    except ValueError:
-        return False
+    """True khi contract_version ≥ 1.2 (ủy quyền TV1 `uses_individuals`)."""
+    return uses_individuals(version)
 
 
 def fresh_units(fresh) -> int:
-    return int(round(fresh * UNITS_PER_POINT))
-
-
-def _tv1_items_v12():
-    from . import inventory
-    fn = getattr(inventory, "validate_items_v12", None)
-    if fn is None:
-        raise BadInput("kho cá thể v1.2 chưa hỗ trợ — chờ TV1: chonoi.inventory.validate_items_v12 (T301)")
-    return fn
+    """Đổi điểm tươi → đơn vị nguyên (ủy quyền TV1 `fresh_to_units`)."""
+    return fresh_to_units(fresh)
 
 
 def apply_items_v12(mode, block, tuning, version):
-    """Cổng v1.2 cho `_validate_block`: không phải 1.2 → trả `block` nguyên; có thì kiểm + góc nhìn đếm."""
-    if not is_v12(version):
-        return block
+    """Cổng v1.2 cho `_validate_block`: không phải 1.2 → trả `block`; có thì kiểm + góc nhìn đếm.
+
+    Khi `version is None` (headless/live TV1 chưa truyền `contract_version` vào `load_scenario`),
+    vẫn kích hoạt nếu `hold`/`stock` đã là mảng cá thể — để T305 chạy được trên payload v1.2.
+    """
+    if version is not None:
+        if not uses_individuals(version):
+            return block
+    else:
+        hold, stock = block.get("hold"), block.get("stock")
+        looks = ((isinstance(hold, list) and hold and isinstance(hold[0], dict))
+                 or isinstance(stock, list))
+        if not looks:
+            return block
     return _items_v12_view(mode, block, tuning)
 
 
 def _items_v12_view(mode, block, tuning):
     """Kiểm scenario kho cá thể (T305). Góc nhìn đếm để `_validate_gather`/`_validate_quan` chạy y nguyên."""
-    validate = _tv1_items_v12()
     fr = tuning.get("freshness")
     if not isinstance(fr, dict) or "spoiled_below" not in fr:
         raise BadInput("contract chưa có khóa tuning.freshness (chờ TV1, T303)")
-    spoiled_units = fresh_units(fr["spoiled_below"])
+    spoiled_units = fresh_to_units(fr["spoiled_below"])
     view = dict(block)
     seen = {}
     for where in ("hold", "stock"):
@@ -153,7 +154,7 @@ def _items_v12_view(mode, block, tuning):
         items = block[where]
         if not isinstance(items, list):
             raise BadInput(f"{mode}.{where} phải là mảng cá thể {{id, kind, fresh}} (contract v1.2)")
-        validate(items)
+        validate_individuals(items)  # TV1 T301
         for it in items:
             if it["id"] in seen:
                 raise BadInput(f"id cá thể {it['id']} trùng giữa {seen[it['id']]} và {mode}.{where}")
@@ -185,7 +186,7 @@ def _items_v12_view(mode, block, tuning):
                 if iid in used:
                     raise BadInput(f"customers.{cid}: cá thể {iid} đã được giữ cho {used[iid]}")
                 used[iid] = cid
-                if fresh_units(it["fresh"]) < spoiled_units:
+                if fresh_to_units(it["fresh"]) < spoiled_units:
                     raise BadInput(f"customers.{cid}: reserved trỏ cá thể ươn {iid}")
                 kinds[it["kind"]] = kinds.get(it["kind"], 0) + 1
             recipe = tuning["menu"].get(c.get("dish_id"), {}).get("recipe")

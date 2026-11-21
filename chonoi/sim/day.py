@@ -180,15 +180,23 @@ class DaySim:
         t["gather"] = g
         return t
 
+    def _hold_is_individuals(self, hold) -> bool:
+        return isinstance(hold, list) and hold and isinstance(hold[0], dict) and "id" in hold[0]
+
     def _gather_scenario_for_day(self):
-        """Mẫu gather của Ngày hiện tại. v1.2: Ngày 1 giữ id mẫu; Ngày kế cấp id mới (T331)."""
-        from ..scenario import is_v12  # lazy: tránh vòng import scenario ↔ day
+        """Mẫu gather của Ngày hiện tại. v1.2: Ngày 1 giữ id mẫu; Ngày kế cấp id mới (T331).
+
+        `runner` (TV1) chưa truyền `contract_version` vào DaySim → suy từ hình dạng `hold` cá thể
+        (cùng tín hiệu `GatherSim.should_use_freshness` khi không có version).
+        """
         sc = copy.deepcopy(self.tpl_gather)
-        if not is_v12(self.version):
-            return sc
         hold = sc.get("hold")
-        if not (isinstance(hold, list) and hold and isinstance(hold[0], dict) and "id" in hold[0]):
-            return sc  # chờ TV2: hold vẫn là mảng kind → giữ đường v1.0
+        if not self._hold_is_individuals(hold):
+            return sc
+        if self.version is not None:
+            from ..inventory import uses_individuals
+            if not uses_individuals(self.version):
+                return sc
         if self.day <= 1:
             for it in hold:
                 self.ids.reserve(it["id"])
@@ -199,7 +207,12 @@ class DaySim:
 
     def _build_gather(self):
         t = self._gather_tuning()
-        kw = _kwargs_for(GatherSim, day=self.day, active_upgrades=dict(self.state.active_upgrades))
+        # Chỉ truyền contract_version khi có (runner TV1 chưa nối DaySim). Không truyền item_ids —
+        # `should_use_freshness(..., item_ids=...)` sẽ ép v1.2 cả khi hold còn dạng đếm.
+        cand = {"day": self.day, "active_upgrades": dict(self.state.active_upgrades)}
+        if self.version is not None:
+            cand["contract_version"] = self.version
+        kw = _kwargs_for(GatherSim, **cand)
         mons = t["gather"].get("monsters")
         if "day" not in kw and isinstance(mons, dict) and isinstance(mons.get("spawns"), list):
             # Dự phòng tới khi có T246: sim con coi như Ngày 1 → lọc sẵn spawns theo from_day của Ngày thật.

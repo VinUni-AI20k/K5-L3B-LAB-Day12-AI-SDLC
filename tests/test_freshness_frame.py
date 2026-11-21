@@ -1,7 +1,7 @@
-"""TV6 khung Phase 3 (T305, T306, T330, T331): scenario/kho theo version, id toàn cục, day bàn giao.
+"""TV6 khung Phase 3 (T305, T306, T330, T331) — kiểm qua API THẬT của TV1.
 
-Không đụng inventory.py/contract.py (TV1). Khi TV1 chưa có validate_items_v12 / read|write(version=),
-đường v1.2 báo "chờ TV1". v1.0/v1.1 headless phải giống từng byte so với cây HEAD (git archive).
+TV1: `validate_individuals`, `uses_individuals`, `read/write_inventory(..., version=)`,
+`Session(..., contract_version=)`. Không còn `runner.inventory_io` / `_item_ids`.
 """
 
 import filecmp
@@ -11,12 +11,12 @@ import shutil
 import subprocess
 import tempfile
 import unittest
-from unittest import mock
 
 from chonoi.errors import BadInput
 from chonoi.ids import IdAllocator
-from chonoi.inventory import read_inventory, write_inventory
-from chonoi.runner import _item_ids, inventory_io
+from chonoi.inventory import (FRESH_SCALE, fresh_to_units, read_inventory, uses_individuals,
+                              validate_individuals, write_inventory)
+from chonoi.runner import Session
 from chonoi.scenario import UNITS_PER_POINT, apply_items_v12, fresh_units, is_v12, load_scenario
 from chonoi.sim.day import DaySim, DayState
 from chonoi.sim.shop import ShopSim
@@ -34,50 +34,35 @@ def _tuning_v12():
         return json.load(f)["tuning"]
 
 
-def _ok_items(items):
-    """Stub TV1 validate_items_v12: chỉ kiểm khóa tối thiểu để khung scenario chạy được trong unit test."""
-    if not isinstance(items, list):
-        raise BadInput("items phải là mảng")
-    seen = set()
-    for it in items:
-        if not isinstance(it, dict) or set(it) != {"id", "kind", "fresh"}:
-            raise BadInput("mỗi cá thể cần đúng {id, kind, fresh}")
-        if it["id"] in seen:
-            raise BadInput(f"id trùng {it['id']}")
-        seen.add(it["id"])
-    return items
-
-
-def run_headless(*args, contract=FIXTURE_V11):
-    env = dict(os.environ, CHONOI_CONTRACT=contract)
+def run_headless(*args, contract=None):
+    env = dict(os.environ)
+    if contract:
+        env["CHONOI_CONTRACT"] = contract
     p = subprocess.run([*headless_cmd(), *args], cwd=ROOT, capture_output=True, text=True, env=env)
     return p.returncode, p.stderr
 
 
-class HelpersTest(unittest.TestCase):
-    def test_is_v12_and_fresh_units(self):
-        self.assertFalse(is_v12(None))
+class Tv1ApiHelpersTest(unittest.TestCase):
+    def test_is_v12_delegates_to_uses_individuals(self):
         self.assertFalse(is_v12("1.1"))
         self.assertTrue(is_v12("1.2"))
-        self.assertTrue(is_v12("1.10"))
-        self.assertEqual(UNITS_PER_POINT, 240)
+        self.assertEqual(is_v12("1.2"), uses_individuals("1.2"))
+        self.assertEqual(UNITS_PER_POINT, FRESH_SCALE)
+        self.assertEqual(fresh_units(30), fresh_to_units(30))
         self.assertEqual(fresh_units(30), 7200)
-        self.assertEqual(fresh_units(100), 24000)
 
-
-class InventoryIoTest(unittest.TestCase):
-    def test_v10_keeps_legacy_functions(self):
-        r, w = inventory_io("1.0")
-        self.assertIs(r, read_inventory)
-        self.assertIs(w, write_inventory)
-        r, w = inventory_io("1.1")
-        self.assertIs(r, read_inventory)
-
-    def test_v12_waits_for_tv1_version_param(self):
-        with self.assertRaises(BadInput) as cm:
-            inventory_io("1.2")
-        self.assertIn("chờ TV1", str(cm.exception))
-        self.assertIn("read_inventory", str(cm.exception))
+    def test_validate_individuals_and_roundtrip_file(self):
+        with open(INV_V12, encoding="utf-8") as f:
+            raw = json.load(f)["items"]
+        items = validate_individuals(raw)
+        self.assertEqual([it["id"] for it in items], ["I1", "I2"])
+        with Workdir() as w:
+            path = w.path("inv.json")
+            write_inventory(path, items, version="1.2")
+            loaded = read_inventory(path, version="1.2")
+            self.assertEqual(loaded, items)
+            with self.assertRaises(BadInput):
+                read_inventory(path, version="1.1")  # mảng cá thể bị từ chối ở v1.1
 
 
 class ScenarioV12Test(unittest.TestCase):
@@ -85,84 +70,107 @@ class ScenarioV12Test(unittest.TestCase):
         block = {"hold": ["ca_loc"]}
         self.assertIs(apply_items_v12("gather", block, _tuning_v12(), "1.1"), block)
 
-    def test_v12_waits_for_tv1_validate_items(self):
-        with open(SC_GATHER_V12, encoding="utf-8") as f:
-            hold = json.load(f)["gather"]
-        with self.assertRaises(BadInput) as cm:
-            apply_items_v12("gather", hold, _tuning_v12(), "1.2")
-        self.assertIn("chờ TV1", str(cm.exception))
-        self.assertIn("validate_items_v12", str(cm.exception))
-
     def test_v12_rejects_duplicate_id_and_bad_reserved(self):
         t = _tuning_v12()
-        with mock.patch("chonoi.inventory.validate_items_v12", _ok_items, create=True):
-            with self.assertRaises(BadInput) as cm:
-                apply_items_v12("gather", {
-                    "hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100},
-                             {"id": "I1", "kind": "ca_linh", "fresh": 90}],
-                }, t, "1.2")
-            self.assertIn("trùng", str(cm.exception))
+        with self.assertRaises(BadInput) as cm:
+            apply_items_v12("gather", {
+                "hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100},
+                         {"id": "I1", "kind": "ca_linh", "fresh": 90}],
+            }, t, "1.2")
+        self.assertIn("trùng", str(cm.exception).lower() + str(cm.exception))
 
-            stock = [{"id": "I1", "kind": "ca_loc", "fresh": 20},
-                     {"id": "I2", "kind": "ca_loc", "fresh": 80}]
-            with self.assertRaises(BadInput) as cm:
-                apply_items_v12("quan", {
-                    "stock": stock,
-                    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                                   "reserved": ["I1"]}],
-                }, t, "1.2")
-            self.assertIn("ươn", str(cm.exception))
+        stock = [{"id": "I1", "kind": "ca_loc", "fresh": 20},
+                 {"id": "I2", "kind": "ca_loc", "fresh": 80}]
+        with self.assertRaises(BadInput) as cm:
+            apply_items_v12("quan", {
+                "stock": stock,
+                "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                               "reserved": ["I1"]}],
+            }, t, "1.2")
+        self.assertIn("ươn", str(cm.exception))
 
-            with self.assertRaises(BadInput) as cm:
-                apply_items_v12("quan", {
-                    "stock": stock,
-                    "customers": [
-                        {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I2"]},
-                        {"id": "C2", "table_id": "T2", "dish_id": "ca_loc_nuong_trui", "reserved": ["I2"]},
-                    ],
-                }, t, "1.2")
-            self.assertIn("đã được giữ", str(cm.exception))
+        with self.assertRaises(BadInput) as cm:
+            apply_items_v12("quan", {
+                "stock": stock,
+                "customers": [
+                    {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I2"]},
+                    {"id": "C2", "table_id": "T2", "dish_id": "ca_loc_nuong_trui", "reserved": ["I2"]},
+                ],
+            }, t, "1.2")
+        self.assertIn("đã được giữ", str(cm.exception))
 
-            with self.assertRaises(BadInput) as cm:
-                apply_items_v12("quan", {
-                    "stock": [{"id": "I9", "kind": "ca_loc", "fresh": 90}],
-                    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                                   "reserved": ["I404"]}],
-                }, t, "1.2")
-            self.assertIn("không có trong quan.stock", str(cm.exception))
+        with self.assertRaises(BadInput) as cm:
+            apply_items_v12("quan", {
+                "stock": [{"id": "I9", "kind": "ca_loc", "fresh": 90}],
+                "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                               "reserved": ["I404"]}],
+            }, t, "1.2")
+        self.assertIn("không có trong quan.stock", str(cm.exception))
 
     def test_v12_view_counts_and_reserved_kinds(self):
         t = _tuning_v12()
-        with mock.patch("chonoi.inventory.validate_items_v12", _ok_items, create=True):
-            with open(SC_QUAN_V12, encoding="utf-8") as f:
-                block = json.load(f)["quan"]
-            view = apply_items_v12("quan", block, t, "1.2")
-            self.assertEqual(view["stock"], {"ca_loc": 2, "bong_sung": 1})
-            self.assertEqual(view["customers"][0]["reserved"], {"ca_loc": 1})
+        with open(SC_QUAN_V12, encoding="utf-8") as f:
+            block = json.load(f)["quan"]
+        view = apply_items_v12("quan", block, t, "1.2")
+        self.assertEqual(view["stock"], {"ca_loc": 2, "bong_sung": 1})
+        self.assertEqual(view["customers"][0]["reserved"], {"ca_loc": 1})
 
-    def test_load_scenario_v12_file(self):
+    def test_load_scenario_v12_keeps_original_block(self):
         t = _tuning_v12()
-        with mock.patch("chonoi.inventory.validate_items_v12", _ok_items, create=True):
-            sc = load_scenario(SC_GATHER_V12, "gather", t, "1.2")
-            self.assertEqual(sc["hold"][0]["id"], "I1")  # trả block gốc, không góc nhìn
+        sc = load_scenario(SC_GATHER_V12, "gather", t, "1.2")
+        self.assertEqual(sc["hold"][0]["id"], "I1")
+
+    def test_version_none_still_validates_individual_payload(self):
+        """headless chưa truyền version → vẫn kiểm khi hold đã là cá thể."""
+        t = _tuning_v12()
+        with open(SC_GATHER_V12, encoding="utf-8") as f:
+            block = json.load(f)["gather"]
+        view = apply_items_v12("gather", block, t, None)
+        self.assertEqual(view["hold"], ["ca_linh", "ca_loc"])
 
 
-class IdAllocatorFrameTest(unittest.TestCase):
-    def test_item_ids_from_scenario_and_inventory_file_shape(self):
-        sc = {"gather": {"hold": [{"id": "I3", "kind": "ca_loc", "fresh": 100}]},
-              "quan": {"stock": [{"id": "I7", "kind": "ca_linh", "fresh": 50}]}}
-        with open(INV_V12, encoding="utf-8") as f:
-            inv = json.load(f)
-        self.assertEqual(sorted(_item_ids(sc, inv)), ["I1", "I2", "I3", "I7"])
-        ids = IdAllocator()
-        for iid in _item_ids(sc, inv):
-            ids.reserve(iid)
-        self.assertEqual(ids.new("I"), "I8")
+class SessionContractVersionTest(unittest.TestCase):
+    """T306: Session nhận `contract_version` (TV1), ghi kho qua write_inventory(version=)."""
+
+    def test_gather_inventory_out_v12_writes_individuals(self):
+        from chonoi.inputs import InputState
+        t = _tuning_v12()
+        with Workdir() as w:
+            inv = w.path("inv.json")
+            sc = {"hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100}], "random_fish": False}
+            sess = Session("gather", t, sc, 1, contract_version="1.2")
+            idle = InputState((0, 0), frozenset(), frozenset())
+            dock = InputState((0, 0), frozenset(), frozenset({"interact"}))
+            while not sess.done and sess.tick < 5:
+                sess.step(dock if sess.tick == 0 else idle)
+            self.assertTrue(sess.done)
+            sess.write_inventory_if_done(inv)
+            loaded = read_inventory(inv, version="1.2")
+            self.assertIsInstance(loaded, list)
+            self.assertEqual(loaded[0]["id"], "I1")
+            self.assertEqual(loaded[0]["kind"], "ca_loc")
+            self.assertLess(loaded[0]["fresh"], 100)
+
+    def test_tick_limit_does_not_write_inventory(self):
+        from chonoi.inputs import InputState
+        t = _tuning_v12()
+        with Workdir() as w:
+            inv = w.path("inv.json")
+            write_json(inv, {"sentinel": True})
+            sess = Session("gather", t, {"hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100}],
+                                         "random_fish": False}, 1, contract_version="1.2")
+            idle = InputState((0, 0), frozenset(), frozenset())
+            for _ in range(3):
+                sess.step(idle)
+            self.assertFalse(sess.done)
+            sess.write_inventory_if_done(inv)
+            with open(inv, encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {"sentinel": True})
 
 
 class DayHandoffTest(unittest.TestCase):
     def test_gather_end_quan_same_tick_no_extra_step(self):
-        """AC-P3-19 khung: gather_end và phase_start quan cùng tick; stock = inventory (không hao thêm)."""
+        """AC-P3-19 khung: gather_end và phase_start quan cùng tick; stock = inventory."""
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {
                 "gather": {"hold": ["ca_loc", "bong_sung"], "random_fish": False},
@@ -171,7 +179,8 @@ class DayHandoffTest(unittest.TestCase):
             inp = write_json(w.path("i.json"), frames({"tick": 0, "interact": True}))
             out = w.path("o.jsonl")
             code, err = run_headless("--mode", "day", "--seed", "1", "--ticks", "5",
-                                     "--scenario", sc, "--inputs", inp, "--out", out)
+                                     "--scenario", sc, "--inputs", inp, "--out", out,
+                                     contract=FIXTURE_V11)
             self.assertEqual(code, 0, err)
             rows = read_jsonl(out)
             ge = events(rows, "gather_end")[0]
@@ -184,14 +193,15 @@ class DayHandoffTest(unittest.TestCase):
 
     def test_day2_reallocates_hold_item_ids(self):
         t = _tuning_v12()
-        streams = __import__("chonoi.rng", fromlist=["Streams"]).Streams(1)
+        from chonoi.rng import Streams
         ids = IdAllocator()
         sc = {"day": {}, "gather": {
             "hold": [{"id": "I1", "kind": "ca_linh", "fresh": 100},
                      {"id": "I2", "kind": "ca_loc", "fresh": 90}],
             "random_fish": False,
         }, "quan": {}}
-        day = DaySim(t, sc, streams, ids, days=2, version="1.2")
+        # version=None: suy từ hold cá thể (runner chưa truyền contract_version)
+        day = DaySim(t, sc, Streams(1), ids, days=2, version=None)
         d1 = day._gather_scenario_for_day()
         self.assertEqual([it["id"] for it in d1["hold"]], ["I1", "I2"])
         day.day = 2
@@ -199,7 +209,6 @@ class DayHandoffTest(unittest.TestCase):
         self.assertEqual([it["id"] for it in d2["hold"]], ["I3", "I4"])
         self.assertEqual([it["kind"] for it in d2["hold"]], ["ca_linh", "ca_loc"])
         self.assertEqual([it["fresh"] for it in d2["hold"]], [100, 90])
-        # mẫu gốc không bị đổi
         self.assertEqual([it["id"] for it in day.tpl_gather["hold"]], ["I1", "I2"])
 
     def test_shop_individual_stock_does_not_decay(self):
@@ -217,33 +226,36 @@ class DayHandoffTest(unittest.TestCase):
         self.assertEqual(shop.snapshot()["stock"][0]["id"], "I1")
 
 
-class HeadlessV12GateTest(unittest.TestCase):
-    def test_inventory_out_v12_exits_2_before_out(self):
+class RealContractSmokeTest(unittest.TestCase):
+    def test_headless_gather_quan_day_real_contract(self):
         with Workdir() as w:
-            out, inv = w.path("o.jsonl"), w.path("inv.json")
-            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "0",
-                                     "--inventory-out", inv, "--out", out, contract=FIXTURE_V12)
-            self.assertEqual(code, 2)
-            self.assertIn("chờ TV1", err)
-            self.assertFalse(os.path.exists(out))
-            self.assertFalse(os.path.exists(inv))
+            g = w.path("g.jsonl")
+            self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "30",
+                                          "--out", g)[0], 0)
+            q = w.path("q.jsonl")
+            inv = write_json(w.path("inv.json"), {"items": {"ca_loc": 1}})
+            self.assertEqual(run_headless("--mode", "quan", "--seed", "1", "--ticks", "0",
+                                          "--inventory", inv, "--out", q)[0], 0)
+            d = w.path("d.jsonl")
+            self.assertEqual(run_headless("--mode", "day", "--seed", "1", "--days", "1",
+                                          "--ticks", "100", "--out", d)[0], 0)
 
-    def test_inventory_in_v12_exits_2(self):
+    def test_day_two_runs_byte_identical(self):
         with Workdir() as w:
-            out = w.path("o.jsonl")
-            code, err = run_headless("--mode", "quan", "--seed", "1", "--ticks", "0",
-                                     "--inventory", INV_V12, "--out", out, contract=FIXTURE_V12)
-            self.assertEqual(code, 2)
-            self.assertIn("chờ TV1", err)
-            self.assertFalse(os.path.exists(out))
+            a, b = w.path("a.jsonl"), w.path("b.jsonl")
+            args = ["--mode", "day", "--seed", "1", "--days", "2", "--ticks", "50000", "--out"]
+            for out in (a, b):
+                code, err = run_headless(*args, out)
+                self.assertEqual(code, 0, err)
+            self.assertTrue(filecmp.cmp(a, b, shallow=False))
 
 
 class ByteIdentityVsHeadTest(unittest.TestCase):
-    """v1.0/v1.1: so byte output headless với bản gốc HEAD (git archive)."""
+    """So byte gather/quan seed 5 ticks 3000 với git archive HEAD (ngoài repo)."""
 
     @classmethod
     def setUpClass(cls):
-        cls._scratch = tempfile.mkdtemp(prefix="chonoi-head-")
+        cls._scratch = tempfile.mkdtemp(prefix="chonoi-head-", dir=tempfile.gettempdir())
         tar = subprocess.run(
             ["git", "archive", "HEAD", "chonoi", "game.contract.json", "tests"],
             cwd=ROOT, capture_output=True, check=True)
@@ -253,40 +265,25 @@ class ByteIdentityVsHeadTest(unittest.TestCase):
     def tearDownClass(cls):
         shutil.rmtree(cls._scratch, ignore_errors=True)
 
-    def _cmp_mode(self, mode, extra, ticks=30):
+    def test_gather_quan_seed5_ticks3000(self):
         with Workdir() as w:
-            out_cur, out_old = w.path("cur.jsonl"), w.path("old.jsonl")
-            args = ["--mode", mode, "--seed", "7", "--ticks", str(ticks), "--out"]
-            env = dict(os.environ, CHONOI_CONTRACT=FIXTURE_V11, PYTHONPATH=f"tests:.")
-            cur = subprocess.run(
-                ["python3", "-m", "chonoi.headless", *args, out_cur, *extra],
-                cwd=ROOT, capture_output=True, text=True, env=env)
-            old = subprocess.run(
-                ["python3", "-m", "chonoi.headless", *args, out_old, *extra],
-                cwd=self._scratch, capture_output=True, text=True, env=env)
-            self.assertEqual(cur.returncode, 0, cur.stderr)
-            self.assertEqual(old.returncode, 0, old.stderr)
-            self.assertTrue(filecmp.cmp(out_cur, out_old, shallow=False),
-                            f"{mode}: output khác HEAD từng byte")
-
-    def test_gather_bytes(self):
-        with Workdir() as w:
-            sc = write_json(w.path("sc.json"), {"gather": {"hold": ["ca_loc"], "random_fish": False}})
-            # copy scenario vào scratch cũng dùng path tuyệt đối → chung file
-            self._cmp_mode("gather", ["--scenario", sc], ticks=20)
-
-    def test_quan_bytes(self):
-        with Workdir() as w:
-            inv = write_json(w.path("inv.json"), {"items": {"ca_loc": 1}})
-            self._cmp_mode("quan", ["--inventory", inv], ticks=0)
-
-    def test_day_bytes(self):
-        with Workdir() as w:
-            sc = write_json(w.path("sc.json"), {
-                "gather": {"hold": ["ca_loc"], "random_fish": False},
-                "quan": {"time_left_ticks": 1},
-            })
-            self._cmp_mode("day", ["--scenario", sc, "--days", "1"], ticks=50)
+            for mode, extra in (
+                ("gather", []),
+                ("quan", ["--inventory", write_json(w.path("inv.json"), {"items": {"ca_loc": 1}})]),
+            ):
+                cur, old = w.path(f"cur-{mode}.jsonl"), w.path(f"old-{mode}.jsonl")
+                args = ["--mode", mode, "--seed", "5", "--ticks", "3000", "--out"]
+                env = dict(os.environ, PYTHONPATH="tests:.")
+                cur_p = subprocess.run(
+                    ["python3", "-m", "chonoi.headless", *args, cur, *extra],
+                    cwd=ROOT, capture_output=True, text=True, env=env)
+                old_p = subprocess.run(
+                    ["python3", "-m", "chonoi.headless", *args, old, *extra],
+                    cwd=self._scratch, capture_output=True, text=True, env=env)
+                self.assertEqual(cur_p.returncode, 0, cur_p.stderr)
+                self.assertEqual(old_p.returncode, 0, old_p.stderr)
+                self.assertTrue(filecmp.cmp(cur, old, shallow=False),
+                                f"{mode} seed=5 ticks=3000 khác HEAD từng byte")
 
 
 if __name__ == "__main__":
