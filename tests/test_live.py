@@ -57,6 +57,40 @@ class LiveServerTest(unittest.TestCase):
         self.assertFalse(server.game._thread.is_alive())
         self.assertFalse(server._thread.is_alive())
 
+    def test_gather_inputs_update_basket_and_resources(self):
+        tuning = load_contract()["tuning"]
+        gather = tuning["gather"]
+        plant = gather["nodes"][0]
+        fish = gather["fish_initial"][0]
+        cases = (
+            (plant, "interact", "gather", gather["node_yield"]),
+            (fish, "catch", "fish_caught", gather["fish_yield"][fish["kind"]]),
+        )
+        for resource, button, event, amount in cases:
+            with self.subTest(button=button):
+                scenario = {"player": {"pos": resource["pos"]}}
+                server = LiveServer(LiveGame("gather", tuning, scenario, 1), port=0)
+                server.start()
+                try:
+                    base = f"http://127.0.0.1:{server.port}"
+                    self.assertEqual(_post(base + "/input", {button: True}), 200)
+                    deadline = time.monotonic() + 3
+                    while True:
+                        state = json.loads(_get(base + "/state")[1])
+                        if state["hold"] or time.monotonic() >= deadline:
+                            break
+                        time.sleep(0.02)
+                    self.assertEqual(state["hold"], [resource["kind"]] * amount)
+                    self.assertIn(event, [row["name"] for row in state["events"]])
+                    if button == "interact":
+                        node = next(node for node in state["nodes"] if node["id"] == resource["id"])
+                        self.assertFalse(node["ready"])
+                    else:
+                        self.assertNotIn(resource["id"], [school["id"] for school in state["fish"]])
+                        self.assertGreater(state["player"]["catch_cd_ticks"], 0)
+                finally:
+                    server.stop()
+
 
 if __name__ == "__main__":
     unittest.main()

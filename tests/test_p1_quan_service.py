@@ -36,7 +36,7 @@ class TestQuanService(unittest.TestCase):
                         "order_tick": 0,
                         "state": "waiting",
                         "patience_ticks_left": 3600,
-                        "eat_ticks_left": 600,
+                        "eat_ticks_left": 0,
                         "order_status": "reserved",
                         "reserved": {"ca_loc": 1},
                         "base_price": 60,
@@ -95,6 +95,14 @@ class TestQuanService(unittest.TestCase):
                         "cook_ticks_left": 0,
                         "ready_ticks": 10
                     }],
+                    "customers": [{
+                        "id": "C1",
+                        "table_id": "T1",
+                        "dish_id": "ca_loc_nuong_trui",
+                        "state": "waiting",
+                        "order_status": "assigned",
+                        "reserved": {},
+                    }],
                     "random_customers": False
                 }
             })
@@ -136,7 +144,7 @@ class TestQuanService(unittest.TestCase):
                         "order_tick": 0,
                         "state": "waiting",
                         "patience_ticks_left": 3000,  # 3000 / 3600 > 50%
-                        "eat_ticks_left": 600,
+                        "eat_ticks_left": 0,
                         "order_status": "assigned",
                         "reserved": {},
                         "base_price": 60,
@@ -183,7 +191,7 @@ class TestQuanService(unittest.TestCase):
                         "order_tick": 0,
                         "state": "waiting",
                         "patience_ticks_left": 1000,  # < 50% (1800)
-                        "eat_ticks_left": 600,
+                        "eat_ticks_left": 0,
                         "order_status": "assigned",
                         "reserved": {},
                         "base_price": 60,
