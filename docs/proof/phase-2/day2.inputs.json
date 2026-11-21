@@ -1,0 +1,1 @@
+{"frames": [{"tick": 0, "interact": true}, {"tick": 1, "interact": false}, {"tick": 61, "buy": "oxygen", "shop_done": true}, {"tick": 62, "shop_done": false, "interact": true}, {"tick": 63, "interact": false}, {"tick": 123, "shop_done": true}]}

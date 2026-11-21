@@ -1,9 +1,9 @@
 # Retro nhóm
 
 ## Phase 2 (nhanh)
-- Điều tốt:
-- Điều tệ:
-- 1 hành động cho Phase 3:
+- Điều tốt: chia lát theo hợp đồng v1.1 nên TV1–TV4 làm song song bằng fixture; TV5 làm UI từ snapshot mẫu trước khi có `--mode day`, lúc ghép chỉ đổi lớp lõi, client không phải sửa. Có một lệnh QA (`python3 tools/qa_p2.py`) chạy lại toàn bộ checkpoint trên commit bất kỳ.
+- Điều tệ: `--mode day` vào main muộn (PR #11) nên smoke day và kiểm UI trên DaySim thật dồn về cuối phase; `chonoi/live.py` bị hai người sửa cùng lúc (TV4 + TV5) gây xung đột khi gộp.
+- 1 hành động cho Phase 3: mỗi file dùng chung (`live.py`, `runner.py`, `game.contract.json`) có một chủ duy nhất ghi trong `docs/phan-cong.md`; người khác sửa qua PR nhỏ có tag chủ file review. **Người nhận: TV5 (Vũ Xuân Bách)** cập nhật bảng chủ file đầu Phase 3 và nhắc trong standup phút 20.
 
 ## Phase 4 (cuối)
 - Rà lại hành động Phase 2: đã làm chưa? vì sao?
