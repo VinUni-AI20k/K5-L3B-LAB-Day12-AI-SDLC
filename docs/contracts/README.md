@@ -22,7 +22,7 @@
 | Quy tắc | Chi tiết |
 |---|---|
 | Khóa gốc | Đúng một khóa `items`: object kind → số nguyên ≥ 0. Kind vắng tính 0. Kho rỗng `{"items":{}}`. |
-| Kind hợp lệ | `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`. Sai schema / kind lạ / giá trị ngoài miền → mã 2. |
+| Kind hợp lệ | `ca_loc`, `ca_linh`, `ca_keo`, `bong_dien_dien`, `bong_sung`, `keo_neo`. Sai schema / kind lạ / giá trị ngoài miền → mã 2. |
 | Ghi | Bỏ khóa có lượng 0, sắp theo kind, ghi file tạm cùng thư mục rồi thay thế nguyên tử. |
 | Khi nào ghi | `gather --inventory-out` ghi **đúng một lần** khi có `gather_end`; nội dung khớp `data.inventory` của event đó. Ngất → `{"items":{}}`. Chạm `--ticks` trước khi buổi sáng kết thúc → không tạo, không ghi đè. |
 | Bên đọc (quan) | `--inventory` hoặc `scenario.quan.stock`, không cả hai (mã 2). Thiếu cả hai → kho rỗng. Trần giỏ không áp lên kho quán. Tiền/`earned` đầu lượt = 0; uy tín theo tuning trừ khi scenario khai. |
@@ -122,3 +122,15 @@ Thứ tự một bước (mục F):
 | 2026-11-21 | Chốt v1.0 bản nháp từ code khung | Kickoff, PRD chưa mở | Integrator |
 | 2026-11-21 | Đối chiếu PRD-0: sửa `data` sự kiện gather/quan, trường khách trong snapshot quan, thứ tự bước; bỏ toàn bộ nhãn [giả định] | PRD-0 phát hành 08:02 | QA (czx04) |
 | 2026-11-21 | Nâng cấp Test Contract v1.1 cho Phase 2: thêm N5/N6 kèo nèo, cá kèo, cá bơi phản xạ mép & đổi hướng tick 120, sinh cá tick 360, quái Cá Sấu Năm Chèo M1/M2 | TICKET-02 Phase 2 | Integrator (ToanLee5433) |
+
+
+## Phase 2 — Vòng ngày / Shop / pause
+Nguồn đầy đủ: [`TICKET-02`](../tickets/TICKET-02.md), mục 2 và 4. CLI thêm `--mode day --days 1..5` (mặc định 1); cờ file kho chỉ cho mode độc lập. Live day mặc định 5 Ngày.
+
+- `DaySim` giữ Streams và IdAllocator xuyên Ngày, mang `money/earned/reputation/upgrades`; mẫu scenario `gather`/`quan` áp lại mỗi Ngày. `day` chứa trạng thái xuyên Ngày và override kế hoạch.
+- Gather → quan → shop đổi pha trong cùng tick kết thúc; event giữ pha/Ngày cũ, `phase_start` và snapshot pha mới có `phase_tick:0`. `days_completed` chỉ tăng sau `shop_end`, kể cả Ngày cuối. Trước snapshot tick 0 phát `day_start`, `day_plan`, `phase_start`.
+- Shop đọc `tuning.shop`: 600 bước hoạt động, xử lý `buy` trước cạnh `shop_done`, ưu tiên done ở bước cuối. Cấp mua tăng ngay, sao vào `active_upgrades` khi dựng Ngày kế. Trừ `money`, giữ `earned` và score. Kho dư bỏ đầu Ngày mới.
+- Inputs v1.1 nhận `pause`, `shop_done`, `attack`, `photo` boolean; mở rộng chưa bật bỏ qua. `buy` chuỗi khác rỗng, chỉ chạy ở frame khai. Nút giữ xuyên pha không thành cạnh mới.
+- Pause xét trước: bước vào chỉ tăng tick ngoài; đang pause bỏ buy/cạnh hành động. Resume chạy gameplay ngay bước đó. `sim_tick` và timer chỉ tiến khi gameplay chạy.
+- Live có màn trình bày menu/intro/result/summary bên ngoài mô phỏng; headless chạy thẳng các pha Contract. UI đọc snapshot, không tính luật/giá/nâng cấp riêng.
+- Cá sấu đọc tốc độ, miền sâu, khoảng cách, recoil, bất tử và tỷ lệ rơi từ tuning. Bước cuối recoil vẫn miễn hit/phát hiện; bước sau mới patrol/chase.
