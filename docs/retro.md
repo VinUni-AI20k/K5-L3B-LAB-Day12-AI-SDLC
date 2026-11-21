@@ -17,3 +17,8 @@
 - Điều tốt là fixture headless kiểm được ranh giới hit, recoil và LIFO trước khi có vòng ngày/UI.
 - Vướng mắc hiện tại là CLI và manifest đang v1.0 nên các ca chuyển ngày cần TV4 tích hợp.
 - TV1 và TV4 nhận hành động kiểm day=3 sinh M2 và ngất mở quán kho rỗng khi vòng ngày có mặt.
+
+## Ghi nhận Phase 3 · TV4
+
+- Ghép tạm các diff TV2 và TV3 giúp kiểm được handoff, ID xuyên ngày và dòng thanh toán trước khi đổi manifest.
+- Ca nấu sau đúng 60 bước cho thấy sai số của kho thô đi vào phép chốt giá. Giữ ca này trong kiểm chứng khi TV1/TV3 ghép cách biểu diễn độ tươi dùng chung.

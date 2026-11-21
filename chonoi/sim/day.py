@@ -1,10 +1,10 @@
-"""Vòng ngày v1.1. Các ca giữ luật chơi riêng và dùng chung tiền, uy tín."""
+"""Vòng ngày. Các ca giữ luật chơi riêng và dùng chung tiền, uy tín."""
 
 from copy import deepcopy
 
 from ..day_plan import compute_ingredients
 from ..errors import BadInput
-from ..ids import IdAllocator
+from ..ids import IdAllocator, sort_by_id
 from ..scenario import _validate_gather
 from .gather import GatherSim
 from .quan import QuanSim
@@ -82,17 +82,29 @@ class DaySim:
             if level:
                 gather[field] = self.shop["upgrades"][kind][level - 1][field]
         tuning = dict(self.tuning, gather=gather)
-        fixture = self.scenario.get("gather", {})
+        fixture = deepcopy(self.scenario.get("gather", {}))
         _validate_gather(fixture, tuning)
-        self.shift = GatherSim(tuning, deepcopy(fixture), self.streams, self.ids, day=self.day)
+        self.fixture_item_ids = {}
+        if self.day > 1 and "freshness" in tuning:
+            for item in fixture.get("hold", []):
+                new_id = self.ids.new("I")
+                self.fixture_item_ids[item["id"]] = new_id
+                item["id"] = new_id
+        self.shift = GatherSim(tuning, fixture, self.streams, self.ids, day=self.day)
         self.shift.reputation = self.reputation
 
     def start_quan(self):
-        fixture = self.scenario.get("quan", {})
+        fixture = deepcopy(self.scenario.get("quan", {}))
+        for customer in fixture.get("customers", []):
+            reserved = customer.get("reserved")
+            if isinstance(reserved, list):
+                if any(not isinstance(iid, str) or not iid for iid in reserved):
+                    raise BadInput("quan.customers[].reserved cần id cá thể khác rỗng")
+                customer["reserved"] = [self.fixture_item_ids.get(iid, iid) for iid in reserved]
         dishes = self.plans[self.day]["dishes"]
         menu = {dish: self.tuning["menu"][dish] for dish in dishes}
         tuning = dict(self.tuning, menu=menu)
-        self.shift = QuanSim(tuning, deepcopy(fixture), self.streams, self.ids,
+        self.shift = QuanSim(tuning, fixture, self.streams, self.ids,
                              inventory=self.shift.inventory_items())
         self.shift.money = self.money
         self.shift.earned = self.earned
@@ -105,7 +117,11 @@ class DaySim:
 
     def snapshot(self):
         if self.phase == "shop":
-            result = {"stock": {k: v for k, v in sorted(self.shift.stock.items()) if v > 0}}
+            stock = self.shift.stock
+            if isinstance(stock, list):
+                result = {"stock": [dict(item) for item in sort_by_id(stock)]}
+            else:
+                result = {"stock": {k: v for k, v in sorted(stock.items()) if v > 0}}
         else:
             result = self.shift.snapshot()
         return dict(result, day=self.day, day_plan=self.plans[self.day],
