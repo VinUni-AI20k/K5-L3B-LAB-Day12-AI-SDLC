@@ -45,8 +45,9 @@ class Phase4V13Tests(unittest.TestCase):
             c2, _, e2 = _run_module("soak_cmd", "--seed", "7", "--days", "10", "--out", s2)
             self.assertEqual(c1, 0, e1)
             self.assertEqual(c2, 0, e2)
-            d1 = json.load(open(s1, encoding="utf-8"))
-            d2 = json.load(open(s2, encoding="utf-8"))
+            with open(s1, encoding="utf-8") as f1, open(s2, encoding="utf-8") as f2:
+                d1 = json.load(f1)
+                d2 = json.load(f2)
             self.assertEqual(set(d1), {"days", "days_completed", "crashes", "results", "duration_s"})
             self.assertEqual(d1["days"], 10)
             self.assertEqual(d1["days_completed"], 10)
@@ -70,7 +71,8 @@ class Phase4V13Tests(unittest.TestCase):
             )
             self.assertEqual(c1, 0, e1)
             self.assertEqual(c2, 0, e2)
-            self.assertEqual(open(o_no, "rb").read(), open(o_lb, "rb").read())
+            with open(o_no, "rb") as f1, open(o_lb, "rb") as f2:
+                self.assertEqual(f1.read(), f2.read())
 
             # Second tie entry preserves insertion order across reload, non-5-day/scenario does NOT record
             run_headless(
@@ -91,7 +93,8 @@ class Phase4V13Tests(unittest.TestCase):
             exp = w.path("exported.json")
             rc, _, err = _run_module("run_cmd", "--export-leaderboard", exp, "--leaderboard", store)
             self.assertEqual(rc, 0, err)
-            entries = json.load(open(exp, encoding="utf-8"))["entries"]
+            with open(exp, encoding="utf-8") as f:
+                entries = json.load(f)["entries"]
             self.assertEqual([(e["name"], e["days_completed"], e["seed"]) for e in entries], [
                 ("Út Sen", 5, 42),
                 ("Má Tư", 5, 7),
@@ -117,12 +120,22 @@ class Phase4V13Tests(unittest.TestCase):
 
     def test_web_ui_has_three_warnings_and_high_contrast(self):
         html_path = os.path.join(ROOT, "chonoi", "web", "index.html")
-        text = open(html_path, encoding="utf-8").read()
+        with open(html_path, encoding="utf-8") as f:
+            text = f.read()
         self.assertIn("Thủy quái!", text)
         self.assertIn("Hết hơi!", text)
         self.assertIn("Khách sắp giận!", text)
         self.assertIn("Tương phản cao", text)
         self.assertIn("Chơi", text)
+
+    def test_all_six_member_reflections_under_200_words(self):
+        handles = ["hieunhangia", "Ducbaynao", "Besoi2004", "hnib1908", "letuandat131", "Laurent2526"]
+        for h in handles:
+            p = os.path.join(ROOT, "docs", "members", f"{h}.md")
+            self.assertTrue(os.path.exists(p), f"missing {p}")
+            with open(p, encoding="utf-8") as f:
+                words = len(f.read().split())
+            self.assertLessEqual(words, 200, f"{h}.md has {words} > 200 words")
 
 
 if __name__ == "__main__":
