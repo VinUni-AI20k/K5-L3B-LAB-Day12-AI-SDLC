@@ -108,10 +108,18 @@ class GatherSim:
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
         # 2. bơi + chặn mép
+        was_at_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
+        at_surface = self._at_surface()
+        if was_at_surface != at_surface:
+            events.append(("surface" if at_surface else "dive", {"pos": list(self.pos)}))
+        oxygen_before = self.oxygen_ticks
+        if at_surface:
+            self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + self.t["oxygen_refill_per_tick"])
+        else:
+            self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
+            if oxygen_before > 0 and self.oxygen_ticks == 0:
+                events.append(("oxygen_empty", {}))
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():

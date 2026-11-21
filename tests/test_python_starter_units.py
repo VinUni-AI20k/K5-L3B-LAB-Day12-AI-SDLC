@@ -6,7 +6,7 @@ import unittest
 from chonoi.errors import BadInput
 from chonoi.ids import IdAllocator, id_key, sort_by_id
 from chonoi.contract import load_contract
-from chonoi.inputs import InputPlayer, LiveInputs, load_frames
+from chonoi.inputs import InputPlayer, InputState, LiveInputs, load_frames
 from chonoi.runner import Session
 
 from helpers import Workdir, frames, write_json
@@ -72,6 +72,59 @@ class Units(unittest.TestCase):
         self.assertTrue(s.done)
         self.assertEqual(s.snapshot()["tick"], 2)
         self.assertEqual(s.end_row()["reason"], "docked")
+
+
+class GatherCore(unittest.TestCase):
+    def setUp(self):
+        self.tuning = load_contract()["tuning"]
+        self.g = self.tuning["gather"]
+
+    def session(self, player=None, **scenario):
+        return Session("gather", self.tuning, {"player": player or {}, **scenario}, 1)
+
+    def step(self, session, move=(0, 0), edges=()):
+        return session.step(InputState(move, {}, set(edges)))
+
+    def test_surface_boundary_refills_and_clamps_oxygen(self):
+        maximum = round(self.g["oxygen_max_s"] * self.tuning["tick_hz"])
+        s = self.session({"pos": [20, self.g["surface_depth"]], "oxygen_ticks": maximum - 1})
+        self.assertEqual(self.step(s), [])
+        self.assertEqual(s.snapshot()["player"]["oxygen_ticks"], maximum)
+        self.assertTrue(s.snapshot()["player"]["at_surface"])
+        self.step(s)
+        self.assertEqual(s.sim.oxygen_ticks, maximum)
+
+    def test_dive_surface_use_end_position_and_emit_once(self):
+        boundary = self.g["surface_depth"]
+        s = self.session({"pos": [20, boundary], "oxygen_ticks": 10})
+        rows = self.step(s, (0, 1))
+        self.assertEqual([r["name"] for r in rows], ["dive"])
+        self.assertEqual(s.sim.oxygen_ticks, 9)
+        event_pos = list(rows[0]["data"]["pos"])
+        self.assertEqual(self.step(s, (0, 1)), [])
+        self.assertEqual(rows[0]["data"]["pos"], event_pos)
+        for _ in range(self.g["ramp_max_ticks"] + 10):
+            rows = self.step(s, (0, -1))
+            if rows:
+                break
+        self.assertEqual([r["name"] for r in rows], ["surface"])
+        self.assertLessEqual(s.sim.pos[1], boundary)
+        oxygen = s.sim.oxygen_ticks
+        self.assertEqual(self.step(s, (0, -1)), [])
+        self.assertEqual(s.sim.oxygen_ticks, oxygen + self.g["oxygen_refill_per_tick"])
+
+    def test_oxygen_empty_only_on_positive_to_zero(self):
+        s = self.session({"pos": [20, 5], "oxygen_ticks": 1})
+        self.assertEqual([r["name"] for r in self.step(s)], ["oxygen_empty"])
+        self.assertEqual(s.sim.oxygen_ticks, 0)
+        self.assertEqual(self.step(s), [])
+        self.assertEqual(s.sim.oxygen_ticks, 0)
+
+    def test_oxygen_refill_reads_tuning(self):
+        self.g["oxygen_refill_per_tick"] = 9
+        s = self.session({"oxygen_ticks": 0})
+        self.step(s)
+        self.assertEqual(s.sim.oxygen_ticks, 9)
 
 
 if __name__ == "__main__":
