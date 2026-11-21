@@ -28,6 +28,8 @@ def load_contract(path=DEFAULT_PATH) -> dict:
     if ver is not None and ver not in ("1.0", "1.1", "1.2"):
         raise BadInput(f"contract_version không hỗ trợ: {ver!r}")
     validate_tuning(c.get("tuning"))
+    # Truyền version tới sim/scenario mà không đổi manifest trên đĩa.
+    c["tuning"]["_contract_version"] = ver or "1.1"
     return c
 
 

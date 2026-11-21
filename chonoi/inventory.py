@@ -57,7 +57,7 @@ def parse_fresh(value, name: str = "fresh") -> Fraction:
             raise BadInput(f"{name} ngoài miền [0, 100], đang là {value!r}")
         scaled = value * FRESH_UNITS_PER_POINT
         nearest = round(scaled)
-        if abs(scaled - nearest) <= 1e-11:
+        if value == float(Fraction(nearest, FRESH_UNITS_PER_POINT)):
             q = Fraction(nearest, FRESH_UNITS_PER_POINT)
         else:
             q = Fraction(str(value))

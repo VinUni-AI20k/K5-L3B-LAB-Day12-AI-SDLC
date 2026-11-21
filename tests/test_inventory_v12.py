@@ -1,6 +1,7 @@
 import copy
 from fractions import Fraction
 import json
+import math
 import os
 import subprocess
 import sys
@@ -31,6 +32,43 @@ from helpers import ROOT, Workdir, write_json
 
 
 class InventoryV12Tests(unittest.TestCase):
+    def test_adjacent_floats_preserve_spoilage_and_price_branches(self):
+        below = math.nextafter(30.0, 0.0)
+        above = math.nextafter(30.0, 100.0)
+        self.assertTrue(is_spoiled(below))
+        self.assertFalse(is_spoiled(above))
+        self.assertEqual(
+            price_for_items(100, [{"id": "I1", "kind": "ca_loc",
+                                   "fresh": math.nextafter(100.0, 0.0)}]),
+            99,
+        )
+        with Workdir() as work:
+            path = work.path("threshold.json")
+            write_inventory_v12(path, [{"id": "I1", "kind": "ca_loc", "fresh": below}])
+            self.assertEqual(read_inventory_v12(path)[0]["fresh"], below)
+
+    def test_contract_version_selects_gather_schema_with_freshness_config_present(self):
+        from chonoi.inputs import InputState
+        from chonoi.rng import Streams
+        from chonoi.scenario import _validate_gather
+        from chonoi.sim.gather import GatherSim
+
+        contract = load_contract()
+        legacy = {"hold": ["ca_loc"], "monsters": [], "random_fish": False}
+        individuals = {"hold": [{"id": "I1", "kind": "ca_loc", "fresh": 30}],
+                       "monsters": [], "random_fish": False}
+        with Workdir() as work:
+            for version, fixture in (("1.1", legacy), ("1.2", individuals)):
+                contract["contract_version"] = version
+                path = write_json(work.path("contract.json"), contract)
+                tuning = load_contract(path)["tuning"]
+                _validate_gather(fixture, tuning)
+                with self.assertRaises(BadInput):
+                    _validate_gather(individuals if version == "1.1" else legacy, tuning)
+                sim = GatherSim(tuning, fixture, Streams(1), IdAllocator())
+                emitted = sim.step(InputState((0, 0), {}, set()))
+                self.assertEqual(any(name == "spoiled" for name, _ in emitted), version == "1.2")
+
     def test_contract_has_freshness_and_validates_bounds(self):
         contract = load_contract()
         self.assertEqual(

@@ -9,6 +9,7 @@ import json
 import math
 
 from .errors import BadInput
+from .freshness import validate_units
 from .inventory import KINDS_P2, validate_items
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks", "monsters"}
@@ -105,10 +106,26 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P2 for k in h):
-            raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
+        if not isinstance(h, list):
+            raise BadInput("hold phải là mảng")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
+        if tuning.get("freshness") and tuning.get("_contract_version", "1.2") == "1.2":
+            seen_hold = set()
+            for idx, item in enumerate(h):
+                if not isinstance(item, dict) or set(item) != {"id", "kind", "fresh"}:
+                    raise BadInput(f"hold[{idx}] phải là object {{id, kind, fresh}}")
+                iid = item["id"]
+                if not isinstance(iid, str) or not iid or iid in seen_hold:
+                    raise BadInput(f"hold[{idx}]: id phải là chuỗi khác rỗng và duy nhất")
+                seen_hold.add(iid)
+                if item["kind"] not in KINDS_P2:
+                    raise BadInput(f"hold[{idx}]: kind không hợp lệ {item['kind']!r}")
+                fr = item["fresh"]
+                if not _num(fr) or not math.isfinite(fr) or not (0 <= fr <= 100):
+                    raise BadInput(f"hold[{idx}]: fresh phải hữu hạn trong [0, 100]")
+        elif any(k not in KINDS_P2 for k in h):
+            raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
     p = b.get("player", {})
     if not isinstance(p, dict):
         raise BadInput("player phải là object")
@@ -202,7 +219,10 @@ def _validate_quan(b, tuning):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate_items(b["stock"])
+        if isinstance(b["stock"], list):
+            validate_units(b["stock"])
+        else:
+            validate_items(b["stock"])
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")

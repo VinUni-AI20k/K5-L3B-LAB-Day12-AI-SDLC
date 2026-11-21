@@ -26,3 +26,11 @@ $env:PYTHONPATH="tests;."; python -m unittest tests/test_python_starter_units.py
 ```
 
 Kết quả quan sát: **88/88 test đạt (`OK`)** trong `18.451s`.
+
+## Review PR #16 trên bản tích hợp
+
+Đã ghép main có phần gather/quán Phase 3 vào PR. Sửa hai lỗi làm regression hoặc sai nhánh khi tính độ tươi.
+- Thêm freshness vào manifest v1.1 từng làm gather chuyển sang cá thể sớm. Nay load_contract truyền version nội bộ để sim và validator chọn schema, fixture v1.2 khai version rõ ràng.
+- Bỏ dung sai làm tròn phân số lưới quanh 30/100. Chỉ khôi phục điểm lưới khi float bằng đúng biểu diễn của điểm đó. Test số liền kề dưới 30 và 100 bảo toàn spoiled và floor.
+
+Kết quả cuối 117/117 test đạt, gồm 11 test adapter v1.2 và các test live/live_day. [Log review](pr16-review.log). Đây là bàn giao adapter và tích hợp chuyển tiếp. Manifest còn v1.1, nghiệm thu toàn bộ Phase 3 cần bật v1.2 và smoke các lát còn lại.

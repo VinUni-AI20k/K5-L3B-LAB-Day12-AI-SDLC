@@ -17,7 +17,7 @@
 ## 2. Giao diện helper bàn giao từ TV1 (`chonoi/inventory.py`, `chonoi/ids.py`)
 
 - `IdAllocator.reserve_all(items, key=lambda x: x["id"])`: giữ toàn bộ ID từ mảng fixture trước khi cấp mới bằng `ids.new("I")`.
-- `parse_fresh(value, name="fresh") -> Fraction` và `fresh_to_json(q) -> int | float`: dùng `Fraction` nội bộ. Với `float` trên lưới `1/240` (sai số `<= 1e-11`), khôi phục chính xác `Fraction(n, 240)` qua ghi/đọc file JSON; số thập phân tùy ý dùng `Fraction(str(value))`.
+- `parse_fresh(value, name="fresh") -> Fraction` và `fresh_to_json(q) -> int | float`: dùng `Fraction` nội bộ. Với `float` bằng đúng biểu diễn JSON/float của một điểm trên lưới `1/240`, khôi phục chính xác `Fraction(n, 240)` qua ghi/đọc file JSON; số thập phân tùy ý dùng `Fraction(str(value))`.
 - `validate_item_record(rec, *, kinds=KINDS_P2, seen_ids=None, name="item") -> dict` & `validate_item_list(items, *, kinds=KINDS_P2, seen_ids=None, name="items") -> list[dict]`: kiểm schema `{id, kind, fresh}`, tính duy nhất ID (truyền chung `seen_ids` để kiểm xuyên `hold`/`stock`/`stoves`/`hand`) và bảo toàn thứ tự mảng gốc (dùng cho LIFO).
 - `make_item(ids, kind, fresh=100, *, kinds=KINDS_P2, prefix="I") -> dict`: cấp cá thể mới từ `IdAllocator`.
 - `decay_items(items, decay_per_s, *, tick_hz=60, spoiled_below=30) -> list[dict]`: giảm tại chỗ (`gather` = `0.5/s` = `2/240` mỗi tick; `quan` = `0.25/s` = `1/240` mỗi tick), kẹp đáy `0`. Trả danh sách cá thể vừa chuyển từ `>= spoiled_below` xuống `< spoiled_below` (so trước làm tròn), đã sắp theo `id_key`. Caller tự gắn `location` (`"hold"`/`"stock"`) và phát sự kiện `spoiled` một lần.
@@ -38,3 +38,9 @@
 | Kho quán & giữ chỗ | `chonoi/sim/quan.py`, `chonoi/scenario.py` (nhánh quan) | Đổi fixture `stock`/`reserved` sang cá thể & ID; thêm test `spoiled`, nhả giữ & giữ lại/`unfulfillable` | TV3 |
 | Bếp, giá & vòng ngày | `chonoi/sim/quan.py` (`_start_cooking`, `_pay`), `chonoi/sim/day.py`, `chonoi/scenario.py` (day) | Đổi kỳ vọng giá theo `fresh` & ID xuyên ngày; thêm test chốt giá, Shop/pause không hao | TV4 |
 | HUD, QA & Release | `chonoi/web/index.html`, `chonoi/live_day.py`, `docs/verification/phase-3.md` | Thêm smoke file/day v1.2, cập nhật regression P1–P2 | TV5 |
+
+## Review tích hợp PR #16
+
+load_contract truyền _contract_version trong tuning nội bộ. Gather và validate gather chọn schema theo version này, nên thêm cấu hình freshness ở v1.1 vẫn giữ luồng cũ. Fixture trực tiếp cho v1.2 đặt _contract_version bằng 1.2. Khi bật manifest 1.2, CLI đọc kho cá thể và từ chối kho đếm. Các caller còn lại và smoke day đầy đủ do các lát tương ứng tích hợp trước nghiệm thu Phase 3.
+
+Khôi phục phân số lưới chỉ khi giá trị bằng đúng float của điểm lưới, giữ nguyên số liền kề dưới 30 hoặc 100 để bảo toàn nhánh spoiled và floor.
