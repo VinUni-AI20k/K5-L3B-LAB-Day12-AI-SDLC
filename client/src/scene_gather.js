@@ -681,7 +681,7 @@ export class GatherScene {
     const ox = 8, oy = 6, ow = 92, oh = 11, fr = this.oxy / this.oxyMax;
     const lowO = fr < 0.25, blinkO = lowO && Math.floor(time * 5) % 2;
     panel(ox, oy, ow, oh, HC ? { fill: "#000", border: hcCol("warn", "#ffef00"), r: 5 } : { fill: "rgba(4,16,30,.8)", border: lowO ? "#ff5a5a" : "#2a5a7a", r: 5 });
-    const ocol = HC ? (lowO && blinkO ? hcCol("warn", "#ffef00") : "#fff") : lowO ? "#ff5a5a" : fr < 0.5 ? "#ffd23a" : "#4fd0ff";
+    const ocol = HC ? (lowO && blinkO ? hcCol("warn", "#ffef00") : "#ff2a2a") : lowO ? "#ff5a5a" : fr < 0.5 ? "#ffd23a" : "#4fd0ff";
     u.save(); u.globalAlpha = blinkO ? 0.45 : 1; u.beginPath(); u.roundRect(ox + 1.5, oy + 1.5, Math.max(0, (ow - 3) * fr), oh - 3, 4); u.clip();
     u.fillStyle = ocol; u.fillRect(ox, oy, ow, oh);
     u.fillStyle = "rgba(255,255,255,.3)"; u.fillRect(ox, oy + 1, ow, 2); u.restore();
