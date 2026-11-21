@@ -29,6 +29,11 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
+    extensions = c.get("extensions", [])
+    if (not isinstance(extensions, list)
+            or any(not isinstance(extension, str) for extension in extensions)
+            or len(set(extensions)) != len(extensions)):
+        raise BadInput("extensions phải là mảng mã mở rộng dạng chuỗi, không trùng")
     validate_tuning(c.get("tuning"))
     version = c.get("contract_version")
     if version not in ("1.1", "1.2", "1.3"):

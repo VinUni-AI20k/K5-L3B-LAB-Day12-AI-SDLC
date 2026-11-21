@@ -326,6 +326,16 @@ class QuanSim:
         for stove in self.stoves:
             if stove["state"] == "ready":
                 stove["ready_ticks"] += 1
+                burn_s = self.t.get("burn_s")
+                if burn_s is not None and stove["ready_ticks"] > int(round(burn_s * TICK)):
+                    dish = stove["dish"]
+                    customer = next((c for c in self.customers if c["id"] == dish["order_id"]), None)
+                    if customer is not None:
+                        customer["order_status"] = "unfulfillable"
+                    stove_id = stove["id"]
+                    stove.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
+                    events.append(("dish_burnt", {"stove_id": stove_id, "order_id": dish["order_id"],
+                                                   "dish_id": dish["dish_id"], "order_status": "unfulfillable"}))
             elif stove["state"] != "cooking":
                 continue
             else:

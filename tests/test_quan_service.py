@@ -1,3 +1,4 @@
+import copy
 import unittest
 
 from helpers import tuning_v11
@@ -154,6 +155,50 @@ class QuanService(unittest.TestCase):
         self.assertEqual(session.sim.earned, 48)
         self.assertEqual(session.sim.reputation, 3.2)
         self.assertTrue(session.done)
+
+    def test_ready_dish_burns_after_more_than_configured_ticks(self):
+        burn_ticks = int(round(self.tuning["quan"]["burn_s"] * self.tuning["tick_hz"]))
+        scenario = {
+            "random_customers": False,
+            "customers": [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung",
+                            "order_status": "assigned", "reserved": {}}],
+            "stoves": [{"id": "B1", "state": "ready", "dish": {
+                "order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40,
+            }, "ready_ticks": burn_ticks - 1}],
+        }
+        session = Session("quan", self.tuning, scenario, 1)
+
+        self.assertEqual(session.step(LiveInputs().advance()), [])
+        self.assertEqual(session.sim.stoves[0]["ready_ticks"], burn_ticks)
+        burnt = session.step(LiveInputs().advance())
+
+        self.assertEqual([row["name"] for row in burnt], ["dish_burnt"])
+        self.assertEqual(burnt[0]["data"], {
+            "stove_id": "B1", "order_id": "C1", "dish_id": "goi_bong_sung",
+            "order_status": "unfulfillable",
+        })
+        self.assertEqual(session.sim.stoves[0]["state"], "idle")
+        self.assertIsNone(session.sim.stoves[0]["dish"])
+        self.assertEqual(session.sim.customers[0]["order_status"], "unfulfillable")
+
+    def test_ready_dish_does_not_burn_when_extension_is_disabled(self):
+        burn_ticks = int(round(self.tuning["quan"]["burn_s"] * self.tuning["tick_hz"]))
+        tuning = copy.deepcopy(self.tuning)
+        tuning["quan"]["burn_s"] = None
+        scenario = {
+            "random_customers": False,
+            "customers": [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung",
+                            "order_status": "assigned", "reserved": {}}],
+            "stoves": [{"id": "B1", "state": "ready", "dish": {
+                "order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40,
+            }, "ready_ticks": burn_ticks}],
+        }
+        session = Session("quan", tuning, scenario, 1)
+
+        self.assertEqual(session.step(LiveInputs().advance()), [])
+        self.assertEqual(session.sim.stoves[0]["state"], "ready")
+        self.assertEqual(session.sim.stoves[0]["ready_ticks"], burn_ticks + 1)
+
 
 if __name__ == "__main__":
     unittest.main()

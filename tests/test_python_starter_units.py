@@ -1,6 +1,7 @@
 """Unit test của khung PYTHON trong starter (ids, inputs, Session). Nếu nhóm thay bằng ngôn ngữ khác, XÓA file này
 (và viết unit test tương đương bằng ngôn ngữ của nhóm); test hộp đen test_smoke_p1.py vẫn dùng nguyên."""
 
+import copy
 import unittest
 
 from chonoi.errors import BadInput
@@ -13,6 +14,23 @@ from helpers import hold_items, kinds_of, counts_of, Workdir, frames, write_json
 
 
 class Units(unittest.TestCase):
+    def test_burn_extension_requires_matching_contract_setting(self):
+        contract = load_contract()
+        mismatches = []
+
+        extension_disabled = copy.deepcopy(contract)
+        extension_disabled["extensions"] = []
+        mismatches.append(extension_disabled)
+
+        setting_disabled = copy.deepcopy(contract)
+        setting_disabled["tuning"]["quan"]["burn_s"] = None
+        mismatches.append(setting_disabled)
+
+        with Workdir() as w:
+            for i, invalid in enumerate(mismatches):
+                with self.subTest(case=i), self.assertRaises(BadInput):
+                    load_contract(write_json(w.path(f"contract-{i}.json"), invalid))
+
     def test_id_sorting(self):
         self.assertEqual([e["id"] for e in sort_by_id([{"id": "F10"}, {"id": "F2"}, {"id": "B1"}])], ["B1", "F2", "F10"])
         self.assertLess(id_key("F2"), id_key("F10"))
