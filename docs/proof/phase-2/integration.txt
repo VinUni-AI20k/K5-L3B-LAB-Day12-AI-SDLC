@@ -1,0 +1,20 @@
+﻿# M6.3b & M6.4 — Bằng chứng tích hợp, smoke day & tất định SHA-256 (Phase 2 · Contract v1.1)
+
+## 1. Smoke tích hợp 2 tiến trình (gather --inventory-out -> quan --inventory)
+- Seed: 42
+- Inventory xuất ra (6 nguyên liệu v1.1): {"items":{"bong_dien_dien":1,"bong_sung":1,"ca_keo":1,"ca_linh":1,"ca_loc":1,"keo_neo":1}}
+- Snapshot tick 0 của quan: {"type":"snapshot","tick":0,"sim_tick":0,"mode":"quan","phase":"quan","phase_tick":0,"state":"playing","time_left_ticks":10800,"money":0,"earned":0,"reputation":3.0,"score":300,"player":{"pos":[8.0,5.0]},"stock":{"bong_dien_dien":1,"bong_sung":1,"ca_keo":1,"ca_linh":1,"ca_loc":1,"keo_neo":1},"hand":null,"stoves":[{"id":"B1","pos":[2,8],"state":"idle","dish":null,"cook_ticks_left":0,"ready_ticks":0},{"id":"B2","pos":[5,8],"state":"idle","dish":null,"cook_ticks_left":0,"ready_ticks":0}],"tables":[{"id":"T1","pos":[9,2],"customer_id":null},{"id":"T2","pos":[13,2],"customer_id":null},{"id":"T3","pos":[9,6],"customer_id":null},{"id":"T4","pos":[13,6],"customer_id":null}],"customers":[]}
+- SHA-256 gather: CDADD278E134DD3A7EC8B597CAF979792B9B75223F6B891D6E05D6D0C4427283 (Match: True)
+- SHA-256 inv:    2F013825127DB90E53CB0647EB8A9D46AC067D3DA11A1A077EEB2C261D2BC8BE (Match: True)
+- SHA-256 quan:   184C78267076B7C74B43B24E8FF95F01C55F5D1E4BBDDEEA47F6F19366AFD13D (Match: True)
+
+## 2. Smoke chế độ day (--mode day --days 1 --ticks 22200)
+- Thời gian chạy thực tế: 1.009s (yêu cầu <= 20s)
+- Dòng end: {"type":"end","ticks":22200,"sim_tick":22200,"mode":"day","state":"finished","reason":"days_complete","money":0,"earned":0,"reputation":3.0,"score":300,"days_completed":1}
+- SHA-256 day_1: 84E713A7F1B5D94C533B44015516BA8C2DD40F53E239DA14A6DACA96F1E6ABB3
+- SHA-256 day_2: 84E713A7F1B5D94C533B44015516BA8C2DD40F53E239DA14A6DACA96F1E6ABB3
+- Match day:     True
+
+## 3. Regression toàn repo
+- python tools/check_team.py: OK (6 thành viên)
+- unittest discover -s tests -v: 145/145 OK
