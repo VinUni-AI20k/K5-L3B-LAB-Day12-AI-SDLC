@@ -43,8 +43,8 @@
 
 ### TV1 — thanhanbk02
 - [ ] **Gắn `phase-1` ngay** (quá hạn), rồi `phase-2` trước 1:55 sau khi TV5 báo xanh.
-- [ ] T210/T211: dán JSON tuning v1.1 từ [`docs/research/phase-2.md`](docs/research/phase-2.md) vào `game.contract.json` (`contract_version:"1.1"`), cập nhật `contract.py`/`inventory.py` (thêm `ca_keo`, `keo_neo`, `fish_initial: 8`). **Việc này mở khóa mode `day`.**
-- [ ] Lát 1: số chuẩn + cá bơi/sinh (`fish_speed`, `fish_spawn_ticks` 360, trần 12).
+- [x] T210/T211: dán JSON tuning v1.1 từ [`docs/research/phase-2.md`](docs/research/phase-2.md) vào `game.contract.json` (`contract_version:"1.1"`), cập nhật `contract.py`/`inventory.py` (thêm `ca_keo`, `keo_neo`, `fish_initial: 8`). **Việc này mở khóa mode `day`.**
+- [x] Lát 1: số chuẩn + cá bơi/sinh (`fish_speed`, `fish_spawn_ticks` 360, trần 12).
 
 ### TV2 — Hải Đăng
 - [ ] Lát 2: Cá Sấu patrol/chase/recoil, hit, rơi LIFO `floor(n/2)`, bất tử 90 tick, ngất (`faint` có `cause:"monster"`, `lost`, `hp:0`).

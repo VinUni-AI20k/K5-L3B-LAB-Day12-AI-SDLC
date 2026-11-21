@@ -24,6 +24,7 @@ import math
 
 from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
+from .fish import initial_schools, spawn_if_due, swim
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -57,15 +58,23 @@ class GatherSim:
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
+        # random_fish:false → cá fixture đứng yên, không bơi/sinh. Có fish_speed mới là contract v1.1.
+        random_fish = scenario.get("random_fish", True)
+        self._fish_live = bool(random_fish) and "fish_speed" in t
         if "fish" in scenario:
             src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
+        elif self._fish_live and isinstance(t.get("fish_initial"), int):
+            self.fish = initial_schools(t, self.rng, ids, int(t["fish_initial"]))
+            src_fish = None
+        elif random_fish and isinstance(t.get("fish_initial"), list):
             src_fish = t["fish_initial"]
         else:
             src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
-        self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+        if src_fish is not None:
+            self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
+                          "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)}
+                         for f in src_fish]
+        self.phase_tick = 0
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
@@ -91,13 +100,15 @@ class GatherSim:
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
+            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"],
+                       "age_ticks": f.get("age_ticks", 0)}
                      for f in sort_by_id(self.fish)],
         }
 
     # --- một bước ---------------------------------------------------------------
     def step(self, inp):
         events = []
+        self.phase_tick += 1
         # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
@@ -121,9 +132,13 @@ class GatherSim:
         # 4. bắt cá
         if inp.pressed("catch"):
             self._try_catch(events)
-        # 5. hết giờ
+        # 5. hết giờ. Còn giờ thì cá bơi rồi mới sinh (cá mới bơi từ bước sau).
         if self.time_left_ticks <= 0:
             self._finish("time", events)
+            return events
+        if self._fish_live:
+            swim(self.fish, self.t, self.rng)
+            spawn_if_due(self.fish, self.t, self.rng, self.ids, self.phase_tick, events)
         return events
 
     # --- tiện ích ---------------------------------------------------------------
@@ -160,8 +175,9 @@ class GatherSim:
                 self.hp -= 1
                 events.append(("choke", {"hp": self.hp}))
                 if self.hp <= 0:
+                    lost = list(self.hold)
                     self.hold.clear()
-                    events.append(("faint", {}))
+                    events.append(("faint", {"hp": 0, "lost": lost}))
                     self._finish("fainted", events)
                     return True
         else:

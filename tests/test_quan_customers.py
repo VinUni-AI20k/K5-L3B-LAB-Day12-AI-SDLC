@@ -34,9 +34,13 @@ def full_stock():
 
 
 def two_tables_tuning():
-    """Nhân bản tuning thêm bàn T2 (fixture test; KHÔNG sửa game.contract.json)."""
+    """Fixture đúng 2 bàn. v1.1 có 4 bàn trong contract, nên không nối thêm vào danh sách thật."""
     t = copy.deepcopy(TUNING)
-    t["quan"]["tables"] = list(Q["tables"]) + [{"id": "T2", "pos": [Q["bounds"]["x"][1] - 1, 2]}]
+    by_id = {tb["id"]: tb for tb in Q["tables"]}
+    t["quan"]["tables"] = [
+        by_id.get("T1", {"id": "T1", "pos": [9, 2]}),
+        by_id.get("T2", {"id": "T2", "pos": [13, 2]}),
+    ]
     return t
 
 
@@ -89,7 +93,10 @@ class Schedule(unittest.TestCase):
         self.assertEqual(len(by_name(evs, "customer_arrived")), 2, "hết bàn trống -> bỏ lượt")
 
     def test_mot_ban_khong_den_them_khi_dang_co_khach(self):
-        sim = make_sim(stock=full_stock())  # tuning chỉ có T1
+        # v1.1 có 4 bàn; fixture này chỉ để T1 để kiểm "hết bàn thì bỏ lượt".
+        one = copy.deepcopy(TUNING)
+        one["quan"]["tables"] = [one["quan"]["tables"][0]]
+        sim = make_sim(stock=full_stock(), tuning=one)
         evs = run_steps(sim, FIRST + INTERVAL)
         self.assertEqual(len(by_name(evs, "customer_arrived")), 1)
         self.assertEqual(by_name(evs, "no_dish"), [], "hết bàn là bỏ lượt im lặng, không no_dish")

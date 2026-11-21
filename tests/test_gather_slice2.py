@@ -480,6 +480,8 @@ class GatherSlice1And2IntegrationTests(unittest.TestCase):
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [6, 0], "hp": 1, "oxygen_ticks": 15},
                 "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [6, 0]}],
+                # v1.1: cá khai trong scenario vẫn bơi. Tắt để cá đứng yên đúng chỗ bắt ở tick 25.
+                "random_fish": False,
                 "fish": [{"id": "F1", "kind": "ca_loc", "pos": [6, 1.5]}],
             }})
             inp = write_json(w.path("in.json"), frames(
