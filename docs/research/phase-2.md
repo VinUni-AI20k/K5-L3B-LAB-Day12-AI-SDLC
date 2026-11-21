@@ -1,22 +1,24 @@
 # Research Phase 2 — Test Contract v1.1, vòng ngày, ảnh hưởng code
 
-> Người viết: worker RESEARCH (Claude), chỉ đọc code. Ngày 2026-11-21, branch `tv6/phase-1-team-ai`, HEAD `8f4330e`.
+> Người viết: worker RESEARCH (Claude), chỉ đọc code. Ngày 2026-11-21, branch `tv6/phase-1-team-ai`, HEAD `8f4330e` (bản gốc).
+> **(cập nhật 11:22)** Đối chiếu lại sau merge PR #3 (`425da65`, `quan.py` TV4) + gather lát 2 / day+shop+pause trên branch.
 > Nguồn: `docs/prd/phase-2-ticket-02.md` (TICKET-02, bản text thô). **Cập nhật**: đề đã được chép lại đầy đủ (535 dòng); số dòng `:N` ở mục 1.1 và 2.2 theo bản cũ, còn mục 7 dẫn theo **bản mới**. Các chỗ `[CẮT]` cũ đã được thay bằng giá trị trong đề, chỉ còn lại những chỗ vẫn thiếu. Chỗ suy luận ghi **GIẢ ĐỊNH**.
-> Số dòng `chonoi/` theo working tree lúc viết. `chonoi/sim/gather.py` đang có lát 1 đã stage nhưng chưa commit; file có thể đổi tiếp.
 
 ## 0. Hiện trạng (đo lúc viết)
 
 | Mục | Trạng thái |
 |---|---|
-| Test | `PYTHONPATH=tests:. python3 -m unittest discover -s tests` → **32 test, OK** |
-| Luật P1 | Lát 1 (oxy, ngạt, ngất, giỏ) có trong working tree (`gather.py:145-174`, `try_add_hold` `:131-141`). **Lát 2 (hái, bắt cá) và toàn bộ quán (lát 3–4) vẫn là TODO** (`gather.py:120,124`, `quan.py:40,75,77,78`) |
-| Tag | Chưa có tag `phase-1` (`git tag` rỗng) |
-| Contract | `game.contract.json` vẫn là v1.0, `team_size: 4` |
+| Test | **(cập nhật 11:22)** **60 test, OK** (bản gốc: 32) |
+| Luật P1 gather | **(cập nhật 11:22)** Lát 1+2 **đã có** (`_oxygen_and_breath`, `_try_harvest`, `_try_catch`, `_try_add_hold_batch` nguyên tử). Chưa có cá bơi / Cá Sấu (P2) |
+| Quán | **(cập nhật 11:22)** Hàm thao tác có (PR #1/#3: `start_cooking` hỗ trợ kho cá thể + `base_price`). **`QuanSim.step` chưa nối** (khách/lịch/interact/tiền vẫn TODO) |
+| Mode `day`, Shop, pause | **(cập nhật 11:22)** **Đã có** (`sim/day.py`, `sim/shop.py`, pause ở `runner.py`). `--mode day` **chỉ chặn vì contract vẫn v1.0** (thiếu `day_plan`/`shop` → mã 2 "chờ TV1") |
+| Tag | Chưa có tag `phase-1` / `phase-2` |
+| Contract | **`game.contract.json` vẫn v1.0**, `team_size: 4` — chưa dán JSON v1.1 mục 1.4 |
 | Hiệu năng | Gather 22.200 tick (đi chéo, ngất ở tick 1992): **0,09 s**; `--snapshot-every 1`: 0,17 s. Ngân sách 20 s còn dư rất nhiều |
 
-Hệ quả: test ẩn P2 **kiểm lại P1 với số chuẩn**. Lát 2–4 của P1 phải xong trước, nếu không mọi test P1 về hái, bắt cá, quán đều trượt ở cả phase 2.
+Hệ quả: test ẩn P2 **kiểm lại P1 với số chuẩn**. **(cập nhật 11:22)** Gather P1 xong; còn **nối `QuanSim.step`** + TV1 dán contract v1.1 mới mở khóa day thật.
 
-Lát 1 đã khớp đề: ngạt "tính cả bước vừa chạm 0" và "reset khi oxy > 0 hoặc lên mặt nước" (`gather.py:158-164`).
+Lát 1 đã khớp đề: ngạt "tính cả bước vừa chạm 0" và "reset khi oxy > 0 hoặc lên mặt nước" (`gather.py:156-168`).
 
 ---
 
@@ -229,7 +231,7 @@ Số khác giữ nguyên như v1.0 (đề §1 khớp từng số: bounds, bến,
 7. Hết giờ → `gather_end(time)`.
 8. Nếu còn giờ: cá bơi → sinh theo lịch (`fish_spawned`) → Cá Hô (nếu bật).
 
-Hệ quả: cùng tick có thể có `choke` rồi `monster_hit`; cập bến thắng bắt cá và hết giờ nếu còn Máu. Code hiện tại (`gather.py:99-128`) đã đúng thứ tự 1–2–5–6–7; cần chèn bước 4 giữa oxy và interact, thêm bước 8 sau hết giờ.
+Hệ quả: cùng tick có thể có `choke` rồi `monster_hit`; cập bến thắng bắt cá và hết giờ nếu còn Máu. **(cập nhật 11:22)** Code gather đã có thứ tự 1–2–5–6–7 (oxy → interact/hái → catch → hết giờ); **chưa** có bước 4 (Cá Sấu) và bước 8 (cá bơi/sinh) — vẫn việc P2.
 
 **Cá bơi (`:62`, `:77`)**: 1.5 m/s = 0.025 m/tick. Ở bước bơi thứ 120, 240… (theo `age_ticks` của đàn) đổi hướng theo seed **trước** khi di chuyển. Chạm mép miền (`fish_x` × `fish_depths[loài]`) thì phản xạ phần quãng còn lại và đảo thành phần hướng vuông góc với mép đó (chạm góc đảo cả hai). Sinh: tại `phase_tick % 360 == 0` (k ≥ 1), sau khi cá bơi, nếu số đàn < 12 và còn điểm hợp lệ (cách mọi đàn đang sống **> 1 m**). Chọn loài theo trọng số chuẩn hóa lại trên các loài còn điểm → chọn đều một điểm → hướng theo seed. Cá mới bơi từ bước sau (age 0).
 
@@ -281,12 +283,12 @@ Ký hiệu: **K** = file khung (luật chung cấm sửa → **cần nhóm/integ
 | Session nhiều pha, 3 bộ đếm tick | `chonoi/runner.py:21-25,28-35,51-69,77-97` | **K** | `build_sim` cho `day`; `_common` hiện gán `tick = sim_tick = phase_tick` (`:52`) → cần tách 3 bộ đếm (pause, đổi pha); `state` thêm giá trị `"paused"` (bản mới `:380`); vỏ event thêm `day`; `end_row` thêm `days_completed`; `write_inventory_if_done` không dùng trong day |
 | Live cho day + pause/shop | `chonoi/live.py:118-125,218` | **K** | `--mode` thêm `day`; `set_input` nhận `pause`, `shop_done`, `buy`; `meta` theo **pha** hiện tại (`tuning[phase]`) và thêm `menu`, `day_plan`, `shop` |
 | Số chuẩn + cá bơi/sinh | `chonoi/sim/gather.py` `__init__` `:57-68`, `step`, thêm `_fish_step`, `_spawn` | N | `fish_initial` số → chọn 8 điểm khác nhau theo seed; bơi/phản xạ/đổi hướng; sinh; `age_ticks` |
-| Bắt cá cả đàn | `gather.py` (lát 2) | N | `try_add_hold` thêm **từng món** (`:131-141`) → cần kiểm `len(hold) + yield ≤ 12` **trước**, nếu không sẽ thêm thiếu. Cooldown chỉ đặt khi bắt thành công |
-| Cá Sấu, bất tử, rơi hàng | `gather.py` mới `_monsters_step`, `_monster_hit` | N | Chèn giữa oxy và interact; `invuln_ticks` đã có (`:52,103`) |
-| HP/oxy theo cấp | `gather.py:48-50` | N | `oxygen_max`/`hp_max` lấy từ `active_upgrades` khi chạy day |
-| 2 bếp/4 bàn, 6 món, kế hoạch | `chonoi/sim/quan.py` (lát 3–4 P1 vẫn TODO) | N | Ghế trống id nhỏ nhất; lọc menu theo kế hoạch; `order_tick`; đóng ca |
-| Vòng ngày + Shop | **mới** `chonoi/sim/day.py` (`DaySim`), có thể `chonoi/sim/shop.py` | N | Bọc `GatherSim` → `QuanSim` → Shop; giữ `money/earned/reputation/upgrades`; phát sự kiện đổi pha |
-| Pause | Đặt ở runner (`Session.step`) hoặc `DaySim` | K hoặc N | Nên đặt trong một lớp bọc sim để gather/quan độc lập cũng có pause (đề: "pause ở cả ba mode") |
+| Bắt cá cả đàn | `gather.py` `_try_add_hold_batch` | N | **(cập nhật 11:22)** **ĐÃ CÓ**: kiểm `len(hold)+count ≤ capacity` trước, một `hold_full`, không thêm thiếu. Cooldown chỉ khi bắt thành công |
+| Cá Sấu, bất tử, rơi hàng | `gather.py` mới `_monsters_step`, `_monster_hit` | N | Chèn giữa oxy và interact; `invuln_ticks` đã có — **chưa làm** |
+| HP/oxy theo cấp | `gather.py:48-50` + `day.py` | N | **(cập nhật 11:22)** `DaySim` đã áp upgrade lên bản sao tuning; GatherSim chưa nhận kwargs ngữ cảnh Ngày (T246) |
+| 2 bếp/4 bàn, 6 món, kế hoạch | `chonoi/sim/quan.py` | N | **(cập nhật 11:22)** Hàm thao tác có (PR #3); **`step` chưa nối**; số bếp/bàn/menu chờ contract v1.1 |
+| Vòng ngày + Shop | `chonoi/sim/day.py`, `shop.py` | N | **(cập nhật 11:22)** **ĐÃ CÓ**; chạy thật khi contract có `day_plan`/`shop` |
+| Pause | `runner.py` `Session.step` | K | **(cập nhật 11:22)** **ĐÃ CÓ** (cả ba mode) |
 | HUD/menu/pause UI | `chonoi/web/index.html` | N (UI) | Mục 5 |
 | Test | `tests/` | (QA) | Sửa test P1 có lý do (mục 4) + test mới |
 
@@ -353,12 +355,12 @@ Phím mới: Esc/P → `pause`; Shop: phím chọn nâng cấp → `{"buy":"oxyg
 ---
 
 ## 6. Rủi ro chính
-1. **P1 chưa xong** (lát 2–4 TODO, chưa có tag `phase-1`). Test ẩn P2 kiểm lại P1 → làm P1 trước.
-2. **File khung bắt buộc sửa** (mục 3). Nếu giữ luật "không sửa khung" thì không đạt v1.1. Cần quyết ngay ai sửa.
-3. **Đề còn thiếu** (mục 7, clarify #30, #32, #33): `faint.data` khi ngất do ngạt, dạng `extensions`, cá bị bắt có biến mất không.
-4. `hold_full` data không thống nhất: code gửi `{"kind"}` (`gather.py:138`, `docs/contracts/README.md`), còn `specs/001-phase-1-core/contracts/events.md` ghi `{source_id}`. Chốt một bên.
-5. Bắt cả đàn bằng `try_add_hold` từng món sẽ thêm thiếu (vd. còn 1 ô mà bắt cá linh).
-6. Tách `tick`/`sim_tick`/`phase_tick` đụng `runner.py`, dễ vỡ test cũ (`test_session_steps_gather_and_dock` kiểm `snapshot()["tick"]`).
+1. **(cập nhật 11:22)** Gather lát 1+2 xong; **QuanSim `step` chưa nối** + chưa tag `phase-1`. Contract vẫn **v1.0** → day/shop code có nhưng chưa chạy được end-to-end.
+2. **File khung bắt buộc sửa** (mục 3) để dán v1.1 — TV1/`contract.py`/`game.contract.json`.
+3. **Đề còn thiếu** (mục 7, clarify #30, #32; #33: code TV2 đã xóa đàn khi bắt — khớp giả định, vẫn CHỜ HỎI Anh Năm).
+4. `hold_full` data: code gửi `{"kind"}` (`_try_add_hold_batch`, `docs/contracts/README.md`); `specs/.../events.md` ghi `{source_id}` — chốt một bên.
+5. **(cập nhật 11:22)** Rủi ro "try_add_hold thêm thiếu" **đã hết**: `_try_add_hold_batch` kiểm chỗ trước, từ chối cả đàn.
+6. Tách `tick`/`sim_tick`/`phase_tick`: **(cập nhật 11:22)** runner đã tách + pause; regression khi TV1 đổi contract.
 
 ## 7. Câu hỏi mở — trạng thái sau khi đọc đề bản đầy đủ
 

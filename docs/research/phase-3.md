@@ -1,21 +1,22 @@
 # Research Phase 3 — Contract v1.2: kho cá thể + độ tươi
 
-> Người viết: agent RESEARCH (Claude) cho TV6, chỉ đọc code. Ngày 2026-11-21, branch `tv6/phase-1-team-ai`, HEAD `80c017e` (đã gồm merge PR #1 `QuanSim`).
+> Người viết: agent RESEARCH (Claude) cho TV6, chỉ đọc code. Ngày 2026-11-21, branch `tv6/phase-1-team-ai`, HEAD `80c017e` (bản gốc, đã gồm PR #1).
+> **(cập nhật 11:22)** Đối chiếu sau merge PR #3 (`425da65`: `start_cooking` kho cá thể + `base_price`) và gather lát 2 / day+shop+pause.
 > Nguồn: `docs/prd/phase-3-ticket-03.md` (TICKET-03, 140 dòng, có dòng lặp), brief `.lab-notes/brief-phase-2-3.html`, ADR `docs/adr/0001-kho-ca-the-v1-2.md`.
-> Số dòng `chonoi/` theo HEAD. Chỗ suy luận ghi **GIẢ ĐỊNH**.
+> Chỗ suy luận ghi **GIẢ ĐỊNH**.
 
 ## 0. Hiện trạng (đo lúc viết)
 
 | Mục | Trạng thái |
 |---|---|
-| Test | `PYTHONPATH=tests:. python3 -m unittest discover -s tests` → **32 test, OK** |
-| `game.contract.json` | vẫn **v1.0** (`"contract_version": "1.0"`, `team_size: 4`, 6 cá dạng mảng). JSON v1.1 trong `docs/research/phase-2.md` **chưa được dán** |
-| Gather | Lát 1 có (oxy, ngạt, ngất, `try_add_hold`). Hái và bắt cá vẫn TODO (`gather.py:120,124`). Chưa có cá bơi, Cá Sấu (P2) |
-| Quán | PR #1 thêm 4 hàm thao tác (`start_cooking` `quan.py:73-93`, `finish_cooking` `:95-100`, `pick_dish` `:102-108`, `serve_dish` `:110-120`) nhưng **chưa nối vào `step()`** (`:122-134` vẫn TODO). Chưa có khách, giữ chỗ, tiền |
-| Mode `day`, Shop, pause | chưa có (`headless.py:47-48` vẫn chặn `day`) |
+| Test | **(cập nhật 11:22)** **60 test, OK** (bản gốc: 32) |
+| `game.contract.json` | vẫn **v1.0** (`"contract_version": "1.0"`, `team_size: 4`, 6 cá dạng mảng). JSON v1.1 / `tuning.freshness` **chưa được dán** |
+| Gather | **(cập nhật 11:22)** Lát 1+2 **đã có** (hái/bắt, `_try_add_hold_batch` nguyên tử, bắt xóa đàn). Chưa cá thể/`fresh`; chưa cá bơi/Cá Sấu |
+| Quán | **(cập nhật 11:22)** PR #1+#3: hàm thao tác + `start_cooking` nhận kho list/`base_price`/`items`. **`QuanSim.step` chưa nối** (khách/lịch/hao tươi/interact vẫn TODO) |
+| Mode `day`, Shop, pause | **(cập nhật 11:22)** **Đã có** (`day.py`, `shop.py`, pause runner). `--mode day` **chỉ chặn vì contract v1.0** thiếu `day_plan`/`shop` |
 | Tag | chưa có tag nào |
 
-Hệ quả: v1.2 nằm **trên** v1.1. Thứ tự thực tế: P1 lõi → v1.1 (số chuẩn) → adapter v1.2. Bật `"1.2"` khi gather chưa có id cá thể sẽ làm mọi test dùng `hold` vỡ (mục 5).
+Hệ quả: v1.2 nằm **trên** v1.1. Thứ tự thực tế: nối quán `step` → v1.1 (TV1) → adapter v1.2. Bật `"1.2"` khi gather chưa có id cá thể sẽ làm mọi test dùng `hold` vỡ (mục 5).
 
 ---
 
@@ -92,10 +93,10 @@ Nên để `contract.py` kiểm `decay × 240 / 60` là số nguyên, nếu khô
 | `gather.py:131-140` `try_add_hold(kind)` | `append(kind)` | cấp `I<n>` bằng `self.ids.new("I")`, `fresh = 100`, append | TV1/TV2 |
 | `gather.py:163-166` ngất | `hold.clear()`, `faint {}` | bỏ phần còn lại **theo LIFO** (đảo mảng), `faint.data.lost` = mảng cá thể theo thứ tự bỏ (+ `hp:0` theo v1.1) | TV1 |
 | `gather.py:99-109` đầu bước | đồng hồ, cooldown, hồi nút | thêm hao tươi hàng có sẵn −2 đơn vị/tick, phát `spoiled` theo id | TV2 |
-| `chonoi/sim/quan.py:31` | `self.stock = dict(...)` (đếm) | mảng/dict cá thể theo id; `ids.reserve` | TV3/TV4 |
-| `quan.py:40` | `reserved = c.get("reserved", {})` | mảng id | TV3 |
-| `quan.py:63` snapshot `stock` | object đếm | mảng cá thể theo id | TV4 |
-| `quan.py:73-93` `start_cooking` | kiểm và trừ theo **số lượng** loại | tiêu **đúng các id đang giữ**; chốt `base_price`; `cook_started.data.items` | TV4 |
+| `chonoi/sim/quan.py:32-33` | **(cập nhật 11:22)** nhận cả list cá thể lẫn dict đếm | giữ dual-path tới khi bật v1.2; `ids.reserve` | TV3/TV4 |
+| `quan.py:42` | `reserved = c.get("reserved", {})` | mảng id | TV3 |
+| `quan.py:65-66` snapshot `stock` | dual-path (list → `sort_by_id`) | khi v1.2 chỉ mảng cá thể theo id | TV4 |
+| `quan.py:76-109` `start_cooking` | **(cập nhật 11:22, PR #3)** đã tiêu id đang giữ + `base_price` + `items` khi `stock` là list | còn: bên gọi từ **`step` (chưa nối)** phải truyền `base_price` | TV4 |
 
 ---
 
@@ -105,8 +106,8 @@ Nên để `contract.py` kiểm `decay × 240 / 60` là số nguyên, nếu khô
 |---|---|---|---|
 | **Adapter / schema** (làm trước) | `inventory.py`: `KINDS_P1` `:13`, `validate_items` `:16`, `read_inventory` `:30`, `hold_to_items` `:41`, `write_inventory` `:49`; `contract.py`: `validate_tuning` `:112`; `scenario.py`: `_validate_gather` `:84` (hold), `_validate_quan` `:143` (stock, reserved); `headless.py:66`; `live.py:233`; `game.contract.json` | **Đổi**: `test_smoke_p1.py:197,212,215,219,232-235,239-241,246` (mục 5). **Thêm**: kho đếm → mã 2; id trùng, kind lạ, fresh −1/100.5/NaN → mã 2; `{"items":[]}` hợp lệ; ghi nguyên tử, không để `.inv-*.tmp`; ngất ghi `[]`; `--ticks` cắt trước thì không có file | TV1 + agent khung (TV6) |
 | **Lặn** | `gather.py`: `__init__` `:54`, `step` `:99-128` (bước 1), `try_add_hold` `:131`, `_oxygen_and_breath` `:145` (ngất), `inventory_items` `:79`, `snapshot` `:82`; sau này `_monster_hit` (P2) | **Đổi**: `test_python_starter_units.py:65` (hold chuỗi), `test_smoke_p1.py:85,184,204`. **Thêm**: scenario mẫu → `spoiled` tick 1; hàng mới không hao trong bước nhặt; 8400 vs 8401 bước (mục 4.3); id I tăng liên tục; `lost` LIFO | TV2 (+TV1) |
-| **Quán** | `quan.py`: `__init__` `:31,40`, `snapshot` `:59-69`, `start_cooking` `:73-93`, `step` `:122` (hao tươi, spoiled, giữ lại, thứ tự tick) | **Thêm**: hao 1 đơn vị/tick kể cả hàng đang giữ; phần giữ vừa ươn → nhả, giữ lại một lần, thiếu → `unfulfillable`; `base_price` floor; boa trên giá đã chốt; `cook_started.items` sắp kind→id. **Đổi**: test giá/boa P1–P2 (chưa có trong repo) | TV3 (giữ chỗ) + TV4 (hao, giá, nấu) |
-| **day** | `runner.py` (`Session`, `build_sim` `:21`), `sim/day.py` (chưa có) | **Thêm**: bàn giao cùng tick, không hao thêm; id tăng xuyên Ngày; Ngày 2 cấp id mới cho mẫu `gather.hold` | agent khung (TV6) |
+| **Quán** | `quan.py`: `__init__`, `snapshot`, `start_cooking` (PR #3 đã có nhánh cá thể), **`step` chưa nối** (`:157-169`) | **(cập nhật 11:22)** Còn: nối `step` + hao 1 đơn vị/tick + giữ lại khi vừa ươn; `base_price` floor từ caller; boa trên giá đã chốt | TV3 (giữ chỗ) + TV4 (hao, giá, nấu) |
+| **day** | `runner.py`, `sim/day.py` **(đã có)** | **(cập nhật 11:22)** Khung day có; còn bàn giao id cá thể xuyên Ngày khi bật v1.2 | agent khung (TV6) |
 | **HUD** | `chonoi/web/index.html` (giỏ, kho quán, Shop) | **Giữ**: `tests/test_live.py:41` (`player.pos`). Hiện số/thanh fresh, nhãn ươn (`fresh < 30`) | Cursor (TV6) |
 | **QA** | `tests/`, `docs/verification/phase-3.md`, `docs/proof/phase-3/`, `CHANGELOG.md` | **Giữ**: con_01/02/03, Movement, team, live. Regression P1–P2 còn hiệu lực; smoke bàn giao của đề (`:54`) | TV5 |
 
@@ -137,7 +138,7 @@ Thứ tự tích hợp đề xuất (khớp ADR-0001): (1) adapter đọc/ghi **
 6. Nếu còn giờ: đặt trước (nếu bật) → khách thường.
 - Giao đúng tick kiên nhẫn chạm 0 vẫn hợp lệ. Giao đúng tick kết thúc ca thì được trả tiền ngay.
 
-So với code: `QuanSim.step` (`quan.py:122-134`) mới có đồng hồ → di chuyển → hết giờ. Cần chèn bước 2–3 trước `_move` và bước 5–6 sau.
+So với code **(cập nhật 11:22)**: `QuanSim.step` (`quan.py:157-169`) **vẫn chưa nối** — chỉ đồng hồ → `_move` → hết giờ/`quan_end`. Hàm thao tác (kể cả PR #3) chưa được gọi từ `step`. Cần chèn bước 2–3 trước `_move` và bước 5–6 sau.
 
 ### 4.2 Sự kiện và dữ liệu mới/đổi (đề `:45-50`)
 
@@ -190,7 +191,7 @@ Lưu ý: nhiều test "vẫn xanh vì may" ở trên sẽ **che lỗi** adapter.
 ---
 
 ## 6. Rủi ro
-1. **Nền chưa có**: contract v1.0, lõi P1 quán chưa nối, P2 chưa làm. v1.2 bị chặn bởi v1.1 (6 loại nguyên liệu, `day`). Ưu tiên: P1 → v1.1 → adapter.
+1. **(cập nhật 11:22)** Contract vẫn **v1.0**; gather lát 1+2 + day/shop/pause **đã có** (day chỉ chặn vì thiếu khóa contract); **QuanSim `step` chưa nối**. v1.2 vẫn bị chặn bởi v1.1. Ưu tiên: nối quán → v1.1 → adapter.
 2. **Float ở ngưỡng**: phải lưu `units` nguyên trong sim; chỉ đổi ra float khi xuất.
 3. **Hai phiên bản trong lúc chuyển**: `read_inventory` phải chọn theo version, không đoán theo dạng file (đề `:13`).
 4. **Id duy nhất toàn cục**: một `IdAllocator` cho cả giỏ, kho, mua Chợ và mẫu Ngày sau; `reserve()` mọi id từ scenario/file trước khi `new("I")`.

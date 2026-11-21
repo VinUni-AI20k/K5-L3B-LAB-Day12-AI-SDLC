@@ -1,42 +1,40 @@
 # Research Phase 1 — luật, Test Contract, rủi ro
 
 > Người viết: worker RESEARCH (Claude), chỉ đọc code. Ngày 2026-11-21, branch `tv6/phase-1-team-ai`.
-> **Số dòng dẫn theo commit `f0a1906` (HEAD)**. `chonoi/sim/*.py` có thể đang được worker code sửa song song, nên số dòng ở đó có thể lệch; tìm theo chuỗi `TODO(nhóm`.
+> **Số dòng dẫn theo commit `f0a1906` (bản gốc)**; **(cập nhật 11:22)** đối chiếu lại HEAD có PR #3 (`425da65` / `quan.py` TV4) + gather lát 1+2. Tìm `TODO(nhóm` còn lại chủ yếu ở `quan.py` `step`.
 > PRD-0 trên lab board không đọc được. Những gì không có trong starter/contract/test được đánh dấu **GIẢ ĐỊNH** hoặc **CÂU HỎI**.
 
 ## 0. Kết quả chạy (bằng chứng)
 
 | Lệnh | Kết quả |
 |---|---|
-| `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` (Python 3.13.9) | **32 test, 32 pass, 0 fail** (`Ran 32 tests in 2.901s — OK`) |
+| `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` (Python 3.13.9) | **(cập nhật 11:22)** **60 test, OK** (bản gốc lúc viết: 32) |
 | `python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out <scratch>/out.jsonl` | mã 0; 62 dòng (snapshot tick 0, 10, …, 600 + `end`); không có event (người chơi đứng yên ở bến); `end.reason = "tick_limit"` |
 | Chạy lại cùng lệnh ra `out2.jsonl`, `cmp` | **giống từng byte** |
 | `--mode quan --seed 1 --ticks 0` | mã 0; snapshot + end, `stock:{}`, `customers:[]` |
 
-Lưu ý: test hiện có **chỉ phủ khung** (CLI, bơi, mép, hết giờ, bến, kho). Chưa có test nào cho oxy/ngạt/hái/bắt cá/quán, nên xanh lúc này **không** nói gì về luật nhóm viết.
+**(cập nhật 11:22)** Hiện trạng code: gather **lát 1+2 đã có** (`_oxygen_and_breath`, `_try_harvest`, `_try_catch`; bắt thành công **xóa đàn**). `DaySim`/`ShopSim` + pause ở runner **đã có**; `--mode day` chỉ còn **chặn vì `game.contract.json` vẫn v1.0** (thiếu `tuning.day_plan`/`shop` → mã 2 "chờ TV1"). **QuanSim `step` chưa nối** (PR #3 chỉ mở rộng hàm thao tác + kho cá thể; khách/lịch/interact vẫn TODO). Contract repo vẫn `"1.0"`.
 
 ---
 
 ## 1. Bản đồ code: các `TODO(nhóm)`
 
-| # | File:dòng (HEAD) | Hàm | Việc | Người (theo `docs/plan/phase-1.md:17-20`) |
-|---|---|---|---|---|
-| 1 | `chonoi/sim/gather.py:10-15` (docstring) | — | Mô tả lát 1: oxy, ngạt, Máu, ngất, dive/surface/oxygen_empty/choke/faint, giỏ LIFO | TV1 |
-| 2 | `chonoi/sim/gather.py:112` | `GatherSim.step` (sau `_move`) | So vùng đầu/cuối bước → `dive` / `surface` (data: `pos`) | TV1 |
-| 3 | `chonoi/sim/gather.py:113-114` | `GatherSim.step` | Oxy theo `d` cuối bước, `oxygen_empty`, đếm ngạt, `choke`, Máu 0 → `faint` + `gather_end("fainted")` giỏ rỗng, `return` | TV1 |
-| 4 | `chonoi/sim/gather.py:16-19` (docstring) | — | Mô tả lát 2: hái, mọc lại, bắt cá, hồi chiêu, bến trước hái | TV2 |
-| 5 | `chonoi/sim/gather.py:120-121` | `GatherSim.step` (nhánh `interact`, sau bến) | Chỉ ở mặt nước: hái nút `ready` gần nhất trong `interact_radius`, hòa thì id nhỏ; `gather` / `hold_full`; đặt `regrow_ticks` | TV2 |
-| 6 | `chonoi/sim/gather.py:124` | `GatherSim.step` (nhánh `catch`) | Chỉ khi `catch_cd_ticks == 0` và dưới nước: `fish_caught` / `hold_full` | TV2 |
-| 7 | `chonoi/sim/quan.py:4-5` (docstring) | — | Lát 3: khách theo lịch, chọn món nấu được, giữ chỗ, kiên nhẫn, `customer_left`, `no_dish` | TV3 |
-| 8 | `chonoi/sim/quan.py:40` | `QuanSim.__init__` | Dựng khách từ scenario `customers[]`, suy ra `reserved` | TV3 |
-| 9 | `chonoi/sim/quan.py:75` | `QuanSim.step` (trước `_move`) | Giảm kiên nhẫn / nấu / ăn; bếp chín → ready; xử lý khách theo PRD-0 mục F | TV3 (khách) + TV4 (bếp, ăn) |
-| 10 | `chonoi/sim/quan.py:6-7` (docstring) | — | Lát 4: `cook_started`, `dish_ready`, `dish_picked`, `served`, `paid`, boa, uy tín, `quan_end` | TV4 |
-| 11 | `chonoi/sim/quan.py:77` | `QuanSim.step` (sau `_move`) | Tối đa MỘT interact/tick, chọn theo (khoảng cách, bếp trước bàn, id) | TV4 |
-| 12 | `chonoi/sim/quan.py:78` | `QuanSim.step` | Khách mới theo `first_customer_tick`, `customer_interval_s`; `no_dish` | TV3 |
-| 13 | `chonoi/scenario.py:4-5` | `_validate_quan` (`:143-163`) | Kiểm mâu thuẫn mức luật → mã 2 (giữ chỗ quá kho, đơn `assigned` phải đúng một món, khách `eating` thiếu giá/tip…) | TV3 |
-| 14 | `chonoi/contract.py:139` | `validate_tuning` | (Tùy chọn) kiểm thêm khóa còn lại (bếp/bàn, uy tín…) | TV1 — **file khung, nhóm không sửa ở P1** |
+**(cập nhật 11:22)** Lát 1–2 gather **đã làm xong**; bảng dưới đánh dấu trạng thái. Còn mở: **QuanSim `step` chưa nối** + khách/lịch (TV3) + interact/trả tiền trong vòng tick (TV4 gọi hàm đã có). Contract vẫn v1.0.
 
-Ghi chú: `scenario.py` và `contract.py` nằm trong danh sách "file khung" của luật chung (task này) nhưng TODO #13 lại giao cho nhóm. **CÂU HỎI cho team lead**: TV3 có được sửa `chonoi/scenario.py` không? (plan `:19` nói có.)
+| # | File:dòng | Hàm | Việc | Trạng thái (cập nhật 11:22) | Người |
+|---|---|---|---|---|---|
+| 1–3 | `gather.py` `_oxygen_and_breath` `:144-169` | lát 1 | dive/surface, oxy, ngạt, faint | **ĐÃ CÓ** | TV1 |
+| 4–6 | `gather.py` `_try_harvest`/`_try_catch` `:232-260`, `_try_add_hold_batch` `:200-217` | lát 2 | hái, bắt cá (xóa đàn khi thành công), `hold_full` nguyên tử cả đàn | **ĐÃ CÓ** | TV2 |
+| 7 | `quan.py:4-5` (docstring) | — | Lát 3: khách theo lịch, chọn món, giữ chỗ, kiên nhẫn, `customer_left`, `no_dish` | **TODO** (chưa nối `step`) | TV3 |
+| 8 | `quan.py:41` | `QuanSim.__init__` | Dựng khách từ scenario `customers[]`, suy ra `reserved` | **TODO** | TV3 |
+| 9 | `quan.py:160` | `QuanSim.step` (trước `_move`) | Giảm kiên nhẫn / nấu / ăn; bếp chín → ready | **TODO — step chưa nối** | TV3 + TV4 |
+| 10 | `quan.py:76-155` | hàm thao tác | `start_cooking` (+kho cá thể/`base_price` sau PR #3), `finish_cooking`, `pick_dish`, `serve_dish` | **ĐÃ CÓ hàm**; chưa gọi từ `step` | TV4 |
+| 11 | `quan.py:162` | `QuanSim.step` (sau `_move`) | Tối đa MỘT interact/tick | **TODO — step chưa nối** | TV4 |
+| 12 | `quan.py:163` | `QuanSim.step` | Khách mới theo lịch; `no_dish` | **TODO — step chưa nối** | TV3 |
+| 13 | `scenario.py` | `_validate_quan` | Kiểm mâu thuẫn mức luật → mã 2 | một phần / còn TODO nhóm | TV3 |
+| 14 | `contract.py:139` | `validate_tuning` | (Tùy chọn) kiểm thêm khóa | tùy chọn; **contract vẫn `"1.0"`** | TV1 |
+
+Ghi chú: clarify #28 đã chốt — TV3 kiểm trong `QuanSim.__init__` được, không bắt buộc sửa khung `scenario.py`.
 
 ---
 
@@ -73,18 +71,19 @@ Thứ tự: snapshot tick 0 → mỗi bước: các event (theo thứ tự `step
 | Sự kiện | Mode | `data` đã có trong code | Nguồn | Trạng thái |
 |---|---|---|---|---|
 | `node_regrown` | gather | `{node_id}` | `gather.py:105-109` | ĐÃ CÓ |
-| `gather_end` | gather | `{reason: docked\|time\|fainted, inventory:{items:{..}}}` | `gather.py:137-140` | ĐÃ CÓ (`fainted` chưa) |
-| `dive`, `surface` | gather | `{pos}` | `gather.py:112` | TODO; data theo comment |
-| `oxygen_empty` | gather | ? | `gather.py:113` | TODO; **GIẢ ĐỊNH** `{}` hoặc `{pos}` |
-| `choke` | gather | ? | `gather.py:12` | TODO; **GIẢ ĐỊNH** `{hp}` |
-| `faint` | gather | ? | `gather.py:13` | TODO; **GIẢ ĐỊNH** `{pos}` |
-| `gather` (hái) | gather | ? | `gather.py:17,121` | TODO; **GIẢ ĐỊNH** `{node_id, kind, count}` |
-| `fish_caught` | gather | ? | `gather.py:18,124` | TODO; **GIẢ ĐỊNH** `{fish_id, kind, count}` |
-| `hold_full` | gather | ? | `gather.py:17-18` | TODO; **GIẢ ĐỊNH** `{}` hoặc `{source_id}` |
-| (khách đến) | quan | ? | `quan.py:4,78` | Tên chưa có trong starter; UI đoán `customer_arrived` (`chonoi/web/index.html`, bản đang sửa). **CÂU HỎI** PRD mục E |
-| `customer_left`, `no_dish` | quan | ? | `quan.py:5` | TODO |
-| `cook_started`, `dish_ready`, `dish_picked`, `served`, `paid` | quan | ? | `quan.py:6-7` | TODO; UI đọc `data.dish_id` nếu có |
-| `quan_end` | quan | `{reason:"time", money, earned, shift_earned, reputation}` | `quan.py:79-83` | ĐÃ CÓ |
+| `gather_end` | gather | `{reason: docked\|time\|fainted, inventory:{items:{..}}}` | `gather.py:177-180` | ĐÃ CÓ (kể cả `fainted`) **(cập nhật 11:22)** |
+| `dive`, `surface` | gather | `{pos}` | `_oxygen_and_breath` | **ĐÃ CÓ** **(cập nhật 11:22)** |
+| `oxygen_empty` | gather | `{}` | `_oxygen_and_breath` | **ĐÃ CÓ** **(cập nhật 11:22)** |
+| `choke` | gather | `{hp}` | `_oxygen_and_breath` | **ĐÃ CÓ** **(cập nhật 11:22)** |
+| `faint` | gather | `{}` (P2 có thể thêm `lost`/`hp`/`cause`) | `_oxygen_and_breath` | **ĐÃ CÓ** **(cập nhật 11:22)** |
+| `gather` (hái) | gather | `{node_id, kind, count}` | `_try_harvest` | **ĐÃ CÓ** **(cập nhật 11:22)** |
+| `fish_caught` | gather | `{fish_id, kind, count}` | `_try_catch` (xóa đàn) | **ĐÃ CÓ** **(cập nhật 11:22)** |
+| `hold_full` | gather | `{kind}` | `try_add_hold` / `_try_add_hold_batch` | **ĐÃ CÓ** **(cập nhật 11:22)** |
+| (khách đến) | quan | ? | `quan.py` `step` | **TODO — step chưa nối** **(cập nhật 11:22)** |
+| `customer_left`, `no_dish` | quan | ? | `quan.py` `step` | **TODO — step chưa nối** |
+| `cook_started`, `dish_ready`, `dish_picked`, `served` | quan | có trong hàm thao tác (PR #3: `cook_started` + `items`/`base_price` khi kho list) | `quan.py:76-155` | **ĐÃ CÓ hàm**; **chưa gọi từ `step`** **(cập nhật 11:22)** |
+| `paid` | quan | ? | `step` / boa | **TODO — step chưa nối** |
+| `quan_end` | quan | `{reason:"time", money, earned, shift_earned, reputation}` | `quan.py:164-168` | ĐÃ CÓ (hết giờ trong `step`) |
 
 Tên `data` các sự kiện TODO **không có nguồn** → phải chốt ở `docs/contracts/` (TV1). Test ẩn có thể so cả `data`; đây là rủi ro lớn nhất không giải được bằng code.
 
@@ -117,16 +116,16 @@ Tên `data` các sự kiện TODO **không có nguồn** → phải chốt ở `
 | `ramp_max_ticks` | 6 | | tăng/giảm tốc | `gather.py:145`, `ramp.py` |
 | `surface_depth` | 0.5 | | mặt nước khi `d ≤ 0.5` | `gather.py:131-132` |
 | `oxygen_max_s` | 30 | 1800 | oxy tối đa | `gather.py:48` |
-| `oxygen_refill_per_tick` | 6 | | hồi ở mặt nước (0→đầy: 300 tick) | **TODO lát 1** |
-| `choke_interval_ticks` | 60 | | ngạt −1 Máu | **TODO lát 1** (scenario hard-code 59, `scenario.py:121`) |
+| `oxygen_refill_per_tick` | 6 | | hồi ở mặt nước (0→đầy: 300 tick) | **(cập nhật 11:22)** `_oxygen_and_breath` |
+| `choke_interval_ticks` | 60 | | ngạt −1 Máu | **(cập nhật 11:22)** `_oxygen_and_breath` (scenario vẫn hard-code 59) |
 | `hp_max` | 3 | | Máu; 0 → ngất | `gather.py:50,86` |
 | `hold_capacity` | 12 | | sức chứa giỏ | `gather.py:90` |
-| `interact_radius` | 2.0 | | bán kính hái | **TODO lát 2** |
-| `node_yield` | 1 | | số món mỗi lần hái | **TODO lát 2** |
-| `regrow_s` | 20 | 1200 | `regrow_ticks` sau khi hái | **TODO lát 2** (đếm ngược đã có `gather.py:105-109`) |
-| `catch_radius` | 2.0 | | bán kính bắt cá | **TODO lát 2** |
-| `catch_cooldown_s` | 0.5 | 30 | hồi chiêu `catch_cd_ticks` | **TODO lát 2** (giảm đã có `gather.py:104`) |
-| `fish_yield` | ca_linh 3, ca_loc 1 | | số món mỗi lần bắt | **TODO lát 2** |
+| `interact_radius` | 2.0 | | bán kính hái | **(cập nhật 11:22)** `_try_harvest` |
+| `node_yield` | 1 | | số món mỗi lần hái | **(cập nhật 11:22)** `_try_harvest` |
+| `regrow_s` | 20 | 1200 | `regrow_ticks` sau khi hái | **(cập nhật 11:22)** `_try_harvest` + đếm ngược `:105-109` |
+| `catch_radius` | 2.0 | | bán kính bắt cá | **(cập nhật 11:22)** `_try_catch` |
+| `catch_cooldown_s` | 0.5 | 30 | hồi chiêu `catch_cd_ticks` | **(cập nhật 11:22)** `_try_catch` (giảm `:104`) |
+| `fish_yield` | ca_linh 3, ca_loc 1 | | số món mỗi lần bắt | **(cập nhật 11:22)** `_try_catch` |
 | `nodes` | N1,N2 điên điển (x12,28); N3,N4 bông súng (x44,60); d=0 | | | `gather.py:57-59` |
 | `fish_initial` | F1..F6 (linh/lóc xen kẽ, d 5–16) | | đứng yên ở P1 (`gather.py:66`) | `gather.py:60-68` |
 
@@ -167,12 +166,12 @@ Boa với menu mặc định luôn là số nguyên → câu hỏi làm tròn (c
 
 ## 4. Edge case & thứ tự trong một tick
 
-### 4.1 Thứ tự bước gather (khung `gather.py:99-128`)
+### 4.1 Thứ tự bước gather (khung `gather.py:99-128`) **(cập nhật 11:22: lát 1+2 đã nối)**
 1. `time_left_ticks−1`, `invuln−1`, `catch_cd−1`, đếm ngược nút → `node_regrown` (theo id).
 2. `_move` (bơi + chặn mép).
-3. *(TODO lát 1)* `dive`/`surface` → oxy → `oxygen_empty` → đếm ngạt → `choke` → Máu 0: `faint`, xóa giỏ, `gather_end(fainted)`, **return**.
-4. `interact` (cạnh lên): **bến trước** → `gather_end(docked)`, return; nếu không: hái (chỉ mặt nước).
-5. `catch` (cạnh lên): chỉ khi `catch_cd_ticks == 0` và dưới nước.
+3. `_oxygen_and_breath`: `dive`/`surface` → oxy → `oxygen_empty` → đếm ngạt → `choke` → Máu 0: `faint`, xóa giỏ, `gather_end(fainted)`, **return**.
+4. `interact` (cạnh lên): **bến trước** → `gather_end(docked)`, return; nếu không: `_try_harvest` (chỉ mặt nước).
+5. `catch` (cạnh lên): `_try_catch` khi `catch_cd_ticks == 0` và dưới nước; thành công thì xóa đàn + đặt hồi chiêu.
 6. `time_left_ticks <= 0` → `gather_end(time)`.
 
 Hệ quả cần giữ: ngất thắng hết giờ cùng tick; bến thắng hết giờ cùng tick (return sớm); hái/bắt cá ở tick cuối vẫn vào kho.
