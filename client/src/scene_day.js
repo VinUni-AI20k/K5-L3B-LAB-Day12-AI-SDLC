@@ -110,18 +110,21 @@ export class DayResult extends Base {
     this.bg(); const s = this.s;
     if (s.closedEarly) txt("Đóng sớm", W / 2 + 118, 44, { size: 8, align: "right", color: "#ffb36b", weight: 900 });
     txt(`KẾT SỔ NGÀY ${s.day}`, W / 2, 34, { size: 20, align: "center", color: GOLD, weight: 900, italic: true, stroke: "#3a1410", sw: 5 });
-    panel(W / 2 - 130, 46, 260, 150, { fill: "rgba(8,20,38,.9)", border: BORDER, r: 8 });
+    panel(W / 2 - 130, 46, 260, 166, { fill: "rgba(8,20,38,.9)", border: BORDER, r: 8 });
     const d = (s.rep ?? 0) - (s.rep0 ?? s.rep ?? 0);
     const rows = [
       ["Khách đã phục vụ", String(s.served ?? 0), "#7dffb0"],
       ["Khách bỏ đi", String(s.left ?? 0), (s.left || 0) ? "#ff8a8a" : "#fff"],
+      ["Khách về vì hết món", String(s.missed ?? 0), (s.missed || 0) ? "#ffb36b" : "#fff"],
       ["Tiền thu (gồm boa)", `${s.earned ?? 0}k`, GOLD],
       ["Tiền boa", `${s.tips ?? 0}k`, "#ffe14d"],
+      ...(progress.huntIncome?.(s.day) ? [["Săn cá bán thương lái", `+${progress.huntIncome(s.day)}k`, "#ffb36b"]] : []),
       ["Uy tín", `${(s.rep0 ?? 0).toFixed(1)} → ${(s.rep ?? 0).toFixed(1)} (${d >= 0 ? "+" : ""}${d.toFixed(1)})`, d >= 0 ? "#7dffb0" : "#ff8a8a"],
       ["Điểm ngày", String(s.score ?? 0), "#fff"],
       ["Ví hiện có", `${progress.save.money}k`, GOLD],
     ];
-    rows.forEach(([a, b, col], i) => { const y = 66 + i * 18; txt(a, W / 2 - 118, y, { size: 8, color: "rgba(255,255,255,.8)", weight: 700 }); txt(b, W / 2 + 118, y, { size: 9, align: "right", color: col, weight: 900 }); });
+    const rh = rows.length > 8 ? 16.5 : 18;
+    rows.forEach(([a, b, col], i) => { const y = 66 + i * rh; txt(a, W / 2 - 118, y, { size: 8, color: "rgba(255,255,255,.8)", weight: 700 }); txt(b, W / 2 + 118, y, { size: 9, align: "right", color: col, weight: 900 }); });
     if (this.t > 0.8) txt("Enter: vào Shop ▶", W / 2, H - 12, { size: 9, align: "center", color: "#fff", weight: 900, alpha: 0.7 + 0.3 * Math.sin(this.t * 5) });
   }
 }
@@ -135,7 +138,7 @@ export class Shop extends Base {
     this.rows = [{ head: "NÂNG CẤP CHUẨN" }];
     for (const id of Object.keys(ups)) this.rows.push({ core: id });
     this.rows.push({ head: "ĐỒ THÊM (SÁNG TẠO)" });
-    for (const id of [...(progress.GEAR_UPGRADES || []), ...(progress.QUAN_UPGRADES || [])]) if (progress.UPGRADES[id]) this.rows.push({ extra: id });
+    for (const id of [...(progress.GEAR_UPGRADES || []), ...(progress.HUNT_UPGRADES || []), ...(progress.QUAN_UPGRADES || [])]) if (progress.UPGRADES[id]) this.rows.push({ extra: id });
     this.rows.push({ done: true });
     this.items = this.rows.map((r, i) => (r.head ? -1 : i)).filter((i) => i >= 0);
     this.sel = 0; this.msg = null;

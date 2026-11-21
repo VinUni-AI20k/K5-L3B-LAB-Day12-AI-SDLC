@@ -7,6 +7,7 @@ import { GatherScene } from "./scene_gather.js";
 import { QuanScene } from "./scene_quan.js";
 import { DayIntro, EveningIntro, DayResult, Shop, Summary, drawPause, PAUSE_ITEMS, PAUSE_ITEMS_QUAN, planFor, planDays } from "./scene_day.js";
 import * as progress from "./progress.js";
+import * as meta from "./meta.js";
 
 let CONTRACT = null, MANIFEST = [];
 // haul null = demo stock (title-menu shortcut), {} = empty basket (fainted).
@@ -15,9 +16,12 @@ let CONTRACT = null, MANIFEST = [];
 // v1.1 day loop: DayIntro → gather → (dusk) → EveningIntro → quán → DayResult → Shop → next DayIntro / Summary.
 // paused = { sel } while the pause overlay is open (Esc/P in gather, quán, shop): scene.update is skipped, so
 // every gameplay timer (clock, O₂, cooldowns, shop auto-close) is frozen.
-const state = { scene: null, mode: "boot", t: 0, haul: null, menu: null, campaign: false, dayPaid: false, paused: null };
+// overlay = meta overlay ({ update, draw, done }: phone / Bà Tư) opened from main; it freezes the scene like pause.
+const state = { scene: null, mode: "boot", t: 0, haul: null, menu: null, campaign: false, dayPaid: false, paused: null, overlay: null };
 
 // ---------- title screen ----------
+// key art for the title screen (16:9, drawn on the hi-res UI layer); falls back to the procedural title if missing
+const KEY_ART = new Image(); KEY_ART.src = "assets/ui/title_key_art.webp";
 class Title {
   constructor() {
     this.t = 0; this.sel = 0; this.cam = { x: 0, y: 40 }; this.started = false;
@@ -52,7 +56,22 @@ class Title {
     if (this.press > 0) this.press -= dt;
   }
   draw() {
-    const c = screen.px, t = this.t;
+    const c = screen.px, t = this.t, u = screen.ui;
+    const art = KEY_ART.complete && KEY_ART.naturalWidth > 0;
+    if (art) {
+      c.fillStyle = "#1a0f24"; c.fillRect(0, 0, W, H);
+      const z = 1.03 + Math.sin(t * 0.12) * 0.02, w = W * z, h = H * z, dx = Math.sin(t * 0.07) * 4;
+      u.save(); u.imageSmoothingEnabled = true; u.imageSmoothingQuality = "high";
+      u.drawImage(KEY_ART, (W - w) / 2 + dx, (H - h) / 2, w, h);
+      // soft dark wash behind the menu column (lower-left: river + boats)
+      const gm = u.createLinearGradient(0, 0, 200, 0); gm.addColorStop(0, "rgba(14,6,24,.72)"); gm.addColorStop(0.7, "rgba(14,6,24,.35)"); gm.addColorStop(1, "rgba(14,6,24,0)");
+      u.fillStyle = gm; u.fillRect(0, 118, 210, H - 118);
+      const gb = u.createLinearGradient(0, H - 30, 0, H); gb.addColorStop(0, "rgba(8,4,16,0)"); gb.addColorStop(1, "rgba(8,4,16,.75)"); u.fillStyle = gb; u.fillRect(0, H - 30, W, 30);
+      u.restore();
+    } else this.drawProcedural(c, t, u);
+    this.drawMenu(c, t, u, art);
+  }
+  drawProcedural(c, t, u) {
     riverWorld(c, { t, cam: this.cam, v: { school: true, sunUp: 0.4 } }, "dusk");
     // dark gradient for legibility
     const g = c.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "rgba(6,12,28,.2)"); g.addColorStop(1, "rgba(6,12,28,.75)"); c.fillStyle = g; c.fillRect(0, 0, W, H);
@@ -61,33 +80,37 @@ class Title {
     for (let i = 0; i < 3; i++) fish(c, i % 2 ? "ca_linh" : "ca_loc", W / 2 - 40 + i * 50 + Math.sin(t + i) * 20, 130 + i * 8, Math.cos(t + i) > 0 ? 1 : -1, t + i);
 
     // title logo
-    const u = screen.ui; const bob = Math.sin(t * 1.5) * 2;
+    const bob = Math.sin(t * 1.5) * 2;
     halftone(c, W / 2 - 120, 30, 240, 44, "rgba(255,180,80,.06)", 6);
     slamText("QUÁN ĂN", W / 2, 42 + bob, 34, { color: "#ffd23f", stroke: "#3a1410", sw: 7, rot: -0.04 });
     slamText("CHỢ NỔI", W / 2, 72 + bob, 38, { color: "#ff8a3d", stroke: "#3a1410", sw: 7, rot: -0.04 });
     txt("Lặn sông · Hái bông · Mở quán", W / 2, 92 + bob, { size: 9, align: "center", color: "#dff4ff", weight: 800, shadow: "rgba(0,0,0,.6)" });
+  }
+  drawMenu(c, t, u, art) {
+    const cx = art ? 98 : W / 2, foot = art ? 98 : W / 2;
 
     // menu: main entries (campaign) first, then the demo shortcuts in a smaller, dimmer style
     const main = this.items.filter((it) => !it[3]).length;
-    let y = 152 - (main - 1) * 4;
+    let y = art ? 146 - (main - 1) * 4 : 152 - (main - 1) * 4;
+    if (art) { const demoN = this.items.length - main, hgt = main * 20 + demoN * 16 + 9 + 10; panel(cx - 94, y - 14, 188, hgt, { fill: "rgba(24,10,34,.62)", border: "rgba(255,210,63,.45)", bw: 1, r: 9 }); }
     this.items.forEach(([label0, act, sub, demo], i) => {
       const sel = i === this.sel, size = demo ? 10 : 12;
-      if (demo && i === main) { txt("— CHƠI THỬ (không lưu) —", W / 2, y - 1, { size: 7, align: "center", color: "rgba(255,255,255,.42)", weight: 800 }); y += 9; }
+      if (demo && i === main) { txt("— CHƠI THỬ (không lưu) —", cx, y - 1, { size: 7, align: "center", color: "rgba(255,255,255,.42)", weight: 800 }); y += 9; }
       const label = act === "new" && this.confirmNew > 0 && sel ? "Nhấn lần nữa để xoá sổ cũ!" : label0;
       const pulse = sel ? Math.sin(t * 6) * 0.08 + 1 : 1;
-      const pw = Math.max(150, measure(label, size, 900) + 50), bh = demo ? 15 : 18;
-      if (sel) { panel(W / 2 - pw / 2, y - bh / 2 - 1, pw, bh, { fill: "rgba(255,160,60,.22)", border: act === "new" && this.confirmNew > 0 ? "#ff6b5a" : "#ffd23f", bw: 1.5, r: 8 }); txt("▶", W / 2 - pw / 2 + 12, y + 3, { size: 9, color: "#ffd23f", weight: 900 }); }
-      txt(label, W / 2, y + size * 0.35, { size: size * pulse, align: "center", color: sel ? (act === "new" && this.confirmNew > 0 ? "#ffb0a0" : "#fff") : demo ? "rgba(255,255,255,.5)" : "rgba(255,255,255,.75)", weight: 900, shadow: "rgba(0,0,0,.6)" });
+      const pw = art ? 172 : Math.max(150, measure(label, size, 900) + 50), bh = demo ? 15 : 18;
+      if (sel) { panel(cx - pw / 2, y - bh / 2 - 1, pw, bh, { fill: "rgba(255,160,60,.22)", border: act === "new" && this.confirmNew > 0 ? "#ff6b5a" : "#ffd23f", bw: 1.5, r: 8 }); txt("▶", cx - pw / 2 + 12, y + 3, { size: 9, color: "#ffd23f", weight: 900 }); }
+      txt(label, cx, y + size * 0.35, { size: size * pulse, align: "center", color: sel ? (act === "new" && this.confirmNew > 0 ? "#ffb0a0" : "#fff") : demo ? "rgba(255,255,255,.5)" : "rgba(255,255,255,.75)", weight: 900, shadow: "rgba(0,0,0,.6)" });
       y += demo ? 16 : 20;
     });
     // footer: sub-label of the selected entry, then key hints
     const cur = this.items[this.sel];
     const note = cur[3] ? "Chơi thử: dùng đồ nghề hiện có, không tính ngày, không lưu tiến trình" : cur[2] || "";
-    if (note) txt(note, W / 2, H - 26, { size: 7.5, align: "center", color: cur[3] ? "rgba(255,255,255,.55)" : "#ffe2a8", weight: 700, shadow: "rgba(0,0,0,.6)" });
-    txt("↑↓ chọn · Enter/Space chơi · M tắt tiếng", W / 2, H - 15, { size: 8, align: "center", color: "rgba(255,255,255,.6)", weight: 700 });
+    if (note) txt(note, art ? 12 : foot, H - 26, { size: 7.5, align: art ? "left" : "center", color: cur[3] ? "rgba(255,255,255,.55)" : "#ffe2a8", weight: 700, shadow: "rgba(0,0,0,.6)" });
+    txt("↑↓ chọn · Enter/Space chơi · M tắt tiếng", art ? 12 : foot, H - 15, { size: 8, align: art ? "left" : "center", color: "rgba(255,255,255,.6)", weight: 700 });
     txt(isMuted() ? "🔇" : "🔊", W - 12, 14, { size: 10, align: "right" });
-    txt("Nhóm 001 · Day 12 AI-SDLC · Test Contract v1.1", W / 2, H - 5, { size: 7, align: "center", color: "rgba(255,255,255,.4)", weight: 700 });
-    if (this.press > 0) { c.fillStyle = `rgba(255,255,255,${this.press})`; c.fillRect(0, 0, W, H); }
+    txt("Nhóm 001 · Day 12 AI-SDLC · Test Contract v1.2", art ? W - 8 : W / 2, H - 5, { size: 7, align: art ? "right" : "center", color: "rgba(255,255,255,.4)", weight: 700 });
+    if (this.press > 0) { u.save(); u.fillStyle = `rgba(255,255,255,${this.press})`; u.fillRect(0, 0, W, H); u.restore(); }
     if (this.bye) {
       u.save(); u.fillStyle = "rgba(4,8,20,.8)"; u.fillRect(0, 0, W, H); u.restore();
       panel(W / 2 - 120, H / 2 - 36, 240, 72, { fill: "rgba(30,12,16,.95)", border: "#ffd23f", r: 10, bw: 1.5 });
@@ -125,16 +148,18 @@ function startDay() {
   const s = progress.save;
   if (s.day > planDays(CONTRACT)) return startSummary();
   progress.activateUpgrades(); // levels bought in yesterday's Shop take effect now
+  if (s.day > 1) { const w = meta.payWages(); if (!w.skipped && !w.owed && s.day % 2 === 0) meta.pushMessage("Bà Tư", BA_TU_REMIND[s.day % BA_TU_REMIND.length]); } // yesterday's wages (once per day)
   state.mode = "intro"; state.haul = {}; state.menu = null; state.dayPaid = false;
   state.scene = new DayIntro(CONTRACT, s.day, progress.stats(CONTRACT), () => transition(startGather));
 }
 function startGather() {
-  state.mode = "gather";
+  state.mode = "gather"; meta.beginPhase();
   const plan = planFor(CONTRACT, curDay());
   state.scene = new GatherScene(CONTRACT, onGatherEnd, { day: curDay(), need: plan ? plan.ingredients : null });
 }
 function onGatherEnd(res) {
   if (res.restart) return transition(startGather);
+  meta.gatherFallback(res.by); // chore progress from the haul, unless the gather scene reported it itself
   state.haul = res.by || {}; // fainted = {} (basket lost); quán still opens
   transition(() => { state.mode = "cut"; state.scene = new Cutscene(duskScript(flat(state.haul)), () => state.campaign ? startEvening() : startQuan(state.haul)); });
 }
@@ -144,7 +169,7 @@ function startEvening() {
 }
 // opts.menu = dish ids allowed tonight (the day plan); opts.rep = reputation carried from the previous day
 function startQuan(stock, menu = null) {
-  state.mode = "quan";
+  state.mode = "quan"; meta.beginPhase();
   const opts = {}; if (menu) opts.menu = menu; if (state.campaign) opts.rep = progress.repNow(CONTRACT);
   state.scene = new QuanScene(CONTRACT, stock, onQuanEnd, opts);
 }
@@ -154,8 +179,9 @@ function onQuanEnd(res) {
   if (!state.campaign || state.dayPaid) return transition(toTitle);
   state.dayPaid = true;
   const day = progress.save.day;
-  const summary = { day, haulCount: flat(state.haul || {}).length, earned: res.money ?? 0, rep: res.rep, rep0: res.rep0, served: res.served ?? 0, left: res.left ?? 0, score: res.score, tips: res.tips ?? 0, sold: res.sold || {}, closedEarly: !!res.closedEarly };
+  const summary = { day, haulCount: flat(state.haul || {}).length, earned: res.money ?? 0, rep: res.rep, rep0: res.rep0, served: res.served ?? 0, left: res.left ?? 0, score: res.score, tips: res.tips ?? 0, sold: res.sold || {}, closedEarly: !!res.closedEarly, missed: res.missed ?? 0 };
   progress.finishDay(summary);
+  meta.quanFallback(res); meta.trackChore("day_done"); shiftMessages(summary);
   transition(() => { state.mode = "result"; state.scene = new DayResult(summary, () => transition(startShop)); });
 }
 function startShop() {
@@ -167,7 +193,41 @@ function startSummary() {
   state.mode = "summary";
   state.scene = new Summary(CONTRACT, () => { progress.newGame(); transition(toTitle); });
 }
-function toTitle() { state.paused = null; progress.setDemo(false); state.campaign = false; state.mode = "title"; state.scene = new Title(); }
+function toTitle() { state.paused = null; state.overlay = null; progress.setDemo(false); state.campaign = false; state.mode = "title"; state.scene = new Title(); }
+// ---------- meta life: phone (T), messages after a shift ----------
+const BA_TU_REMIND = ["Nhớ ăn sáng rồi hẵng lặn nghen con.", "Bà mới nghe ghe hàng nói cá kèo về nhiều lắm.", "Đèn lồng ngoài mũi ghe cũ rồi, rảnh thì ghé Bà coi đổi cái mới.", "Mấy đứa nhỏ trong xóm hỏi quán có cần người phụ hông kìa."];
+const REVIEWERS = ["Chú Năm ghe dừa", "Cô Út bán bông", "Anh Hai ghe khóm", "Dì Bảy Cái Răng", "Khách Sài Gòn", "Ông Sáu khô cá"];
+function shiftMessages(sum) {
+  const who = REVIEWERS[(sum.day * 5 + (sum.served | 0)) % REVIEWERS.length];
+  const text = sum.served === 0 ? "Tối qua ghé mà quán hổng có món gì... Mai ghé lại nghen." :
+    sum.left > sum.served / 2 ? `Món ngon mà chờ lâu quá, ${sum.left} người bỏ về rồi đó. Thêm người phụ đi con!` :
+    sum.tips > 0 ? `Ăn ngon, phục vụ lẹ! Có boa ${sum.tips}k cho quán nè. ★★★★★` : `Quán dễ thương, đồ ăn vừa miệng. Phục vụ ${sum.served} khách mà vẫn tươi cười. ★★★★`;
+  meta.pushMessage(who, text);
+  const st = meta.getStaff();
+  if (st.waiter && Math.random() < 0.5) meta.pushMessage("Bé Tí", "Tối nay con chạy bàn mỏi giò mà vui ghê chị Sen ơi!");
+  if (st.cook && Math.random() < 0.5) meta.pushMessage("Chú Bảy", "Than còn nửa bao, mai Bảy mua thêm nghen.");
+}
+// T key: engine.js does not map it, so main listens itself and consumes it on the next frame
+const PHONE_MODES = new Set(["gather", "quan", "intro", "evening", "result", "shop"]);
+let phoneKey = false;
+addEventListener("keydown", (e) => { if (e.key && e.key.toLowerCase() === "t" && !e.repeat) phoneKey = true; });
+function openPhoneOverlay(opts) {
+  if (state.overlay || !PHONE_MODES.has(state.mode) || state.paused) return false;
+  state.overlay = meta.openPhone(() => {}, opts); return true;
+}
+// completion toasts outside the quán (the quán scene shows meta.popCompletions() itself)
+let toastT = 0;
+function drawGlobalToast(dt) {
+  const q = meta.globalToasts;
+  if (state.mode === "quan" || state.mode === "title" || state.mode === "boot") { q.length = 0; toastT = 0; return; }
+  if (!q.length) return;
+  toastT += dt; const k = Math.min(1, toastT * 4, (3 - toastT) * 3);
+  const t0 = q[0], w = Math.max(measure(t0.text, 9, 900), measure(t0.sub, 7.5, 700)) + 24, x = W / 2 - w / 2, y = 6 + (k - 1) * 20;
+  panel(x, y, w, 28, { fill: "rgba(20,50,30,.94)", border: "#7be08a", r: 6, bw: 1.4, alpha: Math.max(0, k) });
+  txt(t0.text, W / 2, y + 12, { size: 9, align: "center", color: "#fff", weight: 900, alpha: Math.max(0, k) });
+  txt(t0.sub, W / 2, y + 23, { size: 7.5, align: "center", color: "#ffd23f", weight: 700, alpha: Math.max(0, k) });
+  if (toastT >= 3) { q.shift(); toastT = 0; }
+}
 function flat(by) { const a = []; for (const k in by) for (let i = 0; i < by[k]; i++) a.push(k); return a; }
 
 // ---------- pause (Esc / P) ----------
@@ -220,12 +280,13 @@ async function boot() {
     CONTRACT = r.ok ? await r.json() : FALLBACK_CONTRACT;
   } catch (e) { CONTRACT = FALLBACK_CONTRACT; }
   if (!CONTRACT.tuning) CONTRACT = FALLBACK_CONTRACT;
+  meta.setContract(CONTRACT);
   try {
     const r = await fetch("assets/manifest.json", { cache: "no-store" });
     if (r.ok) { MANIFEST = normalizeManifest(await r.json()); registerAudio(MANIFEST); const f = MANIFEST.find((a) => a.kind === "font"); if (f && f.family) await loadFont(f); }
   } catch (e) { /* no assets yet: procedural art + synth sfx still work */ }
   state.mode = "title"; state.scene = new Title();
-  if (/[?&]debug\b/.test(location.search)) window.__chonoi = { state, manifest: MANIFEST, go, step, input, progress, contract: () => CONTRACT };
+  if (/[?&]debug\b/.test(location.search)) window.__chonoi = { state, manifest: MANIFEST, go, step, input, progress, meta, phone: openPhoneOverlay, contract: () => CONTRACT };
   // first input unlocks audio
   const kick = () => { unlock(); removeEventListener("keydown", kick); removeEventListener("pointerdown", kick); };
   addEventListener("keydown", kick); addEventListener("pointerdown", kick);
@@ -259,8 +320,15 @@ function frame(dt) {
 
   // update: scene runs except while the wipe is closing over it
   if (!wipe || wipe.phase === "out") {
-    if (state.paused) updatePause();
-    else if (PAUSABLE.has(state.mode) && !wipe && !state.scene?.result && (input.hit("pause") || (input.hit("back") && !state.scene?.menuOpen))) { state.paused = { sel: 0 }; sfx("click"); }
+    const tKey = phoneKey; phoneKey = false;
+    if (state.overlay) {
+      if (tKey && state.overlay.isPhone) state.overlay.close(); // T again puts the phone away
+      state.overlay.update(dt);
+      if (state.overlay.done) state.overlay = null;
+    }
+    else if (tKey && !wipe && !state.scene?.result && openPhoneOverlay()) {}
+    else if (state.paused) updatePause();
+    else if (PAUSABLE.has(state.mode) && !wipe && !state.scene?.result && (input.hit("pause") || (input.hit("back") && !state.scene?.menuOpen && !state.scene?.overlay))) { state.paused = { sel: 0 }; sfx("click"); }
     else state.scene?.update(dt);
   }
 
@@ -273,6 +341,8 @@ function frame(dt) {
   screen.beginUI();
   state.scene?.draw();
   if (state.paused) drawPause(state.paused.sel, pauseItems());
+  if (state.overlay) state.overlay.draw();
+  drawGlobalToast(dt);
   if (fx.flashT > 0) { px.globalAlpha = (fx.flashT / 0.2) * 0.6; px.fillStyle = fx.flashCol; px.fillRect(-8, -8, W + 16, H + 16); px.globalAlpha = 1; }
   drawWipe(dt);
   px.restore();

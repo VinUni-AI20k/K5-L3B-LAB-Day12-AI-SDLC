@@ -2,7 +2,7 @@
 // Side view of a floating restaurant raft (nhà bè) at night, seen from the river.
 // Gameplay still lives in contract units: x in [0,16] runs left→right along the deck, z in [0,10] is depth
 // (z = 0 front edge, z = 10 back rail). Screen: sx = X0 + x·XS, sy = Y0 − z·ZS (back rows higher and smaller).
-import { W, H, screen, input, clamp, lerp, fx, Particles, txt, panel, measure } from "./engine.js";
+import { W, H, screen, input, clamp, lerp, fx, Particles, txt, panel, measure, wrap } from "./engine.js";
 import { sfx, music, voiceLine } from "./audio.js";
 import { P, R, ripple, dishIcon, icon, DISH_NAME, KIND_NAME } from "./art.js";
 import { speedLines } from "./cutscene.js";
@@ -10,7 +10,11 @@ const dishName = (k) => DISH_NAME[k] || k;
 import { riverWorld } from "./story.js";
 import { save, stats } from "./progress.js";
 import { scaled, personSide, stool, sideTable, clayStove, passCounter, kitchenBack, roofAndPosts, lanternString, glow,
-  nightWater, deck, backRail, landing, sampan, steam, smoke, coin, moon } from "./raft.js";
+  nightWater, deck, backRail, landing, sampan, steam, smoke, coin, moon, quanSign, flowerPot, flowerArch, flowerGarland } from "./raft.js";
+// meta layer (staff, décor, chores, Bà Tư's dialog, phone messages). Loaded defensively: if meta.js (or one of its
+// overlays) is missing, the quán still runs with no staff, default décor and no dialog.
+let META = {};
+try { META = await import("./meta.js"); } catch (e) { META = {}; }
 
 const TAU = Math.PI * 2;
 
@@ -37,6 +41,32 @@ function pickType(day) {
 const SHIRTS = { quen: ["#3a6fd8", "#2a8f5a", "#7a5aa8"], voi: ["#e8572a"], sop: ["#f3c454"] };
 const HAIRS = { quen: "#2a1d2b", voi: "#3a2418", sop: "#5a2a1a" };
 const fmtS = (s) => (Number.isInteger(s) ? s : s.toFixed(1)) + "s";
+
+// ---- busy-quán creative layer (GUI only; contract numbers stay the base) ----
+// arrivals every customer_interval_s × 0.33–0.47 (15 s → ~5–7 s), sometimes a second guest right behind (a pair);
+// when every table is taken, guests queue on the gangway with their own short patience and go home (left_queue, no rep loss)
+const ARRIVE_MUL = [0.33, 0.47], QUEUE_PAT = 18, QUEUE_CALM = 5, TALK_S = 2.6, CHARM = 0.1;
+const QSPOTS = [[15.4, 4.4], [15.4, 3.0], [15.4, 5.8], [15.4, 1.6], [15.4, 7.2]];
+const NAMES = {
+  quen: ["Chú Ba", "Cô Năm", "Anh Tư Lúa", "Dì Sáu", "Bác Hai Đờn", "Chị Bảy Bông", "Bé Út", "Cô Mười Bánh"],
+  voi: ["Anh Tám Ghe", "Chú Út Lẹ", "Cô Chín Chợ", "Anh Hai Xe Lôi"],
+  sop: ["Ông Hai Sầu Riêng", "Bà Năm Vàng", "Anh Ba Khóm", "Ông Bảy Lúa Giống"],
+};
+const LINES = {
+  quen: ["Sáng nay chợ nổi đông dữ thần, ghe khóm đậu kín khúc sông!", "Tối nay gió sông mát rượi, ngồi đây sướng ghê.",
+    "Nước lên rồi đó con, mùa này cá linh về nhiều lắm.", "Hồi chiều mưa một trận, giờ trăng sáng trưng.",
+    "Ghe bẹo bên kia treo trái gì mà thơm quá trời.", "Quán con ấm cúng ghê, chú ghé hoài nè.",
+    "Mai chú chở lúa lên chợ sớm, ghé ăn sáng nữa nghen."],
+  voi: ["Lẹ lẹ giùm chú nghen con!", "Chút nữa chú phải chạy ghe lên tỉnh rồi.", "Nhanh nhanh chút nha, bụng kêu rột rột rồi!",
+    "Con nấu lẹ tay giùm, chú gấp lắm.", "Ghe chú còn đậu chờ ngoài kia, đừng để lâu nghen!"],
+  sop: ["Bữa nay chú bán hết nguyên ghe sầu riêng đó!", "Món nào ngon nhứt quán cứ mang ra, tiền hổng thành vấn đề.",
+    "Ghe chú mới sơn lại, đẹp nhứt khúc sông này đó.", "Chú mới mua thêm hai công vườn xoài, hên dữ lắm."],
+  queue: ["Còn bàn hông con? Chú chờ chút cũng được.", "Quán đông quá ha, phải xếp hàng luôn!", "Đứng đây hóng gió sông cũng vui."],
+  eating: ["Ngon quá trời!", "Nêm vừa miệng ghê!", "Ăn xong về ngủ ngon luôn.", "Cá tươi rói, ngọt thịt ghê!"],
+  nodish: ["Hết món rồi hả? Thôi bữa khác chú ghé.", "Tiếc ghê, mai chú quay lại sớm."],
+};
+const WAITER_HOME = { x: 7.4, z: 7.2 };
+const shuffle = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 
 // screen mapping (see header) + set dressing positions, all in contract units
 const X0 = 34, XS = 24, Y0 = 238, ZS = 6;
@@ -81,7 +111,7 @@ export class QuanScene {
     this.hand = null; this.customers = []; this.time = t.duration_s;
     // opts.rep: reputation carried over from the previous day (v1.1 day loop); tips / sold feed DayResult + Summary
     this.money = 0; this.rep = typeof opts?.rep === "number" ? opts.rep : t.reputation_initial; this.score = 0; this.rep0 = this.rep;
-    this.tips = 0; this.sold = {};
+    this.tips = 0; this.sold = {}; this.missed = 0; // missed = guests who came, found nothing cookable and went home
     // early close (C twice, the HUD button, or the pause menu); clickable HUD button via its own pointer listener
     this.confirmClose = 0; this.noDish = false; this.noDishSaid = false;
     this.closeBtn = { x: W - 92, y: H - 30, w: 86, h: 15 };
@@ -101,7 +131,37 @@ export class QuanScene {
     // visual-only actors (never read by gameplay): customers walking back to the boats, sampans leaving, coins flying
     this.walkers = []; this.boats = []; this.coins = []; this.sparkT = 0; this.bob = 0;
     this.cs = { t: 0, cam: { x: 0, y: -HORIZON }, v: {} };
+    // busy layer + meta: queue, talk, Bà Tư overlay, hired staff, décor
+    this.meta = (opts && opts.meta) || META;
+    this.left_queue = 0; this.queueMax = QSPOTS.length; this.burstChance = 0.3; this.burstT = 0; this.hintChance = 0.5;
+    this.overlay = null; this.chatT = 5; this.tipsCount = 0; this.fastCount = 0; this.talks = 0; this.review = "";
+    this.staff = { waiter: null, cook: null };
+    this.applyMeta();
     music("restaurant");
+  }
+  // cooking menu flag; reads true while Bà Tư's overlay is open too (so main.js leaves Esc to the overlay)
+  get menuOpen() { return !!this._menuOpen || !!this.overlay; }
+  set menuOpen(v) { this._menuOpen = !!v; }
+  callMeta(name, ...a) { const f = this.meta && this.meta[name]; if (typeof f !== "function") return undefined; try { return f(...a); } catch (e) { return undefined; } }
+  // (re)read staff levels, décor and its patience bonus from meta.js (start of shift + after Bà Tư's dialog closes)
+  applyMeta() {
+    const st = this.callMeta("getStaff") || {};
+    this.staffLv = { waiter: clamp(st.waiter | 0, 0, 2), cook: clamp(st.cook | 0, 0, 2) };
+    const d = this.callMeta("getDecor") || {};
+    this.decor = { lanterns: d.lanterns || "do", cloth: d.cloth || null, flowers: clamp(d.flowers | 0, 0, 2), sign: d.sign || "go" };
+    const b = Number(this.callMeta("decorBonus")); this.decorMul = b >= 1 ? b : 1;
+    // speeds / cook multiplier come from meta.staffEffects() when present (fallback: lv2 = 1.4× walk, 0.8× cook time)
+    const fx2 = this.callMeta("staffEffects") || {};
+    this.waiterSpeed = Number(fx2.waiterSpeed) > 0 ? Number(fx2.waiterSpeed) : this.staffLv.waiter >= 2 ? 1.4 : 1;
+    this.staffCookMul = Number(fx2.cookMul) > 0 ? Number(fx2.cookMul) : this.staffLv.cook >= 2 ? 0.8 : 1;
+    const S = this.staff;
+    if (this.staffLv.waiter && !S.waiter) S.waiter = { name: "Bé Tí", x: WAITER_HOME.x, z: WAITER_HOME.z, face: -1, walk: 0, task: "idle", carry: null, cu: null, pause: 0, hold: 0, idleT: 0, wx: WAITER_HOME.x, wz: WAITER_HOME.z, delivered: 0 };
+    if (!this.staffLv.waiter) S.waiter = null;
+    if (S.waiter) S.waiter.lv = this.staffLv.waiter;
+    const home = this.cookHome();
+    if (this.staffLv.cook && !S.cook && home >= 0) { const [hx, hz] = this.standSpot(home); S.cook = { name: "Chú Bảy", x: hx, z: hz, face: -1, walk: 0, task: "idle", stove: home, key: null, pause: 0, scan: 0, started: 0 }; }
+    if (!this.staffLv.cook) S.cook = null;
+    if (S.cook) S.cook.lv = this.staffLv.cook;
   }
   cookTime(key) { return this.menu[key].cook_s * this.cookMul; }
   toast(x, z, txt, col) { this.toasts.push({ x, z, txt, col, life: 1.5, oy: 0 }); }
@@ -113,34 +173,83 @@ export class QuanScene {
   release(cu) { if (!cu.reserved) return; for (const [k, n] of Object.entries(cu.reserved)) this.stock[k] = (this.stock[k] || 0) + n; cu.reserved = null; }
   reservedTotals() { const o = {}; for (const c of this.customers) if (c.reserved) for (const [k, n] of Object.entries(c.reserved)) o[k] = (o[k] || 0) + n; return o; }
 
+  arrivalGap() { return this.t.customer_interval_s * (ARRIVE_MUL[0] + Math.random() * (ARRIVE_MUL[1] - ARRIVE_MUL[0])); }
+  activeAt(id) { return this.customers.find((c) => c.table === id && c.state !== "gone" && c.state !== "done") || null; }
+  // rotate through the tables (by arrival number), skipping occupied ones
+  freeTable() {
+    for (let k = 0; k < this.tables.length; k++) { const tb = this.tables[(this.custSeq + k) % this.tables.length]; if (!this.activeAt(tb.id)) return tb; }
+    return null;
+  }
+  queue() { return this.customers.filter((c) => c.state === "queue").sort((a, b) => a.qT - b.qT || a.seq - b.seq); }
+  newGuest(type) {
+    const seq = ++this.custSeq, shirts = SHIRTS[type], names = NAMES[type] || NAMES.quen;
+    return { id: "C" + seq, seq, table: null, x: DOCK.x - 0.4, z: DOCK.z - 0.6, want: null, type, reserved: null, state: "arriving", patience: 1, patienceMax: 1, eat: 0, enter: 0, portrait: "khach",
+      name: names[(seq * 5 + Math.floor(Math.random() * names.length)) % names.length], charmed: false, talk: null,
+      shirt: shirts[seq % shirts.length], hair: HAIRS[type], hat: type === "quen" && seq % 2 === 0,
+      // visual: arrives by sampan at the right edge, hops onto the deck, walks to the stool / queue spot
+      vis: { phase: "boat", k: 0, x: BOAT_X + 4, z: DOCK.z, walk: 0, face: -1 } };
+  }
   spawnCustomer() {
-    // rotate through the tables, skipping occupied ones (one table = the contract's behaviour)
-    let tb = null;
-    for (let k = 0; k < this.tables.length; k++) { const c = this.tables[(this.custSeq + k) % this.tables.length]; if (!this.customers.some((cu) => cu.table === c.id)) { tb = c; break; } }
-    if (!tb) return;
-    const keys = Object.keys(this.menu).filter((k) => this.freeOK(k));
-    if (!keys.length) return; // no_dish: the HUD banner explains it (see update / drawHUD)
     // first customer of a shift is always a regular (gentle start); later ones follow the day's weights
     const type = this.nextType && CUST_TYPES[this.nextType] ? this.nextType : this.custSeq === 0 ? "quen" : pickType(this.day);
+    const tb = this.freeTable(), anyDish = Object.keys(this.menu).some((k) => this.freeOK(k));
+    if (!tb && anyDish && this.queue().length >= this.queueMax) return false; // gangway full: the sampan rows on by
     this.nextType = null;
-    const ty = CUST_TYPES[type];
+    const cu = this.newGuest(type), ty = CUST_TYPES[type];
+    this.customers.push(cu); sfx("ding");
+    if (tb) { this.seat(cu, tb, true); return true; }
+    if (!anyDish) { // no_dish and no free table: steps onto the gangway, reads the board, goes home (missed)
+      cu.state = "nodish"; cu.nd = 2; return true;
+    }
+    cu.state = "queue"; cu.qT = this.time0 - this.time; cu.qMax = QUEUE_PAT * this.decorMul; cu.qPat = cu.qMax;
+    this.toast(QSPOTS[0][0] - 1, QSPOTS[0][1] + 1.5, "Hết bàn — " + cu.name + " xếp hàng", ty.col);
+    return true;
+  }
+  // a guest takes table tb and orders right away (the order reserves its ingredients, contract §1.3)
+  seat(cu, tb, arriving) {
+    cu.table = tb.id; cu.x = tb.pos[0]; cu.z = tb.pos[1];
+    const ty = CUST_TYPES[cu.type] || CUST_TYPES.quen, keys = Object.keys(this.menu).filter((k) => this.freeOK(k));
+    if (cu.vis && cu.vis.phase === "stand") cu.vis.phase = "walk";
+    if (!keys.length) { // no_dish: the guest still comes, reads the menu, says "Hết món rồi…" and goes home (no rep loss, counted as missed)
+      cu.state = "nodish"; cu.nd = 2; cu.patience = 1; cu.patienceMax = 1; return;
+    }
     const want = ty.priciest
       ? keys.reduce((a, k) => (this.menu[k].price > this.menu[a].price ? k : a), keys[0])
       : keys[Math.floor(Math.random() * keys.length)];
-    const patMax = this.basePatience * ty.patMul * this.patMul, seq = ++this.custSeq, shirts = SHIRTS[type];
+    const patMax = this.basePatience * ty.patMul * this.patMul * this.decorMul;
     const reserved = { ...this.menu[want].recipe };
     for (const [k, n] of Object.entries(reserved)) this.stock[k] -= n;
-    this.customers.push({ id: "C" + seq, table: tb.id, x: tb.pos[0], z: tb.pos[1], want, type, reserved, orderT: this.time0 - this.time, state: "waiting", patience: patMax, patienceMax: patMax, eat: 0, enter: 0, portrait: "khach",
-      shirt: shirts[seq % shirts.length], hair: HAIRS[type], hat: type === "quen" && seq % 2 === 0,
-      // visual: arrives by sampan at the right edge, hops onto the deck, walks to the stool and sits facing the kitchen
-      vis: { phase: "boat", k: 0, x: BOAT_X + 4, z: DOCK.z, walk: 0, face: -1 } });
-    sfx("ding"); this.toast(tb.pos[0], tb.pos[1] + 1, ty.name + " tới!", ty.col);
-    if (type === "sop") sfx("coin");
+    Object.assign(cu, { want, reserved, orderT: this.time0 - this.time, state: "waiting", patience: patMax, patienceMax: patMax });
+    this.toast(tb.pos[0], tb.pos[1] + 1, arriving ? ty.name + " tới!" : cu.name + " vào bàn", ty.col);
+    if (cu.type === "sop" && arriving) sfx("coin");
+  }
+  seatFromQueue() {
+    for (const cu of this.queue()) { const tb = this.freeTable(); if (!tb) break; this.seat(cu, tb, false); }
+  }
+  leaveQueue(cu) { // waited too long for a table: goes home, no reputation loss
+    cu.state = "gone"; this.left_queue++; cu.talk = null;
+    this.toast(cu.vis ? cu.vis.x - 1 : cu.x, (cu.vis ? cu.vis.z : cu.z) + 1, "Chờ lâu quá, về thôi…", "#ffb36b");
+    this.depart(cu, false);
   }
   payFor(cu) { return Math.floor(this.menu[cu.want].price * CUST_TYPES[cu.type || "quen"].priceMul); }
 
   nearStove() { return this.stoves.find((s) => Math.hypot(s.pos[0] - this.p.x, s.pos[1] - this.p.z) <= this.t.interact_radius); }
-  nearTable() { const tb = this.tables.find((t) => Math.hypot(t.pos[0] - this.p.x, t.pos[1] - this.p.z) <= this.t.interact_radius); return tb ? this.customers.find((c) => c.table === tb.id) : null; }
+  nearTable() { const tb = this.tables.find((t) => Math.hypot(t.pos[0] - this.p.x, t.pos[1] - this.p.z) <= this.t.interact_radius); return tb ? this.activeAt(tb.id) || this.customers.find((c) => c.table === tb.id) : null; }
+  // closest seated / queueing guest (by where they are drawn) within reach
+  nearGuest() {
+    let best = null, bd = this.t.interact_radius;
+    for (const cu of this.customers) {
+      if (!["waiting", "eating", "queue", "nodish"].includes(cu.state)) continue;
+      const v = cu.vis; if (!v || (v.phase !== "seat" && v.phase !== "stand")) continue;
+      const d = Math.hypot(v.x - this.p.x, v.z - this.p.z); if (d <= bd) { bd = d; best = cu; }
+    }
+    return best;
+  }
+  // Bà Tư wins over the stove only when the player stands closer to her
+  nearBaTu() {
+    const d = Math.hypot(BA_TU.x - this.p.x, BA_TU.z - this.p.z); if (d > 1.4) return false;
+    const s = this.nearStove(); return !s || d < Math.hypot(s.pos[0] - this.p.x, s.pos[1] - this.p.z);
+  }
 
   interact() {
     if (this.hand) { // serving
@@ -153,30 +262,176 @@ export class QuanScene {
       else this.toast(this.p.x, this.p.z + 1, "Không có khách ở đây", "#ffd23a");
       return;
     }
+    if (this.nearBaTu()) { this.openBaTu(); return; }
     const s = this.nearStove();
     if (s) {
       if (s.state === "ready") { const dish = s.dish; this.hand = { key: dish }; s.state = "idle"; s.dish = null; sfx("pick"); this.toast(s.pos[0], s.pos[1] + 1, "Bưng " + dishName(dish), "#9fe"); }
       else if (s.state === "idle") { this.menuOpen = true; this.menuSel = 0; sfx("select"); }
       else this.toast(s.pos[0], s.pos[1] + 1, "Đang nấu...", "#ffd23a");
+      return;
     }
+    const g = this.nearGuest();
+    if (g) this.talkTo(g);
+  }
+  openBaTu() {
+    const f = this.meta && this.meta.openBaTuDialog;
+    if (typeof f !== "function") { this.toast(BA_TU.x + 1, BA_TU.z, "Bà Tư đang nêm nồi lẩu…", "#e8c8ff"); try { voiceLine("Bà Tư", "Để Bà nêm nồi lẩu cái đã nghen con!"); } catch (e) {} return; }
+    let ov = null;
+    const onClose = () => { if (ov && this.overlay === ov) this.overlay = null; this.applyMeta(); };
+    try { ov = f(onClose); } catch (e) { console.warn("openBaTuDialog", e); ov = null; }
+    if (ov && !ov.done) { this.overlay = ov; this._menuOpen = false; sfx("select"); }
+  }
+  // ---- talking to guests ----
+  linesFor(cu) {
+    const pick = (arr, n = 1) => shuffle(arr).slice(0, n);
+    if (cu.state === "queue") return [...pick(LINES.queue), ...(Math.random() < 0.5 ? pick(LINES[cu.type] || LINES.quen) : [])];
+    if (cu.state === "eating") return pick(LINES.eating);
+    if (cu.state === "nodish") return pick(LINES.nodish);
+    const lines = pick(LINES[cu.type] || LINES.quen, 1 + Math.floor(Math.random() * 2));
+    if (cu.type === "sop" && cu.state === "waiting" && !cu.hint && Math.random() < this.hintChance) {
+      cu.hint = true; lines.push("Món " + dishName(cu.want) + " là món ruột của chú. Bưng lẹ, chú bo thêm!");
+    }
+    return lines.slice(0, 3);
+  }
+  talkTo(cu) {
+    if (cu.talk && !cu.talk.ambient && cu.talk.i < cu.talk.lines.length - 1) { cu.talk.i++; cu.talk.t = 0; this.say(cu); return; } // E again: next line
+    cu.talk = { lines: this.linesFor(cu), i: 0, t: 0 }; this.talks++; this.say(cu); sfx("click");
+    if (cu.charmed) return;
+    if (cu.state === "waiting") { // charm: +10% of the remaining patience, once per guest
+      cu.charmed = true; const add = cu.patience * CHARM; cu.patience += add;
+      this.toast(cu.x, cu.z + 2, "Khách vui hơn +" + add.toFixed(1) + "s", "#ff8fb1");
+    } else if (cu.state === "queue") { // a chat in the queue calms them down
+      cu.charmed = true; cu.qPat += QUEUE_CALM;
+      this.toast(cu.vis.x - 1, cu.vis.z + 1.5, "Chờ thêm chút cũng được +" + QUEUE_CALM + "s", "#ff8fb1");
+    }
+  }
+  say(cu) { const line = cu.talk && cu.talk.lines[cu.talk.i]; if (line && !cu.talk.ambient) { try { voiceLine(cu.name, line); } catch (e) {} } }
+  updateTalk(cu, dt) {
+    const tk = cu.talk; tk.t += dt;
+    if (tk.t < TALK_S + (tk.lines[tk.i] || "").length * 0.02) return;
+    tk.i++; tk.t = 0;
+    if (tk.i >= tk.lines.length || cu.state === "gone" || cu.state === "done") cu.talk = null; else this.say(cu);
+  }
+  // background chatter: every few seconds a random guest mutters a line (silent bubble) so the deck feels alive
+  ambientChat(dt) {
+    this.chatT -= dt; if (this.chatT > 0) return;
+    this.chatT = 4 + Math.random() * 4;
+    const pool = this.customers.filter((c) => !c.talk && c.vis && (c.vis.phase === "seat" || c.vis.phase === "stand") && ["waiting", "eating", "queue"].includes(c.state));
+    if (!pool.length) return;
+    const cu = pool[Math.floor(Math.random() * pool.length)];
+    const src = cu.state === "eating" ? LINES.eating : cu.state === "queue" ? LINES.queue : LINES[cu.type] || LINES.quen;
+    cu.talk = { lines: [src[Math.floor(Math.random() * src.length)]], i: 0, t: 0, ambient: true };
   }
   cook(key) {
     const s = this.nearStove(); if (!s || s.state !== "idle" || !this.menu[key]) return;
     if (!this.canCook(key)) { this.toast(s.pos[0], s.pos[1] + 1, "Thiếu nguyên liệu", "#ff6b6b"); sfx("hurt"); return; }
+    this.startCook(s, key); this.menuOpen = false;
+  }
+  // shared by the player and Chú Bảy (mul < 1 = faster cook)
+  startCook(s, key, mul = 1, by = null) {
+    if (!s || s.state !== "idle" || !this.menu[key] || !this.canCook(key)) return false;
     const owner = this.resFor(key);
     if (owner) owner.reserved = null; // the oldest order's reserved ingredients go into the pot
     else for (const [k, n] of Object.entries(this.menu[key].recipe)) this.stock[k] -= n;
-    s.state = "cooking"; s.dish = key; s.cookMax = this.cookTime(key); s.cook = s.cookMax;
-    sfx("sizzle"); this.menuOpen = false;
-    this.toast(s.pos[0], s.pos[1] + 1, "Bắc bếp!", "#ff8a3d");
+    s.state = "cooking"; s.dish = key; s.cookMax = this.cookTime(key) * mul; s.cook = s.cookMax; s.by = by ? by.name : null;
+    sfx("sizzle");
+    this.toast(s.pos[0], s.pos[1] + 1, by ? by.name + " bắc bếp!" : "Bắc bếp!", "#ff8a3d");
+    return true;
   }
-  serve(cu) {
+  // ---- hired staff ----
+  moveTo(o, tx, tz, speed, dt) {
+    const dx = tx - o.x, dz = tz - o.z, d = Math.hypot(dx, dz), step = speed * dt;
+    if (d <= step || d < 1e-3) { o.x = tx; o.z = tz; o.walk = 0; return true; }
+    o.x += dx / d * step; o.z += dz / d * step; o.walk += dt;
+    if (Math.abs(dx) > 0.02) o.face = dx < 0 ? -1 : 1;
+    return false;
+  }
+  // the waiting guest a finished dish belongs to: orders already cooked (reservation used) first, then the oldest
+  orderFor(key) {
+    return this.customers.filter((c) => c.state === "waiting" && c.want === key && c.table)
+      .sort((a, b) => (a.reserved ? 1 : 0) - (b.reserved ? 1 : 0) || a.orderT - b.orderT)[0] || null;
+  }
+  pickSpot(i) { const s = this.stoves[i]; return i < 2 ? [PASS.x + (i ? 0.7 : -0.1), PASS.z - 1.0] : [s.pos[0] + 0.9, s.pos[1] - 0.9]; }
+  cookHome() { return this.stoves.length > 1 ? 1 : this.stoves.length ? 0 : -1; }
+  standSpot(i) { const s = this.stoves[i]; return [s.pos[0] + 0.95, s.pos[1] + 0.7]; }
+  // Bé Tí: picks a ready dish off the pass and carries it to the guest who ordered it (lv2 walks faster)
+  updateWaiter(dt) {
+    const w = this.staff.waiter; if (!w) return;
+    const sp = 3.0 * (this.waiterSpeed || 1);
+    if (w.pause > 0) { w.pause -= dt; w.walk = 0; return; }
+    if (w.task === "fetch") {
+      const s = this.stoves[w.stove];
+      if (!s || s.state !== "ready" || s.dish !== w.dish || !this.orderFor(w.dish)) { w.task = "idle"; return; }
+      const [tx, tz] = this.pickSpot(w.stove);
+      if (this.moveTo(w, tx, tz, sp, dt)) {
+        w.carry = s.dish; s.state = "idle"; s.dish = null; w.task = "deliver"; w.hold = 0; w.pause = 0.3; w.face = 1; sfx("pick");
+      }
+      return;
+    }
+    if (w.carry) {
+      const cu = w.cu && w.cu.state === "waiting" && w.cu.want === w.carry && w.cu.table ? w.cu : this.orderFor(w.carry);
+      w.cu = cu;
+      if (!cu) { // nobody wants it any more: wait by the pass a while, then pour it out
+        w.hold += dt; this.moveTo(w, WAITER_HOME.x, WAITER_HOME.z, sp * 0.6, dt);
+        if (w.hold > 12) { this.toast(w.x, w.z + 1.5, w.name + " đổ món nguội", "#ff8a8a"); w.carry = null; w.task = "idle"; }
+        return;
+      }
+      if (this.moveTo(w, cu.x - 1.4, cu.z - 0.2, sp, dt)) { w.face = 1; this.serve(cu, w); w.delivered++; w.carry = null; w.cu = null; w.pause = 0.45; w.task = "idle"; }
+      return;
+    }
+    for (let i = 0; i < this.stoves.length; i++) {
+      const s = this.stoves[i];
+      if (s.state === "ready" && this.orderFor(s.dish)) { w.task = "fetch"; w.stove = i; w.dish = s.dish; return; }
+    }
+    // idle: potter around near the pass, looking at the tables
+    w.idleT -= dt;
+    if (w.idleT <= 0) { w.idleT = 2.5 + Math.random() * 3; w.wx = WAITER_HOME.x + (Math.random() - 0.5) * 2.4; w.wz = WAITER_HOME.z + (Math.random() - 0.5) * 1.2; }
+    if (this.moveTo(w, w.wx, w.wz, sp * 0.45, dt)) w.face = 1;
+  }
+  // Chú Bảy: starts the oldest order that still holds its reservation on a free stove (his own stove first); lv2 cooks 20% faster
+  updateCook(dt) {
+    const k = this.staff.cook; if (!k) return;
+    if (k.pause > 0) { k.pause -= dt; k.walk = 0; return; }
+    const sp = 3.2;
+    if (k.task === "go") {
+      const s = this.stoves[k.stove];
+      if (!s || s.state !== "idle" || !this.resFor(k.key)) { k.task = "idle"; return; }
+      const [tx, tz] = this.standSpot(k.stove);
+      if (this.moveTo(k, tx, tz, sp, dt)) {
+        if (this.startCook(s, k.key, this.staffCookMul || 1, k)) { k.started++; k.task = "stir"; k.face = -1; k.pause = 0.25; } else k.task = "idle";
+      }
+      return;
+    }
+    k.scan -= dt;
+    if (k.scan <= 0) {
+      k.scan = 0.4;
+      const order = this.customers.filter((c) => c.state === "waiting" && c.reserved && this.menu[c.want]).sort((a, b) => a.orderT - b.orderT)[0];
+      if (order) {
+        const home = this.cookHome(), order2 = [home, ...this.stoves.map((_, i) => i).filter((i) => i !== home)];
+        const free = order2.find((i) => this.stoves[i] && this.stoves[i].state === "idle");
+        if (free != null) { k.task = "go"; k.stove = free; k.key = order.want; return; }
+      }
+    }
+    if (k.task === "stir") { const s = this.stoves[k.stove]; if (s && s.state === "cooking") return; k.task = "idle"; }
+    const home = this.cookHome(); if (home < 0) return;
+    const [hx, hz] = this.standSpot(home);
+    if (this.moveTo(k, hx, hz, sp * 0.7, dt)) { k.face = -1; k.stove = home; }
+  }
+  // by = staff actor (waiter) or undefined for the player (whose hand is emptied)
+  serve(cu, by) {
     const dish = this.menu[cu.want], ty = CUST_TYPES[cu.type || "quen"];
     const ratio = cu.patience / (cu.patienceMax || this.t.patience_s);
-    const tip = ratio >= this.t.tip_min_patience_ratio ? Math.floor(dish.price * this.t.tip_rate) * ty.tipMul : 0;
+    const baseTip = ratio >= this.t.tip_min_patience_ratio ? Math.floor(dish.price * this.t.tip_rate) * ty.tipMul : 0;
+    const hintTip = cu.hint ? Math.floor(dish.price * this.t.tip_rate) : 0; // sộp asked for this dish in conversation
+    const tip = baseTip + hintTip;
     const gain = this.payFor(cu) + tip;
     this.release(cu);
-    this.money += gain; this.tips += tip; this.sold[cu.want] = (this.sold[cu.want] || 0) + 1; this.hand = null; cu.state = "eating"; cu.eat = this.t.eat_s; this.served++;
+    this.money += gain; this.tips += tip; this.sold[cu.want] = (this.sold[cu.want] || 0) + 1; if (!by) this.hand = null; cu.state = "eating"; cu.eat = this.t.eat_s; this.served++;
+    this.callMeta("trackChore", "served", 1);
+    if (ratio >= 0.5) { this.fastCount++; this.callMeta("trackChore", "served_fast", 1); }
+    if (tip) { this.tipsCount++; this.callMeta("trackChore", "tip", 1); }
+    if (hintTip) this.toast(cu.x, cu.z + 2, "Bo thêm vì đúng món ruột!", "#ffd23a");
+    if (by) this.toast(cu.x - 1, cu.z + 0.4, by.name + " bưng ra", "#9fe");
     this.rep = clamp(this.rep + (tip ? this.t.tip_reputation : 0), this.t.reputation_min, this.t.reputation_max);
     this.repFlash = 0.5;
     sfx("coin"); if (tip) sfx("ding"); fx.flash("rgba(255,220,120,.2)", 0.12);
@@ -191,6 +446,7 @@ export class QuanScene {
     this.release(cu); cu.state = "gone"; this.left++; this.rep = clamp(this.rep + delta, this.t.reputation_min, this.t.reputation_max);
     this.repFlash = 0.5; sfx("hurt"); fx.shake(cu.type === "sop" ? 5 : 3, 0.3);
     this.toast(cu.x, cu.z + 1, "Bỏ đi 😠 " + delta + " uy tín", "#ff6b6b");
+    this.callMeta("trackChore", "missed", 1); // a guest walked out hungry (same rule as meta.quanFallback)
     this.depart(cu, true);
   }
   // visual only: the customer stands up and walks back to a sampan at the right edge
@@ -210,11 +466,13 @@ export class QuanScene {
   // without reputation loss (their reservations are released), dishes on stoves / in hand are cleared.
   closeShop() {
     for (const cu of this.customers) {
-      if (cu.state === "waiting") { this.release(cu); cu.state = "gone"; this.depart(cu, false); }
+      if (cu.state === "waiting" || cu.state === "nodish" || cu.state === "queue") { this.release(cu); cu.state = "gone"; cu.talk = null; this.depart(cu, false); }
       else if (cu.state === "eating") { cu.state = "done"; this.depart(cu, false); }
     }
     for (const st of this.stoves) { st.state = "idle"; st.dish = null; st.cook = 0; }
-    this.hand = null; this.menuOpen = false;
+    this.hand = null; this.menuOpen = false; this.overlay = null;
+    const w = this.staff.waiter; if (w) { w.carry = null; w.cu = null; w.task = "idle"; }
+    const k = this.staff.cook; if (k) k.task = "idle";
   }
   closeEarly() { if (this.ended) return; this.closedEarly = true; sfx("whoosh"); this.endRun(); }
   endRun() {
@@ -222,18 +480,45 @@ export class QuanScene {
     removeEventListener("pointerdown", this._onMove);
     this.closeShop();
     this.score = this.money + 100 * Math.floor(this.rep);
-    this.result = { money: this.money, rep: this.rep, score: this.score, t: 0, stars: Math.floor(this.rep), served: this.served, left: this.left, day: this.day, tips: this.tips, sold: { ...this.sold }, rep0: this.rep0, closedEarly: !!this.closedEarly };
+    this.pushReview();
+    this.result = { money: this.money, rep: this.rep, score: this.score, t: 0, stars: Math.floor(this.rep), served: this.served, left: this.left, day: this.day, tips: this.tips, sold: { ...this.sold }, rep0: this.rep0, closedEarly: !!this.closedEarly, missed: this.missed,
+      left_queue: this.left_queue, tipsCount: this.tipsCount, served_fast: this.fastCount, review: this.review };
     music("theme"); sfx("fanfare");
+  }
+  // one short guest review into the phone inbox (meta.pushMessage)
+  pushReview() {
+    const praise = [], gripe = [];
+    if (this.served) praise.push(`đồ ăn ngon (${this.served} khách no nê)`);
+    if (this.fastCount) praise.push(`lên món lẹ (${this.fastCount} lần)`);
+    if (this.tipsCount) praise.push(`phục vụ dễ thương (${this.tipsCount} lần bo)`);
+    if (this.decorMul > 1) praise.push("quán trang trí đẹp");
+    if (this.talks) praise.push("chủ quán vui tính, hay hỏi han");
+    if (this.left) gripe.push(`chờ món lâu quá (${this.left} người bỏ về)`);
+    if (this.left_queue) gripe.push(`hết bàn, đứng chờ mỏi chân (${this.left_queue} người về)`);
+    if (this.missed) gripe.push(`hết món sớm (${this.missed} người về không)`);
+    const parts = [];
+    if (praise.length) parts.push("Khách khen: " + praise.join(", ") + ".");
+    if (gripe.length) parts.push("Khách phàn nàn: " + gripe.join(", ") + ".");
+    if (!parts.length) parts.push("Khách khen: tối nay quán yên tĩnh, ngồi hóng gió sông thiệt sướng.");
+    this.review = parts.join(" ");
+    this.callMeta("pushMessage", "Khách quán", this.review);
   }
 
   update(dt) {
+    // Bà Tư's dialog: the quán freezes (clock, customers, stoves, staff) and the overlay gets the frame
+    if (this.overlay) {
+      const ov = this.overlay;
+      try { ov.update && ov.update(dt); } catch (e) { console.warn("Bà Tư dialog", e); ov.done = true; }
+      if (ov.done && this.overlay === ov) { this.overlay = null; this.applyMeta(); }
+      return;
+    }
     this.ps.update(dt);
     this.toasts.forEach((t) => { t.life -= dt; t.oy -= dt * 16; }); this.toasts = this.toasts.filter((t) => t.life > 0);
     if (this.repFlash > 0) this.repFlash -= dt;
     this.updateActors(dt);
     if (this.result) { this.result.t += dt; if (input.hit("restart")) this.onEnd({ restart: true }); else if (this.result.t > 0.8 && input.any()) this.onEnd(this.result); return; }
 
-    if (this.menuOpen) { this.updateMenu(); return; }
+    if (this._menuOpen) { this.updateMenu(); return; }
     const t = this.t, p = this.p;
     let [mx, mz] = input.axis(); mz = -mz; // up key = toward the back rail (+z)
     if (mx || mz) { const n = Math.hypot(mx, mz) || 1; mx /= n; mz /= n; this.started = true; this.hintT = 0; }
@@ -255,13 +540,22 @@ export class QuanScene {
     for (const s of this.stoves) { if (s.state === "cooking") { s.cook -= dt; if (s.cook <= 0) { s.state = "ready"; s.pop = 0.4; sfx("ding"); this.toast(s.pos[0], s.pos[1] + 1, "Chín rồi!", "#79c75a"); } } if (s.pop > 0) s.pop -= dt; }
     // customers
     this.nextCust -= dt;
-    if (this.nextCust <= 0 && this.customers.filter((c) => c.state === "waiting").length < this.tables.length) { this.spawnCustomer(); this.nextCust = t.customer_interval_s; }
+    if (this.nextCust <= 0) { this.spawnCustomer(); this.nextCust = this.arrivalGap(); if (Math.random() < this.burstChance) this.burstT = 0.9; }
+    if (this.burstT > 0) { this.burstT -= dt; if (this.burstT <= 0) this.spawnCustomer(); }
     for (const cu of this.customers) {
       if (cu.enter < 1) cu.enter = Math.min(1, cu.enter + dt * 2);
+      if (cu.talk) this.updateTalk(cu, dt);
       if (cu.state === "waiting") { cu.patience -= dt; if (cu.patience <= 0) this.leave(cu); }
+      else if (cu.state === "queue") { cu.qPat -= dt; if (cu.qPat <= 0) this.leaveQueue(cu); }
+      else if (cu.state === "nodish") { if (!cu.vis || cu.vis.phase === "seat" || cu.vis.phase === "stand") { cu.nd -= dt; if (cu.nd <= 0) { cu.state = "gone"; this.missed++; this.callMeta("trackChore", "missed", 1); this.toast(cu.x, cu.z + 1, "Khách về vì hết món", "#ffb36b"); this.depart(cu, false); } } }
       else if (cu.state === "eating") { cu.eat -= dt; if (cu.eat <= 0) { cu.state = "done"; this.toast(cu.x, cu.z + 1, "Ngon! 😋", "#79c75a"); this.depart(cu, false); } }
     }
     this.customers = this.customers.filter((c) => (c.state !== "gone" && c.state !== "done") || (c.fade = (c.fade || 1) - dt) > 0);
+    this.seatFromQueue();
+    this.updateWaiter(dt); this.updateCook(dt);
+    this.ambientChat(dt);
+    const done = this.callMeta("popCompletions");
+    if (Array.isArray(done)) for (const d of done) { this.toast(this.p.x, this.p.z + 2.2, "Xong việc: " + (d.title || ""), "#ffd23a"); sfx("coin"); }
 
     this.time -= dt;
     this.score = this.money + 100 * Math.floor(this.rep);
@@ -274,9 +568,11 @@ export class QuanScene {
       const v = cu.vis; if (!v || cu.state === "gone" || cu.state === "done") continue;
       if (v.phase === "boat") { v.k = Math.min(1, v.k + dt / 1.1); v.x = BOAT_X + 4 * (1 - v.k) ** 2; if (v.k >= 1) { v.phase = "walk"; v.x = DOCK.x; this.boats.push({ x: BOAT_X, z: DOCK.z, vx: 0, face: -1 }); } }
       else if (v.phase === "walk") {
-        const tx = cu.x + SEAT_DX, tz = cu.z, dx = tx - v.x, dz = tz - v.z, d = Math.hypot(dx, dz), step = WALK * dt;
+        const [tx, tz] = this.target(cu), dx = tx - v.x, dz = tz - v.z, d = Math.hypot(dx, dz), step = WALK * dt;
         v.walk += dt; v.face = dx < 0 ? -1 : 1;
-        if (d <= step) { v.x = tx; v.z = tz; v.phase = "seat"; v.face = -1; } else { v.x += dx / d * step; v.z += dz / d * step; }
+        if (d <= step) { v.x = tx; v.z = tz; v.phase = cu.table ? "seat" : "stand"; v.face = -1; } else { v.x += dx / d * step; v.z += dz / d * step; }
+      } else if (v.phase === "stand") { // queue moves up
+        const [tx, tz] = this.target(cu); if (Math.hypot(tx - v.x, tz - v.z) > 0.05) v.phase = "walk";
       }
     }
     for (const w of this.walkers) {
@@ -298,6 +594,12 @@ export class QuanScene {
         this.ps.add({ x: x + (Math.random() - 0.5) * 14, y, vx: (Math.random() - 0.5) * 50, vy: -40 - Math.random() * 40, g: 160, size: 1, life: 0.35 + Math.random() * 0.2, color: Math.random() < 0.5 ? "#ffd23a" : "#ff8a3d" });
       }
     }
+  }
+  // where a guest walks to: the stool beside their table, their queue spot, or (no table, no dish) the gangway
+  target(cu) {
+    if (cu.table) return [cu.x + SEAT_DX, cu.z];
+    if (cu.state === "queue") { const i = Math.max(0, this.queue().indexOf(cu)); return QSPOTS[i % QSPOTS.length]; }
+    return [cu.x, cu.z];
   }
   updateMenu() {
     const keys = Object.keys(this.menu);
@@ -324,15 +626,28 @@ export class QuanScene {
     c.save(); c.globalAlpha = 1 - dusk * 0.8; moon(c, 392, 70); c.restore();
     const lights = [];
     // far water (river surface between the far bank and our raft), with lantern + moon reflections
-    const farBoats = [0, 1].map((i) => ({ x: ((i * 260 + time * (6 + i * 3)) % (W + 140)) - 70, y: 136 + i * 12, i }));
+    // busy night river: six sampans coming and going at different speeds, some with a cây bẹo of goods
+    const farBoats = [0, 1, 2, 3, 4, 5].map((i) => {
+      const dir = i % 3 === 1 ? -1 : 1, sp = 5 + ((i * 3) % 7), span = W + 160, u = ((i * 97 + time * sp) % span) - 80;
+      return { x: dir > 0 ? u : W - u, y: 128 + (i % 3) * 9 + (i > 2 ? 4 : 0), i, dir, s: 0.36 + (i % 3) * 0.05 };
+    }).sort((a, b) => a.y - b.y);
     nightWater(c, HORIZON + 2, H, time, [...[40, 190, 340].map((x) => [x - 4, HORIZON + 3, 22]), ...farBoats.map((b) => [b.x - 3, b.y + 2, 14])], 392);
-    for (const b of farBoats) { sampan(c, b.x, b.y, 1, time + b.i, 0.45, { roof: b.i ? "#6b3d22" : null }); R(c, b.x - 3, b.y - 14, 1, 10, P.woodD); R(c, b.x - 5, b.y - 17, 5, 4, P.red); R(c, b.x - 4, b.y - 16, 3, 2, P.yellow); lights.push([b.x - 3, b.y - 15, 6, 0.08]); }
+    for (const b of farBoats) {
+      sampan(c, b.x, b.y, b.dir, time + b.i, b.s, { roof: b.i % 2 ? "#6b3d22" : null, beo: b.i % 3 === 2 ? b.i : 0 });
+      const lx = b.x - 3 * b.dir; R(c, lx, b.y - 14, 1, 10, P.woodD); R(c, lx - 2, b.y - 17, 5, 4, b.i % 2 ? P.red : P.orange); R(c, lx - 1, b.y - 16, 3, 2, P.yellow);
+      lights.push([lx, b.y - 15, 6, 0.08]);
+    }
     // ---- the raft ----
     const yb = Y_BACK + this.bob, yf = Y_FRONT + this.bob;
     roofAndPosts(c, DECK_L, DECK_R + 4, yf, time);
     backRail(c, 150, DECK_R, yb);
     kitchenBack(c, DECK_L + 4, 146, yb, time);
     deck(c, DECK_L, DECK_R, yb, yf, time);
+    // décor: restaurant sign over the kitchen, bougainvillea garland along the back rail (flowers lv2)
+    const uiOK = !this.menuOpen && !this.result;
+    const signGlow = quanSign(c, 80, 96 + this.bob, this.decor.sign, time, uiOK);
+    if (signGlow) lights.push([80, 103, 40, 0.06, signGlow]);
+    if (this.decor.flowers >= 2) flowerGarland(c, 152, DECK_R - 4, yb - 14, time);
     // front water line under the floats: warm reflections of the lantern strings, ripples
     const frontRefl = []; for (let x = 60; x < DECK_R; x += 44) frontRefl.push([x, yf + 12, 14]);
     for (const [lx, , len] of frontRefl) for (let k = 0; k < len; k += 2) R(c, lx - 2 + Math.round(Math.sin(time * 3 + k + lx) * 1.5), yf + 14 + k, 3 + (k % 3), 1, `rgba(255,170,80,${0.32 - k * 0.02})`);
@@ -341,6 +656,7 @@ export class QuanScene {
     // gangway at the right edge where sampans dock
     const dockY = this._sy(DOCK.z);
     landing(c, DECK_R, dockY, time); lights.push([DECK_R + 13, dockY - 27, 18, 0.14]);
+    if (this.decor.flowers >= 2) flowerArch(c, DECK_R - 6, 26, dockY, 40, time);
     // ---- depth-sorted actors ----
     const ents = [];
     for (const s of this.stoves) ents.push({ z: s.pos[1], draw: () => this.drawStove(c, s, time) });
@@ -351,6 +667,10 @@ export class QuanScene {
     for (const w of this.walkers) ents.push({ z: w.z - 0.02, draw: () => this.drawWalker(c, w, time) });
     for (const b of this.boats) ents.push({ z: b.z + 0.5, draw: () => this.drawBoat(c, b, time) });
     ents.push({ z: this.p.z, draw: () => this.drawPlayer(c, time) });
+    const W8 = this.staff.waiter, CK = this.staff.cook;
+    if (W8) ents.push({ z: W8.z, draw: () => this.drawWaiter(c, W8, time) });
+    if (CK) ents.push({ z: CK.z, draw: () => this.drawCook(c, CK, time) });
+    if (this.decor.flowers >= 1) [[6.6, 0.25, 0], [11.1, 0.25, 1], [15.3, 0.25, 2], [0.5, 6.5, 3]].forEach(([x, z, k]) => ents.push({ z, draw: () => flowerPot(c, this._sx(x), this._sy(z), time, k) }));
     ents.sort((a, b) => b.z - a.z);
     ents.forEach((e) => e.draw());
     // smoke + steam over the kitchen
@@ -358,23 +678,59 @@ export class QuanScene {
     for (const s of this.stoves) if (s.state === "cooking") smoke(c, this._sx(s.pos[0]) + 2, this._sy(s.pos[1]) - 24, time);
     this.ps.draw(c, 0, 0);
     // ---- roof lanterns + light ----
-    lanternString(c, 104, 232, 19, 14, 5, time, lights);
-    lanternString(c, 248, 372, 19, 14, 5, time, lights);
-    lanternString(c, DECK_L + 6, 98, 54, 6, 3, time, lights);
-    lanternString(c, 380, DECK_R, 44, 8, 2, time, lights);
-    for (const L of lights) glow(c, L[0], L[1], L[2] || 22, L[3] || 0.1);
+    const ls = this.decor.lanterns;
+    lanternString(c, 104, 232, 19, 14, 5, time, lights, ls, 0);
+    lanternString(c, 248, 372, 19, 14, 5, time, lights, ls, 2);
+    lanternString(c, DECK_L + 6, 98, 54, 6, 3, time, lights, ls, 1);
+    lanternString(c, 380, DECK_R, 44, 8, 2, time, lights, ls, 3);
+    for (const L of lights) glow(c, L[0], L[1], L[2] || 22, L[3] || 0.1, L[4]);
     for (const s of this.stoves) if (s.state !== "idle") glow(c, this._sx(s.pos[0]), this._sy(s.pos[1]) - 8, 46, 0.16 + Math.sin(time * 18) * 0.02, "255,120,40");
     c.fillStyle = "rgba(255,150,70,.05)"; c.fillRect(DECK_L, 19, DECK_R - DECK_L, yb - 19);
     // ---- overlays: coins, order bubbles, badges, prompts, toasts ----
     this.drawCoins(c);
     for (const cu of this.customers) if (cu.state === "waiting" && cu.vis) this.drawOrder(c, cu, time);
+    for (const cu of this.customers) if (cu.state === "nodish" && cu.vis?.phase === "seat") { const x = this._sx(cu.vis.x), y = this._sy(cu.vis.z); txt("Hết món rồi…", x, y - 40, { size: 8, align: "center", color: "#3a1410", weight: 900, stroke: "#fff6e8", sw: 4 }); }
+    if (!this.menuOpen && !this.result) for (const cu of this.customers) if (cu.talk && cu.vis && cu.state !== "gone" && cu.state !== "done") this.drawTalk(cu);
     this.drawPrompts(time);
     this.toasts.forEach((t) => txt(t.txt, this._sx(t.x), this._sy(t.z) - 26 + t.oy, { size: 9, align: "center", color: t.col, weight: 900, stroke: "#1a1220", sw: 2.5, alpha: clamp(t.life, 0, 1) }));
 
     this.drawHUD(c, time);
-    if (this.menuOpen) this.drawMenu(c, time);
+    if (this._menuOpen) this.drawMenu(c, time);
     if (this.result) this.drawResult(c, time);
-    else if (this.hintT > 0 && !this.started) this.drawHint(c);
+    else if (this.hintT > 0 && !this.started && !this.menuOpen) this.drawHint(c);
+    if (this.overlay) { try { this.overlay.draw && this.overlay.draw(); } catch (e) { console.warn("Bà Tư dialog draw", e); } }
+  }
+  // small name tag over a staff member / Bà Tư (UI layer)
+  nameTag(x, y, name, col = "#ffe9c4") {
+    if (this.menuOpen || this.result) return;
+    const w = Math.ceil(measure(name, 6.5, 900)) + 8;
+    panel(x - w / 2, y - 9, w, 9, { fill: "rgba(42,24,14,.85)", border: col, bw: 0.8, r: 3 });
+    txt(name, x, y - 2.3, { size: 6.5, align: "center", color: col, weight: 900 });
+  }
+  drawWaiter(c, w, time) {
+    const x = this._sx(w.x), y = this._sy(w.z), s = depthScale(w.z) * 0.86;
+    scaled(c, s, x, y, (cc, ax, ay) => personSide(cc, ax, ay, { face: w.face, shirt: "#e84a5a", pants: "#2a3a5a", hair: "#1a1218", cap: "#2a8f5a", walk: w.walk, carry: w.carry, t: time }));
+    if (w.carry) steam(c, x + 1, y - Math.round(36 * s), time, 3, 8);
+    this.nameTag(x, y - Math.round((w.carry ? 40 : 26) * s), w.name + (w.lv >= 2 ? " ★" : ""), "#ff9aa8");
+  }
+  drawCook(c, k, time) {
+    const x = this._sx(k.x), y = this._sy(k.z), s = depthScale(k.z);
+    const st = this.stoves[k.stove], stir = k.task === "stir" && st && st.state === "cooking" && !k.walk;
+    scaled(c, s, x, y, (cc, ax, ay) => personSide(cc, ax, ay, { face: k.face, shirt: "#f2efe6", pants: "#3a3a44", hair: "#2a1d2b", band: P.red, mustache: true, towel: "#9fd8ff", walk: k.walk, arm: stir ? "stir" : null, t: time }));
+    this.nameTag(x, y - Math.round(27 * s), k.name + (k.lv >= 2 ? " ★" : ""), "#9fd8ff");
+  }
+  // speech bubble over a guest who is talking (UI layer); ambient chatter is smaller and unnamed
+  drawTalk(cu) {
+    const v = cu.vis, tk = cu.talk, line = tk.lines[tk.i]; if (!line) return;
+    const size = tk.ambient ? 6.5 : 7, rows = wrap(line, tk.ambient ? 96 : 124, size);
+    const tw = Math.max(...rows.map((r) => measure(r, size, 800)), tk.ambient ? 0 : measure(cu.name, 6.5, 900));
+    const w = Math.ceil(tw) + 10, h = rows.length * (size + 2) + (tk.ambient ? 6 : 14);
+    const sx = this._sx(v.x), top = this._sy(v.z) - (cu.state === "waiting" ? 70 : 32) - h;
+    const x = clamp(sx - w / 2, 2, W - w - 2), ty = CUST_TYPES[cu.type] || CUST_TYPES.quen, a = clamp(Math.min(tk.t * 6, 1), 0, 1);
+    panel(x, top, w, h, { fill: tk.ambient ? "rgba(255,248,232,.78)" : "rgba(255,248,232,.96)", border: tk.ambient ? "rgba(120,80,40,.5)" : ty.col, bw: 1, r: 5, alpha: a });
+    let yy = top + 8;
+    if (!tk.ambient) { txt(cu.name, x + 5, yy, { size: 6.5, color: "#8a4a1a", weight: 900, alpha: a }); yy += 8; }
+    for (const r of rows) { txt(r, x + 5, yy + 1, { size, color: "#2a1a12", weight: 800, alpha: a, italic: !!tk.ambient }); yy += size + 2; }
   }
   drawStove(c, s, time) {
     const x = this._sx(s.pos[0]), y = this._sy(s.pos[1]), sc = depthScale(s.pos[1]) * (s.pop > 0 ? 1 + s.pop * 0.25 : 1);
@@ -404,12 +760,14 @@ export class QuanScene {
   drawBaTu(c, time) {
     const busy = this.stoves.some((s) => s.state === "cooking");
     const x = this._sx(BA_TU.x), y = this._sy(BA_TU.z);
-    scaled(c, depthScale(BA_TU.z), x, y, (cc, ax, ay) => personSide(cc, ax, ay, { face: 1, shirt: "#7a4fa0", pants: "#3a2a4a", hair: "#c9c2d4", bun: true, bunTie: P.red, apron: true, arm: busy ? "stir" : (Math.sin(time * 0.7) > 0.85 ? "wave" : null), t: time }));
+    const near = !this.hand && this.nearBaTu();
+    scaled(c, depthScale(BA_TU.z), x, y, (cc, ax, ay) => personSide(cc, ax, ay, { face: 1, shirt: "#7a4fa0", pants: "#3a2a4a", hair: "#c9c2d4", bun: true, bunTie: P.red, apron: true, arm: near ? "wave" : busy ? "stir" : (Math.sin(time * 0.7) > 0.85 ? "wave" : null), t: time }));
+    this.nameTag(x, y - 24, "Bà Tư", "#e8c8ff");
   }
   drawTable(c, tb, time) {
     const x = this._sx(tb.pos[0]), y = this._sy(tb.pos[1]), cu = this.customers.find((k) => k.table === tb.id && k.state === "eating");
     scaled(c, depthScale(tb.pos[1]), x, y, (cc, ax, ay) => {
-      stool(cc, ax - 19, ay); stool(cc, ax + 19, ay); sideTable(cc, ax, ay);
+      stool(cc, ax - 19, ay); stool(cc, ax + 19, ay); sideTable(cc, ax, ay, this.decor.cloth);
       if (cu) cc.drawImage(dishIcon(cu.want), ax + 2, ay - 24, 12, 12);
     });
     if (cu) steam(c, x + 8, y - 24, time, 3, 10);
@@ -423,10 +781,17 @@ export class QuanScene {
     // impatient customers fidget while waiting
     const jig = type === "voi" && cu.state === "waiting" && seated ? Math.round(Math.sin(time * 14) * 0.6) : 0;
     scaled(c, depthScale(v.z), x + jig, y, (cc, ax, ay) => {
-      personSide(cc, ax, ay, { ...this.custLook(cu), face: seated ? -1 : v.face, sit: seated, walk: seated ? 0 : v.walk, arm: cu.state === "eating" ? "eat" : null, t: time });
+      const talking = cu.talk && !cu.talk.ambient;
+      personSide(cc, ax, ay, { ...this.custLook(cu), face: seated ? -1 : v.face, sit: seated, walk: v.phase === "walk" ? v.walk : 0, arm: cu.state === "eating" ? "eat" : talking ? "talk" : null, t: time });
       if (type === "sop") { cc.fillStyle = "#ffe9a0"; cc.fillRect(ax - 2, ay - 12, 4, 1); cc.fillStyle = "#e0a21a"; cc.fillRect(ax - 1, ay - 11, 2, 1); } // gold chain
     });
     if (cu.state === "eating") txt(Math.floor(time * 3) % 2 ? "😋" : "😊", x + 8, y - 26, { size: 9 });
+    if (cu.state === "queue" && v.phase === "stand") { // own small patience bar while waiting for a table
+      const fr = clamp(cu.qPat / (cu.qMax || QUEUE_PAT), 0, 1), bw = 12, by = y - 29;
+      R(c, x - bw / 2 - 1, by - 1, bw + 2, 4, "rgba(20,10,8,.8)"); R(c, x - bw / 2, by, Math.max(1, Math.round(bw * fr)), 2, fr < 0.3 ? "#ff5a5a" : fr < 0.6 ? "#ffd23a" : "#9fd8ff");
+      if (fr < 0.3 && Math.floor(time * 5) % 2) R(c, x + 8, by - 4, 1, 3, "#ff5a5a");
+    }
+    if (cu.state === "nodish" && v.phase === "stand" && !this.menuOpen && !this.result) txt("Hết món rồi…", x, y - 32, { size: 7, align: "center", color: "#3a1410", weight: 900, stroke: "#fff6e8", sw: 3 });
   }
   drawWalker(c, w, time) {
     const x = this._sx(w.x), y = this._sy(w.z), cu = w.who;
@@ -466,7 +831,7 @@ export class QuanScene {
     c.imageSmoothingEnabled = false; c.drawImage(dishIcon(cu.want), bx - 8, by - 8, 16, 16);
     if (type !== "quen") pixIcon(c, type, bx - 12, by - 12);
     // patience ring: fraction of THIS customer's own max patience
-    const fr = cu.patience / (cu.patienceMax || this.t.patience_s);
+    const fr = Math.min(1, cu.patience / (cu.patienceMax || this.t.patience_s));
     this.ring(c, bx, by, fr, fr < 0.3 ? "#ff5a5a" : fr < 0.6 ? "#ffd23a" : "#79c75a", 11);
     if (fr < 0.3 && Math.floor(time * 6) % 2) txt("!", x + 8, y - 30, { size: 11, color: "#ff5a5a", weight: 900, stroke: "#1a1220", sw: 2 });
     if (this.menuOpen || this.result) return; // UI-layer labels would sit above the dimmed overlay
@@ -485,11 +850,17 @@ export class QuanScene {
   drawPrompts(time) {
     if (this.menuOpen || this.result) return;
     const s = this.nearStove(), o = { size: 8, align: "center", weight: 900, stroke: "#1a1220", sw: 2.5 };
+    if (!this.hand && this.nearBaTu()) { txt("E: Nói chuyện với Bà Tư", clamp(this._sx(BA_TU.x) + 20, 60, W - 60), this._sy(BA_TU.z) + 12, { ...o, color: "#e8c8ff" }); return; }
     if (s) {
       const x = this._sx(s.pos[0]), y = this._sy(s.pos[1]) + 10;
       if (this.hand) txt("E: Đổ món", x, y, { ...o, color: "#ff9a9a" });
       else if (s.state === "idle") txt("E: Nấu", x, y, { ...o, color: "#ffd23a" });
       else if (s.state === "ready") txt("E: Bưng", x, y, { ...o, color: "#79c75a" });
+      return;
+    }
+    if (!this.hand) {
+      const g = this.nearGuest();
+      if (g) { const gx = clamp(this._sx(g.vis.x), 50, W - 50); txt("E: Nói chuyện với " + g.name + (g.charmed ? "" : " ♥"), gx, this._sy(g.vis.z) + 10, { ...o, color: "#ff8fb1" }); }
       return;
     }
     const cu = this.nearTable();
@@ -508,6 +879,9 @@ export class QuanScene {
     panel(6, 40, 70, 13, { fill: F, border: HUD.dim, r: 5 });
     txt("Phục vụ " + this.served, 11, 49.5, { size: 7, color: "#9fe8a0", weight: 900 });
     txt("Bỏ " + this.left, 71, 49.5, { size: 7, align: "right", color: this.left ? "#ff8a8a" : "#c9a88a", weight: 900 });
+    const qn = this.queue().length;
+    if (qn || this.left_queue) { panel(80, 40, 96, 13, { fill: F, border: qn >= this.queueMax ? "#ffb36b" : HUD.dim, r: 5 }); txt("Hàng chờ " + qn + "/" + this.queueMax, 85, 49.5, { size: 7, color: "#9fd8ff", weight: 900 }); txt("Về " + this.left_queue, 171, 49.5, { size: 7, align: "right", color: this.left_queue ? "#ffb36b" : "#c9a88a", weight: 900 }); }
+    if (this.missed || this.noDish) { panel(6, 56, 112, 13, { fill: F, border: HUD.dim, r: 5 }); txt("Khách về vì hết món: " + this.missed, 11, 65.5, { size: 7, color: "#ffb36b", weight: 900 }); }
     // money
     panel(6, 5, 70, 15, { fill: F, border: HUD.border, r: 6 });
     txt("🪙", 12, 16, { size: 9 }); txt(this.money + "k", 72, 16, { size: 11, align: "right", color: "#ffe14d", weight: 900 });
@@ -530,11 +904,11 @@ export class QuanScene {
       panel(b.x, b.y, b.w, b.h, { fill: armed ? "rgba(140,40,20,.95)" : "rgba(110,64,32,.95)", border: armed ? "#ffb36b" : "#3a2410", bw: 1.5, r: 4 });
       txt(armed ? "Nhấn lần nữa!" : "Đóng quán sớm (C)", b.x + b.w / 2, b.y + 10.5, { size: 7, align: "center", color: "#ffe9c4", weight: 900 });
       if (armed) { panel(W / 2 - 110, 52, 220, 16, { fill: "rgba(120,30,20,.92)", border: "#ffb36b", r: 6 }); txt("Nhấn C lần nữa để đóng quán", W / 2, 63, { size: 9, align: "center", color: "#fff", weight: 900 }); }
-      else if (this.noDish) { const a = 0.75 + 0.25 * Math.sin(time * 4); panel(W / 2 - 150, 52, 300, 16, { fill: `rgba(80,20,20,${0.9 * a})`, border: "#ff8a8a", r: 6 }); txt("Hết nguyên liệu — không còn khách mới · C: Đóng quán sớm", W / 2, 63, { size: 8, align: "center", color: "#ffe0d0", weight: 900 }); }
+      else if (this.noDish) { const a = 0.75 + 0.25 * Math.sin(time * 4); panel(W / 2 - 150, 52, 300, 16, { fill: `rgba(80,20,20,${0.9 * a})`, border: "#ff8a8a", r: 6 }); txt("Hết nguyên liệu — khách ghé rồi về · C: Đóng quán sớm", W / 2, 63, { size: 8, align: "center", color: "#ffe0d0", weight: 900 }); }
     }
     // hand indicator
     if (this.hand) { const s = "Đang bưng: " + dishName(this.hand.key), hw = Math.max(86, Math.ceil(measure(s, 7, 800)) + 10); panel(W - 6 - hw, 23, hw, 14, { fill: "rgba(70,30,12,.9)", border: "#ff8a3d", r: 6 }); txt(s, W - 1 - hw, 33, { size: 7, color: "#ffd0a0", weight: 800 }); }
-    txt("WASD đi · E nấu/bưng/phục vụ · C đóng quán sớm · Esc/P tạm dừng", W / 2, H - 4, { size: 7, align: "center", color: "rgba(255,233,196,.55)", weight: 700, stroke: "rgba(10,8,20,.6)", sw: 2 });
+    txt("WASD đi · E nấu/bưng/phục vụ/trò chuyện · C đóng quán sớm · Esc/P tạm dừng", W / 2, H - 4, { size: 7, align: "center", color: "rgba(255,233,196,.55)", weight: 700, stroke: "rgba(10,8,20,.6)", sw: 2 });
   }
   star(u, x, y, fill, time, i) {
     u.save(); u.translate(x, y);
@@ -549,7 +923,7 @@ export class QuanScene {
   }
   drawMenu(c, time) {
     c.fillStyle = "rgba(14,8,6,.55)"; c.fillRect(0, 0, W, H);
-    const keys = Object.keys(this.menu), rowH = keys.length > 4 ? 28 : 34, pw = 240, ph = 26 + Math.max(1, keys.length) * rowH;
+    const keys = Object.keys(this.menu), rowH = keys.length > 4 ? 28 : 34, pw = 260, ph = 36 + Math.max(1, keys.length) * rowH;
     const px = W / 2 - pw / 2, py = H / 2 - ph / 2;
     panel(px, py, pw, ph, { fill: "rgba(46,26,14,.97)", border: HUD.border, bw: 1.5, r: 6 });
     txt("CHỌN MÓN NẤU", W / 2, py + 15, { size: 11, align: "center", color: "#ffd23a", weight: 900 });
@@ -595,6 +969,7 @@ export class QuanScene {
     R(c, W / 2 - 82, H / 2 + 22, 164, 1, "rgba(255,220,160,.2)");
     txt("ĐIỂM", W / 2 - 80, H / 2 + 37, { size: 10, color: HUD.text, weight: 900 });
     txt("" + Math.floor(r.score * clamp(r.t * 0.8, 0, 1)), W / 2 + 80, H / 2 + 37, { size: 14, align: "right", color: "#7ee87e", weight: 900 });
+    if (r.left_queue || r.missed) txt(`Chờ bàn rồi về ${r.left_queue || 0} · Về vì hết món ${r.missed || 0}`, W / 2, H / 2 + 56, { size: 8, align: "center", color: "#ffb36b", weight: 800 });
     if (r.t > 1) txt(Math.floor(r.t * 2) % 2 ? "Enter: chơi lại từ đầu   ·   R: làm lại buổi tối" : "", W / 2, H - 20, { size: 9, align: "center", color: "#fff", weight: 900 });
   }
 }
