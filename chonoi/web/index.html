@@ -83,7 +83,15 @@ const DEMO_DATA = {
     stoves: [{ id: "B1", pos: [2, 8], state: "idle", dish: null, cook_ticks_left: 0 }, { id: "B2", pos: [5, 8], state: "idle", dish: null, cook_ticks_left: 0 }],
     tables: [{ id: "T1", pos: [9, 2] }, { id: "T2", pos: [13, 2] }, { id: "T3", pos: [9, 6] }, { id: "T4", pos: [13, 6] }],
     customers: [],
-    events: [{ tick: 180, name: "spoiled", data: { item_id: "I12", kind: "ca_linh", location: "stock" } }],
+    events: [
+      { tick: 180, name: "spoiled", data: { item_id: "I12", kind: "ca_linh", location: "stock" } },
+      { tick: 200, name: "cook_started", data: {
+        stove_id: "B1", dish: "goi_bong_sung",
+        items: [{ id: "I11", kind: "bong_sung", fresh: 45 }, { id: "I14", kind: "bong_sung", fresh: 62.5 }],
+        base_price: 34,
+      }},
+      { tick: 220, name: "paid", data: { customer_id: "C1", base_price: 34, price: 34, tip: 6 } },
+    ],
     meta: { bounds: { x: [0, 16], z: [0, 10] }, patience_s: 60, reputation_min: 0, reputation_max: 5 },
   },
 };
@@ -449,6 +457,20 @@ function lastHudEvent(allowed) {
   for (let i = ev.length - 1; i >= 0; i--) if (allowed.has(ev[i].name)) return ev[i];
   return null;
 }
+function formatCookItems(items) {
+  if (!Array.isArray(items) || !items.length) return "—";
+  return items.map((it) => {
+    const k = KIND_NAME[it.kind] || it.kind || it.id || "?";
+    const f = typeof it.fresh === "number" ? freshLabel(it.fresh) : "—";
+    return k + " " + f;
+  }).join(", ");
+}
+function lockedPrice(d) {
+  if (!d || typeof d !== "object") return undefined;
+  if (d.base_price !== undefined && d.base_price !== null) return d.base_price;
+  if (d.price !== undefined && d.price !== null) return d.price; // paid có thể dùng price đã chốt
+  return undefined;
+}
 function hudEventLine(e) {
   if (!e) return "";
   const d = e.data || {};
@@ -456,6 +478,21 @@ function hudEventLine(e) {
     const name = KIND_NAME[d.kind] || d.kind || d.item_id || "?";
     const loc = d.location === "stock" ? "kho" : (d.location === "hold" ? "giỏ" : (d.location || "—"));
     return "t" + e.tick + " Hàng ươn: " + name + " (" + loc + ")";
+  }
+  if (e.name === "cook_started") {
+    const dish = d.dish || d.dish_id;
+    let s = "t" + e.tick + " Bắt nấu" + (dish ? " · " + dn(dish) : "");
+    if (d.items !== undefined) s += " · NL: " + formatCookItems(d.items);
+    const bp = lockedPrice(d);
+    if (bp !== undefined) s += " · giá " + bp + "k";
+    return s;
+  }
+  if (e.name === "paid") {
+    let s = "t" + e.tick + " Thanh toán";
+    const bp = lockedPrice(d);
+    s += " · giá chốt " + (bp !== undefined ? bp + "k" : "—");
+    if (d.tip !== undefined && d.tip !== null) s += " · boa " + d.tip + "k";
+    return s;
   }
   let s = EVENT_VI[e.name] || e.name;
   if (d.reason) s += " · " + d.reason;

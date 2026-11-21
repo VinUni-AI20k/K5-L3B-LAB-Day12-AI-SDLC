@@ -7,7 +7,7 @@
 > ⚠️ Nền P1/P2 chưa xong (hái/bắt cá TODO, quán chưa nối `step`, `day` chưa chạy). Nếu phút 0–7 lõi P1 vẫn chưa xanh, giữ ưu tiên `specs/002-day-loop/tasks.md` nhóm P0 trước các task Quán/day dưới đây.
 
 ## Phase 0 — Phân tích tác động (phút 0–7)
-- [ ] T300 [qa] (TV6) Dẫn phân tích tác động; ghi quyết định schema v1.2, thứ tự tích hợp, cách chuyển (đọc 2 phiên bản, bật v1.2 khi hai đầu sẵn sàng) vào `docs/clarify.md` hoặc `docs/adr/0001-kho-ca-the.md`
+- [x] T300 [qa] (TV6) Dẫn phân tích tác động; ghi quyết định schema v1.2, thứ tự tích hợp, cách chuyển (đọc 2 phiên bản, bật v1.2 khi hai đầu sẵn sàng) vào `docs/clarify.md` hoặc `docs/adr/0001-kho-ca-the.md`
 
 ## Phase 1 — Adapter / schema (làm trước, chặn mọi lát) — TV1 (+TV6 khung)
 - [ ] T301 [US1] [adapter] (TV1) `chonoi/inventory.py`: `read_inventory` chọn schema theo `contract_version`; v1.2: mảng cá thể, kiểm id duy nhất/khác rỗng, kind 6 loại, fresh hữu hạn [0,100]; kho đếm/sai → `BadInput` (mã 2)
@@ -40,8 +40,8 @@
 - [ ] T332 [P] [US4] [qa] (TV5) Test AC-P3-19…21 (smoke day nhiều Ngày, pause/Shop không hao)
 
 ## Phase 5 — HUD — TV6 (Cursor), chỉ `chonoi/web/`
-- [ ] T335 [P] [US5] [client/ui] (TV6) Giỏ: thanh/số độ tươi từng cá thể, nhãn/biểu tượng "ươn" khi fresh < 30; kho quán (EveningIntro, HUD quán): số lượng tươi/ươn theo loại
-- [ ] T336 [P] [US5] [client/ui] (TV6) Nhật ký sự kiện: `spoiled` (tiếng Việt), `cook_started.items`, giá chốt trên `paid`; `tests/test_live.py` giữ xanh
+- [x] T335 [P] [US5] [client/ui] (TV6) Giỏ: thanh/số độ tươi từng cá thể, nhãn/biểu tượng "ươn" khi fresh < 30; kho quán (EveningIntro, HUD quán): số lượng tươi/ươn theo loại
+- [x] T336 [P] [US5] [client/ui] (TV6) Nhật ký sự kiện: `spoiled` (tiếng Việt), `cook_started.items`, giá chốt trên `paid`; `tests/test_live.py` giữ xanh
 
 ## Phase 6 — Bật v1.2, QA, release (phút 20 và 25–32)
 - [ ] T340 [adapter] (TV1) Đổi `contract_version:"1.2"` khi T301–T312, T320–T323 đã tích hợp
