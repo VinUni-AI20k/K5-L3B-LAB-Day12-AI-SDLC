@@ -26,6 +26,16 @@ STOVE, TABLE = Q["stoves"][0], Q["tables"][0]
 PRESS = [{"tick": 0, "interact": True}]
 
 
+# P3 [THAY THẾ]: số lượng chỉ là cú pháp dựng fixture; đầu vào/đầu ra đều cá thể.
+def stock_items(counts, ticks=0):
+    return [{"id": f"I{i + 1}", "kind": kind, "fresh": round(max(0, 24000 - ticks) / 240, 6)}
+            for i, kind in enumerate(kind for kind in sorted(counts) for _ in range(counts[kind]))]
+
+
+def item_ids(counts):
+    return [it["id"] for it in stock_items(counts)]
+
+
 def run_quan(scenario=None, inputs=None, ticks=1, seed=1, inventory=None):
     """Scenario là khối quan; inventory là object file kho {items: ...}; trả rows."""
     with Workdir() as w:
@@ -49,13 +59,13 @@ def near(entity, offset=0):
 def customer(**updates):
     c = {"id": "C1", "table_id": TABLE["id"], "dish_id": DISH, "order_tick": 0,
          "state": "waiting", "patience_ticks_left": PATIENCE, "eat_ticks_left": 0,
-         "order_status": "reserved", "reserved": dict(RECIPE), "base_price": 0, "tip": 0}
+         "order_status": "reserved", "base_price": 0, "tip": 0}
     c.update(updates)
     return c
 
 
 def scenario(**updates):
-    s = {"random_customers": False, "customers": [], "stock": dict(RECIPE)}
+    s = {"random_customers": False, "customers": [], "stock": stock_items(dict(RECIPE))}
     s.update(updates)
     return s
 
@@ -65,14 +75,14 @@ def payload():
 
 
 def ready_scene(**updates):
-    return scenario(customers=[customer(order_status="assigned", reserved={}, base_price=PRICE)],
-                    stock={}, stoves=[{"id": STOVE["id"], "state": "ready", "dish": payload(),
+    return scenario(customers=[customer(order_status="assigned", reserved=[], base_price=PRICE)],
+                    stock=stock_items({}), stoves=[{"id": STOVE["id"], "state": "ready", "dish": payload(),
                                       "cook_ticks_left": 0, "ready_ticks": 0}], **updates)
 
 
 def serving_scene(patience=PATIENCE, **updates):
-    return scenario(customers=[customer(order_status="assigned", reserved={}, base_price=PRICE,
-                                        patience_ticks_left=patience)], stock={}, hand=payload(),
+    return scenario(customers=[customer(order_status="assigned", reserved=[], base_price=PRICE,
+                                        patience_ticks_left=patience)], stock=stock_items({}), hand=payload(),
                     player={"pos": near(TABLE)}, **updates)
 
 
@@ -120,7 +130,7 @@ class Framework(QuanCase):
         self.assertEqual((s["mode"], s["phase"], s["state"]), ("quan", "quan", "playing"))
         self.assertEqual((s["tick"], s["sim_tick"], s["phase_tick"]), (0, 0, 0))
         self.assertEqual(s["time_left_ticks"], int(round(Q["duration_s"] * HZ)))
-        self.assertEqual((s["money"], s["earned"], s["stock"], s["hand"]), (0, 0, {}, None))
+        self.assertEqual((s["money"], s["earned"], s["stock"], s["hand"]), (0, 0, [], None))
         self.rep(s["reputation"], Q["reputation_initial"])
         self.assertEqual(s["score"], TUNING["score"]["reputation_multiplier"] * math.floor(s["reputation"]))
         self.assertEqual(sum(r["type"] == "end" for r in rows), 1)
@@ -136,10 +146,10 @@ class Framework(QuanCase):
 
     def test_inventory_file_and_scenario_stock(self):
         stock = {k: n * (TUNING["gather"]["hold_capacity"] + 1) for k, n in RECIPE.items()}
-        for rows in (run_quan(inventory={"items": stock}, ticks=0),
-                     run_quan(scenario(stock=stock), ticks=0)):
+        for rows in (run_quan(inventory={"items": stock_items(stock)}, ticks=0),
+                     run_quan(scenario(stock=stock_items(stock)), ticks=0)):
             s = self.snap(rows, 0)
-            self.assertEqual(s["stock"], stock)  # trần giỏ không áp lên kho
+            self.assertEqual(s["stock"], stock_items(stock))  # trần giỏ không áp lên kho
             self.assertEqual((s["money"], s["earned"]), (0, 0))
 
     def test_walk_speed_and_diagonal_normalization(self):
@@ -189,7 +199,7 @@ class Customers(QuanCase):
             m = re.fullmatch(r"(.*?)(\d+)", e["id"])
             return (m[1], int(m[2]), e["id"]) if m else (e["id"], -1, e["id"])
         others = sorted(Q["tables"], key=id_key)[1:]
-        fillers = [customer(id=f"C{i + 2}", table_id=t["id"], order_status="unfulfillable", reserved={})
+        fillers = [customer(id=f"C{i + 2}", table_id=t["id"], order_status="unfulfillable", reserved=[])
                    for i, t in enumerate(others)]
         rows = run_quan(scenario(random_customers=True, customers=fillers), ticks=first + interval)
         arrived = events(rows, "customer_arrived")
@@ -204,8 +214,8 @@ class Customers(QuanCase):
         c = self.entity(self.snap(rows, first), "customers", data["order_id"])
         self.fields(c, ("reserved", "order_status", "order_tick", "patience_ticks_left"))
         self.assertEqual((c["reserved"], c["order_status"], c["order_tick"], c["patience_ticks_left"]),
-                         (RECIPE, "reserved", first, PATIENCE))
-        self.assertEqual(self.snap(rows, first)["stock"], RECIPE)  # tồn gồm phần giữ
+                         (item_ids(RECIPE), "reserved", first, PATIENCE))
+        self.assertEqual(self.snap(rows, first)["stock"], stock_items(RECIPE, first))  # tồn gồm phần giữ
         # Bàn vẫn kín ở lượt thứ hai: không customer_arrived/no_dish.
         self.assertEqual([e["tick"] for e in arrived], [first])
         self.assertEqual(events(rows, "no_dish"), [])
@@ -213,7 +223,7 @@ class Customers(QuanCase):
     @lat3
     def test_no_dish_empty_payload_at_each_scheduled_tick(self):
         first, interval = Q["first_customer_tick"], int(round(Q["customer_interval_s"] * HZ))
-        rows = run_quan(scenario(stock={}, random_customers=True), ticks=first + interval)
+        rows = run_quan(scenario(stock=stock_items({}), random_customers=True), ticks=first + interval)
         self.assertEqual([(e["tick"], e["data"]) for e in events(rows, "no_dish")], [(first, {}), (first + interval, {})])
         self.assertEqual(events(rows, "customer_arrived"), [])
 
@@ -221,19 +231,19 @@ class Customers(QuanCase):
     def test_no_table_skips_slot_without_event(self):
         cs = [customer(id=f"C{i + 1}", table_id=t["id"]) for i, t in enumerate(Q["tables"])]
         stock = {k: v * len(cs) for k, v in RECIPE.items()}
-        rows = run_quan(scenario(customers=cs, stock=stock, random_customers=True), ticks=Q["first_customer_tick"])
+        rows = run_quan(scenario(customers=cs, stock=stock_items(stock), random_customers=True), ticks=Q["first_customer_tick"])
         self.assertEqual(events(rows), [])
         self.assertEqual(len(self.snap(rows)["customers"]), len(cs))
 
     @lat3
     def test_scenario_reserved_inferred_and_patience_starts_next_step(self):
         c = customer()
-        del c["reserved"]
+        c.pop("reserved", None)
         rows = run_quan(scenario(customers=[c]), ticks=1)
         for tick in (0, 1):
             got = self.entity(self.snap(rows, tick), "customers", "C1")
             self.fields(got, ("reserved", "patience_ticks_left", "order_status"))
-            self.assertEqual(got["reserved"], RECIPE)
+            self.assertEqual(got["reserved"], item_ids(RECIPE))
             self.assertEqual(got["order_status"], "reserved")
             self.assertEqual(got["patience_ticks_left"], PATIENCE - tick)
 
@@ -249,7 +259,7 @@ class Customers(QuanCase):
                              {"order_id": "C1", "table_id": TABLE["id"], "reason": "patience"})
             s = self.snap(rows)
             self.assertEqual(s["customers"], [])
-            self.assertEqual(s["stock"], RECIPE)
+            self.assertEqual(s["stock"], stock_items(RECIPE, 1))
             self.assertIsNone(self.entity(s, "tables", TABLE["id"])["customer_id"])
             self.rep(s["reputation"], expected)
 
@@ -264,7 +274,7 @@ class Customers(QuanCase):
         self.assertEqual((data["table_id"], data["dish_id"]), (TABLE["id"], DISH))
         c = self.entity(self.snap(rows), "customers", data["order_id"])
         self.fields(c, ("reserved",))
-        self.assertEqual(c["reserved"], RECIPE)
+        self.assertEqual(c["reserved"], item_ids(RECIPE))
         self.assertEqual([e["name"] for e in events(rows)], ["customer_left", "customer_arrived"])
 
     @lat3
@@ -274,7 +284,7 @@ class Customers(QuanCase):
         rows = run_quan(scenario(customers=[customer()], random_customers=True), ticks=Q["first_customer_tick"])
         self.assertEqual(self.one(rows, "no_dish", Q["first_customer_tick"]), {})
         self.assertEqual(events(rows, "customer_arrived"), [])
-        self.assertEqual(self.snap(rows)["stock"], RECIPE)
+        self.assertEqual(self.snap(rows)["stock"], stock_items(RECIPE, Q["first_customer_tick"]))
 
     @lat3
     def test_arrived_patience_decreases_only_on_following_step(self):
@@ -292,14 +302,14 @@ class Kitchen(QuanCase):
     @lat4
     def test_cook_started_consumes_reserved_items_and_locks_price(self):
         rows = run_quan(scenario(customers=[customer()], player={"pos": near(STOVE, Q["interact_radius"])}), PRESS)
-        items = [k for k in sorted(RECIPE) for _ in range(RECIPE[k])]
+        items = stock_items(RECIPE, 1)
         self.assertEqual(self.one(rows, "cook_started", 1),
-                         {"stove_id": STOVE["id"], "order_id": "C1", "dish_id": DISH, "items": items, "base_price": PRICE})
+                         {"stove_id": STOVE["id"], "order_id": "C1", "dish_id": DISH, "items": items, "base_price": PRICE - 1})
         s = self.snap(rows)
-        self.assertEqual(s["stock"], {})
+        self.assertEqual(s["stock"], [])
         c = self.entity(s, "customers", "C1")
         self.fields(c, ("reserved", "order_status", "base_price"))
-        self.assertEqual((c["reserved"], c["order_status"], c["base_price"]), ({}, "assigned", PRICE))
+        self.assertEqual((c["reserved"], c["order_status"], c["base_price"]), ([], "assigned", PRICE - 1))
         b = self.entity(s, "stoves", STOVE["id"])
         self.fields(b, ("state", "cook_ticks_left"))
         self.assertEqual((b["state"], b["cook_ticks_left"]), ("cooking", COOK))
@@ -315,13 +325,13 @@ class Kitchen(QuanCase):
         tables = sorted(Q["tables"], key=key)[:2]
         cs = [customer(table_id=tables[0]["id"]), customer(id="C2", table_id=tables[1]["id"])]
         stock = {k: v * len(cs) for k, v in RECIPE.items()}
-        rows = run_quan(scenario(customers=list(reversed(cs)), stock=stock, player={"pos": near(STOVE)}), PRESS)
+        rows = run_quan(scenario(customers=list(reversed(cs)), stock=stock_items(stock), player={"pos": near(STOVE)}), PRESS)
         data = self.one(rows, "cook_started", 1)
         self.fields(data, ("order_id",))
         self.assertEqual(data["order_id"], "C1")
         # Tạo hai đơn ở hai lượt thật để order_tick khác nhau và không ở tương lai.
         second = Q["first_customer_tick"] + int(round(Q["customer_interval_s"] * HZ))
-        rows = run_quan(scenario(stock=stock, random_customers=True, player={"pos": near(STOVE)}),
+        rows = run_quan(scenario(stock=stock_items(stock), random_customers=True, player={"pos": near(STOVE)}),
                         [{"tick": second, "interact": True}], ticks=second + 1)
         arrived = events(rows, "customer_arrived")
         self.assertEqual(len(arrived), len(cs))
@@ -334,11 +344,11 @@ class Kitchen(QuanCase):
     def test_cook_started_items_sorted_for_every_menu_recipe(self):
         for dish_id, dish in sorted(MENU.items()):
             recipe = dish["recipe"]
-            rows = run_quan(scenario(customers=[customer(dish_id=dish_id, reserved=dict(recipe))],
-                                     stock=dict(recipe), player={"pos": near(STOVE)}), PRESS)
+            rows = run_quan(scenario(customers=[customer(dish_id=dish_id, reserved=item_ids(recipe))],
+                                     stock=stock_items(dict(recipe)), player={"pos": near(STOVE)}), PRESS)
             self.assertEqual(self.one(rows, "cook_started", 1),
                              {"stove_id": STOVE["id"], "order_id": "C1", "dish_id": dish_id,
-                              "items": [k for k in sorted(recipe) for _ in range(recipe[k])], "base_price": dish["price"]})
+                              "items": stock_items(recipe, 1), "base_price": dish["price"] - 1})
 
     @lat4
     def test_cooking_finishes_before_interact_can_pick_same_step(self):
@@ -381,7 +391,7 @@ class Kitchen(QuanCase):
         other = Q["tables"][1]
         sc = ready_scene(player={"pos": near(STOVE)}, hand=payload())
         sc["customers"].append(customer(id="C2", table_id=other["id"], order_status="assigned",
-                                         reserved={}, base_price=PRICE))
+                                         reserved=[], base_price=PRICE))
         sc["stoves"][0]["dish"] = dict(payload(), order_id="C2")
         rows = run_quan(sc, PRESS)
         self.assertEqual(Q["carry_limit"], 1)
@@ -430,7 +440,7 @@ class Kitchen(QuanCase):
         pos = [STOVE["pos"][0], STOVE["pos"][1] - Q["interact_radius"] * 2]
         rows = run_quan(scenario(customers=[customer()], player={"pos": pos}), PRESS)
         self.assertEqual(events(rows), [])
-        self.assertEqual(self.snap(rows)["stock"], RECIPE)
+        self.assertEqual(self.snap(rows)["stock"], stock_items(RECIPE, 1))
 
     @lat4
     def test_patience_expiry_discards_stove_or_hand_without_refund(self):
@@ -443,7 +453,7 @@ class Kitchen(QuanCase):
             rows = run_quan(sc)
             self.one(rows, "customer_left", 1)
             s = self.snap(rows)
-            self.assertEqual(s["stock"], {})
+            self.assertEqual(s["stock"], [])
             self.assertIsNone(s["hand"])
             b = self.entity(s, "stoves", STOVE["id"])
             self.fields(b, ("state", "dish"))
@@ -472,7 +482,7 @@ class Service(QuanCase):
         other = Q["tables"][1]
         sc = serving_scene()
         sc["customers"].append(customer(id="C2", table_id=other["id"]))
-        sc["stock"] = dict(RECIPE)
+        sc["stock"] = stock_items(RECIPE)
         sc["player"] = {"pos": near(other)}
         rows = run_quan(sc, PRESS)
         self.assertEqual(events(rows, "served"), [])
@@ -499,8 +509,8 @@ class Service(QuanCase):
     @lat4
     def test_closing_pays_eating_then_quan_end_full_payload(self):
         tip = math.floor(PRICE * Q["tip_rate"])
-        c = customer(state="eating", order_status="served", reserved={}, base_price=PRICE, tip=tip, eat_ticks_left=EAT)
-        rows = run_quan(scenario(customers=[c], stock={}, time_left_ticks=1), ticks=EAT)
+        c = customer(state="eating", order_status="served", reserved=[], base_price=PRICE, tip=tip, eat_ticks_left=EAT)
+        rows = run_quan(scenario(customers=[c], stock=stock_items({}), time_left_ticks=1), ticks=EAT)
         self.assertEqual(self.one(rows, "paid", 1), {"order_id": "C1", "table_id": TABLE["id"], "base_price": PRICE,
                          "tip": tip, "amount": PRICE + tip, "reason": "closing"})
         rep = min(Q["reputation_max"], Q["reputation_initial"] + (Q["tip_reputation"] if tip else 0))
@@ -527,7 +537,7 @@ class Service(QuanCase):
         self.one(rows, "quan_end", closing)
         self.assertEqual([e["name"] for e in events(rows)], ["customer_left", "quan_end"])
         s = self.snap(rows)
-        self.assertEqual((s["customers"], s["stock"], s["hand"]), ([], RECIPE, None))
+        self.assertEqual((s["customers"], s["stock"], s["hand"]), ([], stock_items(RECIPE, closing), None))
         self.assertIsNone(self.entity(s, "tables", TABLE["id"])["customer_id"])
 
 
