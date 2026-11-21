@@ -8,8 +8,9 @@ cập bến (`interact` trong vùng bến -> `gather_end` reason `docked`), xu�
 
 Phân chia lát:
   - Lát 1 (file này): oxy, ngạt, Máu, ngất, dive/surface, giỏ LIFO (`_add_to_hold`). ĐÃ XONG.
-  - Lát 2 (`gather_harvest.py`): hái nút, bắt cá. File này đã nối sẵn lời gọi,
-    lát 2 KHÔNG cần sửa file này.
+  - Lát 2 (`gather_harvest.py`): hái nút, bắt cá.
+  - v1.1: cá bơi/sinh (`gather_fish.py`), Cá Sấu (`gather_monsters.py`).
+  File này đã nối sẵn lời gọi theo thứ tự mục 4.5 Test Contract v1.1; các lát KHÔNG cần sửa file này.
 Các tính năng của phase sau chưa nằm trong khung này.
 """
 
@@ -17,7 +18,9 @@ import math
 
 from ..ids import sort_by_id
 from ..inventory import hold_to_items
+from . import gather_fish as fish
 from . import gather_harvest as harvest
+from . import gather_monsters as monsters
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -51,18 +54,20 @@ class GatherSim:
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
-        if "fish" in scenario:
-            src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
-            src_fish = t["fish_initial"]
-        else:
-            src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
+        self.phase_tick = 0  # số bước gameplay đã chạy trong buổi (lịch sinh cá dùng)
+        self.day = scenario.get("_day", 1)  # chế độ day truyền vào; gather độc lập = Ngày 1
+        for n in self.nodes:
+            ids.reserve(n["id"])
+        # đàn cá: scenario.fish THAY đàn ban đầu; random_fish=false tắt cá mặc định, bơi và sinh
+        self.random_fish = scenario.get("random_fish", True)
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-        for coll in (self.nodes, self.fish):
-            for e in coll:
-                ids.reserve(e["id"])
+                      "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)}
+                     for f in scenario.get("fish", [])]
+        for f in self.fish:
+            ids.reserve(f["id"])
+        if "fish" not in scenario and self.random_fish:
+            fish.spawn_initial(self)
+        self.monsters = monsters.build(self, scenario)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -85,8 +90,9 @@ class GatherSim:
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
-                     for f in sort_by_id(self.fish)],
+            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"],
+                      "age_ticks": f["age_ticks"]} for f in sort_by_id(self.fish)],
+            "monsters": monsters.snapshot(self),
         }
 
     # --- một bước ---------------------------------------------------------------
@@ -101,24 +107,32 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-        # 2. bơi + chặn mép
+        # 2. bơi + oxy + ngạt (ngất -> dừng bước)
         was_surface = self._at_surface()
         self._move(inp)
-        # 3. lát 1: dive / surface, oxy, ngạt, ngất
         if self._zone_and_oxygen(was_surface, events):
+            return events
+        # 3. Cá Sấu theo id, tối đa một hit (ngất -> dừng bước)
+        if monsters.update(self, events):
             return events
         # 4. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            harvest.try_gather(self, events)  # lát 2: gather_harvest.py
-        # 5. bắt cá
+            harvest.try_gather(self, events)
+        # 5. bắt cá theo vị trí cá TRƯỚC khi cá bơi
         if inp.pressed("catch"):
-            harvest.try_catch(self, events)  # lát 2: gather_harvest.py
+            harvest.try_catch(self, events)
         # 6. hết giờ
+        self.phase_tick += 1
         if self.time_left_ticks <= 0:
             self._finish("time", events)
+            return events
+        # 7. còn giờ: cá bơi rồi sinh thêm theo lịch
+        if self.random_fish:
+            fish.swim(self, events)
+            fish.spawn_scheduled(self, events)
         return events
 
     # --- lát 1: oxy, ngạt, Máu, ngất, giỏ ----------------------------------------
@@ -151,11 +165,17 @@ class GatherSim:
         events.append(("choke", {"hp": self.hp}))
         if self.hp > 0:
             return False
-        lost = hold_to_items(self.hold)
-        self.hold = []
-        events.append(("faint", {"pos": list(self.pos), "lost": lost}))
-        self._finish("fainted", events)
+        self._faint(events)
         return True
+
+    def _faint(self, events, cause=None):
+        """Máu về 0: mất toàn bộ giỏ, faint rồi gather_end(fainted). Cá Sấu gọi với cause="monster"."""
+        data = {"pos": list(self.pos), "hp": 0, "lost": list(reversed(self.hold))}  # lost theo LIFO
+        if cause:
+            data["cause"] = cause
+        self.hold = []
+        events.append(("faint", data))
+        self._finish("fainted", events)
 
     def _add_to_hold(self, kind, n, events) -> bool:
         """Thêm n món `kind` vào giỏ (cuối mảng = mới nhất, LIFO).
