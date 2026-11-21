@@ -10,8 +10,8 @@
 | Phase | Khung giờ | Hạn tag | Việc của M4 | Tiến độ | Trạng thái hiện tại |
 |---|---|---|---|---|---|
 | **Phase 1** | 0:00–1:00 | `phase-1` | `sim/quan` (bếp, bàn, bưng, tiền, tip, uy tín, hết ca) + ghép M3 | **100%** | ✅ Đã gắn tag `phase-1` |
-| **Phase 2** | 1:00–1:55 | `phase-2` | `day`, `Shop`, `Pause` 3 mode *(+ tùy chọn `burn`)* | **95%** | ✅ Xong `P2-M4.1`–`P2-M4.4` (CLI + unit + bằng chứng); chỉ chờ `M3.3` & `M1.3` kiểm chung |
-| **Phase 3** | 1:55–2:30 | `phase-3` | Độ tươi v1.2: giá `floor(giá × avg_fresh/100)`, `cook_started.items` cá thể, kho cá thể trong `day`/Shop *(+ tùy chọn `reservations`)* | **0%** | ⏳ Chờ tag `phase-2` |
+| **Phase 2** | 1:00–1:55 | `phase-2` | `day`, `Shop`, `Pause` 3 mode *(+ tùy chọn `burn`)* | **98%** | ✅ Xong `P2-M4.1`–`P2-M4.4` + ghép `M1.3` Cá Sấu (`day=self.day`); chờ `M3.3` & retro |
+| **Phase 3** | 1:55–2:30 | `phase-3` | Độ tươi v1.2: giá `floor(giá × avg_fresh/100)`, `cook_started.items` cá thể, kho cá thể trong `day`/Shop *(+ tùy chọn `reservations`)* | **25%** | 🟡 Đã xong `P3-M4.1` (`spec-p3-m4.md`), chờ tag `phase-2` |
 | **Phase 4** | 2:30–3:00 | `phase-4` + `v1.0.0` | Bot tất định cho `soak_cmd` 10 Ngày (cùng Quang M2), Retro & chốt báo cáo *(+ tùy chọn `leaderboard`)* | **0%** | ⏳ Chờ tag `phase-3` |
 
 ---
@@ -60,7 +60,8 @@ flowchart LR
 - [x] **P2-M4.4 (bằng chứng & log)** — Lưu bằng chứng `docs/proof/phase-2/m4-test-log.txt`, cập nhật `docs/standup.md` và `docs/ai-usage-log.md`.
 
 ### Việc còn lại (chờ đồng đội / tùy chọn)
-- [ ] Kiểm chung với **Cao (`M3.3`)** & **Huy (`M1.3`)** khi hai nhánh merge vào `main`.
+- [x] Ghép kiểm chung với **Huy (`M1.3` Cá Sấu)**: truyền `day=self.day` vào `GatherSim` (Ngày 3 sinh đủ `M1`, `M2`) & test ngất do Cá Sấu trong `day` vẫn mở quán kho rỗng.
+- [ ] Kiểm chung với **Cao (`M3.3`)** khi Cao cập nhật test/code Quán v1.1 vào `main`.
 - [ ] Tham gia **retro nhanh 5 phút** (`docs/retro.md`) cuối Phase 2 (~1:45–1:50) & cập nhật `docs/members/NhMinh-2610.md`.
 - [ ] *(Tùy chọn nếu muốn làm mở rộng)* **Mở rộng `burn`** (Cháy món `burn_s: 20`, `ready_ticks > 1200` → `dish_burnt`) cùng M3/M6.
 
@@ -82,7 +83,7 @@ flowchart LR
     P33 --> P34["P1: P3-M4.4 Test & Bằng chứng P3"] --> M65["M6.5–M6.6 Tag phase-3 (An)"]
 ```
 
-- [ ] **P3-M4.1** *(P0 — không chờ ai)*: Chốt Spec/AC cho:
+- [x] **P3-M4.1** *(P0 — không chờ ai — đã lưu tại `docs/plan/spec-p3-m4.md`)*: Chốt Spec/AC cho:
   - Tiêu đúng `id` cá thể đang giữ khi nấu; chốt `base_price = floor(giá × avg_fresh / 100)` (chính xác theo `fresh_units`).
   - Boa `floor(base_price × 0.2)` tính trên giá đã chốt; `cook_started.items` là mảng cá thể sắp theo `(kind, id)`.
   - Bàn giao kho cá thể `{id, kind, fresh}` trong `day` (`gather → quan → shop`, Shop không hao tươi).
