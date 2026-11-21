@@ -1,8 +1,12 @@
-"""P2-M4.3a — Shop cuối ngày (Ticket02 / Test Contract v1.1).
+"""P2-M4.3a / P3-M4.3 — Shop cuối ngày (Ticket02 v1.1 & Ticket03 v1.2).
 
 Đọc bảng nâng cấp (`oxygen`, `hp`, ...) và `max_ticks` (600) từ `tuning["shop"]`.
+Hỗ trợ cả kho đếm (dict v1.1) và kho cá thể (list `{id, kind, fresh}` v1.2 — Shop không hao tươi).
 Thứ tự trong một bước: giảm `time_left_ticks` -> xử lý 1 lệnh `buy` -> kiểm `shop_done` hoặc hết giờ.
 """
+
+from ..freshness import from_units
+from ..ids import sort_by_id
 
 
 class ShopSim:
@@ -18,11 +22,28 @@ class ShopSim:
         self.earned = int(earned)
         self.reputation = float(reputation)
         self.upgrades = dict(upgrades or {})
-        self.stock = {k: v for k, v in (stock or {}).items() if v > 0}
+        if isinstance(stock, list):
+            self.stock = [
+                {
+                    "id": it["id"],
+                    "kind": it["kind"],
+                    "fresh": from_units(it["units"]) if "units" in it else it["fresh"],
+                }
+                for it in sort_by_id(stock)
+            ]
+        else:
+            self.stock = {k: v for k, v in (stock or {}).items() if v > 0}
         self.done = False
         self.reason = None
 
     def snapshot(self) -> dict:
+        if isinstance(self.stock, list):
+            return {
+                "stock": [
+                    {"id": it["id"], "kind": it["kind"], "fresh": it["fresh"]}
+                    for it in sort_by_id(self.stock)
+                ],
+            }
         return {
             "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
         }

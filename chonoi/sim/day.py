@@ -4,6 +4,7 @@
 """
 
 from ..errors import BadInput
+from ..freshness import from_units
 from ..scenario import validate_quan_stock
 from .gather import GatherSim
 from .quan import QuanSim
@@ -99,6 +100,12 @@ class DaySim:
         self.day_plan = self._get_plan(day_num)
         eff_tuning = _apply_active_upgrades(self.tuning, self.active_upgrades)
         gather_sc = dict(self._gather_template)
+        # v1.2: Ngày 1 giữ nguyên id trong mẫu gather.hold, các Ngày kế cấp id mới theo thứ tự mảng
+        if day_num > 1 and isinstance(gather_sc.get("hold"), list) and gather_sc["hold"] and isinstance(gather_sc["hold"][0], dict):
+            gather_sc["hold"] = [
+                {"id": self.ids.new("I"), "kind": it["kind"], "fresh": it["fresh"]}
+                for it in gather_sc["hold"]
+            ]
         self._sub = GatherSim(eff_tuning, gather_sc, self.rng, self.ids, day=day_num)
         self._sub.money = self.money
         self._sub.earned = self.earned
@@ -132,9 +139,17 @@ class DaySim:
                 raise BadInput(f"hand: món {hand.get('dish_id')!r} không thuộc kế hoạch Ngày {self.day}")
         else:
             eff_tuning = self.tuning
-        # Kiểm mâu thuẫn kho thực lúc mở quán (Contract v1.1 mục 4.3 -> mã 2)
-        validate_quan_stock(quan_sc, inventory_items, eff_tuning)
-        quan = QuanSim(eff_tuning, quan_sc, self.rng, self.ids, inventory=dict(inventory_items))
+        # Kiểm mâu thuẫn kho thực lúc mở quán (hỗ trợ cả dict v1.1 và list cá thể v1.2 -> mã 2)
+        if isinstance(inventory_items, list):
+            inv_arg = [
+                {"id": it["id"], "kind": it["kind"], "fresh": from_units(it["units"]) if "units" in it else it["fresh"]}
+                for it in inventory_items
+            ]
+            validate_quan_stock(quan_sc, inv_arg, eff_tuning, contract_version="1.2")
+        else:
+            inv_arg = dict(inventory_items)
+            validate_quan_stock(quan_sc, inv_arg, eff_tuning)
+        quan = QuanSim(eff_tuning, quan_sc, self.rng, self.ids, inventory=inv_arg)
         quan.money = self.money
         quan.earned = self.earned
         quan.reputation = self.reputation
@@ -184,7 +199,14 @@ class DaySim:
             self.earned = self._sub.earned
             self.reputation = self._sub.reputation
             if self._sub.done:
-                rem_stock = {k: v for k, v in self._sub.stock.items() if v > 0}
+                if isinstance(self._sub.stock, list):
+                    rem_stock = [
+                        {"id": it["id"], "kind": it["kind"],
+                         "fresh": from_units(it["units"]) if "units" in it else it["fresh"]}
+                        for it in self._sub.stock
+                    ]
+                else:
+                    rem_stock = {k: v for k, v in self._sub.stock.items() if v > 0}
                 out.extend(self._start_shop(rem_stock))
         elif old_phase == "shop":
             self.money = self._sub.money
