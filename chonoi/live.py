@@ -3,7 +3,7 @@
     python3 -m chonoi.live --mode gather|quan [--seed N] [--port 8000]
 
 Máy chủ HTTP nhỏ phục vụ client và các API live:
-    GET  /config -> tuning đọc từ game.contract.json
+    GET  /config -> tuning và thông tin phiên bản đọc từ game.contract.json
     GET  /state  -> snapshot JSON hiện tại (cùng trường như dòng snapshot của headless) + `meta` + `events`
     POST /input  -> {"move": [a, b], "interact": bool, "catch": bool}   (trạng thái phím đang giữ)
     POST /restart -> chơi lại từ đầu (cùng seed, cùng scenario)
@@ -33,8 +33,9 @@ from .scenario import load_scenario
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 SAMPLE_INVENTORY = os.path.join(os.path.dirname(DEFAULT_PATH), "docs", "contracts", "inventory.sample.json")
 WEB_FILES = {"index.html": "text/html", "styles.css": "text/css", "phase2.preview.json": "application/json",
+             "phase3.preview.json": "application/json",
              **dict.fromkeys(("app.js", "adapter.js", "scenes.js", "art.js", "preview.js",
-                              "campaign.js", "phase2-preview.js"), "text/javascript")}
+                              "campaign.js", "phase2-preview.js", "phase3-preview.js", "inventory-view.js"), "text/javascript")}
 MAX_BODY = 4096
 RECENT_EVENTS = 40
 
@@ -67,8 +68,9 @@ class _TickInputs:
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, *, autoplay=True):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, *, autoplay=True, contract=None):
         self.tuning = tuning
+        self.web_config = {**tuning, **{key: contract[key] for key in ("contract_version", "extensions", "freshness") if contract and key in contract}}
         self.seed = seed
         self._launch_mode = mode
         self._launch_scenario = scenario
@@ -234,7 +236,7 @@ class _Handler(BaseHTTPRequestHandler):
         if path == "/state":
             self._send(200, self.game.state_json())
         elif path == "/config":
-            self._send(200, json.dumps(self.game.tuning, ensure_ascii=False).encode("utf-8"))
+            self._send(200, json.dumps(self.game.web_config, ensure_ascii=False).encode("utf-8"))
         elif (name := "index.html" if path == "/" else path.removeprefix("/")) in WEB_FILES:
             try:
                 with open(os.path.join(WEB_DIR, name), "rb") as f:
@@ -323,10 +325,11 @@ def main(argv=None) -> int:
             raise BadInput("--inventory chỉ dùng với quan")
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
-        tuning = load_contract()["tuning"]
+        contract = load_contract()
+        tuning = contract["tuning"]
         inventory = read_inventory(a.inventory) if a.inventory else None
         scenario = load_scenario(a.scenario, a.mode, tuning, inventory=inventory)
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, autoplay=False)
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, autoplay=False, contract=contract)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")

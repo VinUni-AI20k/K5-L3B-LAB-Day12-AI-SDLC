@@ -90,17 +90,18 @@
           </div>
 
           <aside class="sidebar morning" aria-label="Giỏ nguyên liệu">
-            <section class="panel">
+            <section class="panel" id="bag-panel">
               <div class="panel-title"><h2>Giỏ lưới</h2><strong id="bag-capacity"></strong></div>
               <ol class="slots" id="slots" aria-label="Ô giỏ theo thứ tự nhặt"></ol>
               <dl class="ingredients" id="bag-items"></dl>
+              <p id="bag-freshness-note" class="fresh-note" hidden>Hàng ươn vẫn chiếm ô giỏ, không nấu được.</p>
             </section>
             <section class="panel">
               <div class="panel-title"><h2>Bắt cá</h2><span id="catch-status"></span></div>
               <div class="meter"><i id="catch-bar"></i></div>
             </section>
             <section class="panel" id="harvest-plan" hidden>
-              <div class="panel-title"><h2>Cần lấy</h2><span>Đã lấy / cần</span></div>
+              <div class="panel-title"><h2>Cần lấy</h2><span id="harvest-progress-label">Đã lấy / cần</span></div>
               <dl class="ingredients" id="goal-items"></dl>
             </section>
           </aside>
@@ -170,6 +171,7 @@
               <h2 id="journey-stock-title"></h2>
               <dl class="ingredients" id="journey-items"></dl>
               <p id="journey-empty" class="intro" hidden>Kho rỗng</p>
+              <p id="shop-freshness-note" class="fresh-note" hidden>Hàng trong Shop giữ nguyên độ tươi.</p>
             </section>
             <section class="panel" id="journey-menu-panel" hidden>
               <h2 id="journey-menu-title"></h2>
