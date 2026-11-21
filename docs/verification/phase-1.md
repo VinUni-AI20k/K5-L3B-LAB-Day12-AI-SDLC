@@ -15,7 +15,7 @@
 | Q4: Phục vụ trễ không nhận được tip | Unit test `test_paid_without_tip_when_patience_low` | [`quan-lat4-test.txt`](docs/proof/phase-1/quan-lat4-test.txt) | đạt |
 | Q4: Thứ tự ưu tiên interact (gần nhất, bếp trước bàn) | Unit test `test_interact_priority_stove_before_table` | [`quan-lat4-test.txt`](docs/proof/phase-1/quan-lat4-test.txt) | đạt |
 | Q4: Hết ca tối phát sự kiện quan_end | Unit test `test_shift_ends_with_quan_end` | [`quan-lat4-test.txt`](docs/proof/phase-1/quan-lat4-test.txt) | đạt |
-| Hộp đen headless | Chạy gather/quán với seed cố định và JSONL; output determinism, mã 2 cho đầu vào sai | `docs/proof/phase-1/smoke.txt`, `tests/test_smoke_p1.py` | đạt |
+| Hộp đen headless | Chạy gather/quán với seed cố định và JSONL; output determinism, mã 2 cho đầu vào sai | `docs/proof/phase-1/smoke.txt`, `docs/proof/phase-1/verify-run.txt` (skill `phase-1-verification`), `tests/test_smoke_p1.py` | đạt |
 | Giao diện HUD | Khung live đọc snapshot oxy/máu/giỏ/kho/bếp/khách; không chứa luật mô phỏng | `chonoi/web/index.html` | đạt |
 | Contract B/D, fixture khách | Chạy `test_p1_contract.py` qua headless ở 0 tick. Một fixture hợp lệ và ba ca sai (kiên nhẫn âm, trường lạ, cờ sai kiểu). | [Log suite QA](../proof/phase-1/qa-contract-tests.txt) | Đạt trên bản QA dựa trên `8ef3f08`. Cần chạy lại tại commit bàn giao. |
 | Contract D, tay và đơn assigned | Hai fixture tại tick 0, xem lệnh và JSON trong log. | [Hai ca thủ công cuối log](../proof/phase-1/qa-contract-tests.txt) | Chưa đạt trên bản QA. Tay null bị từ chối và đơn assigned thiếu món được chấp nhận. |

@@ -27,5 +27,7 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- `python-fact-grounded-coding`: dùng trước khi sửa logic Python; phải lấy bằng chứng từ test/runtime trước rồi mới chốt thay đổi.
-- `phase-1-verification`: chạy toàn bộ unittest, headless gather/quán và cập nhật `docs/verification/phase-1.md`; đặt tại `.agents/skills/` khi nhóm đóng gói skill riêng.
+Skill nằm trong `.agents/skills/<tên>/SKILL.md`; đọc SKILL.md trước khi làm việc tương ứng.
+- `python-fact-grounded-coding`: dùng trước khi sửa logic Python; phải lấy bằng chứng từ test/runtime trước rồi mới chốt thay đổi. Soát quy ước: `python .agents/skills/python-fact-grounded-coding/scripts/check_rules.py`.
+- `phase-1-verification`: chạy toàn bộ unittest, headless gather/quán (tất định, mã 2, nạp kho), ghi `docs/proof/phase-1/verify-run.txt` rồi cập nhật `docs/verification/phase-1.md`. Lệnh: `python .agents/skills/phase-1-verification/scripts/verify_phase1.py`.
+- Windows: `python3` thường là lối tắt Microsoft Store (mã 9009) nên 21 test hộp đen fail dù luật đúng; script kiểm chứng tự tạo shim `python3`, không sửa `game.contract.json`.
