@@ -3,6 +3,8 @@
 Điều phối: day_start -> day_plan -> gather -> quan (kho trong bộ nhớ) -> shop -> ngày kế / days_complete.
 """
 
+from ..errors import BadInput
+from ..scenario import validate_quan_stock
 from .gather import GatherSim
 from .quan import QuanSim
 from .shop import ShopSim
@@ -93,7 +95,7 @@ class DaySim:
         self.day_plan = self._get_plan(day_num)
         eff_tuning = _apply_active_upgrades(self.tuning, self.active_upgrades)
         gather_sc = dict(self._gather_template)
-        self._sub = GatherSim(eff_tuning, gather_sc, self.rng, self.ids)
+        self._sub = GatherSim(eff_tuning, gather_sc, self.rng, self.ids, day=day_num)
         self._sub.money = self.money
         self._sub.earned = self.earned
         self._sub.reputation = self.reputation
@@ -114,8 +116,20 @@ class DaySim:
         if plan_dishes:
             filtered_menu = {k: v for k, v in self.tuning["menu"].items() if k in plan_dishes}
             eff_tuning = {**self.tuning, "menu": filtered_menu}
+            for c in quan_sc.get("customers", []):
+                if c.get("dish_id") not in filtered_menu:
+                    raise BadInput(f"customers.{c['id']}: món {c.get('dish_id')!r} không thuộc kế hoạch Ngày {self.day}")
+            for st in quan_sc.get("stoves", []):
+                d = st.get("dish")
+                if d and d.get("dish_id") not in filtered_menu:
+                    raise BadInput(f"stoves.{st['id']}: món {d.get('dish_id')!r} không thuộc kế hoạch Ngày {self.day}")
+            hand = quan_sc.get("hand")
+            if hand and hand.get("dish_id") not in filtered_menu:
+                raise BadInput(f"hand: món {hand.get('dish_id')!r} không thuộc kế hoạch Ngày {self.day}")
         else:
             eff_tuning = self.tuning
+        # Kiểm mâu thuẫn kho thực lúc mở quán (Contract v1.1 mục 4.3 -> mã 2)
+        validate_quan_stock(quan_sc, inventory_items, eff_tuning)
         quan = QuanSim(eff_tuning, quan_sc, self.rng, self.ids, inventory=dict(inventory_items))
         quan.money = self.money
         quan.earned = self.earned
