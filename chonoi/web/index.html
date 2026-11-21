@@ -87,6 +87,8 @@ const KIND_NAME = { ca_loc: "cá lóc", ca_linh: "cá linh", ca_keo: "cá kèo",
 const kc = (k) => KIND_COLOR[k] || "#bbbbbb";
 const atlas = new Image();
 atlas.src = "/assets/cho-noi-sprites.png";
+const swimSheet = new Image();
+swimSheet.src = "/assets/ut-sen-swim.png";
 const SPRITES = {
   swim: [0, 125, 359, 227],
   serve: [354, 55, 230, 345],
@@ -103,8 +105,11 @@ const SPRITES = {
 };
 
 function sprite(key, x, y, size, angle = 0, flip = false) {
-  const region = SPRITES[key];
-  if (!region || !atlas.naturalWidth) return false;
+  return drawSprite(atlas, SPRITES[key], x, y, size, angle, flip);
+}
+
+function drawSprite(image, region, x, y, size, angle, flip) {
+  if (!region || !image.naturalWidth) return false;
   const [left, top, width, height] = region;
   const scale = size / Math.max(width, height);
   const w = width * scale, h = height * scale;
@@ -112,7 +117,7 @@ function sprite(key, x, y, size, angle = 0, flip = false) {
   ctx.translate(x, y);
   ctx.rotate(angle);
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(atlas, left, top, width, height, -w / 2, -h / 2, w, h);
+  ctx.drawImage(image, left, top, width, height, -w / 2, -h / 2, w, h);
   ctx.restore();
   return true;
 }
@@ -218,7 +223,13 @@ function drawGather(w, h) {
     if (!(p.invuln_ticks > 0 && Math.floor(snap.tick / 5) % 2)) {
       const a = ((p.heading_deg || 0) * Math.PI) / 180;
       const left = Math.cos(a) < 0;
-      if (!sprite("swim", px, py, 2.8 * s, left ? a - Math.PI : a, left)) {
+      const angle = left ? a - Math.PI : a;
+      const moving = !snap.finished && p.vel && Math.hypot(...p.vel) > 0;
+      // Mỗi khung giữ 6 tick. Cắt cùng một vùng trong mỗi ô để giữ tỉ lệ nhân vật.
+      const frame = Math.floor(snap.tick / 6) % 6;
+      const region = [(frame % 2) * 512, Math.floor(frame / 2) * 512 + 100, 512, 330];
+      const animated = moving && drawSprite(swimSheet, region, px, py, 3.4 * s, angle, left);
+      if (!animated && !sprite("swim", px, py, 2.8 * s, angle, left)) {
         ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.arc(px, py, 0.6 * s, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * 0.9 * s, py + Math.sin(a) * 0.9 * s); ctx.stroke();
       }
