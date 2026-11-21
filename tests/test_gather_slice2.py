@@ -8,6 +8,10 @@ trong repo nên test chỉ kiểm các hành vi/bất biến đã xác minh từ
 import json
 import unittest
 
+from chonoi.contract import load_contract
+from chonoi.ids import IdAllocator
+from chonoi.rng import Streams
+from chonoi.sim.gather import GatherSim
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
 
@@ -347,6 +351,169 @@ class GatherSlice2CapacityDockAndInventoryTests(unittest.TestCase):
                                      "--inventory", inv1, "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
             self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], expected_items)
+
+
+class GatherSlice1And2IntegrationTests(unittest.TestCase):
+    def test_tv1_hold_api_backward_compat_and_atomic_batch(self):
+        tuning = load_contract()["tuning"]
+        cap = tuning["gather"]["hold_capacity"]
+        sim = GatherSim(tuning, {"hold": ["ca_loc"] * (cap - 2)}, Streams(1), IdAllocator())
+        evs = []
+
+        # Từ chối count <= 0, không sửa hold và không phát sự kiện
+        self.assertFalse(sim._try_add_hold_batch("ca_linh", evs, 0))
+        self.assertFalse(sim._try_add_hold_batch("ca_linh", evs, -2))
+        self.assertEqual(len(sim.hold), cap - 2)
+        self.assertEqual(evs, [])
+
+        # Từ chối nguyên tử khi thiếu chỗ cho cả đàn (còn 2 chỗ, cần 3 cho ca_linh)
+        self.assertFalse(sim._try_add_hold_batch("ca_linh", evs, 3))
+        self.assertEqual(len(sim.hold), cap - 2)
+        self.assertEqual(evs, [("hold_full", {"kind": "ca_linh"})])
+
+        # Tương thích ngược API 2 tham số của TV1: try_add_hold(kind, events)
+        evs.clear()
+        self.assertTrue(sim.try_add_hold("bong_dien_dien", evs))
+        self.assertTrue(sim.try_add_hold("bong_sung", evs))
+        self.assertEqual(len(sim.hold), cap)
+        self.assertEqual(sim.hold[-2:], ["bong_dien_dien", "bong_sung"])  # LIFO: mới nhất ở cuối
+        self.assertEqual(evs, [])
+
+        # Giỏ đầy -> try_add_hold phát đúng một hold_full theo hợp đồng {"kind": ...}
+        self.assertFalse(sim.try_add_hold("ca_loc", evs))
+        self.assertEqual(len(sim.hold), cap)
+        self.assertEqual(evs, [("hold_full", {"kind": "ca_loc"})])
+
+    def test_hold_full_contract_payload_and_atomic_fish_rejection(self):
+        g = _tuning_gather()
+        cap = g["hold_capacity"]
+        with Workdir() as w:
+            # Hái khi giỏ đầy -> hold_full có đúng payload {"kind": "bong_sung"}
+            sc_node = write_json(w.path("sc_node.json"), {"gather": {
+                "player": {"pos": [20, 0]},
+                "hold": ["ca_loc"] * cap,
+                "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [20.5, 0]}],
+                "random_fish": False,
+            }})
+            inp_i = write_json(w.path("in_i.json"), frames({"tick": 0, "interact": True}))
+            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "2",
+                                     "--scenario", sc_node, "--inputs", inp_i, "--out", w.path("o_node.jsonl"))
+            self.assertEqual(code, 0, err)
+            hf_node = events(read_jsonl(w.path("o_node.jsonl")), "hold_full")
+            self.assertEqual(len(hf_node), 1)
+            self.assertEqual(hf_node[0]["data"], {"kind": "bong_sung"})
+
+            # Bắt ca_linh (yield 3) khi còn 2 ô -> từ chối toàn phần, cá giữ nguyên, không bật cooldown
+            sc_fish = write_json(w.path("sc_fish.json"), {"gather": {
+                "player": {"pos": [30, 10]},
+                "hold": ["ca_loc"] * (cap - 2),
+                "fish": [{"id": "F1", "kind": "ca_linh", "pos": [30.5, 10]}],
+            }})
+            inp_c = write_json(w.path("in_c.json"), frames({"tick": 0, "catch": True}))
+            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "2",
+                                     "--scenario", sc_fish, "--inputs", inp_c,
+                                     "--snapshot-every", "1", "--out", w.path("o_fish.jsonl"))
+            self.assertEqual(code, 0, err)
+            rows = read_jsonl(w.path("o_fish.jsonl"))
+            self.assertEqual(events(rows, "fish_caught"), [])
+            hf_fish = events(rows, "hold_full")
+            self.assertEqual(len(hf_fish), 1)
+            self.assertEqual(hf_fish[0]["data"], {"kind": "ca_linh"})
+            snap1 = snapshots(rows)[1]
+            self.assertEqual(snap1["hold_count"], cap - 2)
+            self.assertEqual([f["id"] for f in snap1["fish"]], ["F1"])
+            self.assertEqual(snap1["player"]["catch_cd_ticks"], 0)
+
+    def test_faint_after_gathering_clears_hold_writes_empty_inventory_and_is_deterministic(self):
+        with Workdir() as w:
+            # Hái rau trên mặt nước, lặn bắt cá, rồi hết oxy ngạt tới ngất -> mất toàn bộ giỏ, kho {}
+            sc = write_json(w.path("sc.json"), {"gather": {
+                "player": {"pos": [6, 0], "hp": 1, "oxygen_ticks": 15},
+                "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [6, 0]}],
+                "fish": [{"id": "F1", "kind": "ca_loc", "pos": [6, 1.5]}],
+            }})
+            inp = write_json(w.path("in.json"), frames(
+                {"tick": 0, "interact": True, "move": [0, 1]},
+                {"tick": 1, "interact": False},
+                {"tick": 25, "move": [0, 0], "catch": True},
+                {"tick": 26, "catch": False},
+            ))
+            inv1, inv2 = w.path("inv1.json"), w.path("inv2.json")
+            out1, out2 = w.path("o1.jsonl"), w.path("o2.jsonl")
+            for out, inv in ((out1, inv1), (out2, inv2)):
+                code, err = run_headless("--mode", "gather", "--seed", "11", "--ticks", "220",
+                                         "--scenario", sc, "--inputs", inp,
+                                         "--inventory-out", inv, "--snapshot-every", "1", "--out", out)
+                self.assertEqual(code, 0, err)
+
+            with open(out1, "rb") as a, open(out2, "rb") as b:
+                self.assertEqual(a.read(), b.read())
+            with open(inv1, "rb") as a, open(inv2, "rb") as b:
+                self.assertEqual(a.read(), b.read())
+
+            rows = read_jsonl(out1)
+            self.assertEqual(len(events(rows, "gather")), 1)
+            self.assertEqual(len(events(rows, "fish_caught")), 1)
+            self.assertEqual(len(events(rows, "choke")), 1)
+            self.assertEqual(len(events(rows, "faint")), 1)
+            end_evs = events(rows, "gather_end")
+            self.assertEqual(len(end_evs), 1)
+            self.assertEqual(end_evs[0]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+            self.assertEqual(rows[-1]["reason"], "fainted")
+            self.assertEqual(snapshots(rows)[-1]["hold"], [])
+            with open(inv1, encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {"items": {}})
+
+            # Quán nạp kho rỗng sau khi ngất
+            code, err = run_headless("--mode", "quan", "--seed", "11", "--ticks", "0",
+                                     "--inventory", inv1, "--out", w.path("q.jsonl"))
+            self.assertEqual(code, 0, err)
+            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], {})
+
+    def test_same_tick_faint_blocks_dock_and_catch(self):
+        g = _tuning_gather()
+        dock = g["dock_pos"]
+        with Workdir() as w:
+            # Cùng tick vừa ngất vừa bấm interact trong vùng bến -> faint thắng, không docked, kho {}
+            sc_dock = write_json(w.path("sc_dock.json"), {"gather": {
+                "player": {"pos": [dock[0], 2.0], "hp": 1, "oxygen_ticks": 0, "zero_oxy_ticks": 59},
+                "hold": ["ca_loc", "bong_sung"],
+                "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [dock[0], 0]}],
+                "random_fish": False,
+            }})
+            inp_dock = write_json(w.path("in_dock.json"), frames({"tick": 0, "interact": True}))
+            inv_dock = w.path("inv_dock.json")
+            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "5",
+                                     "--scenario", sc_dock, "--inputs", inp_dock,
+                                     "--inventory-out", inv_dock, "--out", w.path("o_dock.jsonl"))
+            self.assertEqual(code, 0, err)
+            rows_dock = read_jsonl(w.path("o_dock.jsonl"))
+            self.assertEqual([e["name"] for e in events(rows_dock)], ["choke", "faint", "gather_end"])
+            self.assertEqual(events(rows_dock, "gather_end")[0]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+            self.assertEqual(snapshots(rows_dock)[-1]["hold"], [])
+            with open(inv_dock, encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {"items": {}})
+
+            # Cùng tick vừa ngất vừa bấm catch cạnh cá -> faint thắng, không fish_caught, cá còn nguyên
+            sc_catch = write_json(w.path("sc_catch.json"), {"gather": {
+                "player": {"pos": [30, 10], "hp": 1, "oxygen_ticks": 0, "zero_oxy_ticks": 59},
+                "hold": ["bong_sung"],
+                "fish": [{"id": "F1", "kind": "ca_loc", "pos": [30.5, 10]}],
+            }})
+            inp_catch = write_json(w.path("in_catch.json"), frames({"tick": 0, "catch": True}))
+            inv_catch = w.path("inv_catch.json")
+            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "5",
+                                     "--scenario", sc_catch, "--inputs", inp_catch,
+                                     "--inventory-out", inv_catch, "--out", w.path("o_catch.jsonl"))
+            self.assertEqual(code, 0, err)
+            rows_catch = read_jsonl(w.path("o_catch.jsonl"))
+            self.assertEqual([e["name"] for e in events(rows_catch)], ["choke", "faint", "gather_end"])
+            self.assertEqual(events(rows_catch, "fish_caught"), [])
+            last_snap = snapshots(rows_catch)[-1]
+            self.assertEqual(last_snap["hold"], [])
+            self.assertEqual([f["id"] for f in last_snap["fish"]], ["F1"])
+            with open(inv_catch, encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {"items": {}})
 
 
 if __name__ == "__main__":

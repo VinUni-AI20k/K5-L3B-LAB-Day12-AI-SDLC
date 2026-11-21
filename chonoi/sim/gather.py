@@ -13,9 +13,9 @@ Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gath
       - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
       - sự kiện dive / surface (data: pos) / oxygen_empty / choke / faint
       - giỏ: TV2 gọi try_add_hold — cuối mảng là món mới nhất (LIFO), đầy thì hold_full và không thêm
-  TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
+  Lát 2 (đã có): hái + bắt cá + cập bến + kho.
       - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
-      - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
+      - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks tính từ lần bắt thành công, chỉ khi dưới nước)
       - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
 Các tính năng của phase sau chưa nằm trong khung này.
 """
@@ -196,21 +196,25 @@ class GatherSim:
                 self.pos[i] = hi
                 self.vel[i] = min(0.0, self.vel[i])
 
-    # --- lát 2 (TV2): adapter giỏ, hái nút mặt nước, bắt cá dưới nước --------
-    def _hold_space(self) -> int:
-        return max(0, self.t["hold_capacity"] - len(self.hold))
+    # --- lát 2 (TV2): gọi giỏ qua TV1, hái nút mặt nước, bắt cá dưới nước -----
+    def _try_add_hold_batch(self, kind: str, events, count: int) -> bool:
+        """Gọi qua `try_add_hold` của TV1 mà không sửa hàm TV1 (chờ TV1 duyệt `count=1`).
 
-    def _try_add_to_hold(self, kind: str, amount: int) -> int:
-        """Adapter tạm cho giỏ (chờ thống nhất/thay bằng API giỏ chính thức của TV1).
-
-        Hiện áp dụng nguyên tắc toàn phần (atomic): chỉ thêm khi đủ chỗ cho `amount`
-        đơn vị, giữ thứ tự nhặt (cuối mảng là mới nhất) và không bao giờ vượt `hold_capacity`.
-        TODO(PRD-0): xác nhận hành vi khi 0 < chỗ trống < yield (nhặt một phần hay từ chối toàn bộ).
+        Đảm bảo thêm nguyên tử cả đàn (TICKET-02 §1.1): từ chối số lượng <= 0 hoặc
+        thiếu chỗ cho đủ `count` món, phát đúng một `hold_full` theo hợp đồng `{"kind": kind}`.
         """
-        if amount <= 0 or self._hold_space() < amount:
-            return 0
-        self.hold.extend([kind] * amount)
-        return amount
+        if count <= 0:
+            return False
+        if count == 1:
+            return self.try_add_hold(kind, events)
+        if len(self.hold) + count > int(self.t["hold_capacity"]):
+            # Khớp payload `hold_full` trong docs/contracts/README.md (`{"kind": kind}`).
+            events.append(("hold_full", {"kind": kind}))
+            return False
+        for _ in range(count):
+            if not self.try_add_hold(kind, events):
+                return False
+        return True
 
     def _nearest_in_radius(self, entities, radius: float):
         """Chọn thực thể gần nhất trong `radius` (<=), tie-break tất định bằng `id_key`."""
@@ -226,7 +230,7 @@ class GatherSim:
         return best
 
     def _try_harvest(self, events):
-        """Hái nút rau `ready` gần nhất khi đang ở mặt nước."""
+        """Hái nút rau `ready` gần nhất khi đang ở mặt nước (TICKET-02 §1.1)."""
         if not self._at_surface():
             return
         ready_nodes = (n for n in self.nodes if n["regrow_ticks"] == 0)
@@ -234,40 +238,23 @@ class GatherSim:
         if node is None:
             return
         amount = int(self.t["node_yield"])
-        added = self._try_add_to_hold(node["kind"], amount)
-        if added == 0:
-            # TODO(PRD-0): đối chiếu chính xác schema payload của sự kiện `hold_full`.
-            events.append(("hold_full", {
-                "kind": node["kind"],
-                "needed": amount,
-                "hold_count": len(self.hold),
-                "hold_capacity": self.t["hold_capacity"],
-            }))
+        if not self._try_add_hold_batch(node["kind"], events, amount):
             return
         node["regrow_ticks"] = max(1, int(round(self.t["regrow_s"] * TICK)))
-        # TODO(PRD-0): đối chiếu chính xác schema payload của sự kiện `gather`.
-        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "count": added}))
+        # TODO(PRD-0): đối chiếu schema payload chính thức của `gather` khi có PRD-0 mục E.
+        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "count": amount}))
 
     def _try_catch(self, events):
-        """Bắt đàn cá gần nhất khi dưới nước và hết hồi chiêu `catch_cd_ticks`."""
+        """Bắt đàn cá gần nhất khi dưới nước và hết hồi chiêu (TICKET-02 §1.1)."""
         if self.catch_cd_ticks > 0 or self._at_surface():
             return
         fish = self._nearest_in_radius(self.fish, self.t["catch_radius"])
         if fish is None:
-            # TODO(PRD-0): xác nhận bấm `catch` hụt cá có kích hoạt `catch_cd_ticks` không.
             return
         amount = int(self.t["fish_yield"][fish["kind"]])
-        added = self._try_add_to_hold(fish["kind"], amount)
-        if added == 0:
-            # TODO(PRD-0): đối chiếu schema `hold_full` và xác nhận `hold_full` có bật cooldown không.
-            events.append(("hold_full", {
-                "kind": fish["kind"],
-                "needed": amount,
-                "hold_count": len(self.hold),
-                "hold_capacity": self.t["hold_capacity"],
-            }))
+        if not self._try_add_hold_batch(fish["kind"], events, amount):
             return
         self.fish = [f for f in self.fish if f["id"] != fish["id"]]
         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
-        # TODO(PRD-0): đối chiếu chính xác schema payload của sự kiện `fish_caught`.
-        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "count": added}))
+        # TODO(PRD-0): đối chiếu schema payload chính thức của `fish_caught` khi có PRD-0 mục E.
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "count": amount}))
