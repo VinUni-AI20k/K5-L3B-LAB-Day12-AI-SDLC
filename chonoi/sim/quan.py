@@ -40,8 +40,11 @@ class QuanSim:
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        # TODO(nhóm): khách dựng sẵn từ scenario (customers[]) và suy ra giữ chỗ (reserved).
-        self.customers = [dict(c, reserved=c.get("reserved", {})) for c in scenario.get("customers", [])]
+        # khách dựng sẵn từ scenario; trường vắng lấy mặc định theo docs/contracts/customer.md
+        full = int(round(t["patience_s"] * 60))
+        self.customers = [dict(c, reserved=c.get("reserved", {}), state=c.get("state", "waiting"),
+                               patience_ticks=c.get("patience_ticks", full), eat_ticks=c.get("eat_ticks", 0))
+                          for c in scenario.get("customers", [])]
         for e in self.customers:
             ids.reserve(e["id"])
         self.money = 0
