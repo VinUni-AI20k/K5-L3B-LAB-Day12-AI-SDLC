@@ -101,7 +101,8 @@ class KitchenAndService(unittest.TestCase):
             self.assertEqual((rd[0]["tick"], rd[0]["data"]),
                              (361, {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui"}))
             pk = events(rows, "dish_picked")
-            self.assertEqual(pk[0]["tick"], 362)
+            self.assertEqual((pk[0]["tick"], pk[0]["data"]),
+                             (362, {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui"}))
             last = snapshots(rows)[-1]
             self.assertEqual(last["hand"], DISH_LOC)
             self.assertEqual(last["stock"], {})
@@ -157,6 +158,8 @@ class KitchenAndService(unittest.TestCase):
             names = [e["name"] for e in events(rows)]
             self.assertEqual(names, ["paid", "quan_end"])
             self.assertEqual(events(rows, "paid")[0]["data"]["reason"], "closing")
+            self.assertEqual(events(rows, "quan_end")[0]["data"],
+                             {"reason": "time", "money": 60, "earned": 60, "shift_earned": 60, "reputation": 3.0})
             self.assertEqual(rows[-1]["reason"], "time")
         with Workdir() as w:
             sc = {"random_customers": False, "time_left_ticks": 1, "stock": {"ca_loc": 1},
@@ -190,6 +193,39 @@ class Fixtures(unittest.TestCase):
             for sc in bad:
                 code, _, _ = run_quan(w, sc, ticks=0)
                 self.assertEqual(code, 2, sc)
+
+    def test_khach_chua_phuc_vu_tip_null_hoac_0_hop_le(self):
+        with Workdir() as w:
+            for tip in (None, 0):
+                sc = {"stock": {"ca_loc": 1}, "random_customers": False,
+                      "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                                     "state": "waiting", "order_status": "reserved", "base_price": None, "tip": tip}]}
+                code, err, _ = run_quan(w, sc, ticks=1)
+                self.assertEqual(code, 0, (tip, err))
+            sc["customers"][0]["tip"] = 5
+            self.assertEqual(run_quan(w, sc, ticks=0)[0], 2)
+
+    def test_sai_kieu_tra_ma_2_khong_crash(self):
+        """Mọi trường khách/bếp/tay nhận giá trị sai kiểu đều phải thoát mã 2 (không phải 1)."""
+        base = {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_status": "assigned"}
+        cases = []
+        for key in ("dish_id", "order_tick", "state", "patience_ticks_left", "eat_ticks_left",
+                    "order_status", "reserved", "base_price", "tip", "table_id"):
+            for bad in ([], {}, "x", -1, True, 1.5):
+                cases.append({"stock": {"ca_loc": 1}, "hand": DISH_LOC, "customers": [dict(base, **{key: bad})]})
+        for key in ("order_id", "dish_id", "base_price"):
+            for bad in ([], {}, None, -1):
+                cases.append({"hand": dict(DISH_LOC, **{key: bad}), "customers": [base]})
+                cases.append({"stoves": [{"id": "B1", "state": "ready", "dish": dict(DISH_LOC, **{key: bad})}],
+                              "customers": [base]})
+        for key in ("state", "dish", "cook_ticks_left", "ready_ticks", "pos"):
+            for bad in ([], {}, "x", -1):
+                cases.append({"stoves": [{"id": "B1", key: bad}]})
+        with Workdir() as w:
+            for sc in cases:
+                code, err, _ = run_quan(w, sc, ticks=0)
+                self.assertIn(code, (0, 2), (sc, err))
+                self.assertNotIn("Traceback", err, sc)
 
     def test_cung_seed_ra_giong_tung_byte(self):
         with Workdir() as w:

@@ -176,5 +176,13 @@ def _validate_quan(b, tuning):
     for c in b.get("customers", []):
         if not isinstance(c.get("table_id"), str) or c["table_id"] not in known:
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
+        if not isinstance(c.get("dish_id"), str) or c["dish_id"] not in tuning["menu"]:
+            raise BadInput(f"customers.{c['id']}: dish_id phải là id món trong menu")
+        for key in ("state", "order_status"):
+            if key in c and not isinstance(c[key], str):
+                raise BadInput(f"customers.{c['id']}.{key} phải là chuỗi")
+    for s in b.get("stoves", []):
+        if "state" in s and not isinstance(s["state"], str):
+            raise BadInput(f"stoves.{s['id']}.state phải là chuỗi")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")

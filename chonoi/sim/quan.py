@@ -86,7 +86,8 @@ class QuanSim:
             self.stoves.append({
                 "id": s["id"], "pos": [float(c) for c in s["pos"]],
                 "state": s.get("state", "idle"),
-                "dish": dict(s["dish"]) if s.get("dish") is not None else None,
+                # giữ nguyên giá trị sai kiểu để _check_dish báo mã 2 thay vì crash
+                "dish": dict(s["dish"]) if isinstance(s.get("dish"), dict) else s.get("dish"),
                 "cook_ticks_left": s.get("cook_ticks_left", 0),
                 "ready_ticks": s.get("ready_ticks", 0),
             })
@@ -158,8 +159,9 @@ class QuanSim:
             if eating:
                 if c["eat_ticks_left"] <= 0 or c["base_price"] is None or c["tip"] is None:
                     raise BadInput(f"{cid}: khách eating cần eat_ticks_left > 0, base_price và tip")
-            elif c["tip"] is not None:
-                raise BadInput(f"{cid}: chỉ khách đã được phục vụ mới có tip")
+            elif c["tip"] not in (None, 0):
+                # khách chưa phục vụ: tip chưa chốt, chấp nhận null hoặc 0 (clarify #12)
+                raise BadInput(f"{cid}: khách chưa được phục vụ chỉ có tip null hoặc 0")
             if c["order_status"] != "reserved":
                 if c["reserved"]:
                     raise BadInput(f"{cid}: đơn {c['order_status']} phải có phần giữ rỗng")
@@ -207,6 +209,8 @@ class QuanSim:
     def _check_dish(self, where, dish, by_id, holders):
         if not isinstance(dish, dict) or set(dish) != {"order_id", "dish_id", "base_price"}:
             raise BadInput(f"{where}: món phải là {{order_id, dish_id, base_price}}")
+        if not isinstance(dish["order_id"], str) or not isinstance(dish["dish_id"], str):
+            raise BadInput(f"{where}: order_id và dish_id phải là chuỗi")
         if not _is_int(dish["base_price"]) or dish["base_price"] < 0:
             raise BadInput(f"{where}: base_price phải là số nguyên không âm")
         c = by_id.get(dish["order_id"])
