@@ -105,7 +105,7 @@ class DaySession:
 
     # --- dựng pha -----------------------------------------------------------------
     def _day_tuning(self):
-        """Tuning của Ngày hiện tại: oxy/Máu theo cấp đang áp dụng, quái theo from_day.
+        """Tuning của Ngày hiện tại: oxy/Máu theo cấp đang áp dụng (quái lọc theo from_day trong GatherSim(day=…)).
         Menu giữ đủ 6 món; lọc theo kế hoạch do QuanSim(menu_filter=…) làm (hợp đồng mục 5.3), để fixture
         có món ngoài kế hoạch báo mã 2 thay vì KeyError."""
         t = copy.deepcopy(self.tuning)
@@ -115,9 +115,6 @@ class DaySession:
             g["oxygen_max_s"] = ups["oxygen"][self.active_upgrades["oxygen"] - 1]["oxygen_max_s"]
         if self.active_upgrades.get("hp"):
             g["hp_max"] = ups["hp"][self.active_upgrades["hp"] - 1]["hp_max"]
-        mons = g.get("monsters")
-        if isinstance(mons, dict):
-            mons["spawns"] = [m for m in mons.get("spawns", []) if m.get("from_day", 1) <= self.day]
         return t
 
     def _start_day(self) -> list:
@@ -125,7 +122,7 @@ class DaySession:
         self.active_upgrades = dict(self.upgrades)  # chỉ khi dựng Ngày mới mới chép cấp đã mua
         self._day_t = self._day_tuning()
         self._streams = Streams(f"{self.seed}:day{self.day}")
-        self.sim = GatherSim(self._day_t, copy.deepcopy(self.scenario.get("gather", {})), self._streams, IdAllocator())
+        self.sim = GatherSim(self._day_t, copy.deepcopy(self.scenario.get("gather", {})), self._streams, IdAllocator(), day=self.day)
         self._sync_into(self.sim)
         self.phase_tick = 0
         plan = self.plan[self.day]
