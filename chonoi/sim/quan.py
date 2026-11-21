@@ -31,6 +31,8 @@ class QuanSim:
     def __init__(self, tuning, scenario, streams, ids, inventory=None, plan_dishes=None):
         t = tuning["quan"]
         self.t = t
+        burn_s = t.get("burn_s")
+        self.burn_ticks = None if burn_s is None else round(burn_s * TICK)
         self.menu = tuning["menu"]
         self.freshness = tuning.get("freshness")
         self.plan_dishes = set(plan_dishes) if plan_dishes is not None else None
@@ -235,6 +237,8 @@ class QuanSim:
         for stove in self.stoves:
             if stove["state"] == "ready":
                 stove["ready_ticks"] += 1
+                if self.burn_ticks is not None and stove["ready_ticks"] > self.burn_ticks:
+                    events.append(self._burn_dish(stove))
             elif stove["state"] == "cooking":
                 stove["cook_ticks_left"] = max(0, stove["cook_ticks_left"] - 1)
                 event = self.finish_cooking(stove)
@@ -290,6 +294,21 @@ class QuanSim:
                                 eat_ticks_left=round(self.t["eat_s"] * TICK))
             return event
         return None
+
+    def _burn_dish(self, stove):
+        dish = stove["dish"]
+        stove.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
+        customer = next(c for c in self.customers if c["id"] == dish["order_id"])
+        recipe = self.menu[dish["dish_id"]]["recipe"]
+        if self._item_mode:
+            reserved = self._pick_freshest(recipe, exclude=self._held_ids())
+        else:
+            available = self._available()
+            reserved = dict(recipe) if all(available.get(k, 0) >= n for k, n in recipe.items()) else None
+        customer["order_status"] = "unfulfillable" if reserved is None else "reserved"
+        customer["reserved"] = reserved if reserved is not None else ([] if self._item_mode else {})
+        return "dish_burnt", {"stove_id": stove["id"], "order_id": dish["order_id"],
+                             "dish_id": dish["dish_id"], "order_status": customer["order_status"]}
 
     def _pay_customers(self, events):
         for customer in sorted(self.customers, key=lambda c: id_key(c["table_id"])):
