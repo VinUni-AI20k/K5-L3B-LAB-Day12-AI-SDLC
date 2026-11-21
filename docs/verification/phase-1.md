@@ -1,20 +1,21 @@
 # Ma trận truy vết Phase 1
 
-Kiểm chứng sơ bộ dựa trên PRD-0 và Test Contract v1.0. Cột đầu dẫn đến mục tương ứng của đề. Kết quả dưới đây dùng mã luật trên `main` tại `c872ef2` và test QA `c686e7e`.
+Kết quả QA sơ bộ trên `origin/main` tại `c3441f9`, đối chiếu PRD-0 và Test Contract v1.0. Chưa có tag `phase-1` tại thời điểm kiểm tra.
 
 | AC | Cách kiểm chứng | Bằng chứng (link `docs/proof/phase-1/...`) | Kết quả (đạt / chưa đạt — ghi trung thực) |
 |---|---|---|---|
-| B–E · CLI, snapshot, đầu vào sai, đầu ra tất định | Smoke test và chạy hai lần luồng cập bến → nạp kho, so JSONL của hai pha và file kho từng byte | [Kết quả trên mã main](../proof/phase-1/qa-headless.md#kết-quả-trên-mã-main) | Đạt trong các ca đã chạy. |
-| E–F · Bơi, mép bản đồ, oxy, ngạt và ngất | Chạy smoke chuyển động và test oxy. So dữ liệu `oxygen_empty`, `faint` với mục E | [Kết quả trên mã main](../proof/phase-1/qa-headless.md#kết-quả-trên-mã-main) | Chưa đạt đầy đủ. Chuyển động, nhịp oxy/ngạt và kho rỗng khi ngất đạt. Dữ liệu hai sự kiện còn lệch. |
-| F–G · Hái nút vừa mọc lại hoặc bắt cá ở bước cuối | Fixture khởi tạo giỏ rỗng. So thứ tự sự kiện rồi đối chiếu file kho và snapshot quán | [Kết quả trên mã main](../proof/phase-1/qa-headless.md#kết-quả-trên-mã-main) · [Nhánh lát 2](../proof/phase-1/qa-headless.md#kiểm-tra-các-nhánh-đang-phát-triển) | Chưa đạt trên main. Lát 2 chưa được gộp. |
-| E–F · Giỏ thiếu chỗ bắt cả đàn | Đặt đàn ưu tiên cần 3 ô, còn 1 ô và có đàn nhỏ hơn cùng vị trí. Kiểm giỏ, danh sách cá, hồi chiêu và `hold_full` | [Nhánh lát 2](../proof/phase-1/qa-headless.md#kiểm-tra-các-nhánh-đang-phát-triển) | Chưa đạt. Nhánh lát 2 giữ được trạng thái đúng, dữ liệu sự kiện còn lệch. |
-| F–G · Cập bến, hết giờ, ngất, giới hạn bước và bàn giao kho | Smoke kho dựng sẵn, cập bến đúng bước cuối, nạp kho rỗng sau ngất và giữ nguyên file có sẵn khi chạm giới hạn bước | [Kết quả trên mã main](../proof/phase-1/qa-headless.md#kết-quả-trên-mã-main) | Đạt phần bàn giao file kho trong các ca đã chạy. |
-| E–F · Lịch khách, giữ nguyên liệu và `no_dish` | Chạy đến tick khách đầu tiên với kho vừa đủ một món và với kho rỗng | [Kết quả trên mã main](../proof/phase-1/qa-headless.md#kết-quả-trên-mã-main) | Chưa đạt. Thiếu `customer_arrived` và `no_dish`. |
-| E–F · Phục vụ đúng tick hết kiên nhẫn và hết ca | Đặt Út Sen cạnh bàn, đã cầm đúng món, còn một tick. Kiểm chuỗi `served` → `paid` → `quan_end` và tiền, uy tín | [Kết quả trên mã main](../proof/phase-1/qa-headless.md#kết-quả-trên-mã-main) · [Nhánh lát 4](../proof/phase-1/qa-headless.md#kiểm-tra-các-nhánh-đang-phát-triển) | Chưa đạt. Main chỉ có `quan_end`. |
-| Phạm vi lõi và DoD · HUD và luồng chơi hai buổi | Test HTTP trạng thái, input và HTML. Chơi thử đầy đủ sau khi các lát được gộp | [Kết quả trên mã main](../proof/phase-1/qa-headless.md#kết-quả-trên-mã-main) | Test HTTP đạt. Chưa kiểm chứng thủ công toàn bộ HUD và luồng chơi. |
+| B–E · CLI, snapshot và tính tất định | Chạy smoke, rồi chạy cùng seed và cùng đầu vào hai lần để so byte JSONL và kho | [Log unittest](../proof/phase-1/unittest.txt) | **Đạt** ở các ca đã chạy. Smoke cũng xác nhận mã 2 ở các ca dữ liệu sai đã có. |
+| E–F · Di chuyển, oxy, ngạt và ngất | Chạy smoke di chuyển, test oxy và kiểm tra dữ liệu `oxygen_empty`, `faint` | [Kết quả trên main](../proof/phase-1/qa-headless.md#kết-quả-trên-mã-main) | **Chưa đạt đầy đủ.** Luật di chuyển, oxy, ngạt và kho rỗng khi ngất qua test. Hai sự kiện lệch hợp đồng. |
+| E–G · Hái nút vừa mọc lại và bắt cá ở bước cuối | Dựng giỏ rỗng, đối chiếu sự kiện, file kho và kho quán ở tick 0 | [Kết quả QA](../proof/phase-1/qa-headless.md) | **Chưa đạt.** Thiếu hành động trên main. Nhánh lát 2 đã giao được kho nhưng dữ liệu sự kiện còn lệch. |
+| E–F · Giỏ thiếu chỗ và hồi chiêu bắt cá | Đặt hai đàn cùng vị trí, đàn ưu tiên cần 3 ô và giỏ còn 1 ô. Kiểm `hold_full`, giỏ, cá và hồi chiêu | [Kết quả nhánh lát 2](../proof/phase-1/qa-headless.md#kiểm-tra-các-nhánh-đang-phát-triển) | **Chưa đạt.** Nhánh lát 2 giữ đúng trạng thái, còn thiếu các trường bắt buộc của `hold_full`. |
+| F–G · Cập bến, hết giờ, ngất và giới hạn bước | Kiểm cả ba lý do kết thúc, chuyển kho dựng sẵn sang quán và thử giới hạn bước với file kho có sẵn | [Kết quả trên main](../proof/phase-1/qa-headless.md#kết-quả-trên-mã-main) | **Đạt** phần kết thúc và bàn giao kho trong các ca đã chạy. |
+| D–F · Khách đến, chọn món, giữ chỗ và kiên nhẫn | Chạy ở tick khách đầu tiên với kho đủ một công thức và kho rỗng | [Kết quả trên main](../proof/phase-1/qa-headless.md#kết-quả-trên-mã-main) | **Chưa đạt.** Thiếu `customer_arrived` và `no_dish`. Các ca khách hết kiên nhẫn và dọn nguyên liệu còn chờ luật khách. |
+| D–F · Nấu, bưng, phục vụ, thu tiền và uy tín | Kiểm phục vụ tại bàn đúng tick hết kiên nhẫn và hết ca. Đối chiếu thứ tự sự kiện, tiền và uy tín | [Kết quả QA](../proof/phase-1/qa-headless.md) | **Chưa đạt.** Main chỉ có `quan_end`. Nhánh lát 4 lỗi ở fixture hợp lệ. Luồng nấu đến thu tiền còn cần chạy trên bản tích hợp. |
+| DoD · Hai buổi chơi được và HUD tối thiểu | Chạy test HTTP trạng thái, input và HTML. Chơi thử toàn bộ luồng để đối chiếu HUD | [Log unittest](../proof/phase-1/unittest.txt) | Test HTTP **đạt**. Chưa kiểm chứng thủ công toàn bộ hai buổi và HUD. |
+| DoD · Hồ sơ nhóm và bàn giao | Chạy `python tools/check_team.py`, kiểm tra tag, ghi bằng chứng đúng commit | [Danh sách nhóm](../../TEAM.md) · [Bằng chứng QA](../proof/phase-1/qa-headless.md) | Dòng Kaylez đã đủ. Còn bốn dòng thành viên trống họ tên và handle trên nhánh QA. Chưa có tag kiểm chứng. |
 
 ## Đánh giá ngắn
-
-- Chủ lát 1 đối chiếu `oxygen_empty` và `faint` với mục E. Chủ lát 2 phối hợp xử lý dữ liệu của `gather`, `fish_caught` và `hold_full`.
-- Chủ lát 3 và 4 thống nhất schema khách và món theo mục D. Kiểm lại lịch khách và thứ tự xử lý lúc hết kiên nhẫn hoặc đóng ca.
-- Khi các lát đã gộp, chạy lại bộ test trên commit bàn giao và cập nhật bằng chứng thực tế trước khi gắn tag.
+- Yêu cầu nào đạt / chưa đạt:
+  - `origin/main` qua 41/41 test có sẵn. Thêm bộ test tích hợp QA cho kết quả 43/50, với 7 phương thức chưa đạt. Cần chốt lại dữ liệu sự kiện và hoàn thành tích hợp hai buổi trước khi xác nhận DoD.
+- Điều cần chỉnh cho phase sau:
+  - Đối chiếu tên trường và thứ tự sự kiện với PRD trước khi gộp lát. Chạy lại toàn bộ test trên commit bàn giao và cập nhật log trước khi Lead gắn tag.

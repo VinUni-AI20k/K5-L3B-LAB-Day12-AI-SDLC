@@ -1,8 +1,8 @@
 # Bằng chứng QA headless Phase 1
 
-- Mã luật trên `origin/main` tại thời điểm kiểm tra: `c872ef2`.
-- Test tích hợp của Kaylez: `c686e7e`, file [test_integration.py](../../../tests/test_integration.py).
-- Chạy trên Windows với Python 3.13.17. Test HTTP sử dụng kết nối loopback.
+- Commit mã luật trên `main` tại thời điểm kiểm tra: `c3441f9` (`origin/main`).
+- Commit của bộ [test tích hợp](../../../tests/test_integration.py): `c82ea72`. Log ghi mã `c686e7e` trước khi rebase. Nội dung file test giống nhau ở hai commit.
+- Hệ điều hành và phiên bản Python: Windows, Python 3.13.17.
 
 ## Cách chạy lại
 
@@ -13,7 +13,7 @@ PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
 PYTHONPATH=tests:. python3 -m unittest test_integration -v
 ```
 
-Trên máy Windows đã kiểm chứng, `python3` là alias WindowsApps. Lượt chạy dùng trình thông dịch đã cài cho tiến trình con, với các tham số CLI lấy từ `game.contract.json`.
+Nếu `python3` trỏ tới alias WindowsApps, dùng trình thông dịch Python đã cài cho tiến trình con. Các tham số CLI vẫn lấy từ `game.contract.json`. Test HTTP dùng kết nối loopback.
 
 ```powershell
 $env:PYTHONPATH = 'tests;.'
@@ -40,33 +40,31 @@ sys.exit(not result.wasSuccessful())
 
 ## Kết quả trên mã main
 
-Trích kết quả lần chạy đầy đủ trên mã luật `c872ef2` với bộ test tích hợp:
+Ghi kết quả lần chạy đầy đủ và dẫn tới log thực tế.
 
-```text
-Ran 50 tests in 9.855s
-FAILED (failures=8)
-Methods passed: 43/50; assertion failures: 8; errors: 0
-```
-
-**43/50 phương thức test đạt.** Cả 41 test có sẵn, gồm test HTTP, đều qua. Hai ca QA qua là cập bến ở bước cuối với JSONL và file kho giống từng byte, và giữ nguyên file kho khi chạm giới hạn bước. Bảy phương thức QA chưa qua, trong đó test lịch khách có hai subtest đỏ.
+- Số test đạt trên tổng số test: **41/41** với bộ test trên `origin/main`. **43/50** khi thêm test tích hợp QA vào bản sao cùng commit.
+- Số ca thất bại và lỗi: **7 phương thức QA chưa qua**, trong đó một phương thức có hai subtest đỏ. Unittest ghi 8 assertion failures và 0 errors ở lần chạy trên mã `main`.
+- Log: [unittest.txt](unittest.txt), gồm hai lượt trên `origin/main` và hai lượt kiểm tra nhánh đang phát triển.
 
 | Test QA | Kết quả quan sát | Yêu cầu theo PRD-0 |
 |---|---|---|
-| `test_hai_nut_vua_moc_lai_o_buoc_cuoi_roi_chuyen_kho` | Có `node_regrown` và `gather_end` ở tick 1 | Phát thêm `gather` giữa hai sự kiện. Một bông súng phải vào kho và quán đọc được. |
-| `test_bat_ca_o_buoc_cuoi_uu_tien_id_va_chuyen_kho` | Chỉ thấy `gather_end` ở tick 1 | Chọn F2 trước F10 khi cùng khoảng cách. Phát `fish_caught` trước khi chốt kho. |
-| `test_gio_thieu_cho_giu_ca_va_khong_dat_hoi_chieu` | Thiếu `hold_full` | Phát `hold_full` cho F1 với `action: "catch"`, `required: 3`, `free: 1`. Cá và giỏ giữ nguyên, hồi chiêu vẫn 0. |
-| `test_oxygen_empty_co_payload_theo_contract` | Sự kiện ở tick 1 mang `{"pos":[20.0,5.0]}` | Dữ liệu sự kiện là `{"oxygen_ticks":0}`. |
-| `test_ngat_bo_gio_theo_lifo_va_xuat_kho_rong` | Kho rỗng và quán đọc được. `faint.data` mang `pos` và bảng đếm `lost`. | Dữ liệu `faint` có `cause: "choke"`, `hp: 0` và `lost: ["bong_sung","ca_linh","ca_loc"]`. |
-| `test_quan_goi_mon_theo_kho_va_lich_khach` | Hai subtest đều thiếu sự kiện ở tick 120 của preset | Kho có một cá lóc phát `customer_arrived` và giữ đúng công thức. Kho rỗng phát `no_dish`. |
-| `test_quan_phuc_vu_o_tick_het_kien_nhan_va_dong_ca` | Chỉ thấy `quan_end` ở tick 1 | `served` rồi `paid` với lý do `closing` trước `quan_end`. Khách trả giá món và boa bằng 0. |
+| Cập bến ở bước cuối và bàn giao tất định | Phát `gather_end` với `docked`. Hai lượt cho ra cùng byte JSONL ở hai pha và cùng byte file kho. | Cập bến được ưu tiên trước hết giờ. `quan` nạp đúng số lượng từ file kho. |
+| Chạm giới hạn bước | File kho có sẵn giữ nguyên từng byte. | Chỉ ghi kho khi `gather_end`. |
+| Hái ở bước cuối | Có `node_regrown` và `gather_end`. Thiếu `gather`. | Nút vừa mọc có thể hái ngay. Một bông súng vào kho và quán đọc được. |
+| Bắt cá ở bước cuối | Chỉ có `gather_end`. | Chọn F2 trước F10 khi cùng khoảng cách. Phát `fish_caught` và tính cá vào kho. |
+| Giỏ thiếu chỗ | Thiếu `hold_full`. | Báo thiếu chỗ cho F1. Giữ nguyên đàn, giỏ và hồi chiêu. |
+| Hết oxy | `oxygen_empty.data` hiện là `{"pos":[20.0,5.0]}`. | Dữ liệu sự kiện cần `{"oxygen_ticks":0}`. |
+| Ngất và bỏ giỏ | Kho rỗng và quán nạp được. `faint.data` có `pos` và bảng đếm `lost`. | Dữ liệu cần `cause: "choke"`, `hp: 0` và mảng `lost` theo thứ tự LIFO. |
+| Lịch khách với kho đủ và kho rỗng | Hai subtest đều thiếu sự kiện ở tick 120. | Kho đủ phát `customer_arrived` và giữ đúng công thức. Kho rỗng phát `no_dish`. |
+| Phục vụ đúng tick hết kiên nhẫn và đóng ca | Chỉ có `quan_end` ở tick 1. | Phát `served` rồi `paid` với lý do `closing` trước `quan_end`. Boa bằng 0. |
 
 ## Kiểm tra các nhánh đang phát triển
 
-Dùng các bản sao tạm từ `git archive`, chép bộ test QA vào từng bản rồi chạy riêng các ca liên quan. Mỗi dòng dưới đây gắn với commit đã chạy.
+Dùng các bản sao tạm từ `git archive`, chép bộ test QA vào từng bản rồi chạy riêng các ca liên quan. Ghi rõ commit đã chạy ở mỗi dòng.
 
 | Bản luật | Kết quả | Phát hiện |
 |---|---|---|
-| `origin/letheanh/gather-harvest` tại `e04b3fa` | 3 ca chạy, 3 lỗi assertion | Hái và bắt ở bước cuối đã chuyển đúng kho sang quán. Trạng thái giỏ, cá và hồi chiêu đúng khi thiếu chỗ. Sự kiện `gather` dùng `count` và `hold_count` thay vì `amount`. `fish_caught` dùng `count` và `hold_count` thay vì `yield`. `hold_full` vẫn thiếu `action`, `fish_id`, `required` và `free`. |
-| `origin/minhthu27/quan-service` tại `116cf99` | 1 ca chạy, 1 lỗi assertion | Headless thoát mã 1 vì `KeyError: 'dish'` tại `_use_table`. Fixture hợp lệ theo mục D dùng `dish_id` cho khách và object món cho `hand`. |
+| `origin/letheanh/gather-harvest` tại `483664e` | 0/3 test QA đạt | Ca hái và bắt đã qua kiểm tra bàn giao kho. Ca thiếu chỗ giữ đúng đàn, giỏ và hồi chiêu. Ba ca còn đỏ ở dữ liệu `gather.amount`, `fish_caught.yield` và các trường `hold_full`. |
+| `origin/minhthu27/quan-service` tại `116cf99` | 0/1 test QA đạt | Headless thoát mã 1 với `KeyError: 'dish'` khi tương tác bàn. Fixture dùng trường `dish_id` và object món trên tay theo PRD-0 mục D. |
 
-Ma trận hiện dùng bằng chứng sơ bộ. Chạy lại sau khi gộp các lát và lưu kết quả trên commit bàn giao Phase 1.
+Chạy lại sau khi gộp các lát, lưu kết quả trên commit bàn giao Phase 1 và cập nhật [ma trận truy vết](../../verification/phase-1.md) trước khi gắn tag.
