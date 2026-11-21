@@ -8,7 +8,10 @@ from .inventory import KINDS
 
 DEFAULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json")
 
-CONTRACT_VERSION = "1.1"
+# Ticket-03: chạy được 1.1 (kho đếm) và 1.2 (kho cá thể, độ tươi) trong lúc chuyển; 1.2 bắt buộc khối freshness.
+CONTRACT_VERSIONS = ("1.1", "1.2")
+CONTRACT_VERSION = "1.2"  # bản đích
+FRESHNESS_V12 = {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30}
 FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
 DISH_IDS = ("ca_loc_nuong_trui", "goi_bong_sung", "lau_ca_linh_dien_dien", "canh_chua_ca_loc", "ca_keo_nuong", "lau_mam")
@@ -18,7 +21,7 @@ SPECIES_KEYS = ("patrol_speed", "chase_speed", "detect_radius", "exit_radius", "
                 "recoil_ticks", "recoil_dist")
 UPGRADE_FIELDS = {"oxygen": "oxygen_max_s", "hp": "hp_max"}
 # Mã mở rộng hợp lệ ở gốc manifest (Ticket-02 mục 3, 4.1)
-EXTENSION_CODES = ("weapon", "net", "snake", "burn", "vendor", "ca_ho")
+EXTENSION_CODES = ("weapon", "net", "snake", "burn", "vendor", "ca_ho", "current", "reservations")
 
 
 def _num(v):
@@ -36,14 +39,26 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    if c.get("contract_version") != CONTRACT_VERSION:
-        raise BadInput(f"contract_version phải là {CONTRACT_VERSION!r}")
+    version = c.get("contract_version")
+    if version not in CONTRACT_VERSIONS:
+        raise BadInput(f"contract_version phải là một trong {list(CONTRACT_VERSIONS)}")
     ext = c.get("extensions", [])
     if not isinstance(ext, list) or any(e not in EXTENSION_CODES for e in ext) or len(set(ext)) != len(ext):
         raise BadInput(f"extensions phải là mảng mã không trùng trong {list(EXTENSION_CODES)}")
     validate_tuning(c.get("tuning"))
+    validate_freshness(version, c["tuning"])
     validate_extensions(ext, c["tuning"])
     return c
+
+
+def validate_freshness(version, t):
+    """v1.2 bắt buộc tuning.freshness đúng giá trị chuẩn (Ticket-03); v1.1 không được có (chonoi.fresh.enabled dựa vào
+    sự có mặt của khối này để chọn kho cá thể)."""
+    if version == "1.2":
+        if t.get("freshness") != FRESHNESS_V12:
+            raise BadInput(f"contract 1.2 cần tuning.freshness = {FRESHNESS_V12}")
+    elif "freshness" in t:
+        raise BadInput("tuning.freshness chỉ có từ contract 1.2")
 
 
 def validate_extensions(ext, t):

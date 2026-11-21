@@ -30,6 +30,7 @@ v1.1 (Ticket-02, thứ tự một bước theo mục 4.5):
 
 import math
 
+from .. import fresh
 from ..contract import upgrade_value
 from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
@@ -46,6 +47,7 @@ class GatherSim:
     def __init__(self, tuning, scenario, streams, ids, day=1, active_upgrades=None):
         t = tuning["gather"]
         self.t = t
+        self.tuning = tuning  # cần cho chonoi.fresh (khối freshness ở gốc tuning, v1.2)
         self.rng = streams
         self.ids = ids
         self.day = day  # gather độc lập dùng bố trí Ngày 1
@@ -64,6 +66,12 @@ class GatherSim:
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        # v1.2 (khung): fixture hold là cá thể {id, kind, fresh} -> cá thể trong code {id, kind, u}; giữ nguyên id
+        self.fresh_on = fresh.enabled(tuning)
+        if self.fresh_on:
+            self.hold = [fresh.from_public(it) for it in self.hold]
+            for it in self.hold:
+                ids.reserve(it["id"])
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         self.phase_tick = 0
         # nút, đàn cá, quái: scenario THAY THẾ danh sách mặc định
@@ -96,7 +104,10 @@ class GatherSim:
         self.reason = None
 
     # --- giao diện cho runner -------------------------------------------------
-    def inventory_items(self) -> dict:
+    def inventory_items(self):
+        """Kho bàn giao khi gather_end: v1.1 dict đếm; v1.2 mảng cá thể public sắp theo id (Ticket-03 mục 1)."""
+        if self.fresh_on:
+            return fresh.public_list(sort_by_id(self.hold))
         return hold_to_items(self.hold)
 
     def snapshot(self) -> dict:
@@ -106,7 +117,7 @@ class GatherSim:
                        "hp": self.hp, "hp_max": self.hp_max, "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": self.hold, "hold_count": len(self.hold),
+            "hold": fresh.out(self.hold), "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
@@ -131,6 +142,8 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        if self.fresh_on:
+            self._decay_hold(events)  # v1.2 (B): độ tươi của hàng có sẵn trong giỏ, ở đầu bước
         # 2. bơi + chặn mép, rồi dive/surface và oxy theo d CUỐI bước (lát 1)
         was_surface = self._at_surface()
         self._move(inp)
@@ -192,9 +205,17 @@ class GatherSim:
             return False
         lost = list(reversed(self.hold))  # bỏ theo LIFO: nhặt sau bỏ trước
         self.hold = []
-        events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
+        events.append(("faint", {"cause": "choke", "lost": fresh.out(lost), "hp": 0}))
         self._finish("fainted", events)
         return True
+
+    # --- v1.2: độ tươi trong giỏ (B viết thân hàm) -------------------------------------
+    def _decay_hold(self, events):
+        """TODO(B, Ticket-03 mục 1): mỗi bước giỏ hao fresh.cfg(tuning)["gather_decay_u"] (2 đơn vị = 0.5/s);
+        với mỗi cá thể vừa ươn (fresh.decay trả theo id) phát spoiled{item_id, kind, location: "hold"}.
+        Hàng mới bắt/hái có fresh 100 và hao từ bước sau. Gợi ý:
+            for it in fresh.decay(self.hold, fresh.cfg(self.tuning)["gather_decay_u"], self.tuning): ...
+        B cũng đổi _try_harvest/_try_catch: khi self.fresh_on thì thêm fresh.new_item(self.ids, kind, tuning)."""
 
     # --- v1.1: quái (A viết thân hàm) -------------------------------------------------
     def _update_monsters(self, events) -> bool:
@@ -260,7 +281,8 @@ class GatherSim:
         if n_lost:
             self.hold = self.hold[:len(self.hold) - n_lost]
         self.invuln_ticks = int(cfg["invuln_ticks"])
-        events.append(("monster_hit", {"monster_id": m["id"], "hp": self.hp, "lost": lost, "pos": list(self.pos)}))
+        events.append(("monster_hit", {"monster_id": m["id"], "hp": self.hp, "lost": fresh.out(lost),
+                                       "pos": list(self.pos)}))
         dx, dd = m["pos"][0] - self.pos[0], m["pos"][1] - self.pos[1]
         norm = math.hypot(dx, dd)
         m["state"], m["state_ticks_left"] = "recoil", int(sp["recoil_ticks"])
@@ -269,7 +291,7 @@ class GatherSim:
             return False
         rest = list(reversed(self.hold))
         self.hold = []
-        events.append(("faint", {"cause": "monster", "lost": rest, "hp": 0}))
+        events.append(("faint", {"cause": "monster", "lost": fresh.out(rest), "hp": 0}))
         self._finish("fainted", events)
         return True
 

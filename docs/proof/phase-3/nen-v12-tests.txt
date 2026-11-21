@@ -1,0 +1,29 @@
+# Bằng chứng nền Test Contract v1.2 (LeBao403, Integrator) - chế độ hai phiên bản, manifest còn 1.1
+# Lệnh: PYTHONPATH=tests:. python3 -m unittest discover -s tests -p "test_p3_fresh_schema.py" -v
+
+test_ghi_doc_v12_giu_dung_gia_tri_va_sap_theo_id (test_p3_fresh_schema.InventoryFile.test_ghi_doc_v12_giu_dung_gia_tri_va_sap_theo_id) ... ok
+test_v11_giu_kho_dem (test_p3_fresh_schema.InventoryFile.test_v11_giu_kho_dem) ... ok
+test_v12_tu_choi_kho_dem_va_sai_schema (test_p3_fresh_schema.InventoryFile.test_v12_tu_choi_kho_dem_va_sai_schema) ... ok
+test_freshness_bat_buoc_o_12_va_cam_o_11 (test_p3_fresh_schema.Manifest.test_freshness_bat_buoc_o_12_va_cam_o_11) ... ok
+test_hold_sai_schema_ma_2 (test_p3_fresh_schema.ScenarioV12.test_hold_sai_schema_ma_2) ... ok
+test_hold_va_stock_la_ca_the (test_p3_fresh_schema.ScenarioV12.test_hold_va_stock_la_ca_the) ... ok
+test_v11_van_nhan_dang_cu (test_p3_fresh_schema.ScenarioV12.test_v11_van_nhan_dang_cu) ... ok
+test_gather_v11_khong_doi (test_p3_fresh_schema.SimFramework.test_gather_v11_khong_doi) ... ok
+test_gather_v12_hold_ca_the_snapshot_va_kho_ban_giao (test_p3_fresh_schema.SimFramework.test_gather_v12_hold_ca_the_snapshot_va_kho_ban_giao) ... ok
+test_gather_v12_lost_khi_ngat_la_ca_the_lifo (test_p3_fresh_schema.SimFramework.test_gather_v12_lost_khi_ngat_la_ca_the_lifo) ... ok
+test_quan_v12_stock_ca_the (test_p3_fresh_schema.SimFramework.test_quan_v12_stock_ca_the) ... ok
+test_decay_phat_vua_uon_mot_lan_theo_id_va_kep_day (test_p3_fresh_schema.Units.test_decay_phat_vua_uon_mot_lan_theo_id_va_kep_day) ... ok
+test_hang_so_don_vi (test_p3_fresh_schema.Units.test_hang_so_don_vi) ... ok
+test_new_item_noi_tiep_id_va_public (test_p3_fresh_schema.Units.test_new_item_noi_tiep_id_va_public) ... ok
+test_to_units_khong_doi_phia_nguong (test_p3_fresh_schema.Units.test_to_units_khong_doi_phia_nguong) ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 0.072s
+
+OK
+
+# Regression toàn bộ (manifest 1.1): PYTHONPATH=tests:. python3 -m unittest discover -s tests
+FAIL: test_contract_v10_required_fields_and_ranges (test_e_qa_p1.ContractTuningRangesTest.test_contract_v10_required_fields_and_ranges)
+Ran 226 tests in 19.636s
+FAILED (failures=1)
+# Đỏ duy nhất: test_e_qa_p1 của E (còn kiểm số liệu v1.0), có từ trước nền này.
