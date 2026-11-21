@@ -150,6 +150,18 @@ def _validate_quan(b, tuning):
             _check_ids(arr, b[arr])
     if "stock" in b:
         validate_items(b["stock"])
+    for stove in b.get("stoves", []):
+        name = f"stoves.{stove['id']}"
+        if stove.get("state") in ("cooking", "ready"):
+            dish = stove.get("dish")
+            if not isinstance(dish, dict):
+                raise BadInput(f"{name}: bếp đang nấu hoặc đã chín phải có dish")
+            dish_id = dish.get("dish_id")
+            if not isinstance(dish_id, str) or dish_id not in tuning["menu"]:
+                raise BadInput(f"{name}.dish: dish_id phải có trong menu")
+            if not isinstance(dish.get("order_id"), str) or not dish["order_id"]:
+                raise BadInput(f"{name}.dish: order_id phải là chuỗi khác rỗng")
+            _nonneg_int(f"{name}.dish.base_price", dish.get("base_price"))
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")

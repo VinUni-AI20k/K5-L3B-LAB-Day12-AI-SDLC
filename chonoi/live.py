@@ -120,17 +120,15 @@ class LiveGame:
             snap.update(sim.live_hints())
             snap["meta"] = self.tuning[self.mode]
             snap["events"] = list(self.events)
-            if self.mode == "quan":
-                missed_order = next((event for event in reversed(self.events) if event["name"] == "no_dish"), None)
-                if missed_order and snap["tick"] - missed_order["tick"] < 2 * self.tuning["tick_hz"]:
-                    available = sim.available_stock()
-                    shortages = [
-                        {kind: count - max(0, available.get(kind, 0)) for kind, count in recipe["recipe"].items()
-                         if count > max(0, available.get(kind, 0))}
-                        for recipe in sim.menu.values()
-                    ]
-                    if shortages:
-                        snap["missing_ingredients"] = min(shortages, key=lambda items: sum(items.values()))
+            if self.mode == "quan" and not sim.done and not sim.customers:
+                available = sim.available_stock()
+                shortages = [
+                    {kind: count - max(0, available.get(kind, 0)) for kind, count in dish["recipe"].items()
+                     if count > max(0, available.get(kind, 0))}
+                    for dish in sim.menu.values()
+                ]
+                if shortages and all(shortages):
+                    snap["missing_ingredients"] = min(shortages, key=lambda items: sum(items.values()))
             snap["finished"] = self.session.done
             snap["can_open_quan"] = self._can_open_quan()
             snap["reason"] = self.session.sim.reason if self.session.done else None

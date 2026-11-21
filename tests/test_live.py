@@ -1,13 +1,17 @@
 """Test cửa sổ chơi trực tiếp (chonoi.live). Chỉ dành cho starter Python: nhóm đổi ngôn ngữ thì xóa file này."""
 
 import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import time
 import unittest
 import urllib.error
 import urllib.request
 
 from chonoi.contract import load_contract
+from chonoi.errors import BadInput
 from chonoi.live import LiveGame, LiveServer
+from chonoi.scenario import load_scenario
 
 
 def _get(url):
@@ -27,6 +31,30 @@ def _post(url, obj):
 
 
 class LiveServerTest(unittest.TestCase):
+    def test_quan_shows_cook_hint_and_persistent_shortage(self):
+        tuning = load_contract()["tuning"]
+        game = LiveGame("quan", tuning, {"player": {"pos": [2, 8]}}, 1, {"ca_loc": 1})
+        self.assertNotIn("missing_ingredients", json.loads(game.state_json()))
+        for _ in range(tuning["quan"]["first_customer_tick"]):
+            game._tick_once()
+        self.assertEqual(json.loads(game.state_json())["interact_target"], {"id": "B1", "action": "cook_started"})
+        game.set_input({"interact": True})
+        game._tick_once()
+        self.assertEqual(json.loads(game.state_json())["stoves"][0]["state"], "cooking")
+
+        empty = LiveGame("quan", tuning, {}, 1)
+        for _ in range(tuning["quan"]["first_customer_tick"] + 3 * tuning["tick_hz"]):
+            empty._tick_once()
+        self.assertEqual(json.loads(empty.state_json())["missing_ingredients"], {"ca_loc": 1})
+
+    def test_quan_scenario_rejects_active_stove_without_dish(self):
+        tuning = load_contract()["tuning"]
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "quan.json"
+            path.write_text(json.dumps({"quan": {"stoves": [{"id": "B1", "state": "cooking"}]}}), encoding="utf-8")
+            with self.assertRaisesRegex(BadInput, r"stoves\.B1.*dish"):
+                load_scenario(path, "quan", tuning)
+
     def test_state_input_and_clean_stop(self):
         tuning = load_contract()["tuning"]
         server = LiveServer(LiveGame("gather", tuning, {}, 1), port=0)  # cổng ngẫu nhiên
