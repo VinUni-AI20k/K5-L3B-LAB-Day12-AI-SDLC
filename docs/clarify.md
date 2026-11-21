@@ -2,3 +2,7 @@
 
 | # | Ngày giờ | Câu hỏi | Trả lời / giả định | Ai quyết |
 |---|---|---|---|---|
+| 1 | 2026-11-21 | Chi tiết payload `data` của các sự kiện `gather` và `quan`? | Đã đối chiếu **PRD-0 mục E** và khóa đầy đủ tên trường trong `docs/contracts/README.md` (mục 3). Lưu ý: `faint.lost` sắp theo LIFO; `cook_started.items` là mảng `kind` sắp theo `kind`. | PO (M6 — `K0heii`) theo PRD-0 |
+| 2 | 2026-11-21 | Các trường hợp mâu thuẫn mức luật (`BadInput` → mã thoát `2`) trong `scenario.py` ở mode `quan`? | Đã đối chiếu **PRD-0 mục D**: kiểm tra `hand`/bếp trùng `order_id` hoặc không khớp đơn, đơn `assigned` phải có đúng 1 món ở bếp/tay và `reserved` rỗng, đơn `reserved` khớp công thức và không vượt tổng kho, đơn `unfulfillable` rỗng giữ chỗ & không có món, khách `eating` phải là `served` có `eat_ticks_left > 0` và đủ `base_price`, `tip`. | PO (M6 — `K0heii`) theo PRD-0 |
+| 3 | 2026-11-21 | Thứ tự chọn đối tượng khi `interact` trong `quan` và xử lý nếu đối tượng được chọn không tương tác được? | Theo **PRD-0 mục F (Quán)**: chọn tối đa 1 đối tượng trong `interact_radius` theo `(khoảng cách, bếp trước bàn, id)`. Nếu đối tượng được chọn không tương tác được thì bỏ lượt (không chuyển sang đối tượng khác). | PO (M6 — `K0heii`) theo PRD-0 |
+| 4 | 2026-11-21 | Schema `hand` và `stoves[].dish` trong `quan` là chuỗi mã món hay object? | Theo **PRD-0 mục D**: là object payload `{"order_id": str, "dish_id": str, "base_price": int}` (với `order_id == customer.id`) hoặc `null`. M3, M4 và M6.3 dùng thống nhất schema này. | PO (M6 — `K0heii`) theo PRD-0 |
