@@ -1,6 +1,6 @@
 # Phân chia công việc theo phase — NhomF7 (7 người)
 
-> Tổng hợp từ PRD-0 (Phase 1), TICKET-02 (Phase 2), TICKET-03 (Phase 3). Chi tiết mốc giờ từng phase ở `docs/plan/phase-<n>.md`. Phase 4 chưa phát hành, sẽ bổ sung khi có ticket.
+> Tổng hợp từ PRD-0 (Phase 1), TICKET-02 (Phase 2), TICKET-03 (Phase 3), TICKET-04 (Phase 4). Chi tiết mốc giờ, AC và chia việc từng phase ở [phase-1.md](phase-1.md), [phase-2.md](phase-2.md), [phase-3.md](phase-3.md), [phase-4.md](phase-4.md).
 
 ## 0. Nguyên tắc chung (giữ suốt 4 phase)
 
@@ -24,7 +24,7 @@
 
 ---
 
-## Phase 1 — PRD-0 (0:00–1:00, Contract v1.0, tag `phase-1`) — ⚠️ chưa thấy tag `phase-1` trên repo, Integrator cần gắn
+## Phase 1 — PRD-0 (0:00–1:00, Contract v1.0, tag `phase-1`) — ✅ đã có tag `phase-1`
 
 **Mục tiêu**: chơi được `gather` và `quan` riêng, nối qua file kho.
 
@@ -73,53 +73,31 @@ Khai `extensions` ở gốc manifest, ghi README + test. Nếu hết giờ, bỏ
 
 ## Phase 3 — TICKET-03 "Mùa Nước Nổi" (1:55–2:30, Contract v1.2, tag `phase-3`)
 
-**Mục tiêu**: kho đếm → **kho cá thể** `{id,kind,fresh}`, hao tươi, ươn (< 30), giữ chỗ theo id, giá theo độ tươi, HUD độ tươi. Đây là **breaking change** ở cả gather, quán, day và file kho.
+**Mục tiêu**: kho đếm → **kho cá thể** `{id,kind,fresh}`, hao tươi, ươn (< 30), giữ chỗ theo id, giá theo độ tươi, HUD độ tươi. Breaking change ở gather, quán, `day` và file kho. **Chi tiết: [phase-3.md](phase-3.md).**
 
-### Phút 0–7: phân tích tác động (PO ghi, Integrator chốt)
-| Module | File cần đổi | Test bị ảnh hưởng | Người |
-|---|---|---|---|
-| Adapter / schema kho | `chonoi/inventory.py`, `chonoi/scenario.py` (hold/stock/reserved thành mảng), `game.contract.json` (khối `freshness`), `docs/contracts/` | Test đọc/ghi kho v1.0 → đổi sang v1.2, thêm test kho đếm → mã 2 | invzble-z |
-| Lặn | `sim/gather.py` (cấp id khi vào giỏ, hao 0.5/s, `spoiled` location hold), `sim/monsters.py` (`lost` thành mảng cá thể LIFO) | Test hái/bắt/ngất/monster_hit đổi format `hold`, `lost` | NguyenQuangDunghe161764 (giỏ, id, hao, spoiled) + comtrang378-ship-it (lost trong monster_hit/faint) |
-| Quán | `sim/quan.py` (hao 0.25/s, spoiled location stock, giữ theo id, nhả + giữ lại 1 lần, giá theo fresh) | Test giữ chỗ, nấu, giá đổi | Quoosc (giữ chỗ theo id, xử lý ươn) + ttkien0710 (tiêu id khi nấu, `base_price`, `cook_started.items`) |
-| day | `sim/day.py` (bàn giao cùng tick không hao thêm, id I1.. tăng xuyên Ngày, `gather.hold` Ngày kế cấp id mới) | Test day bàn giao | invzble-z |
-| HUD | `chonoi/web/` (thanh/số độ tươi, nhãn "ươn") | Test live static | nganhduong123 |
-| QA | `tests/test_p3_*.py`, `docs/proof/phase-3/`, `docs/verification/phase-3.md` | Regression P1–P2 còn hiệu lực, ghi lý do test bị thay | WorkOfMinh |
-
-### Quyết định kỹ thuật chốt sớm (ghi `docs/adr/0002-kho-ca-the.md`)
-- **Biểu diễn độ tươi bằng số nguyên**: 240 đơn vị = 1 điểm tươi (100 điểm = 24 000). Gather trừ 2 đơn vị/tick, quán trừ 1 đơn vị/tick. So ngưỡng 30 (= 7 200) trên số nguyên trước khi làm tròn → không lệch dấu phẩy động.
-- **Một kiểu `Item(id, kind, fresh_units)` dùng chung** đặt trong `chonoi/inventory.py`; gather/quán/day chỉ dùng kiểu này.
-- **`IdAllocator` cho `I<n>` là một bộ đếm duy nhất** giữ trong DaySim, truyền xuyên pha và Ngày.
-- **Chuyển đổi an toàn**: adapter đọc theo `contract_version` (1.1 → kho đếm, 1.2 → kho cá thể). Chỉ lật `contract_version:"1.2"` khi cả gather và quán đã xong, để `main` luôn chạy.
-
-### Thứ tự tích hợp (giữ main xanh)
-1. **Phút 7–12** — invzble-z: `Item`, adapter đọc/ghi 2 schema, scenario mảng cá thể, khối `freshness`. Gộp trước, các lát khác rebase.
-2. **Phút 12–25** — song song: Lặn (Dũng + Tú), Quán (Quốc + Kiên), HUD (Dương, dùng mock snapshot có `fresh`), QA viết test ngưỡng/giữ lại/giá trước (test đỏ trước, xanh sau).
-3. **Phút 20** — QA chạy smoke bàn giao: gather 1 bước với `fresh:100` + `interact` frame 0 → `quan --inventory --ticks 0`, so chính xác id/kind/fresh. Standup, điều người xong sang lát trễ.
-4. **Phút 25** — invzble-z lật v1.2, cập nhật fixture; nối day (bàn giao cùng tick).
-5. **Phút 25–32** — QA: smoke file + `day`, regression P1–P2, `docs/verification/phase-3.md`. invzble-z: `CHANGELOG.md` (breaking change, schema mới, cách sửa fixture) và gắn tag. PO: retro về lần đổi kho.
-6. **Phút 32–35** — dự phòng, đẩy `phase-3` ≤ 2:30.
-
-### Test bắt buộc (WorkOfMinh giữ, chủ lát viết test của lát mình)
-| Test | Người viết |
+| Người | Việc chính |
 |---|---|
-| Ngưỡng: `fresh:30` trong giỏ → `spoiled` ở tick 1 (scenario mẫu của ticket) | NguyenQuangDunghe161764 |
-| `lost` trong `monster_hit`/`faint` là mảng cá thể LIFO | comtrang378-ship-it |
-| Hàng giữ chỗ vừa ươn → nhả, giữ lại 1 lần, thiếu → `unfulfillable` | Quoosc |
-| `base_price = floor(giá × trung bình fresh / 100)`, boa tính trên giá đã chốt | ttkien0710 |
-| Kho đếm khi chạy v1.2 → mã 2; id trùng / fresh ngoài miền → mã 2 | invzble-z |
-| Smoke bàn giao file + day, regression P1–P2 | WorkOfMinh |
-
-### Mở rộng Phase 3 (chỉ khi lõi v1.2 xanh trước phút 25)
-- `current` (Dòng nước lũ) — NguyenQuangDunghe161764 hoặc comtrang378-ship-it (chỉ cộng lực vào player ở d ≥ 10).
-- `reservations` (Khách đặt trước) — Quoosc + ttkien0710, phức tạp hơn, chỉ làm nếu dư nhiều thời gian.
-Nếu Phase 2 đã đủ 2 mở rộng, Phase 3 **ưu tiên chất lượng lõi** hơn thêm mục.
+| invzble-z | `Item` + adapter 2 schema trong `inventory.py`, khối `freshness` + khóa v1.1 còn thiếu, bàn giao trong `day`, lật v1.2, tag |
+| NguyenQuangDunghe161764 | Giỏ cá thể: cấp id, hao 0.5/s, `spoiled` ở `hold`, `--inventory-out` schema mới |
+| comtrang378-ship-it | `lost` mảng cá thể LIFO trong `faint`/`monster_hit` |
+| Quoosc | Kho quán cá thể, hao 0.25/s, giữ theo id tươi nhất, nhả + giữ lại 1 lần |
+| ttkien0710 | Nấu tiêu id, `base_price` theo tươi, `cook_started.items`, `burn` với kho cá thể |
+| WorkOfMinh | `scenario.py` mảng cá thể, smoke bàn giao, regression, `docs/verification/phase-3.md` |
+| nganhduong123 | HUD độ tươi, ADR 0002, CHANGELOG nháp, clarify, nhật ký AI, retro |
 
 ---
 
-## Phase 4 — chưa phát hành (2:30–3:00)
+## Phase 4 — TICKET-04 "Phát hành v1.0.0" (2:30–3:00, Contract v1.3, tag `phase-4` + Release v1.0.0)
 
-Khi ticket ra:
-1. PO đọc ticket, gom câu hỏi vào `docs/clarify.md` trong 3 phút đầu.
-2. Integrator lập bảng tác động theo mẫu Phase 3, giữ nguyên "nhà" của từng người ở mục 0.
-3. QA xác định AC-P4-xx và regression còn hiệu lực.
-4. Chừa 5 phút cuối để mỗi người viết phản tư `docs/members/<handle>.md` và hoàn thiện `docs/retro.md`, `docs/ai-usage-log.md`.
+**Mục tiêu**: `bench_cmd` có render, `soak_cmd` 10 Ngày, 3 cảnh báo + tương phản cao, clone sạch ≤ 3 lệnh, Release có zip, retro và phản tư đủ 7 người. **Chi tiết: [phase-4.md](phase-4.md).**
+
+| Người | Vai | Việc chính |
+|---|---|---|
+| invzble-z | Release / Integrator | Contract v1.3, CHANGELOG, release notes, tag + Release |
+| Quoosc | Soak | `chonoi/soak.py` (pair với invzble-z), mở rộng `leaderboard` nếu dư giờ |
+| ttkien0710 | Bench (Python) | `chonoi/bench.py`, công thức 5 trường |
+| nganhduong123 | Bench (client) + HUD + retro | `?bench=1`, 3 cảnh báo, tương phản cao, điều phối retro |
+| comtrang378-ship-it | Chơi thử | Kiểm 3 cảnh báo ở chế độ tương phản cao, hoàn thiện `monsters.py` |
+| NguyenQuangDunghe161764 | Đóng gói | Clone sạch, README, zip, CREDITS/LICENSE |
+| WorkOfMinh | Bench / QA | Chạy bench + soak, regression P1–P3, `docs/verification/phase-4.md`, checklist demo |
+| Cả 7 người | — | `docs/members/<handle>.md` (≤ 200 từ) |
