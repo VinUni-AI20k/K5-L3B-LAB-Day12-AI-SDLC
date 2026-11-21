@@ -1,6 +1,6 @@
 # Ma trận truy vết Phase 2
 
-Cập nhật 2026-11-21 trên `main` tại commit `db49e35` (sau PR #34; gồm P2-02 đến P2-12). Đã chạy lại toàn bộ lệnh dưới đây tại commit này; commit gắn tag chỉ khác commit này ở tài liệu. Nguồn yêu cầu: Ticket-02 (khóa theo giờ, nhóm không đọc được bản gốc; luật dựng từ `game.contract.json` v1.1 và ghi mọi chỗ đoán ở `docs/clarify.md`). Mã AC theo `docs/plan/phase-2.md`.
+Cập nhật 2026-11-21 trên `main` tại commit `da8553d` (sau PR #38; gồm P2-02 đến P2-14). Đã chạy lại toàn bộ lệnh dưới đây tại commit này; từ lần chạy trước (`db49e35`) `main` chỉ thêm tài liệu, không đổi `chonoi/`, `tests/`, `tools/` hay `game.contract.json`. Commit gắn tag là merge của PR cập nhật ma trận này, chỉ khác `da8553d` ở tài liệu. Nguồn yêu cầu: Ticket-02 (khóa theo giờ, nhóm không đọc được bản gốc; luật dựng từ `game.contract.json` v1.1 và ghi mọi chỗ đoán ở `docs/clarify.md`). Mã AC theo `docs/plan/phase-2.md`.
 Chạy lại toàn bộ: `PYTHONPATH=tests:. python -m unittest discover -s tests` (259 test), `python tools/smoke_phase1.py` (27 mục), `python tools/smoke_phase2.py` (15 mục), `python tools/check_determinism.py` (gather, quan, day), `python tools/check_no_hardcode.py`. Kết quả ở [p2-09-smoke.md](../proof/phase-2/p2-09-smoke.md) và [p2-10-regression.md](../proof/phase-2/p2-10-regression.md), [p2-08-ui.md](../proof/phase-2/p2-08-ui.md).
 Cột kết quả ghi trung thực: **đạt**, **đạt một phần** hoặc **chưa đạt**.
 
@@ -51,4 +51,4 @@ Cột kết quả ghi trung thực: **đạt**, **đạt một phần** hoặc *
 - **Đạt một phần:** Cá Sấu (giả định chờ PO), giao diện chơi (chưa chơi tay trọn một Ngày), commit theo người (B dùng tài khoản khác `TEAM.md`), retro (thiếu phần của A).
 - **Chưa đạt:** hồ sơ cá nhân của A, tag `phase-2`. (C đã nộp nhật ký AI, hồ sơ, retro và điền `standup.md` ở P2-14.)
 - **Hạn chế:** Ticket-02 không đọc được nên mức "đạt" là theo contract v1.1 và hiểu biết của nhóm, chưa có bộ test ẩn của giảng viên. Smoke hộp đen chưa phủ `buy` ở Shop (chỉ có unit test và lần bấm thử của D); câu hỏi `clarify` #6 đến #12 chờ PO.
-- **Trước khi gắn `phase-2`:** nếu A và C kịp nộp ghi chép thì cập nhật hai dòng "Chưa đạt" ở trên; chạy lại lệnh đầu file tại đúng commit gắn tag nếu có thay đổi code, rồi mới gắn tag (cần người dùng đồng ý).
+- **Trước khi gắn `phase-2`:** chỉ còn thiếu hồ sơ cá nhân của A (ghi chú "Chưa đạt" ở trên giữ nguyên nếu A chưa nộp); không cần chạy lại kiểm nếu chỉ thêm tài liệu. Đẩy tag cần người dùng đồng ý.
