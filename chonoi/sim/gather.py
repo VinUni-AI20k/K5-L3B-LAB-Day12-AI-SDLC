@@ -24,6 +24,7 @@ import math
 
 from ..ids import sort_by_id
 from ..inventory import hold_to_items
+from . import gather_harvest as harvest, gather_survival as survival
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -95,10 +96,8 @@ class GatherSim:
                      for f in sort_by_id(self.fish)],
         }
 
-    # --- một bước ---------------------------------------------------------------
-    def step(self, inp):
-        events = []
-        # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
+    # --- một bước (bộ điều phối mỏng theo contracts/sim-hooks.md) ---------------
+    def _tick_timers(self, events):
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
@@ -107,22 +106,23 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-        # 2. bơi + chặn mép
+
+    def step(self, inp):
+        events = []
+        self._tick_timers(events)
+        was_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
-        # 3. interact: bến trước, rồi hái
+        survival.zone_change(self, was_surface, events)
+        if survival.update_oxygen(self, events):
+            self._finish("fainted", events)
+            return events
         if inp.pressed("interact"):
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
-        # 4. bắt cá
+            harvest.try_gather(self, events)
         if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
-        # 5. hết giờ
+            harvest.try_catch(self, events)
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events

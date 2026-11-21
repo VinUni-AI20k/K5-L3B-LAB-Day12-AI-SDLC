@@ -1,0 +1,38 @@
+{
+  "version": "1.0",
+  "note": "UI-only decorative cast & voice cues for mode=quan (disabled in headless). Maps customer C<n> via (n - 1) % rotation.length.",
+  "rotation": [
+    {
+      "id": "chi_phien",
+      "name": "Chị Phiến",
+      "sprites": ["customers/chi_phien.svg"],
+      "audio_triggers": {
+        "customer_arrived": ["audio/chi-phien-chao.mp3"]
+      }
+    },
+    {
+      "id": "chi_ba",
+      "name": "Chị Ba",
+      "sprites": ["customers/chi_ba.svg"],
+      "audio_triggers": {
+        "customer_arrived": ["audio/chi-ba-order-troll.mp3"]
+      }
+    },
+    {
+      "id": "anh_truong",
+      "name": "Anh Trường",
+      "sprites": ["customers/anh_truong.svg"],
+      "audio_triggers": {
+        "paid": ["audio/anh-truong-tra-tien.mp3"]
+      }
+    },
+    {
+      "id": "anh_huan_va_anh_kha",
+      "name": "Anh Huấn & Anh Khá",
+      "sprites": ["customers/anh_huan.svg", "customers/anh_kha.svg"],
+      "audio_triggers": {
+        "served": ["audio/anh-huan-cau.mp3", "audio/kha-banh.mp3"]
+      }
+    }
+  ]
+}

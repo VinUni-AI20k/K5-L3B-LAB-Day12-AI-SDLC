@@ -1,95 +1,184 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" class="char state-idle">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" class="char dir-down state-idle">
   <style>
+    .dir-wrap { transform-origin: 64px 64px; }
     .body-root { transform-origin: 64px 96px; }
     .head { transform-origin: 64px 50px; }
     .arm-l { transform-origin: 41px 60px; }
     .arm-r { transform-origin: 87px 60px; }
     .leg-l { transform-origin: 53px 86px; }
     .leg-r { transform-origin: 75px 86px; }
+    .s-arm-b, .s-arm-f { transform-origin: 64px 61px; }
+    .s-leg-b, .s-leg-f { transform-origin: 64px 86px; }
     .shadow { transform-origin: 64px 117px; }
+    .view-side, .head-back, .fx-angry { display: none; }
+
+    /* Directions */
+    .dir-up .face-front, .dir-up .torso-front { display: none; }
+    .dir-up .head-back { display: block; }
+    .dir-right .view-front, .dir-left .view-front { display: none; }
+    .dir-right .view-side, .dir-left .view-side { display: block; }
+    .dir-left .dir-wrap { transform: scaleX(-1); }
 
     /* Idle */
     .state-idle .body-root { animation: idle-bob 1.8s ease-in-out infinite; }
     .state-idle .arm-l { animation: idle-arm 1.8s ease-in-out infinite; }
     .state-idle .arm-r { animation: idle-arm 1.8s ease-in-out infinite reverse; }
+    .state-idle .s-arm-f { animation: idle-arm 1.8s ease-in-out infinite; }
 
     /* Walk */
-    .state-walk .body-root { animation: walk-bob 0.45s ease-in-out infinite; }
-    .state-walk .leg-l { animation: walk-limb 0.45s ease-in-out infinite; }
-    .state-walk .leg-r { animation: walk-limb 0.45s ease-in-out infinite reverse; }
-    .state-walk .arm-l { animation: walk-limb 0.45s ease-in-out infinite reverse; }
-    .state-walk .arm-r { animation: walk-limb 0.45s ease-in-out infinite; }
-    .state-walk .shadow { animation: walk-shadow 0.45s ease-in-out infinite; }
+    .state-walk .body-root { animation: walk-bob 0.44s ease-in-out infinite; }
+    .state-walk .leg-l { animation: walk-limb-a 0.44s ease-in-out infinite; }
+    .state-walk .leg-r { animation: walk-limb-b 0.44s ease-in-out infinite; }
+    .state-walk .arm-l { animation: walk-limb-b 0.44s ease-in-out infinite; }
+    .state-walk .arm-r { animation: walk-limb-a 0.44s ease-in-out infinite; }
+    .state-walk .s-leg-f { animation: side-stride-a 0.44s ease-in-out infinite; }
+    .state-walk .s-leg-b { animation: side-stride-b 0.44s ease-in-out infinite; }
+    .state-walk .s-arm-f { animation: side-stride-b 0.44s ease-in-out infinite; }
+    .state-walk .s-arm-b { animation: side-stride-a 0.44s ease-in-out infinite; }
+    .state-walk .shadow { animation: walk-shadow 0.44s ease-in-out infinite; }
 
     /* Sit */
     .state-sit .body-root { transform: translateY(7px); animation: sit-bob 2.1s ease-in-out infinite; }
     .state-sit .leg-l, .state-sit .leg-r { transform: translateY(-6px) scaleY(0.55); }
+    .state-sit .s-leg-f, .state-sit .s-leg-b { transform: translate(6px, -4px) rotate(-52deg); }
     .state-sit .arm-l { transform: rotate(-10deg); }
     .state-sit .arm-r { transform: rotate(10deg); }
+    .state-sit .s-arm-f { transform: rotate(-28deg); }
 
     /* Eat */
     .state-eat .body-root { transform: translateY(7px); }
     .state-eat .leg-l, .state-eat .leg-r { transform: translateY(-6px) scaleY(0.55); }
-    .state-eat .head { animation: eat-nod 0.55s ease-in-out infinite; }
-    .state-eat .arm-r { animation: eat-arm 0.55s ease-in-out infinite; }
+    .state-eat .s-leg-f, .state-eat .s-leg-b { transform: translate(6px, -4px) rotate(-52deg); }
+    .state-eat .head { animation: eat-nod 0.52s ease-in-out infinite; }
+    .state-eat .arm-r { animation: eat-arm 0.52s ease-in-out infinite; }
+    .state-eat .s-arm-f { animation: side-eat-arm 0.52s ease-in-out infinite; }
     .state-eat .arm-l { transform: rotate(-12deg); }
 
-    /* Impatient */
-    .state-impatient .body-root { animation: imp-shake 0.22s linear infinite; }
-    .state-impatient .leg-l, .state-impatient .leg-r { transform: translateY(-6px) scaleY(0.55); }
-    .state-impatient .arm-l { transform: rotate(-18deg); }
-    .state-impatient .arm-r { transform: rotate(18deg); }
+    /* Angry / Impatient */
+    .state-angry .body-root, .state-impatient .body-root { animation: angry-shake 0.2s linear infinite; }
+    .state-angry .leg-l, .state-angry .leg-r, .state-impatient .leg-l, .state-impatient .leg-r { transform: translateY(-6px) scaleY(0.55); }
+    .state-angry .s-leg-f, .state-angry .s-leg-b, .state-impatient .s-leg-f, .state-impatient .s-leg-b { transform: translate(6px, -4px) rotate(-52deg); }
+    .state-angry .arm-l, .state-impatient .arm-l { animation: angry-arm-l 0.25s ease-in-out infinite; }
+    .state-angry .arm-r, .state-impatient .arm-r { animation: angry-arm-r 0.25s ease-in-out infinite; }
+    .state-angry .s-arm-f, .state-impatient .s-arm-f { animation: side-angry-arm 0.25s ease-in-out infinite; }
+    .state-angry .fx-angry, .state-impatient .fx-angry { display: block; }
 
     @keyframes idle-bob { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-2.5px); } }
     @keyframes idle-arm { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(4deg); } }
     @keyframes walk-bob { 0%,100% { transform: translateY(0) rotate(0deg); } 25% { transform: translateY(-4px) rotate(-2deg); } 75% { transform: translateY(-4px) rotate(2deg); } }
-    @keyframes walk-limb { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(18deg); } }
-    @keyframes walk-shadow { 0%,100% { transform: scaleX(1); } 50% { transform: scaleX(0.86); } }
+    @keyframes walk-limb-a { 0%,100% { transform: rotate(-18deg); } 50% { transform: rotate(18deg); } }
+    @keyframes walk-limb-b { 0%,100% { transform: rotate(18deg); } 50% { transform: rotate(-18deg); } }
+    @keyframes side-stride-a { 0%,100% { transform: translateX(-3px) rotate(32deg); } 50% { transform: translateX(3px) rotate(-32deg); } }
+    @keyframes side-stride-b { 0%,100% { transform: translateX(3px) rotate(-32deg); } 50% { transform: translateX(-3px) rotate(32deg); } }
+    @keyframes walk-shadow { 0%,100% { transform: scaleX(1); } 50% { transform: scaleX(0.84); } }
     @keyframes sit-bob { 0%,100% { transform: translateY(7px); } 50% { transform: translateY(5.5px); } }
-    @keyframes eat-nod { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(2.5px) rotate(4deg); } }
+    @keyframes eat-nod { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(2.5px) rotate(5deg); } }
     @keyframes eat-arm { 0%,100% { transform: rotate(8deg); } 50% { transform: rotate(42deg); } }
-    @keyframes imp-shake { 0%,100% { transform: translate(-2.5px, 7px); } 50% { transform: translate(2.5px, 7px); } }
+    @keyframes side-eat-arm { 0%,100% { transform: rotate(-30deg); } 50% { transform: rotate(-72deg); } }
+    @keyframes angry-shake { 0%,100% { transform: translate(-2.5px, 7px); } 50% { transform: translate(2.5px, 7px); } }
+    @keyframes angry-arm-l { 0%,100% { transform: rotate(-14deg); } 50% { transform: rotate(-28deg); } }
+    @keyframes angry-arm-r { 0%,100% { transform: rotate(14deg); } 50% { transform: rotate(28deg); } }
+    @keyframes side-angry-arm { 0%,100% { transform: rotate(-20deg); } 50% { transform: rotate(-50deg); } }
   </style>
-  <ellipse class="shadow" cx="64" cy="117" rx="24" ry="6" fill="#000" opacity="0.16"/>
-  <g class="body-root">
-    <g class="leg-l">
-      <rect x="46" y="84" width="14" height="24" rx="6" fill="#2B3648" stroke="#1E242B" stroke-width="3"/>
-      <ellipse cx="53" cy="111" rx="9" ry="5.5" fill="#F4F6F8" stroke="#1E242B" stroke-width="3"/>
-    </g>
-    <g class="leg-r">
-      <rect x="68" y="84" width="14" height="24" rx="6" fill="#2B3648" stroke="#1E242B" stroke-width="3"/>
-      <ellipse cx="75" cy="111" rx="9" ry="5.5" fill="#F4F6F8" stroke="#1E242B" stroke-width="3"/>
-    </g>
-    <g class="arm-l">
-      <path d="M40 58 C27 62 24 76 28 87 C31 92 38 90 39 84 C40 76 42 70 45 67 Z" fill="#F2B98A" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M31 73 Q34 76 31 80 M34 74 Q36 78 33 82" fill="none" stroke="#4A5568" stroke-width="1.8" stroke-linecap="round"/>
-      <rect x="27" y="82" width="10" height="4" rx="1.5" fill="#F5C542" stroke="#1E242B" stroke-width="1.5"/>
-    </g>
-    <g class="arm-r">
-      <path d="M88 58 C101 62 104 76 100 87 C97 92 90 90 89 84 C88 76 86 70 83 67 Z" fill="#F2B98A" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M97 73 Q94 76 97 80 M94 74 Q92 78 95 82" fill="none" stroke="#4A5568" stroke-width="1.8" stroke-linecap="round"/>
-    </g>
-    <g class="torso">
-      <path d="M42 54 Q64 49 86 54 L94 68 L84 72 L83 89 Q64 92 45 89 L44 72 L34 68 Z" fill="#D92D20" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
-      <path d="M52 55 Q64 73 76 55" fill="none" stroke="#F5C542" stroke-width="4" stroke-linecap="round"/>
-      <path d="M52 55 Q64 73 76 55" fill="none" stroke="#B7791F" stroke-width="1.5" stroke-dasharray="3 3" stroke-linecap="round"/>
-    </g>
-    <g class="head">
-      <rect x="57" y="48" width="14" height="9" rx="4" fill="#E3A372" stroke="#1E242B" stroke-width="2.5"/>
-      <circle cx="42" cy="38" r="5" fill="#F2B98A" stroke="#1E242B" stroke-width="2.5"/>
-      <circle cx="86" cy="38" r="5" fill="#F2B98A" stroke="#1E242B" stroke-width="2.5"/>
-      <ellipse cx="64" cy="36" rx="21" ry="20" fill="#F7C59F" stroke="#1E242B" stroke-width="3"/>
-      <path d="M43 34 C43 24 50 20 64 20 C78 20 85 24 85 34 L82 35 L80 28 L48 28 L46 35 Z" fill="#23272E"/>
-      <path d="M42 29 C43 13 53 9 64 9 C75 9 85 13 86 29 Z" fill="#F8FAFC" stroke="#1E242B" stroke-width="3"/>
-      <path d="M40 29 Q64 22 89 31 Q64 34 40 29 Z" fill="#E2E8F0" stroke="#1E242B" stroke-width="2.8" stroke-linejoin="round"/>
-      <circle cx="64" cy="9.5" r="2.5" fill="#CBD5E1" stroke="#1E242B" stroke-width="2"/>
-      <path d="M46 36 Q54 33 61 36 Q61 45 53 45 Q46 45 46 36 Z" fill="#2D3748" stroke="#1E242B" stroke-width="2.5"/>
-      <path d="M67 36 Q74 33 82 36 Q82 45 75 45 Q67 45 67 36 Z" fill="#2D3748" stroke="#1E242B" stroke-width="2.5"/>
-      <line x1="60" y1="36" x2="68" y2="36" stroke="#1E242B" stroke-width="2.5"/>
-      <line x1="49" y1="38" x2="53" y2="42" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"/>
-      <line x1="70" y1="38" x2="74" y2="42" stroke="#94A3B8" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M58 48 Q64 45 70 48" fill="none" stroke="#2D2D2D" stroke-width="2.2" stroke-linecap="round"/>
-      <path d="M60 51 Q64 52.5 68 51" fill="none" stroke="#8C5332" stroke-width="1.8" stroke-linecap="round"/>
+  <ellipse class="shadow" cx="64" cy="117" rx="22" ry="6" fill="#000" opacity="0.16"/>
+  <g class="dir-wrap">
+    <g class="body-root">
+      <!-- FRONT / BACK VIEW -->
+      <g class="view-front">
+        <g class="leg-l">
+          <rect x="46" y="84" width="14" height="24" rx="6" fill="#2B3648" stroke="#1E242B" stroke-width="3"/>
+          <ellipse cx="53" cy="111" rx="9" ry="5.5" fill="#F4F6F8" stroke="#1E242B" stroke-width="3"/>
+        </g>
+        <g class="leg-r">
+          <rect x="68" y="84" width="14" height="24" rx="6" fill="#2B3648" stroke="#1E242B" stroke-width="3"/>
+          <ellipse cx="75" cy="111" rx="9" ry="5.5" fill="#F4F6F8" stroke="#1E242B" stroke-width="3"/>
+        </g>
+        <g class="arm-l">
+          <path d="M40 58 C27 62 24 76 28 87 C31 92 38 90 39 84 C40 76 42 70 45 67 Z" fill="#F2B98A" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+          <rect x="27" y="82" width="10" height="4" rx="1.5" fill="#F5C542" stroke="#1E242B" stroke-width="1.5"/>
+        </g>
+        <g class="arm-r">
+          <path d="M88 58 C101 62 104 76 100 87 C97 92 90 90 89 84 C88 76 86 70 83 67 Z" fill="#F2B98A" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+        </g>
+        <g class="torso">
+          <path d="M42 54 Q64 49 86 54 L94 68 L84 72 L83 89 Q64 92 45 89 L44 72 L34 68 Z" fill="#D92D20" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+          <g class="torso-front">
+            <path d="M52 55 Q64 73 76 55" fill="none" stroke="#F5C542" stroke-width="4" stroke-linecap="round"/>
+          </g>
+        </g>
+        <g class="head">
+          <rect x="57" y="48" width="14" height="9" rx="4" fill="#E3A372" stroke="#1E242B" stroke-width="2.5"/>
+          <circle cx="42" cy="38" r="5" fill="#F2B98A" stroke="#1E242B" stroke-width="2.5"/>
+          <circle cx="86" cy="38" r="5" fill="#F2B98A" stroke="#1E242B" stroke-width="2.5"/>
+          <ellipse cx="64" cy="36" rx="21" ry="20" fill="#F7C59F" stroke="#1E242B" stroke-width="3"/>
+          <path d="M43 34 C43 24 50 20 64 20 C78 20 85 24 85 34 L82 35 L80 28 L48 28 L46 35 Z" fill="#23272E"/>
+          <path d="M42 29 C43 13 53 9 64 9 C75 9 85 13 86 29 Z" fill="#F8FAFC" stroke="#1E242B" stroke-width="3"/>
+          <g class="face-front">
+            <path d="M40 29 Q64 22 89 31 Q64 34 40 29 Z" fill="#E2E8F0" stroke="#1E242B" stroke-width="2.8" stroke-linejoin="round"/>
+            <path d="M46 36 Q54 33 61 36 Q61 45 53 45 Q46 45 46 36 Z" fill="#2D3748" stroke="#1E242B" stroke-width="2.5"/>
+            <path d="M67 36 Q74 33 82 36 Q82 45 75 45 Q67 45 67 36 Z" fill="#2D3748" stroke="#1E242B" stroke-width="2.5"/>
+            <line x1="60" y1="36" x2="68" y2="36" stroke="#1E242B" stroke-width="2.5"/>
+            <path d="M58 48 Q64 45 70 48" fill="none" stroke="#2D2D2D" stroke-width="2.2" stroke-linecap="round"/>
+            <path d="M60 51 Q64 52.5 68 51" fill="none" stroke="#8C5332" stroke-width="1.8" stroke-linecap="round"/>
+          </g>
+          <g class="head-back">
+            <path d="M43 32 C43 47 52 54 64 54 C76 54 85 47 85 32 Z" fill="#23272E"/>
+            <path d="M42 29 C43 13 53 9 64 9 C75 9 85 13 86 29 L86 35 L42 35 Z" fill="#F8FAFC" stroke="#1E242B" stroke-width="3"/>
+            <rect x="55" y="29" width="18" height="6" rx="3" fill="#CBD5E1" stroke="#1E242B" stroke-width="2"/>
+          </g>
+          <g class="fx-angry">
+            <ellipse cx="64" cy="40" rx="18" ry="12" fill="#EF4444" opacity="0.22"/>
+            <path d="M84 14 Q88 18 84 22 M92 14 Q88 18 92 22 M84 22 Q88 18 92 22 M84 14 Q88 18 92 14" fill="none" stroke="#EF4444" stroke-width="2.6" stroke-linecap="round"/>
+          </g>
+        </g>
+      </g>
+
+      <!-- TRUE SIDE PROFILE VIEW (facing right; flipped for dir-left) -->
+      <g class="view-side">
+        <g class="s-leg-b">
+          <rect x="57" y="84" width="13" height="24" rx="6" fill="#1E293B" stroke="#1E242B" stroke-width="3"/>
+          <ellipse cx="66" cy="111" rx="10.5" ry="5" fill="#CBD5E1" stroke="#1E242B" stroke-width="3"/>
+        </g>
+        <g class="s-arm-b">
+          <rect x="58" y="58" width="11" height="29" rx="5.5" fill="#DDA172" stroke="#1E242B" stroke-width="3"/>
+        </g>
+        <g class="s-leg-f">
+          <rect x="57" y="84" width="13" height="24" rx="6" fill="#2B3648" stroke="#1E242B" stroke-width="3"/>
+          <ellipse cx="67" cy="111" rx="11" ry="5.5" fill="#F4F6F8" stroke="#1E242B" stroke-width="3"/>
+        </g>
+        <g class="torso">
+          <path d="M50 54 Q64 50 77 55 L78 89 Q64 92 50 89 Z" fill="#D92D20" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+          <path d="M68 55 Q77 65 73 72" fill="none" stroke="#F5C542" stroke-width="3.8" stroke-linecap="round"/>
+        </g>
+        <g class="s-arm-f">
+          <rect x="57" y="57" width="12" height="31" rx="6" fill="#F2B98A" stroke="#1E242B" stroke-width="3"/>
+          <path d="M57 57 L69 57 L70 69 L56 69 Z" fill="#D92D20" stroke="#1E242B" stroke-width="2.8" stroke-linejoin="round"/>
+          <path d="M61 73 Q64 76 61 80" fill="none" stroke="#4A5568" stroke-width="1.8" stroke-linecap="round"/>
+          <rect x="57" y="81" width="12" height="4" rx="1.5" fill="#F5C542" stroke="#1E242B" stroke-width="1.5"/>
+        </g>
+        <g class="head">
+          <rect x="58" y="48" width="12" height="9" rx="4" fill="#E3A372" stroke="#1E242B" stroke-width="2.5"/>
+          <ellipse cx="64" cy="36" rx="19" ry="19.5" fill="#F7C59F" stroke="#1E242B" stroke-width="3"/>
+          <!-- Side nose -->
+          <path d="M82 37 L87 41 L82 43" fill="#F7C59F" stroke="#1E242B" stroke-width="2.5" stroke-linejoin="round"/>
+          <!-- Back hair & ear -->
+          <path d="M45 31 C44 43 49 51 56 52 L57 34 Z" fill="#23272E"/>
+          <circle cx="57" cy="39" r="4.5" fill="#F2B98A" stroke="#1E242B" stroke-width="2.5"/>
+          <!-- White cap with prominent right brim -->
+          <path d="M44 28 C45 12 55 9 65 9 C75 9 82 14 83 28 Z" fill="#F8FAFC" stroke="#1E242B" stroke-width="3"/>
+          <path d="M64 27 L98 29 Q94 34 64 31 Z" fill="#E2E8F0" stroke="#1E242B" stroke-width="2.8" stroke-linejoin="round"/>
+          <!-- Side aviator sunglasses -->
+          <path d="M69 34 Q78 33 83 36 Q83 44 75 44 Q68 44 69 34 Z" fill="#2D3748" stroke="#1E242B" stroke-width="2.5"/>
+          <line x1="59" y1="36" x2="70" y2="36" stroke="#1E242B" stroke-width="2.5"/>
+          <!-- Mustache & mouth -->
+          <path d="M75 47 Q80 46 83 48" fill="none" stroke="#2D2D2D" stroke-width="2.2" stroke-linecap="round"/>
+          <path d="M76 50.5 L81 50.5" fill="none" stroke="#8C5332" stroke-width="1.8" stroke-linecap="round"/>
+          <g class="fx-angry">
+            <ellipse cx="72" cy="40" rx="12" ry="10" fill="#EF4444" opacity="0.22"/>
+            <path d="M84 12 Q88 16 84 20 M92 12 Q88 16 92 20 M84 20 Q88 16 92 20 M84 12 Q88 16 92 12" fill="none" stroke="#EF4444" stroke-width="2.6" stroke-linecap="round"/>
+          </g>
+        </g>
+      </g>
     </g>
   </g>
 </svg>

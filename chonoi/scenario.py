@@ -161,3 +161,6 @@ def _validate_quan(b, tuning):
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    from .sim import quan_kitchen, quan_orders
+    quan_orders.validate_scenario(b, tuning)
+    quan_kitchen.validate_scenario(b, tuning)

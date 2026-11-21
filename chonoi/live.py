@@ -164,6 +164,10 @@ class _Handler(BaseHTTPRequestHandler):
                 ctype = "application/octet-stream"
                 if filepath.lower().endswith(".png"):
                     ctype = "image/png"
+                elif filepath.lower().endswith(".svg"):
+                    ctype = "image/svg+xml"
+                elif filepath.lower().endswith(".mp3"):
+                    ctype = "audio/mpeg"
                 elif filepath.lower().endswith(".json"):
                     ctype = "application/json"
                 elif filepath.lower().endswith(".jpg") or filepath.lower().endswith(".jpeg"):

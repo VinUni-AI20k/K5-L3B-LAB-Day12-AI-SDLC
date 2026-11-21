@@ -1,0 +1,180 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" width="1600" height="1000">
+  <defs>
+    <!-- Night river gradient -->
+    <linearGradient id="riverBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0B1F2E"/>
+      <stop offset="50%" stop-color="#123145"/>
+      <stop offset="100%" stop-color="#0D2536"/>
+    </linearGradient>
+
+    <!-- Wooden planks pattern for floating deck -->
+    <pattern id="woodPlanks" width="160" height="64" patternUnits="userSpaceOnUse">
+      <rect width="160" height="64" fill="#8C5A2E"/>
+      <rect y="0" width="160" height="30" fill="#966133"/>
+      <rect y="32" width="160" height="30" fill="#845329"/>
+      <line x1="0" y1="31" x2="160" y2="31" stroke="#4D2D12" stroke-width="2.5"/>
+      <line x1="0" y1="63" x2="160" y2="63" stroke="#4D2D12" stroke-width="2.5"/>
+      <line x1="80" y1="0" x2="80" y2="31" stroke="#5E3818" stroke-width="2"/>
+      <line x1="25" y1="32" x2="25" y2="63" stroke="#5E3818" stroke-width="2"/>
+      <circle cx="72" cy="15" r="2.2" fill="#4D2D12" opacity="0.6"/>
+      <circle cx="88" cy="15" r="2.2" fill="#4D2D12" opacity="0.6"/>
+      <circle cx="17" cy="48" r="2.2" fill="#4D2D12" opacity="0.6"/>
+      <circle cx="33" cy="48" r="2.2" fill="#4D2D12" opacity="0.6"/>
+    </pattern>
+
+    <!-- Rustic terracotta kitchen tile pattern -->
+    <pattern id="kitchenTile" width="60" height="60" patternUnits="userSpaceOnUse">
+      <rect width="60" height="60" fill="#7D3B2B"/>
+      <rect x="2" y="2" width="56" height="56" rx="4" fill="#944734"/>
+      <rect x="6" y="6" width="48" height="48" rx="3" fill="#A04E3A" opacity="0.5"/>
+    </pattern>
+
+    <!-- Woven bamboo mat pattern -->
+    <pattern id="bambooMat" width="24" height="24" patternUnits="userSpaceOnUse">
+      <rect width="24" height="24" fill="#C9A26B"/>
+      <path d="M0 12 L24 12 M12 0 L12 24" stroke="#A67C46" stroke-width="1.5" opacity="0.5"/>
+      <rect x="2" y="2" width="8" height="8" fill="#D4B07A" opacity="0.45"/>
+      <rect x="14" y="14" width="8" height="8" fill="#D4B07A" opacity="0.45"/>
+    </pattern>
+
+    <!-- Warm lantern glow -->
+    <radialGradient id="lanternGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FDE047" stop-opacity="0.55"/>
+      <stop offset="50%" stop-color="#F59E0B" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#F59E0B" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Subtle water reflection glow -->
+    <radialGradient id="waterGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#FBBF24" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#FBBF24" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- 1. Night River Background -->
+  <rect width="1600" height="1000" fill="url(#riverBg)"/>
+
+  <!-- Water ripples & lantern reflections -->
+  <g stroke="#7DD3FC" stroke-width="2.5" stroke-linecap="round" fill="none" opacity="0.16">
+    <path d="M40 120 Q75 112 110 120"/>
+    <path d="M1480 220 Q1520 212 1560 220"/>
+    <path d="M25 680 Q65 672 105 680"/>
+    <path d="M1460 760 Q1505 752 1550 760"/>
+    <path d="M320 965 Q380 956 440 965"/>
+    <path d="M1120 968 Q1185 959 1250 968"/>
+    <path d="M680 35 Q740 27 800 35"/>
+  </g>
+  <ellipse cx="260" cy="40" rx="140" ry="26" fill="url(#waterGlow)"/>
+  <ellipse cx="800" cy="40" rx="180" ry="28" fill="url(#waterGlow)"/>
+  <ellipse cx="1340" cy="40" rx="140" ry="26" fill="url(#waterGlow)"/>
+  <ellipse cx="520" cy="965" rx="160" ry="24" fill="url(#waterGlow)"/>
+  <ellipse cx="1140" cy="965" rx="160" ry="24" fill="url(#waterGlow)"/>
+
+  <!-- Moored Traditional Sampan Boat (right river edge) -->
+  <g transform="translate(1548, 520) rotate(84)">
+    <path d="M-130 0 Q0 -44 130 0 Q0 44 -130 0 Z" fill="#6B3F1D" stroke="#361E0C" stroke-width="5"/>
+    <path d="M-105 0 Q0 -30 105 0 Q0 30 -105 0 Z" fill="#8C562B"/>
+    <line x1="-55" y1="-22" x2="-55" y2="22" stroke="#4D2B10" stroke-width="6"/>
+    <line x1="15" y1="-26" x2="15" y2="26" stroke="#4D2B10" stroke-width="6"/>
+    <line x1="65" y1="-18" x2="65" y2="18" stroke="#4D2B10" stroke-width="6"/>
+    <!-- Basket of yellow điên điển flowers & lotus on boat -->
+    <circle cx="-18" cy="0" r="18" fill="#D4A359" stroke="#5C3A14" stroke-width="3"/>
+    <circle cx="-22" cy="-4" r="5" fill="#FACC15"/>
+    <circle cx="-13" cy="3" r="5" fill="#FDE047"/>
+    <circle cx="-18" cy="6" r="4.5" fill="#EAB308"/>
+    <circle cx="40" cy="0" r="15" fill="#D4A359" stroke="#5C3A14" stroke-width="3"/>
+    <circle cx="38" cy="-2" r="5" fill="#F472B6"/>
+    <circle cx="44" cy="3" r="4.5" fill="#EC4899"/>
+  </g>
+
+  <!-- Floating Raft Shadow on Water -->
+  <rect x="64" y="68" width="1472" height="874" rx="28" fill="#040D14" opacity="0.5"/>
+
+  <!-- 2. Main Floating Restaurant Wooden Deck (aligned to 16x10 bounds) -->
+  <rect x="56" y="56" width="1488" height="876" rx="22" fill="url(#woodPlanks)" stroke="#4A2A10" stroke-width="10"/>
+  <!-- Inner border beam -->
+  <rect x="70" y="70" width="1460" height="848" rx="14" fill="none" stroke="#663B18" stroke-width="4" opacity="0.7"/>
+
+  <!-- 3. Kitchen Zone (Top-Left around Stove B1 [2, 8] -> px ~200, 200) -->
+  <g>
+    <rect x="86" y="86" width="460" height="340" rx="14" fill="url(#kitchenTile)" stroke="#4D251A" stroke-width="6"/>
+    <!-- Kitchen warm stove glow -->
+    <circle cx="215" cy="205" r="115" fill="url(#lanternGlow)"/>
+    <!-- Subtle zone label -->
+    <text x="110" y="408" font-family="system-ui, sans-serif" font-size="22" font-weight="700" fill="#FDE68A" opacity="0.55">KHU BẾP</text>
+  </g>
+
+  <!-- 4. Woven Bamboo Dining Mat (centered exactly on Table T1 [9, 2] -> px 900, 800) -->
+  <g>
+    <rect x="730" y="665" width="340" height="235" rx="18" fill="url(#bambooMat)" stroke="#785225" stroke-width="5"/>
+    <rect x="742" y="677" width="316" height="211" rx="12" fill="none" stroke="#9A6B32" stroke-width="2" stroke-dasharray="10 6"/>
+  </g>
+
+  <!-- 5. Bamboo Perimeter Railings & Corner Posts -->
+  <g stroke="#4A3214" stroke-width="3">
+    <!-- Top bamboo rail -->
+    <rect x="52" y="46" width="1496" height="16" rx="8" fill="#B88E4A"/>
+    <!-- Bottom bamboo rail (with dock entrance gap on left) -->
+    <rect x="52" y="926" width="420" height="16" rx="8" fill="#B88E4A"/>
+    <rect x="650" y="926" width="898" height="16" rx="8" fill="#B88E4A"/>
+    <!-- Left & Right bamboo rails -->
+    <rect x="46" y="46" width="16" height="896" rx="8" fill="#B88E4A"/>
+    <rect x="1538" y="46" width="16" height="896" rx="8" fill="#B88E4A"/>
+    <!-- Corner wooden posts -->
+    <circle cx="56" cy="56" r="16" fill="#6E441E"/>
+    <circle cx="1544" cy="56" r="16" fill="#6E441E"/>
+    <circle cx="56" cy="934" r="16" fill="#6E441E"/>
+    <circle cx="1544" cy="934" r="16" fill="#6E441E"/>
+    <!-- Entrance welcome mat (dock gangplank) -->
+    <rect x="488" y="902" width="144" height="46" rx="8" fill="#B45309" stroke="#451A03" stroke-width="3"/>
+    <text x="560" y="932" text-anchor="middle" font-family="system-ui, sans-serif" font-size="18" font-weight="800" fill="#FEF3C7">LỐI VÀO</text>
+  </g>
+
+  <!-- 6. Warm String Lights & Traditional Red-Gold Lanterns along top & sides -->
+  <g>
+    <path d="M70 62 Q400 100 760 66 Q1140 100 1530 62" fill="none" stroke="#291D12" stroke-width="3"/>
+    <!-- Glowing string bulbs -->
+    <g>
+      <circle cx="200" cy="76" r="54" fill="url(#lanternGlow)"/>
+      <circle cx="200" cy="76" r="9" fill="#FEF08A" stroke="#CA8A04" stroke-width="2"/>
+      <circle cx="420" cy="82" r="54" fill="url(#lanternGlow)"/>
+      <circle cx="420" cy="82" r="9" fill="#FEF08A" stroke="#CA8A04" stroke-width="2"/>
+      <circle cx="640" cy="74" r="54" fill="url(#lanternGlow)"/>
+      <circle cx="640" cy="74" r="9" fill="#FEF08A" stroke="#CA8A04" stroke-width="2"/>
+      <circle cx="980" cy="76" r="54" fill="url(#lanternGlow)"/>
+      <circle cx="980" cy="76" r="9" fill="#FEF08A" stroke="#CA8A04" stroke-width="2"/>
+      <circle cx="1200" cy="82" r="54" fill="url(#lanternGlow)"/>
+      <circle cx="1200" cy="82" r="9" fill="#FEF08A" stroke="#CA8A04" stroke-width="2"/>
+      <circle cx="1410" cy="72" r="54" fill="url(#lanternGlow)"/>
+      <circle cx="1410" cy="72" r="9" fill="#FEF08A" stroke="#CA8A04" stroke-width="2"/>
+    </g>
+    <!-- Red Vietnamese lanterns at corners -->
+    <g>
+      <circle cx="88" cy="88" r="68" fill="url(#lanternGlow)"/>
+      <ellipse cx="88" cy="88" rx="18" ry="15" fill="#DC2626" stroke="#7F1D1D" stroke-width="3"/>
+      <circle cx="88" cy="88" r="5" fill="#FDE047"/>
+
+      <circle cx="1512" cy="88" r="68" fill="url(#lanternGlow)"/>
+      <ellipse cx="1512" cy="88" rx="18" ry="15" fill="#DC2626" stroke="#7F1D1D" stroke-width="3"/>
+      <circle cx="1512" cy="88" r="5" fill="#FDE047"/>
+
+      <circle cx="1512" cy="902" r="68" fill="url(#lanternGlow)"/>
+      <ellipse cx="1512" cy="902" rx="18" ry="15" fill="#DC2626" stroke="#7F1D1D" stroke-width="3"/>
+      <circle cx="1512" cy="902" r="5" fill="#FDE047"/>
+    </g>
+  </g>
+
+  <!-- 7. Rustic Wooden Signboard: QUÁN MÁ TƯ — CHỢ NỔI -->
+  <g transform="translate(800, 56)">
+    <rect x="-175" y="-28" width="350" height="52" rx="10" fill="#5C3214" stroke="#F59E0B" stroke-width="3.5"/>
+    <text x="0" y="6" text-anchor="middle" font-family="Georgia, serif" font-size="25" font-weight="900" fill="#FEF08A" letter-spacing="1.5">QUÁN MÁ TƯ · CHỢ NỔI</text>
+  </g>
+
+  <!-- 8. Nipa Palm Fronds (Lá dừa nước) peeking from outer water corners -->
+  <g fill="#15803D" stroke="#052E16" stroke-width="2.5" opacity="0.85">
+    <path d="M0 990 Q40 910 110 960 Q50 955 0 990 Z"/>
+    <path d="M0 950 Q55 885 125 915 Q60 925 0 950 Z"/>
+    <path d="M1600 990 Q1550 905 1485 955 Q1545 950 1600 990 Z"/>
+    <path d="M1600 10 Q1540 85 1480 40 Q1545 50 1600 10 Z"/>
+  </g>
+</svg>
