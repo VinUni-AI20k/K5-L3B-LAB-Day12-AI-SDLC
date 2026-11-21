@@ -2,3 +2,12 @@
 
 | # | Ngày giờ | Câu hỏi | Trả lời / giả định | Ai quyết |
 |---|---|---|---|---|
+| Q1 | 2026-11-21 | Mục F quy định tên trường mã món, các trạng thái đơn và chuyển trạng thái nào? | Chờ trích mục F để chốt giao diện và fixture giữa TV3–TV4. | PO / Lab Coach |
+| Q2 | 2026-11-21 | Kiên nhẫn giảm trong các trạng thái nào, gồm lúc đang nấu và đang ăn? | Chờ mục F. | PO / Lab Coach |
+| Q3 | 2026-11-21 | Bếp chọn đơn cũ nhất theo `order_tick`, rồi `order_id` khi hòa, hay theo tiêu chí khác? | Chờ mục F. | PO / Lab Coach |
+| Q4 | 2026-11-21 | Boa dùng mức kiên nhẫn lúc phục vụ hay lúc trả tiền? Đúng bằng ngưỡng có boa không, và áp dụng `floor` vào giá trị nào? | Cấu hình có `tip_min_patience_ratio` và `tip_rate`. Cần mục F để xác nhận quy tắc tính. | PO / Lab Coach |
+| Q5 | 2026-11-21 | Khi hết ca, xử lý khách đang chờ và đang ăn thế nào? Có phát `customer_left` hoặc `paid` trước `quan_end` không? | Chờ mục F. | PO / Lab Coach |
+| Q6 | 2026-11-21 | Thứ tự tám bước do TV4 đề xuất có khớp mục F không? Khi hết kiên nhẫn đúng tick phục vụ, khách rời trước hay được phục vụ trước? | Theo thứ tự đề xuất, khách rời trước tương tác và món vẫn trên tay. Chờ mục F trước khi chốt. | PO / Lab Coach |
+| Q7 | 2026-11-21 | Khi khách rời sau khi bếp nhận đơn, xử lý món đã bưng thế nào? | Chế độ chơi trực tiếp cho phép mang món về bếp, dùng lại cho khách gọi cùng món và tự hủy món chưa có người nhận sau 30 phút trong game kể từ lần bưng đầu (ca 180 giây = 3 giờ game, nên 30 phút game = 30 giây = 1800 tick; số liệu ở `tuning.live`, xem ADR-0001). Còn chờ PO xác nhận hành vi headless theo mục F. | Người dùng / PO |
+| Q8 | 2026-11-21 | Số lượng trong `day_plan.dishes` có giới hạn số đơn trong ngày không? | Quán hiện dùng các mã món để lọc menu ngày, số lượng dùng cho kế hoạch nguyên liệu. Nếu contract yêu cầu hạn mức đơn, cần xác nhận với PO trước khi áp dụng. | TV1 / PO |
+| Q9 | 2026-11-21 | Mode `day` (bản tạm TV4) dựng khi chưa có TICKET-02: tên sự kiện (`day_start`, `day_plan`, `phase_start`, `shop_end`, `day_end`, `paused`/`resumed`, `upgrade_bought`, `buy_failed`), nút (`pause`, `buy_oxygen`, `buy_hp`; `interact` ở Shop = rời Shop), trường snapshot (`day`, `days`, `day_phase`, `paused`, `upgrades`, `active_upgrades`, `shop`), reason cuối (`days_complete`), dùng chung một `Streams`/`IdAllocator` cho mọi pha, và chưa nhận `--scenario` có đúng TICKET-02 không? | Giả định theo `game.contract.json` (`day_plan`, `shop`) và TV1_ACTION_PLAN_PHASE2 mục D4. Đánh dấu `TODO(TV4, TICKET-02)` trong `chonoi/sim/day.py`; đổi tên khi có ticket. | TV1 / PO |

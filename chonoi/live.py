@@ -37,11 +37,12 @@ RECENT_EVENTS = 40
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, creative=False):
         self._args = (mode, tuning, scenario, seed, inventory)
         self.mode = mode
         self.tuning = tuning
         self.inventory_out = inventory_out
+        self.creative = creative
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread = None
@@ -49,6 +50,10 @@ class LiveGame:
 
     def _reset(self):
         self.session = Session(*self._args)
+        if self.mode == "quan":  # sáng tạo của nhóm, chỉ bật khi chơi trực tiếp (ADR-0001)
+            self.session.sim.enable_live_leftovers()
+        elif self.mode == "gather" and self.creative:  # sáng tạo của nhóm, chỉ bật khi chơi trực tiếp (ADR-0002)
+            self.session.sim.enable_live_creative()
         self.inputs = LiveInputs()
         self.events = []
         self._saved = False
@@ -222,6 +227,7 @@ def main(argv=None) -> int:
     p.add_argument("--scenario")
     p.add_argument("--inventory", help="chỉ với quan: nạp kho từ file")
     p.add_argument("--inventory-out", dest="inventory_out", help="chỉ với gather: ghi kho khi kết thúc buổi")
+    p.add_argument("--creative", action="store_true", help="chế độ sáng tạo khi chơi live: thêm cá sấu, mở rộng vùng và thêm cá đắt tiền")
     a = p.parse_args(argv)
     try:
         if a.inventory and a.mode != "quan":
@@ -233,7 +239,7 @@ def main(argv=None) -> int:
         inventory = read_inventory(a.inventory) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, creative=a.creative)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")

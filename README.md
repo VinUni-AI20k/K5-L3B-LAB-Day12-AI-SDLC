@@ -27,6 +27,14 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
 
+## Sáng tạo của nhóm
+
+| Tính năng | Bật ở đâu | Số liệu | Chi tiết |
+|---|---|---|---|
+| Bảo quản món thừa ở Quán: khách rời khi món đã nấu thì mang món về bếp cất, dùng lại cho khách sau gọi cùng món, tự hủy sau 30 phút game (một ca 180 giây = 3 giờ game, nên 30 phút game = 30 giây = 1800 tick) | Chỉ `python3 -m chonoi.live --mode quan`; **tắt ở headless** | `tuning.live` trong `game.contract.json` | [ADR-0001](docs/adr/0001-live-leftover-storage.md) |
+
+Bằng chứng lõi vẫn đúng: phát lại cùng inputs qua headless trước và sau tính năng cho output trùng từng byte (`docs/proof/phase-1/tv4-quan.md`).
+
 ## Lịch 3 giờ
 
 | Mốc | Phase | Hạn tag |

@@ -127,6 +127,183 @@ function overlay(w, h) {
   }
 }
 
+// Vẽ chi tiết Cá Sấu (Anatomy đầy đủ: mõm, răng, mắt bò sát, gai lưng, chân, đuôi)
+function drawDetailedCrocodile(ctx, x, y, s, m, playerPos) {
+  let facingRight = true;
+  if (m.state === "chase" && playerPos) {
+    facingRight = playerPos[0] >= m.pos[0];
+  } else if (m.state === "recoil" && m.recoil_dir) {
+    facingRight = m.recoil_dir[0] >= 0;
+  } else if (m.waypoints && m.waypoints[m.target_idx]) {
+    facingRight = m.waypoints[m.target_idx][0] >= m.pos[0];
+  }
+
+  const isChase = m.state === "chase";
+  const isRecoil = m.state === "recoil";
+
+  ctx.save();
+  ctx.translate(x, y);
+  if (!facingRight) ctx.scale(-1, 1);
+
+  // Vùng cảnh báo phát hiện khi tuần tra (10m)
+  if (m.state === "patrol") {
+    ctx.strokeStyle = "rgba(239, 83, 80, 0.22)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.arc(0, 0, 10 * s, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Bảng màu theo trạng thái
+  const cBack = isChase ? "#7f1d1d" : isRecoil ? "#b45309" : "#143914";
+  const cBody = isChase ? "#b91c1c" : isRecoil ? "#d97706" : "#245f24";
+  const cBelly = isChase ? "#fca5a5" : isRecoil ? "#fde68a" : "#65a30d";
+  const cSpike = isChase ? "#450a0a" : isRecoil ? "#78350f" : "#0d260d";
+  const cOutline = isChase ? "#ef4444" : isRecoil ? "#fbbf24" : "#4ade80";
+
+  // 1. Chân sau & móng
+  ctx.fillStyle = cBack;
+  ctx.beginPath();
+  ctx.ellipse(-1.2 * s, 0.75 * s, 0.6 * s, 0.3 * s, Math.PI / 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.arc(-1.0 * s + i * 0.15 * s, 1.0 * s, 0.08 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 2. Chân trước & móng
+  ctx.fillStyle = cBack;
+  ctx.beginPath();
+  ctx.ellipse(1.0 * s, 0.75 * s, 0.55 * s, 0.28 * s, Math.PI / 6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  for (let i = -1; i <= 1; i++) {
+    ctx.beginPath();
+    ctx.arc(1.2 * s + i * 0.15 * s, 1.0 * s, 0.08 * s, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // 3. Đuôi cá sấu (uốn lượn có vây răng cưa)
+  ctx.fillStyle = cBody;
+  ctx.beginPath();
+  ctx.moveTo(-1.6 * s, -0.2 * s);
+  ctx.quadraticCurveTo(-2.8 * s, -0.6 * s, -4.2 * s, -0.1 * s);
+  ctx.quadraticCurveTo(-3.2 * s, 0.5 * s, -1.6 * s, 0.5 * s);
+  ctx.closePath();
+  ctx.fill();
+
+  // Gai nhọn trên đuôi
+  ctx.fillStyle = cSpike;
+  const tailSpikes = [-3.8, -3.3, -2.8, -2.3, -1.8];
+  tailSpikes.forEach((sx, i) => {
+    ctx.beginPath();
+    ctx.moveTo(sx * s, -0.15 * s);
+    ctx.lineTo((sx + 0.25) * s, (-0.45 - (i * 0.05)) * s);
+    ctx.lineTo((sx + 0.5) * s, -0.15 * s);
+    ctx.fill();
+  });
+
+  // 4. Bụng dưới (sáng màu hơn có vảy ngang)
+  ctx.fillStyle = cBelly;
+  ctx.beginPath();
+  ctx.ellipse(0, 0.3 * s, 2.2 * s, 0.6 * s, 0, 0, Math.PI);
+  ctx.fill();
+  ctx.strokeStyle = "rgba(0,0,0,0.18)";
+  ctx.lineWidth = 1;
+  for (let bx = -1.6; bx <= 1.6; bx += 0.4) {
+    ctx.beginPath();
+    ctx.moveTo(bx * s, 0.2 * s);
+    ctx.lineTo(bx * s, 0.8 * s);
+    ctx.stroke();
+  }
+
+  // Lưng cá sấu (màu sẫm)
+  ctx.fillStyle = cBody;
+  ctx.beginPath();
+  ctx.ellipse(0, -0.1 * s, 2.4 * s, 0.7 * s, 0, Math.PI, Math.PI * 2);
+  ctx.fill();
+
+  // Gai lưng cá sấu (vảy sừng sắc nhọn dọc sống lưng)
+  ctx.fillStyle = cSpike;
+  const backSpikes = [-1.5, -1.0, -0.5, 0, 0.5, 1.0, 1.5];
+  backSpikes.forEach((sx) => {
+    ctx.beginPath();
+    ctx.moveTo((sx - 0.2) * s, -0.75 * s);
+    ctx.lineTo(sx * s, -1.15 * s);
+    ctx.lineTo((sx + 0.2) * s, -0.75 * s);
+    ctx.fill();
+  });
+
+  // 5. Mõm dài & hàm răng
+  // Hàm trên
+  ctx.fillStyle = cBody;
+  ctx.beginPath();
+  ctx.moveTo(1.8 * s, -0.6 * s);
+  ctx.lineTo(2.4 * s, -0.7 * s); // ụ mắt
+  ctx.lineTo(4.0 * s, -0.2 * s); // đỉnh mõm
+  ctx.lineTo(4.2 * s, -0.05 * s);
+  ctx.lineTo(4.2 * s, 0.1 * s);  // mép miệng
+  ctx.lineTo(2.0 * s, 0.15 * s); // khóe miệng
+  ctx.closePath();
+  ctx.fill();
+
+  // Lỗ mũi ở đầu mõm
+  ctx.fillStyle = "#111111";
+  ctx.beginPath();
+  ctx.arc(4.05 * s, -0.15 * s, 0.08 * s, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Hàm dưới
+  ctx.fillStyle = cBack;
+  ctx.beginPath();
+  ctx.moveTo(2.0 * s, 0.15 * s);
+  ctx.lineTo(4.1 * s, 0.12 * s);
+  ctx.lineTo(3.9 * s, 0.45 * s);
+  ctx.lineTo(2.0 * s, 0.5 * s);
+  ctx.closePath();
+  ctx.fill();
+
+  // Răng nanh nhọn màu trắng
+  ctx.fillStyle = "#ffffff";
+  const teethUpper = [2.4, 2.8, 3.2, 3.6, 3.9];
+  teethUpper.forEach((tx) => {
+    ctx.beginPath();
+    ctx.moveTo(tx * s, 0.12 * s);
+    ctx.lineTo((tx + 0.1) * s, 0.32 * s);
+    ctx.lineTo((tx + 0.2) * s, 0.12 * s);
+    ctx.fill();
+  });
+
+  // 6. Mắt bò sát (vàng rực, con ngươi dọc)
+  ctx.fillStyle = isChase ? "#ff1744" : "#facc15";
+  ctx.beginPath();
+  ctx.arc(2.3 * s, -0.55 * s, 0.22 * s, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#000000";
+  ctx.beginPath();
+  ctx.ellipse(2.3 * s, -0.55 * s, 0.06 * s, 0.18 * s, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Đường viền sống lưng làm nổi bật
+  ctx.strokeStyle = cOutline;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(4.2 * s, 0.0);
+  ctx.lineTo(4.0 * s, -0.2 * s);
+  ctx.lineTo(2.4 * s, -0.7 * s);
+  ctx.stroke();
+
+  ctx.restore();
+
+  // Nhãn tên và trạng thái
+  const stateTag = isChase ? " 🔥 ĐUỔI THEO!" : isRecoil ? ` ⚡ BẬT LÙI (${Math.ceil(m.state_ticks_left / 60)}s)` : " 🟢 TUẦN TRA";
+  text(`🐊 ${m.id}${stateTag}`, x, y - 1.4 * s, { size: 12, align: "center", color: isChase ? "#ff5252" : isRecoil ? "#ffb74d" : "#86efac" });
+}
+
 // ----- cảnh GATHER: nhìn ngang, x sang phải, d xuống -----
 function drawGather(w, h) {
   const meta = snap.meta || {};
@@ -171,8 +348,12 @@ function drawGather(w, h) {
     ctx.restore();
     text(f.id, sx(f.pos[0]), sy(f.pos[1]) - 0.7 * s, { size: 10, align: "center", color: "rgba(255,255,255,.8)" });
   });
-  // người chơi
+  // cá sấu / quái vật
   const p = snap.player;
+  (snap.monsters || []).forEach((m) => {
+    drawDetailedCrocodile(ctx, sx(m.pos[0]), sy(m.pos[1]), s, m, p ? p.pos : null);
+  });
+  // người chơi
   if (p) {
     const px = sx(p.pos[0]), py = sy(p.pos[1]);
     const underwater = p.at_surface === undefined ? p.pos[1] > 0.5 : !p.at_surface;

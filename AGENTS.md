@@ -26,4 +26,5 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `verify-contract` (.agents/skills/verify-contract/SKILL.md): Chạy kiểm tra contract, danh sách thành viên và tính tất định byte-identical trước khi merge/commit.
+- `gen-scenario` (.agents/skills/gen-scenario/SKILL.md): Tạo các file fixture scenario chuẩn contract cho các ca biên (oxy, ngạt thở, đầy giỏ, khách kiên nhẫn).
