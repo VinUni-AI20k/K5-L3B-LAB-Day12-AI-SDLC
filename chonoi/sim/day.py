@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import copy
 
+from ..ids import sort_by_id
+from ..inventory import serialize_item
 from ..scenario import validate_day_scenario
 from .gather import GatherSim
 from .quan import QuanSim
@@ -14,19 +16,19 @@ class ShopSim:
 
     phase = "shop"
 
-    def __init__(self, tuning: dict, leftover_stock: dict, day_sim: "DaySim"):
+    def __init__(self, tuning: dict, leftover_stock: list[dict], day_sim: "DaySim"):
         self.tuning = tuning
         self.shop_cfg = tuning["shop"]
         self.day_sim = day_sim
         self.phase_tick = 0
         self.time_left_ticks = int(self.shop_cfg["max_ticks"])
-        self.stock = {k: int(v) for k, v in sorted(leftover_stock.items()) if v > 0}
+        self.stock = sort_by_id([serialize_item(it) for it in leftover_stock])
         self.done = False
         self.reason = None
 
     def snapshot(self) -> dict:
         return {
-            "stock": dict(self.stock),
+            "stock": [dict(it) for it in self.stock],
         }
 
     def step(self, inp) -> list:
@@ -185,7 +187,7 @@ class DaySim:
                 self.money = self.sub.money
                 self.earned = self.sub.earned
                 self.reputation = self.sub.reputation
-                leftover = dict(self.sub.stock)
+                leftover = [serialize_item(it) for it in self.sub.stock]
                 self.phase = "shop"
                 self.sub = ShopSim(self.tuning, leftover, self)
                 out.append(("shop", cur_day, "phase_start", {}))

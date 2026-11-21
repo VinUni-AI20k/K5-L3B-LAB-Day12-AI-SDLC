@@ -149,7 +149,9 @@ class DayShopPauseTests(unittest.TestCase):
             out = w.path("p.jsonl")
             code, err = run_headless(
                 "--mode", "gather", "--seed", "1",
-                "--scenario", write_json(w.path("sc.json"), {"gather": {"hold": ["ca_loc"], "random_fish": False, "monsters": []}}),
+                "--scenario", write_json(w.path("sc.json"), {"gather": {
+                    "hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100}], "random_fish": False, "monsters": []
+                }}),
                 "--inputs", write_json(w.path("in.json"), inp),
                 "--ticks", "6", "--snapshot-every", "1", "--out", out,
             )
@@ -199,11 +201,10 @@ class DayShopPauseTests(unittest.TestCase):
             "gather": {"time_left_ticks": 2, "random_fish": False, "monsters": []},
             "quan": {
                 "player": {"pos": [2, 8]},
-                "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": {"ca_loc": 1}}],
+                "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I1"]}],
             },
         }
-        # Give gather 1 ca_loc in hold so quan gets stock {"ca_loc": 1}
-        sc["gather"]["hold"] = ["ca_loc"]
+        sc["gather"]["hold"] = [{"id": "I1", "kind": "ca_loc", "fresh": 100}]
         inp = frames({"tick": 0, "interact": True})  # stayed True at tick 1, 2
         with Workdir() as w:
             out = w.path("hold.jsonl")
@@ -223,7 +224,7 @@ class DayShopPauseTests(unittest.TestCase):
             self.assertEqual(run_headless("--mode", "gather", "--days", "1", "--seed", "1", "--ticks", "0", "--out", out)[0], 2)
             self.assertEqual(run_headless("--mode", "day", "--days", "6", "--seed", "1", "--ticks", "0", "--out", out)[0], 2)
             for bad in (
-                {"quan": {"stock": {"ca_loc": 1}}},
+                {"quan": {"stock": [{"id": "I1", "kind": "ca_loc", "fresh": 100}]}},
                 {"quan": {"reputation": 4.0}},
                 {"day": {"money": 100}},
                 {"day": {"money": 200, "earned": 100}},
