@@ -45,7 +45,11 @@ class QuanSim:
         self._tgt = None
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
+        raw_stock = inventory if inventory is not None else scenario.get("stock", {})
+        if isinstance(raw_stock, list):
+            self.stock = [dict(it) for it in raw_stock]
+        else:
+            self.stock = dict(raw_stock)
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = float(scenario.get("reputation", t["reputation_initial"]))
@@ -128,9 +132,13 @@ class QuanSim:
 
     def snapshot(self) -> dict:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
+        if isinstance(self.stock, list):
+            stock_snap = [dict(it) for it in sort_by_id(self.stock)]
+        else:
+            stock_snap = {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}
         return {
             "player": {"pos": self.pos},
-            "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
+            "stock": stock_snap,
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in sort_by_id(self.stoves)],

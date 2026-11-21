@@ -12,12 +12,15 @@ import json
 import os
 import sys
 
-ALLOWED_KINDS = {"ca_loc", "ca_linh", "bong_dien_dien", "bong_sung"}
+ALLOWED_KINDS = {"ca_loc", "ca_linh", "bong_dien_dien", "bong_sung", "ca_keo", "keo_neo"}
 
 MENU = {
     "ca_loc_nuong_trui": {"ca_loc": 1},
     "goi_bong_sung": {"bong_sung": 2},
     "lau_ca_linh_dien_dien": {"ca_linh": 3, "bong_dien_dien": 1},
+    "canh_chua_ca_loc": {"ca_loc": 1, "bong_dien_dien": 1},
+    "ca_keo_nuong": {"ca_keo": 2},
+    "lau_mam": {"ca_linh": 2, "ca_keo": 1, "keo_neo": 1, "bong_dien_dien": 1},
 }
 
 
@@ -38,16 +41,35 @@ def validate_inventory_file(path: str):
         return False, f"File kho chỉ được có duy nhất khóa 'items', đang có: {list(data.keys())}", {}
 
     items = data["items"]
-    if not isinstance(items, dict):
-        return False, "'items' phải là một object (key-value).", {}
+    counts = {}
 
-    for k, v in items.items():
-        if k not in ALLOWED_KINDS:
-            return False, f"Nguyên liệu lạ không thuộc danh mục cho phép: '{k}'", {}
-        if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
-            return False, f"Số lượng của '{k}' phải là số nguyên dương (> 0), đang là: {v!r}", {}
+    if isinstance(items, list):
+        seen_ids = set()
+        for i, it in enumerate(items):
+            if not isinstance(it, dict) or set(it.keys()) != {"id", "kind", "fresh"}:
+                return False, f"Item {i} không đúng cấu trúc {{id, kind, fresh}}", {}
+            if it["id"] in seen_ids:
+                return False, f"ID bị trùng lặp: '{it['id']}'", {}
+            seen_ids.add(it["id"])
+            if it["kind"] not in ALLOWED_KINDS:
+                return False, f"Nguyên liệu lạ không thuộc danh mục cho phép: '{it['kind']}'", {}
+            fresh = it["fresh"]
+            if isinstance(fresh, bool) or not isinstance(fresh, (int, float)) or fresh < 0 or fresh > 100:
+                return False, f"Độ tươi của item {it['id']} phải trong [0, 100], đang là: {fresh!r}", {}
+            if fresh >= 30:
+                counts[it["kind"]] = counts.get(it["kind"], 0) + 1
+        return True, "Hợp đồng kho cá thể v1.2 hợp lệ (Contract G v1.2 compliant).", counts
 
-    return True, "Hợp đồng kho hợp lệ (Contract G compliant).", items
+    elif isinstance(items, dict):
+        for k, v in items.items():
+            if k not in ALLOWED_KINDS:
+                return False, f"Nguyên liệu lạ không thuộc danh mục cho phép: '{k}'", {}
+            if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
+                return False, f"Số lượng của '{k}' phải là số nguyên dương (> 0), đang là: {v!r}", {}
+            counts[k] = v
+        return True, "Hợp đồng kho đếm v1.0 hợp lệ (Contract G v1.0).", counts
+
+    return False, "'items' phải là mảng cá thể hoặc object đếm.", {}
 
 
 def analyze_menu(items: dict):
