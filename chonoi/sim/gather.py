@@ -129,7 +129,7 @@ class GatherSim:
             self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
 
             if old_oxygen > 0 and self.oxygen_ticks == 0:
-                events.append(("oxygen_empty", {}))
+                events.append(("oxygen_empty", {"oxygen_ticks": 0}))
 
             if self.oxygen_ticks == 0:
                 self.zero_oxy_ticks += 1
@@ -141,8 +141,9 @@ class GatherSim:
                     events.append(("choke", {"hp": self.hp}))
 
                     if self.hp == 0:
+                        lost = list(reversed(self.hold))
                         self.hold.clear()
-                        events.append(("faint", {}))
+                        events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
                         self._finish("fainted", events)
                         return events
             else:
@@ -167,9 +168,15 @@ class GatherSim:
                         key=lambda n: math.dist(self.pos, n["pos"])
                     )
                     quantity = int(self.t["node_yield"])
+                    free = max(0, self.t["hold_capacity"] - len(self.hold))
 
                     if len(self.hold) + quantity > self.t["hold_capacity"]:
-                        events.append(("hold_full", {}))
+                        events.append(("hold_full", {
+                            "action": "gather",
+                            "node_id": node["id"],
+                            "required": quantity,
+                            "free": free,
+                        }))
                     else:
                         self.hold.extend([node["kind"]] * quantity)
                         node["regrow_ticks"] = int(
@@ -180,7 +187,7 @@ class GatherSim:
                             {
                                 "node_id": node["id"],
                                 "kind": node["kind"],
-                                "count": quantity
+                                "amount": quantity
                             }
                         ))
 
@@ -201,9 +208,15 @@ class GatherSim:
                     key=lambda f: math.dist(self.pos, f["pos"])
                 )
                 quantity = int(self.t["fish_yield"][fish["kind"]])
+                free = max(0, self.t["hold_capacity"] - len(self.hold))
 
                 if len(self.hold) + quantity > self.t["hold_capacity"]:
-                    events.append(("hold_full", {}))
+                    events.append(("hold_full", {
+                        "action": "catch",
+                        "fish_id": fish["id"],
+                        "required": quantity,
+                        "free": free,
+                    }))
                 else:
                     self.hold.extend([fish["kind"]] * quantity)
                     self.fish.remove(fish)
@@ -216,7 +229,7 @@ class GatherSim:
                         {
                             "fish_id": fish["id"],
                             "kind": fish["kind"],
-                            "count": quantity
+                            "yield": quantity
                         }
                     ))
 
