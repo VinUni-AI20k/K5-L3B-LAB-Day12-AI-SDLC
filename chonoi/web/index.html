@@ -768,33 +768,232 @@ function drawUtSenSwimmer(px, py, s, p, moving, underwater) {
   ctx.restore();
 }
 
-function drawUtSenTopDown(px, py, s, moving, hasHand) {
-  const sc = Math.max(1.0, s * 0.038);
-  const step = moving ? Math.sin(vis.now * 9) * 4 * sc : 0;
-  ctx.save();
-  ctx.translate(px, py);
-  // Bước chân
-  ctx.fillStyle = "#222831";
-  ctx.beginPath(); ctx.ellipse(-5 * sc, 4 * sc + step, 3.5 * sc, 5 * sc, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.ellipse(5 * sc, 4 * sc - step, 3.5 * sc, 5 * sc, 0, 0, Math.PI * 2); ctx.fill();
-  // Tay bưng món hoặc vung tay khi đi
-  ctx.fillStyle = "#f4c7a1";
-  if (hasHand) {
-    ctx.beginPath(); ctx.arc(-7 * sc, -9 * sc, 3 * sc, 0, Math.PI * 2); ctx.arc(7 * sc, -9 * sc, 3 * sc, 0, Math.PI * 2); ctx.fill();
-  } else {
-    ctx.beginPath(); ctx.arc(-10 * sc, -step * 0.8, 3 * sc, 0, Math.PI * 2); ctx.arc(10 * sc, step * 0.8, 3 * sc, 0, Math.PI * 2); ctx.fill();
+function pxRect(x, y, w, h, col) {
+  ctx.fillStyle = col;
+  ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
+}
+
+function drawBlock25D(cx, baseY, w, d, h, topCol, frontCol, borderCol = "#1a110b", hiCol = "rgba(255,255,255,0.22)") {
+  const x = Math.round(cx - w / 2), rw = Math.round(w), rd = Math.round(d), rh = Math.round(h);
+  const yTop = Math.round(baseY - rd - rh);
+  const yFront = yTop + rd;
+  pxRect(x - 2, yTop - 2, rw + 4, rd + rh + 4, borderCol);
+  pxRect(x, yTop, rw, rd, topCol);
+  pxRect(x, yTop, rw, 2, hiCol);
+  pxRect(x, yFront, rw, rh, frontCol);
+  pxRect(x, yFront, rw, 2, "rgba(0,0,0,0.28)");
+}
+
+function hashStr(s) {
+  let h = 2166136261;
+  const str = String(s || "");
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+
+function drawUtSen25D(px, py, s, vx, vz, moving, handDish) {
+  const sc = Math.max(1.0, s * 0.044);
+  if (!vis.quanFacing) vis.quanFacing = { x: 0, z: -1 };
+  if (Math.hypot(vx || 0, vz || 0) > 0.15) {
+    vis.quanFacing.x = vx;
+    vis.quanFacing.z = vz;
   }
-  // Vai áo bà ba, khăn rằn & đầu búi tóc
-  ctx.fillStyle = "#b8643c";
-  ctx.beginPath(); ctx.ellipse(0, 0, 10.5 * sc, 6.5 * sc, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#2b211e";
-  ctx.fillRect(-6 * sc, -4 * sc, 12 * sc, 4 * sc);
-  ctx.fillStyle = "#1c1715";
-  ctx.beginPath(); ctx.arc(0, -1 * sc, 6 * sc, 0, Math.PI * 2); ctx.fill();
-  ctx.beginPath(); ctx.arc(0, 4.5 * sc, 3 * sc, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#f4c7a1";
-  ctx.beginPath(); ctx.arc(0, -3.5 * sc, 4.2 * sc, Math.PI, Math.PI * 2); ctx.fill();
-  ctx.restore();
+  const fx = vis.quanFacing.x, fz = vis.quanFacing.z;
+  const facingBack = fz > 0.35 && Math.abs(fz) >= Math.abs(fx) * 0.7;
+  const facingX = Math.abs(fx) > 0.2 ? (fx > 0 ? 1 : -1) : 0;
+  const step = moving ? Math.round(Math.sin(vis.now * 12) * 3.5 * sc) : 0;
+  const bob = moving ? Math.abs(Math.round(Math.cos(vis.now * 12) * 1.5 * sc)) : Math.round(Math.sin(vis.now * 2.5) * 0.6 * sc);
+  const by = Math.round(py);
+  const rx = Math.round(px);
+
+  // Bóng đổ mặt sàn
+  ctx.fillStyle = "rgba(12,8,4,0.45)";
+  ctx.fillRect(Math.round(rx - 9 * sc), Math.round(by - 3 * sc), Math.round(18 * sc), Math.round(7 * sc));
+
+  // Chân quần đen + dép
+  const lLegY = by - 9 * sc + (step > 0 ? -step * 0.6 : 0);
+  const rLegY = by - 9 * sc + (step < 0 ? step * 0.6 : 0);
+  pxRect(rx - 5.5 * sc, lLegY, 4 * sc, 8 * sc, "#1e242b");
+  pxRect(rx + 1.5 * sc, rLegY, 4 * sc, 8 * sc, "#181d23");
+  pxRect(rx - 6 * sc, lLegY + 7 * sc, 4.5 * sc, 2.5 * sc, "#8c5b36");
+  pxRect(rx + 1.5 * sc, rLegY + 7 * sc, 4.5 * sc, 2.5 * sc, "#754a2b");
+
+  // Thân áo bà ba (kèm bóng tà áo)
+  const torsoY = by - 21 * sc - bob;
+  pxRect(rx - 7 * sc, torsoY, 14 * sc, 13 * sc, "#1a110b");
+  pxRect(rx - 6 * sc, torsoY + 1 * sc, 12 * sc, 11 * sc, "#b8643c");
+  pxRect(rx - 6 * sc, torsoY + 9 * sc, 12 * sc, 3 * sc, "#964d2a");
+  if (!facingBack) {
+    pxRect(rx - 0.8 * sc, torsoY + 2 * sc, 1.6 * sc, 9 * sc, "#d9926c");
+    pxRect(rx - 0.5 * sc, torsoY + 4 * sc, 1.2 * sc, 1.2 * sc, "#f5e6c8");
+    pxRect(rx - 0.5 * sc, torsoY + 7 * sc, 1.2 * sc, 1.2 * sc, "#f5e6c8");
+  }
+
+  // Khăn rằn Nam Bộ quanh cổ
+  pxRect(rx - 5.5 * sc, torsoY - 1 * sc, 11 * sc, 3.2 * sc, "#2b211e");
+  pxRect(rx - 4 * sc, torsoY, 1.8 * sc, 1.5 * sc, "#f4eec8");
+  pxRect(rx - 0.5 * sc, torsoY, 1.8 * sc, 1.5 * sc, "#f4eec8");
+  pxRect(rx + 3 * sc, torsoY, 1.8 * sc, 1.5 * sc, "#f4eec8");
+
+  // Đầu & mái tóc / búi tóc
+  const headY = torsoY - 11.5 * sc;
+  pxRect(rx - 6 * sc, headY, 12 * sc, 11 * sc, "#1a110b");
+  if (facingBack) {
+    pxRect(rx - 5 * sc, headY + 1 * sc, 10 * sc, 9 * sc, "#1c1715");
+    pxRect(rx - 2.5 * sc, headY + 2 * sc, 5 * sc, 4 * sc, "#2d2522");
+  } else {
+    pxRect(rx - 5 * sc, headY + 3 * sc, 10 * sc, 7 * sc, "#f4c7a1");
+    pxRect(rx - 5 * sc, headY + 1 * sc, 10 * sc, 3.2 * sc, "#1c1715");
+    pxRect(rx - 5.5 * sc, headY + 3 * sc, 2 * sc, 4 * sc, "#1c1715");
+    pxRect(rx + 3.5 * sc, headY + 3 * sc, 2 * sc, 4 * sc, "#1c1715");
+    pxRect(rx - 2.5 * sc, headY - 2 * sc, 5 * sc, 2.5 * sc, "#1c1715");
+    const eyeShift = facingX * 1.4 * sc;
+    pxRect(rx - 2.6 * sc + eyeShift, headY + 5.6 * sc, 1.6 * sc, 2 * sc, "#141010");
+    pxRect(rx + 1.4 * sc + eyeShift, headY + 5.6 * sc, 1.6 * sc, 2 * sc, "#141010");
+    pxRect(rx - 0.8 * sc + eyeShift * 0.7, headY + 8.3 * sc, 2 * sc, 1 * sc, "#b86b52");
+  }
+
+  // Đôi tay: bưng khay món hoặc đánh tay khi đi
+  if (handDish) {
+    const trayY = torsoY + 3 * sc;
+    pxRect(rx - 9 * sc, torsoY + 3 * sc, 3.2 * sc, 4 * sc, "#c77248");
+    pxRect(rx + 5.8 * sc, torsoY + 3 * sc, 3.2 * sc, 4 * sc, "#c77248");
+    drawBlock25D(rx, trayY + 5 * sc, 18 * sc, 6 * sc, 2.5 * sc, "#a86b35", "#6e421c", "#1c1108");
+    drawSprite(PIXEL_ICON.pot, rx - 6.5 * sc, trayY - 8.5 * sc, 13 * sc, 12 * sc);
+    // Khói bốc nhẹ từ nồi
+    const stOff = (vis.now * 16) % 8;
+    ctx.fillStyle = "rgba(255,255,255,0.6)";
+    ctx.fillRect(Math.round(rx - 2 * sc), Math.round(trayY - (10 + stOff) * sc), Math.max(2, Math.round(2 * sc)), Math.max(2, Math.round(2 * sc)));
+  } else {
+    const armOff = Math.round(step * 0.75);
+    pxRect(rx - 9.5 * sc, torsoY + 2 * sc + armOff, 3 * sc, 7 * sc, "#a45834");
+    pxRect(rx - 9.5 * sc, torsoY + 8 * sc + armOff, 3 * sc, 2.5 * sc, "#f4c7a1");
+    pxRect(rx + 6.5 * sc, torsoY + 2 * sc - armOff, 3 * sc, 7 * sc, "#a45834");
+    pxRect(rx + 6.5 * sc, torsoY + 8 * sc - armOff, 3 * sc, 2.5 * sc, "#f4c7a1");
+  }
+}
+
+function drawStove25D(st, bx, by, s, animF) {
+  const bw = Math.round(1.65 * s), bd = Math.round(0.65 * s), bh = Math.round(0.72 * s);
+  const topCol = st.state === "cooking" ? "#c97a3e" : st.state === "ready" ? "#56a64b" : "#6b7480";
+  const frontCol = st.state === "cooking" ? "#7a3b1e" : st.state === "ready" ? "#34692d" : "#444c57";
+  // Bóng đổ dưới chân bếp
+  ctx.fillStyle = "rgba(12,8,4,0.42)";
+  ctx.fillRect(Math.round(bx - bw / 2 - 4), Math.round(by - bd + 3), bw + 8, bd + 5);
+
+  drawBlock25D(bx, by, bw, bd, bh, topCol, frontCol, "#1c120c");
+  const yTop = Math.round(by - bd - bh);
+  const yFront = yTop + bd;
+
+  // Chi tiết gạch xây mặt trước & cửa lò vòm
+  pxRect(bx - bw * 0.42, yFront + 5, bw * 0.84, 2, "rgba(0,0,0,0.22)");
+  const archW = Math.round(bw * 0.34), archH = Math.round(bh * 0.62);
+  const archX = Math.round(bx - archW / 2), archY = Math.round(by - archH);
+  pxRect(archX + 3, archY - 3, archW - 6, archH + 3, "#1b110c");
+  pxRect(archX, archY + 2, archW, archH - 2, "#1b110c");
+
+  // Kiềng bếp & phụ kiện mặt bếp trên
+  pxRect(bx - bw * 0.36, yTop + bd * 0.25, bw * 0.42, bd * 0.55, "#232830");
+  pxRect(bx - bw * 0.30, yTop + bd * 0.34, bw * 0.30, bd * 0.38, "#12161c");
+  // Thớt gỗ + chén nhỏ bên phải bếp
+  pxRect(bx + bw * 0.14, yTop + bd * 0.28, bw * 0.24, bd * 0.42, "#b5844c");
+  pxRect(bx + bw * 0.19, yTop + bd * 0.34, bw * 0.14, bd * 0.28, "#f0e3c7");
+
+  if (st.state === "cooking") {
+    // Lửa nhảy múa trong cửa lò
+    const fl = animF % 2 === 0;
+    pxRect(archX + 4, archY + archH * 0.42, archW - 8, archH * 0.52, "#ff6d00");
+    pxRect(archX + (fl ? 6 : 9), archY + archH * 0.25, Math.max(4, archW - 14), archH * 0.55, "#ffea00");
+    // Nồi đang nấu trên bếp + hơi nước
+    const potSz = Math.round(0.75 * s);
+    drawSprite(PIXEL_ICON.pot, bx - bw * 0.15 - potSz / 2, yTop - potSz * 0.55, potSz, potSz);
+    for (let k = 0; k < 3; k++) {
+      const ph = ((vis.now * 1.4 + k * 0.33) % 1);
+      ctx.fillStyle = `rgba(245,250,255,${(1 - ph) * 0.7})`;
+      ctx.fillRect(Math.round(bx - bw * 0.15 + Math.sin(vis.now * 5 + k) * 5 - 2), Math.round(yTop - potSz * 0.65 - ph * 22), 4, 4);
+    }
+  } else if (st.state === "ready") {
+    // Đốm than hồng + nồi món chín nảy lên
+    pxRect(archX + 5, archY + archH * 0.65, archW - 10, archH * 0.3, "#bf360c");
+    const potSz = Math.round(0.82 * s);
+    const bounce = Math.round(Math.sin(vis.now * 6) * 2.5);
+    drawSprite(PIXEL_ICON.pot, bx - bw * 0.12 - potSz / 2, yTop - potSz * 0.6 + bounce, potSz, potSz);
+  }
+  text(st.id, bx + bw * 0.3, by - 6, { size: 18, align: "center", color: "#fff59d" });
+}
+
+const CUST_COLORS = ["#66bb6a", "#ec407a", "#42a5f5", "#ab47bc", "#ffa726", "#26a69a"];
+function drawTableAndCustomer25D(tb, c, tx, ty, s, patMax) {
+  const tw = Math.round(1.48 * s), td = Math.round(0.46 * s), th = Math.round(0.15 * s);
+  const legH = Math.round(0.36 * s);
+  const sc = Math.max(1.0, s * 0.040);
+
+  // Bóng đổ dưới bàn & ghế
+  ctx.fillStyle = "rgba(12,8,4,0.4)";
+  ctx.fillRect(Math.round(tx - tw / 2 - 4), Math.round(ty - td + 2), tw + 8, td + 6);
+
+  // Ghế đẩu gỗ phía sau & bên cạnh
+  drawBlock25D(tx, ty - td + 2, 16 * sc, 5 * sc, 6 * sc, "#8c582b", "#5c3718", "#1f1208");
+  drawBlock25D(tx - tw / 2 - 8 * sc, ty - 2 * sc, 11 * sc, 4 * sc, 5 * sc, "#8c582b", "#5c3718", "#1f1208");
+
+  // Khách hàng 2.5D ngồi trên ghế phía sau (bàn sẽ che phần hông/đầu gối tạo chiều sâu 2.5D)
+  if (c) {
+    const h = hashStr(c.id);
+    const coat = CUST_COLORS[h % CUST_COLORS.length];
+    const hasHat = (h % 3) !== 0;
+    const lowPat = c.state !== "eating" && c.patience_ticks_left !== undefined && (c.patience_ticks_left / patMax) < 0.25;
+    const jx = lowPat ? Math.round(Math.sin(vis.now * 28) * 2) : 0;
+    const eatBob = c.state === "eating" ? Math.round(Math.abs(Math.sin(vis.now * 8)) * 2.5) : 0;
+    const cx = Math.round(tx + jx);
+    const cy = Math.round(ty - td * 1.15 - legH * 0.4 + eatBob);
+
+    // Thân người ngồi
+    pxRect(cx - 7 * sc, cy - 12 * sc, 14 * sc, 13 * sc, "#1a110b");
+    pxRect(cx - 6 * sc, cy - 11 * sc, 12 * sc, 11 * sc, coat);
+    // Đầu
+    const hy = cy - 22 * sc;
+    pxRect(cx - 5.5 * sc, hy, 11 * sc, 10 * sc, "#1a110b");
+    pxRect(cx - 4.5 * sc, hy + 2 * sc, 9 * sc, 7 * sc, "#f2c39b");
+    pxRect(cx - 2.4 * sc, hy + 5 * sc, 1.4 * sc, 1.8 * sc, "#141010");
+    pxRect(cx + 1.2 * sc, hy + 5 * sc, 1.4 * sc, 1.8 * sc, "#141010");
+    if (hasHat) {
+      // Nón lá pixel
+      pxRect(cx - 8.5 * sc, hy + 1 * sc, 17 * sc, 2.5 * sc, "#e6c77a");
+      pxRect(cx - 6 * sc, hy - 1.5 * sc, 12 * sc, 2.5 * sc, "#d4b05c");
+      pxRect(cx - 3 * sc, hy - 3.5 * sc, 6 * sc, 2 * sc, "#e6c77a");
+    } else {
+      pxRect(cx - 4.5 * sc, hy + 1 * sc, 9 * sc, 2.5 * sc, "#1d1715");
+    }
+  }
+
+  // 4 Chân bàn gỗ chạm sàn
+  pxRect(tx - tw / 2 + 4, ty - td - legH + 2, 5, legH, "#3b210e");
+  pxRect(tx + tw / 2 - 9, ty - td - legH + 2, 5, legH, "#3b210e");
+  pxRect(tx - tw / 2 + 2, ty - legH, 6, legH, "#4f2e15");
+  pxRect(tx + tw / 2 - 8, ty - legH, 6, legH, "#4f2e15");
+
+  // Mặt bàn dày 2.5D nằm khít trên 4 chân
+  const tableBaseY = ty - legH + 4;
+  drawBlock25D(tx, tableBaseY, tw, td, th, "#9c6635", "#69411e", "#261408");
+  const topY = Math.round(tableBaseY - td - th);
+  // Đường vân mặt bàn & khăn trải bàn giữa
+  pxRect(tx - tw * 0.42, topY + td * 0.48, tw * 0.84, 2, "rgba(62,36,17,0.35)");
+  pxRect(tx - tw * 0.18, topY + td * 0.16, tw * 0.36, td * 0.68, "#dfd3b8");
+
+  // Nếu có khách: vẽ tay đặt lên bàn; nếu đang ăn: vẽ nồi/tô thức ăn trên mặt bàn
+  if (c) {
+    const jx = (c.state !== "eating" && c.patience_ticks_left !== undefined && (c.patience_ticks_left / patMax) < 0.25) ? Math.round(Math.sin(vis.now * 28) * 2) : 0;
+    pxRect(tx + jx - 6 * sc, topY + td * 0.18, 3 * sc, 3 * sc, "#f2c39b");
+    pxRect(tx + jx + 3 * sc, topY + td * 0.18, 3 * sc, 3 * sc, "#f2c39b");
+    if (c.state === "eating") {
+      const dishSz = Math.round(10 * sc);
+      drawSprite(PIXEL_ICON.pot, tx - dishSz / 2, topY + td * 0.15 - dishSz * 0.45, dishSz, dishSz);
+      const stPh = (vis.now * 1.5) % 1;
+      ctx.fillStyle = `rgba(255,255,255,${(1 - stPh) * 0.65})`;
+      ctx.fillRect(Math.round(tx - 1), Math.round(topY - 6 - stPh * 12), 3, 3);
+    }
+  }
+  text(tb.id, tx, ty - 2, { size: 18, align: "center", color: "#fff59d" });
 }
 
 function updateAndDrawDragonflies(sx, sy, X, s) {
@@ -1159,88 +1358,188 @@ function drawGather(w, h) {
   text("[WASD] Bơi · [E] Hái/Bến · [Space] Bắt · [P/Esc] Dừng", w - 22, h - 22, { size: 18, align: "right", color: "#cfd8dc" });
 }
 
-// ----- cảnh QUÁN v1.1: 2 bếp, 4 bàn, 6 món, HUD sans-serif >= 18px -----
+// ----- cảnh QUÁN v1.1 (Góc nhìn 2.5D Pixel Art + sắp lớp chiều sâu z-sort): 2 bếp, 4 bàn, 6 món, HUD sans-serif >= 18px -----
 function drawQuan(w, h) {
   const meta = snap.meta || {};
   const b = meta.bounds || { x: [0, 16], z: [0, 10] };
   const X = b.x[1], Z = b.z[1], top = 128, bottom = 56;
-  const s = Math.max(1, Math.min((w - 40) / X, (h - top - bottom) / Z));
-  const ox = (w - s * X) / 2, oy = top;
-  const sx = (x) => ox + x * s, sy = (z) => oy + (Z - z) * s;
+  const zRatio = 0.72;
+  const s = Math.max(20, Math.min((w - 84) / X, (h - top - bottom - 96) / (Z * zRatio)));
+  const zS = s * zRatio;
+  const deckW = X * s, deckH = Z * zS;
+  const ox = (w - deckW) / 2, oy = top + 52;
+  const sx = (x) => ox + x * s, sy = (z) => oy + (Z - z) * zS;
   const animF = Math.floor(vis.now * 10);
 
-  // Sông đêm & sàn nhà bè
-  ctx.fillStyle = "#0b1a26"; ctx.fillRect(0, top, w, h - top - bottom);
-  ctx.fillStyle = "#5d3d20"; ctx.fillRect(Math.round(sx(0) - 4), Math.round(sy(Z) - 4), Math.round(X * s + 8), Math.round(Z * s + 8));
-  ctx.fillStyle = "#bf945b"; ctx.fillRect(Math.round(sx(0)), Math.round(sy(Z)), Math.round(X * s), Math.round(Z * s));
-  ctx.fillStyle = "rgba(93,61,32,.25)";
-  for (let gx = 2; gx < X; gx += 2) ctx.fillRect(Math.round(sx(gx)), Math.round(sy(Z)), 2, Math.round(Z * s));
-  for (let lx = 0.8; lx < X; lx += 1.6) {
-    const glow = 0.65 + 0.35 * Math.sin(vis.now * 4 + lx * 2);
-    ctx.fillStyle = `rgba(255,224,102,${glow.toFixed(2)})`;
-    ctx.fillRect(Math.round(sx(lx) - 3), Math.round(sy(Z) + 2), 6, 6);
+  // Sông đêm, trăng khuyết & rặng dừa nước xa
+  ctx.fillStyle = "#071420";
+  ctx.fillRect(0, top, w, h - top - bottom);
+  pxRect(0, top, w, 46, "#091b2b");
+  // Rặng cây dừa nước tối bên bờ xa
+  for (let kx = 10; kx < w; kx += 48) {
+    const kh = 16 + (kx * 17) % 18;
+    pxRect(kx, top + 46 - kh, 38, kh, "#0d211d");
+  }
+  // Trăng khuyết & ánh trăng trên mặt nước
+  pxRect(42, top + 12, 16, 16, "#ffe999");
+  pxRect(48, top + 12, 12, 12, "#091b2b");
+  // Gợn sóng sông đêm lấp lánh
+  for (let wy = top + 56; wy < h - bottom - 8; wy += 24) {
+    const drift = Math.sin(vis.now * 1.4 + wy * 0.2) * 14;
+    for (let wx = 20; wx < w - 40; wx += 110) {
+      if (wx > ox - 20 && wx < ox + deckW + 10 && wy > oy && wy < oy + deckH + 22) continue;
+      ctx.fillStyle = "rgba(130, 195, 235, 0.16)";
+      ctx.fillRect(Math.round(wx + drift), wy, 26, 2);
+      ctx.fillStyle = "rgba(255, 224, 130, 0.12)";
+      ctx.fillRect(Math.round(wx + drift + 48), wy + 9, 16, 2);
+    }
   }
 
-  // 2 Bếp (B1, B2)
-  const menu = snap.tuning_menu || {};
-  (snap.stoves || []).forEach((st) => {
-    const bx = sx(st.pos[0]), by = sy(st.pos[1]);
-    const stCol = st.state === "cooking" ? "#d97724" : st.state === "ready" ? "#56a64b" : "#5a636e";
-    pixelBox(bx - 0.85 * s, by - 0.85 * s, 1.7 * s, 1.7 * s, stCol, "#1c120c", "#f0d9b5");
-    if (st.state === "cooking") {
-      ctx.fillStyle = animF % 2 === 0 ? "#ffea00" : "#ff6d00";
-      ctx.fillRect(Math.round(bx - 0.35 * s), Math.round(by + 0.35 * s), Math.round(0.7 * s), Math.max(3, Math.round(0.2 * s)));
-      const dId = st.dish ? (st.dish.dish_id || st.dish) : "";
-      const cookTotal = (menu[dId] ? menu[dId].cook_s : 6) * 60;
-      const cookSm = smoothVal("cook_" + st.id, st.cook_ticks_left || 0, 0.25);
-      pixelBar(bx - 0.9 * s, by + 0.9 * s, 1.8 * s, 22, 1 - cookSm / Math.max(1, cookTotal), "#ffb300", Math.ceil((st.cook_ticks_left || 0) / 60) + "s", 6);
-    } else if (st.state === "ready") {
-      drawSprite(PIXEL_ICON.pot, bx - 0.45 * s, by - 0.55 * s + Math.round(Math.sin(vis.now * 6) * 2), 0.9 * s, 0.9 * s);
-      text("CHÍN [E]", bx, by + 1.3 * s, { size: 18, align: "center", color: "#b9f6ca" });
-    }
-    text(st.id, bx, by + 6, { size: 18, align: "center", color: "#fff" });
-    if (st.dish) text(dishName(st.dish), bx, by - 1.0 * s, { size: 18, align: "center", color: "#ffe082" });
-  });
+  // Xuồng ba lá neo mạn trái bè
+  const boatX = Math.max(16, ox - 56);
+  const boatY = sy(3.6) + Math.round(Math.sin(vis.now * 1.8) * 3);
+  if (ox > 68) {
+    ctx.strokeStyle = "#8a6d46"; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(ox, sy(4.3)); ctx.lineTo(boatX + 36, boatY - 8); ctx.stroke();
+    drawBlock25D(boatX + 18, boatY + 20, 34, 68, 8, "#7d4f27", "#4f3014", "#1b0f06");
+    pxRect(boatX + 6, boatY - 40, 24, 44, "#402611");
+    pxRect(boatX + 5, boatY - 22, 26, 6, "#9c6635");
+  }
 
-  // 4 Bàn (T1..T4) + Khách
+  // Bóng bè dưới mặt nước + phao bè mặt trước + dầm gỗ mặt đứng (extruded 2.5D)
+  ctx.fillStyle = "rgba(3, 9, 15, 0.55)";
+  ctx.fillRect(Math.round(ox - 8), Math.round(oy + 10), Math.round(deckW + 16), Math.round(deckH + 28));
+  const beamH = 20;
+  // Phao thùng phuy / bè tre nổi dưới đáy bè
+  for (let px = 0.6; px < X - 0.5; px += 2.2) {
+    const bobP = Math.round(Math.sin(vis.now * 2.2 + px) * 1.5);
+    const fx = Math.round(sx(px));
+    pxRect(fx, oy + deckH + beamH - 3 + bobP, Math.round(1.3 * s), 9, "#2d4c5c");
+    pxRect(fx + 2, oy + deckH + beamH - 1 + bobP, Math.round(1.3 * s - 4), 2, "#608c9e");
+  }
+  ctx.fillStyle = "rgba(180,235,255,0.28)";
+  ctx.fillRect(Math.round(ox - 6), Math.round(oy + deckH + beamH + 6), Math.round(deckW + 12), 2);
+
+  // Vách mặt đứng phía trước của sàn nhà bè
+  pxRect(ox - 6, oy + deckH, deckW + 12, beamH, "#5a391c");
+  pxRect(ox - 6, oy + deckH + beamH - 4, deckW + 12, 4, "#3b230e");
+  for (let bx = 0; bx <= X; bx += 2) {
+    pxRect(sx(bx) - 2, oy + deckH, 5, beamH, "#3b230e");
+  }
+
+  // Sàn ván gỗ 2.5D nhà bè (x = 0..X, z = 0..Z)
+  pxRect(ox - 6, oy - 6, deckW + 12, deckH + 8, "#3e2612");
+  pxRect(ox, oy, deckW, deckH, "#c5965d");
+  // Khe ván gỗ ngang (tạo cảm giác chiều sâu) + ván dọc
+  for (let gz = 1; gz < Z; gz += 1) {
+    pxRect(ox, sy(gz), deckW, 2, "rgba(92, 58, 28, 0.28)");
+  }
+  for (let gx = 2; gx < X; gx += 2) {
+    pxRect(sx(gx), oy, 2, deckH, "rgba(92, 58, 28, 0.22)");
+  }
+  // Nền gạch khu bếp (góc trái trên: x < 7, z > 6)
+  pxRect(sx(0.3), sy(9.8), 6.6 * s, 3.3 * zS, "#996942");
+  pxRect(sx(0.4), sy(9.7), 6.4 * s, 3.1 * zS, "#a8764b");
+
+  // Lan can gỗ hậu cảnh (z = Z), bảng hiệu "QUÁN MÁ TƯ" & giàn đèn dây vàng ấm
+  pxRect(ox - 4, oy - 22, deckW + 8, 22, "#4b2e16");
+  pxRect(ox - 4, oy - 24, deckW + 8, 4, "#7a4d27");
+  for (let px = 0; px <= X; px += 4) {
+    pxRect(sx(px) - 4, oy - 34, 8, 36, "#5c391c");
+    pxRect(sx(px) - 3, oy - 34, 3, 34, "#85552d");
+  }
+  pixelBox(sx(8) - 96, oy - 38, 192, 26, "#4d2712", "#1a0c04", "#e0a958");
+  text("QUÁN MÁ TƯ", sx(8), oy - 19, { size: 18, align: "center", color: "#ffe082" });
+
+  // Dây đèn lồng vàng dọc hậu cảnh + quầng sáng xuống sàn
+  ctx.strokeStyle = "#2b1b0e"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(sx(0), oy - 30);
+  for (let lx = 1; lx <= X; lx += 1) {
+    ctx.lineTo(sx(lx), oy - 30 + Math.sin((lx % 4) * Math.PI / 4) * 7);
+  }
+  ctx.stroke();
+  for (let lx = 0.8; lx < X; lx += 1.6) {
+    const glow = 0.68 + 0.32 * Math.sin(vis.now * 4 + lx * 2);
+    const lpx = Math.round(sx(lx)), lpy = Math.round(oy - 26 + Math.sin((lx % 4) * Math.PI / 4) * 6);
+    ctx.fillStyle = `rgba(255, 224, 102, ${(glow * 0.16).toFixed(2)})`;
+    ctx.beginPath(); ctx.ellipse(lpx, oy + 14, 24, 10, 0, 0, Math.PI * 2); ctx.fill();
+    pxRect(lpx - 3, lpy, 6, 7, `rgba(255, 214, 79, ${glow.toFixed(2)})`);
+    pxRect(lpx - 1, lpy + 2, 2, 3, "#fffde7");
+  }
+
+  // Vòng tròn bán kính tương tác trên mặt sàn 2.5D (nén theo zRatio)
+  const p = snap.player;
+  const spPos = p ? smoothPos("quan_p", p.pos[0], p.pos[1], 0.42) : null;
+  if (p && meta.interact_radius) {
+    ctx.strokeStyle = "rgba(255,248,200,0.42)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.ellipse(sx(spPos.x), sy(spPos.y), meta.interact_radius * s, meta.interact_radius * zS, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.lineWidth = 1;
+  }
+
+  // Chuẩn bị dữ liệu vẽ & sắp lớp chiều sâu (z lớn ở xa vẽ trước, z nhỏ ở gần vẽ sau)
+  const menu = snap.tuning_menu || {};
   const patMax = (meta.patience_s || 60) * 60;
   const eatMax = (meta.eat_s || 10) * 60;
   const byTable = {};
   (snap.customers || []).forEach((c) => (byTable[c.table_id] = c));
-  (snap.tables || []).forEach((tb) => {
-    const tx = sx(tb.pos[0]), ty = sy(tb.pos[1]);
-    pixelBox(tx - 0.8 * s, ty - 0.8 * s, 1.6 * s, 1.6 * s, "#8a5a2e", "#2b190b", "#c48a52");
-    text(tb.id, tx, ty + 6, { size: 18, align: "center", color: "#fff" });
-    const c = byTable[tb.id];
-    if (c) {
-      const lowPat = c.state !== "eating" && c.patience_ticks_left !== undefined && (c.patience_ticks_left / patMax) < 0.25;
-      const cx = tx + (lowPat ? Math.round(Math.sin(vis.now * 28) * 2) : 0);
-      const cy = ty - 1.5 * s;
-      pixelBox(cx - 0.42 * s, cy - 0.42 * s, 0.84 * s, 0.84 * s, c.state === "eating" ? "#66bb6a" : "#f48fb1", "#1a0e14", "#ffe4ec");
-      text(`${c.id}: ${dishName(c.dish_id)}`, cx, cy - 0.58 * s, { size: 18, align: "center", color: "#fff" });
-      if (c.state === "eating") {
-        const left = c.eat_ticks_left || 0;
-        pixelBar(cx - 0.95 * s, cy + 0.45 * s, 1.9 * s, 22, smoothVal("eat_" + c.id, left, 0.25) / eatMax, "#66bb6a", "Ăn " + Math.ceil(left / 60) + "s", 6);
-      } else if (c.patience_ticks_left !== undefined) {
-        const frac = c.patience_ticks_left / patMax;
-        const pCol = frac >= 0.5 ? "#66bb6a" : (frac >= 0.25 ? "#ffca28" : (Math.floor(vis.now * 6) % 2 === 0 ? "#ff5252" : "#d32f2f"));
-        pixelBar(cx - 0.95 * s, cy + 0.45 * s, 1.9 * s, 22, smoothVal("pat_" + c.id, c.patience_ticks_left, 0.25) / patMax, pCol, Math.ceil(c.patience_ticks_left / 60) + "s", 8);
-      }
+
+  const renderables = [];
+  (snap.stoves || []).forEach((st) => renderables.push({ kind: "stove", z: st.pos[1], st, bx: sx(st.pos[0]), by: sy(st.pos[1]) }));
+  (snap.tables || []).forEach((tb) => renderables.push({ kind: "table", z: tb.pos[1], tb, c: byTable[tb.id], tx: sx(tb.pos[0]), ty: sy(tb.pos[1]) }));
+  if (p && spPos) renderables.push({ kind: "player", z: spPos.y, p, px: sx(spPos.x), py: sy(spPos.y) });
+  renderables.sort((a, b) => b.z - a.z);
+
+  // Pass 1: Vẽ hình khối 2.5D theo thứ tự chiều sâu z
+  renderables.forEach((item) => {
+    if (item.kind === "stove") drawStove25D(item.st, item.bx, item.by, s, animF);
+    else if (item.kind === "table") drawTableAndCustomer25D(item.tb, item.c, item.tx, item.ty, s, patMax);
+    else if (item.kind === "player") {
+      const moving = item.p.vel && (Math.abs(item.p.vel[0]) > 0.1 || Math.abs(item.p.vel[1]) > 0.1);
+      drawUtSen25D(item.px, item.py, s, item.p.vel ? item.p.vel[0] : 0, item.p.vel ? item.p.vel[1] : 0, moving, snap.hand);
     }
   });
 
-  // Út Sen (top-down)
-  const p = snap.player;
-  if (p) {
-    const spPos = smoothPos("quan_p", p.pos[0], p.pos[1], 0.42);
-    const px = sx(spPos.x), py = sy(spPos.y);
-    const moving = p.vel && (Math.abs(p.vel[0]) > 0.1 || Math.abs(p.vel[1]) > 0.1);
-    if (meta.interact_radius) { ctx.strokeStyle = "rgba(255,255,255,.45)"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(px, py, meta.interact_radius * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
-    drawUtSenTopDown(px, py, s, moving, Boolean(snap.hand));
-    if (snap.hand) {
-      drawSprite(PIXEL_ICON.pot, px - 12, py - 46, 24, 22);
-      text(dishWithOrder(snap.hand), px, py - 50, { size: 18, align: "center", color: "#ffe082" });
+  // Pass 2: Nhãn & thanh tiến độ (không bị thân vật cản chữ, luôn sắc nét >= 18px)
+  (snap.stoves || []).forEach((st) => {
+    const bx = sx(st.pos[0]), by = sy(st.pos[1]);
+    const headY = by - 0.65 * s - 0.72 * s;
+    if (st.dish) text(dishName(st.dish), bx, headY - 12, { size: 18, align: "center", color: "#ffe082" });
+    if (st.state === "cooking") {
+      const dId = st.dish ? (st.dish.dish_id || st.dish) : "";
+      const cookTotal = (menu[dId] ? menu[dId].cook_s : 6) * 60;
+      const cookSm = smoothVal("cook_" + st.id, st.cook_ticks_left || 0, 0.25);
+      pixelBar(bx - 0.85 * s, by + 6, 1.7 * s, 22, 1 - cookSm / Math.max(1, cookTotal), "#ffb300", Math.ceil((st.cook_ticks_left || 0) / 60) + "s", 6);
+    } else if (st.state === "ready") {
+      text("CHÍN [E]", bx, by + 24, { size: 18, align: "center", color: "#b9f6ca" });
     }
+  });
+
+  (snap.tables || []).forEach((tb) => {
+    const c = byTable[tb.id];
+    if (!c) continue;
+    const tx = sx(tb.pos[0]), ty = sy(tb.pos[1]);
+    const lowPat = c.state !== "eating" && c.patience_ticks_left !== undefined && (c.patience_ticks_left / patMax) < 0.25;
+    const cx = tx + (lowPat ? Math.round(Math.sin(vis.now * 28) * 2) : 0);
+    const scT = Math.max(1.0, s * 0.040);
+    const labelY = ty - 0.46 * s * 1.15 - 0.36 * s * 0.4 - 27 * scT;
+    text(`${c.id}: ${dishName(c.dish_id)}`, cx, labelY, { size: 18, align: "center", color: lowPat ? "#ff8a80" : "#fff" });
+    if (c.state === "eating") {
+      const left = c.eat_ticks_left || 0;
+      pixelBar(cx - 0.9 * s, ty + 8, 1.8 * s, 22, smoothVal("eat_" + c.id, left, 0.25) / eatMax, "#66bb6a", "Ăn " + Math.ceil(left / 60) + "s", 6);
+    } else if (c.patience_ticks_left !== undefined) {
+      const frac = c.patience_ticks_left / patMax;
+      const pCol = frac >= 0.5 ? "#66bb6a" : (frac >= 0.25 ? "#ffca28" : (Math.floor(vis.now * 6) % 2 === 0 ? "#ff5252" : "#d32f2f"));
+      pixelBar(cx - 0.9 * s, ty + 8, 1.8 * s, 22, smoothVal("pat_" + c.id, c.patience_ticks_left, 0.25) / patMax, pCol, Math.ceil(c.patience_ticks_left / 60) + "s", 8);
+    }
+  });
+
+  if (p && spPos && snap.hand) {
+    text(dishWithOrder(snap.hand), sx(spPos.x), sy(spPos.y) - 0.044 * s * 36 - 10, { size: 18, align: "center", color: "#ffe082" });
   }
 
   for (let i = vis.floats.length - 1; i >= 0; i--) {
