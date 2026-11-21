@@ -1,0 +1,14 @@
+{
+  "day": {
+    "money": 200,
+    "earned": 200
+  },
+  "gather": {
+    "random_fish": false,
+    "time_left_ticks": 1
+  },
+  "quan": {
+    "random_customers": false,
+    "time_left_ticks": 1
+  }
+}

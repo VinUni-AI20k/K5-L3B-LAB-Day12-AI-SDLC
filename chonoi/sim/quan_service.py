@@ -116,6 +116,24 @@ def ready_dishes(sim, events):
             stove["state"] = "ready"
             stove["ready_ticks"] = 0
             events.append(("dish_ready", _dish_event(stove)))
+        burn_s = sim.t.get("burn_s")
+        if (burn_s is not None and stove["state"] == "ready"
+                and stove["ready_ticks"] > int(round(burn_s * sim.tick_hz))):
+            _burn_dish(sim, stove, events)
+
+
+def _burn_dish(sim, stove, events):
+    from .quan_customers import available_stock
+
+    data = _dish_event(stove)
+    _reset_stove(stove)
+    customer = next(c for c in sim.customers if c["id"] == data["order_id"])
+    customer.update(order_status="unfulfillable", reserved={})
+    available = available_stock(sim)
+    recipe = sim.menu[customer["dish_id"]]["recipe"]
+    if all(available.get(kind, 0) >= count for kind, count in recipe.items()):
+        customer.update(order_status="reserved", reserved=dict(recipe))
+    events.append(("dish_burnt", dict(data, order_status=customer["order_status"])))
 
 
 def interact(sim, events):

@@ -1,0 +1,17 @@
+{
+  "frames": [
+    {
+      "tick": 2,
+      "buy": "oxygen",
+      "shop_done": true
+    },
+    {
+      "tick": 3,
+      "shop_done": false
+    },
+    {
+      "tick": 5,
+      "shop_done": true
+    }
+  ]
+}
