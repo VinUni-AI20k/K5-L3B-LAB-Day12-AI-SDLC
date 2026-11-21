@@ -41,7 +41,9 @@ class LiveServerTest(unittest.TestCase):
         with open(html_path, "r", encoding="utf-8") as f:
             html = f.read()
         self.assertIn("function freshnessLabel(item)", html)
-        self.assertIn('fresh < 30 ? "ƯƠN"', html)
+        self.assertIn('isSpoiled(item) ? "ƯƠN"', html)  # ngưỡng từ meta.freshness, không ghi cứng 30
+        self.assertIn("spoiled_below", html)
+        self.assertIn("nSpoiled", html)  # HUD sáng: giỏ đếm hàng ươn
         self.assertIn("inventoryDetails(snap.stock)", html)
 
     def test_state_input_and_clean_stop(self):

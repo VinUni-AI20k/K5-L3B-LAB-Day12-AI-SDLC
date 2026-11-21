@@ -102,7 +102,8 @@ class LiveGame:
     def state_json(self) -> bytes:
         with self._lock:
             snap = self.session.snapshot()
-            snap["meta"] = self.tuning[self.mode]
+            # v1.2: HUD đọc ngưỡng ươn từ manifest (không ghi cứng số trong JS)
+            snap["meta"] = dict(self.tuning[self.mode], freshness=self.tuning.get("freshness"))
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None
