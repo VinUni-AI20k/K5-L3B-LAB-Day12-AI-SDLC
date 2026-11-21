@@ -223,10 +223,12 @@ class HeadlessV12(unittest.TestCase):
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "1", "--scenario", sc,
                                      "--inputs", inp, "--inventory-out", kho, "--out", w.path("g.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(end["inventory"], saved)
             with open(kho, encoding="utf-8") as f:
                 saved = json.load(f)
             end = events(read_jsonl(w.path("g.jsonl")), "gather_end")[0]["data"]
+            # File kho phải khớp gather_end.inventory (PRD-0 mục G). Dòng này từng đứng TRƯỚC khi gán end/saved
+            # (UnboundLocalError); đúng sau khi items.to_file làm tròn fresh 3 chữ số như JSONL.
+            self.assertEqual(end["inventory"], saved)
             self.assertEqual([(i["id"], i["kind"]) for i in saved["items"]], [("I1", "ca_linh"), ("I2", "ca_loc")])
             self.assertEqual(snapshots(read_jsonl(w.path("g.jsonl")))[0]["hold"][1], item(2, "ca_loc", 97.5))
             dem = write_json(w.path("dem.json"), {"items": {"ca_loc": 1}})
@@ -248,7 +250,8 @@ class HeadlessV12(unittest.TestCase):
             with open(kho, encoding="utf-8") as f:
                 self.assertEqual(json.load(f), {"items": []})
             faint = events(read_jsonl(w.path("g.jsonl")), "faint")[0]["data"]
-            self.assertEqual(faint["lost"], [item(1, fresh=100)])
+            # Ticket-03: giỏ hao ở ĐẦU bước, trước ngạt/ngất -> hàng mất đã hao 1 bước (JSONL làm tròn 3 chữ số)
+            self.assertEqual(faint["lost"], [item(1, fresh=round(100 - 2 / 240, 3))])
 
 
 if __name__ == "__main__":

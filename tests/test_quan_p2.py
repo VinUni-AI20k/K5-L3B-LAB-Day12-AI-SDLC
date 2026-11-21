@@ -12,6 +12,7 @@ import json
 import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, write_json
+from legacy_v11 import setUpModule, tearDownModule  # noqa: F401  v1.2: fixture kho đếm chạy trên manifest v1.1 tạm, xem tests/legacy_v11.py
 
 with open("game.contract.json", encoding="utf-8") as _f:
     TUNING = json.load(_f)["tuning"]

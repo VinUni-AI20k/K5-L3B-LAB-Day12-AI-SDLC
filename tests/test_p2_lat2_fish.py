@@ -13,6 +13,7 @@ from helpers import (
     snapshots,
     write_json,
 )
+from legacy_v11 import setUpModule, tearDownModule  # noqa: F401  v1.2: fixture kho đếm chạy trên manifest v1.1 tạm, xem tests/legacy_v11.py
 
 
 class TestPhase2Lat2Fish(unittest.TestCase):

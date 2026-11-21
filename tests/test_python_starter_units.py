@@ -10,6 +10,7 @@ from chonoi.inputs import InputPlayer, LiveInputs, load_frames
 from chonoi.runner import Session
 
 from helpers import Workdir, frames, write_json
+from legacy_v11 import setUpModule, tearDownModule  # noqa: F401  v1.2: fixture kho đếm chạy trên manifest v1.1 tạm, xem tests/legacy_v11.py
 
 
 class Units(unittest.TestCase):
