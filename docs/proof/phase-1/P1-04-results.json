@@ -1,0 +1,613 @@
+{
+  "tests_exit_code": 0,
+  "cli_runs": [
+    {
+      "label": "default",
+      "args": [
+        "--mode",
+        "quan",
+        "--seed",
+        "42",
+        "--ticks",
+        "10800",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-1\\P1-04-default.jsonl"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "label": "fixture-a",
+      "args": [
+        "--mode",
+        "quan",
+        "--seed",
+        "42",
+        "--ticks",
+        "10800",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-1\\P1-04-fixture-a.jsonl",
+        "--scenario",
+        "tests/fixtures/p1_04_quan.json",
+        "--inputs",
+        "tests/fixtures/p1_04_inputs.json",
+        "--snapshot-every",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "label": "fixture-b",
+      "args": [
+        "--mode",
+        "quan",
+        "--seed",
+        "42",
+        "--ticks",
+        "10800",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-1\\P1-04-fixture-b.jsonl",
+        "--scenario",
+        "tests/fixtures/p1_04_quan.json",
+        "--inputs",
+        "tests/fixtures/p1_04_inputs.json",
+        "--snapshot-every",
+        "1"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    },
+    {
+      "label": "gather",
+      "args": [
+        "--mode",
+        "gather",
+        "--seed",
+        "42",
+        "--ticks",
+        "600",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-1\\P1-04-gather.jsonl"
+      ],
+      "exit_code": 0,
+      "stdout": "",
+      "stderr": ""
+    }
+  ],
+  "deterministic_bytes": true,
+  "sha256": "61466f57ff167c7b8891a9b7a3581eb943fdb3246e8ade4f4cb1cea58c68b21a",
+  "events": [
+    {
+      "type": "event",
+      "tick": 1,
+      "phase": "quan",
+      "name": "cook_started",
+      "data": {
+        "stove_id": "B1",
+        "order_id": "C1",
+        "dish_id": "ca_loc_nuong_trui",
+        "base_price": 60,
+        "items": [
+          "ca_loc"
+        ]
+      }
+    },
+    {
+      "type": "event",
+      "tick": 361,
+      "phase": "quan",
+      "name": "dish_ready",
+      "data": {
+        "stove_id": "B1",
+        "order_id": "C1",
+        "dish_id": "ca_loc_nuong_trui"
+      }
+    },
+    {
+      "type": "event",
+      "tick": 361,
+      "phase": "quan",
+      "name": "dish_picked",
+      "data": {
+        "stove_id": "B1",
+        "order_id": "C1",
+        "dish_id": "ca_loc_nuong_trui"
+      }
+    },
+    {
+      "type": "event",
+      "tick": 398,
+      "phase": "quan",
+      "name": "served",
+      "data": {
+        "order_id": "C1",
+        "dish_id": "ca_loc_nuong_trui",
+        "base_price": 60,
+        "table_id": "T1",
+        "patience_ticks_left": 3202,
+        "tip": 12
+      }
+    },
+    {
+      "type": "event",
+      "tick": 998,
+      "phase": "quan",
+      "name": "paid",
+      "data": {
+        "order_id": "C1",
+        "table_id": "T1",
+        "base_price": 60,
+        "tip": 12,
+        "amount": 72,
+        "reason": "finished_eating"
+      }
+    },
+    {
+      "type": "event",
+      "tick": 10800,
+      "phase": "quan",
+      "name": "quan_end",
+      "data": {
+        "reason": "time",
+        "money": 72,
+        "earned": 72,
+        "shift_earned": 72,
+        "reputation": 3.2
+      }
+    }
+  ],
+  "snapshots": [
+    {
+      "type": "snapshot",
+      "tick": 0,
+      "sim_tick": 0,
+      "mode": "quan",
+      "phase": "quan",
+      "phase_tick": 0,
+      "state": "playing",
+      "time_left_ticks": 10800,
+      "money": 0,
+      "earned": 0,
+      "reputation": 3.0,
+      "score": 300,
+      "player": {
+        "pos": [
+          2,
+          8
+        ],
+        "vel": [
+          0.0,
+          0.0
+        ]
+      },
+      "stock": {
+        "ca_loc": 1
+      },
+      "hand": null,
+      "stoves": [
+        {
+          "id": "B1",
+          "pos": [
+            2,
+            8
+          ],
+          "state": "idle",
+          "dish": null,
+          "cook_ticks_left": 0,
+          "ready_ticks": 0
+        }
+      ],
+      "tables": [
+        {
+          "id": "T1",
+          "pos": [
+            4,
+            8
+          ],
+          "customer_id": "C1"
+        }
+      ],
+      "customers": [
+        {
+          "id": "C1",
+          "table_id": "T1",
+          "state": "waiting",
+          "order_status": "reserved",
+          "order_tick": 0,
+          "dish_id": "ca_loc_nuong_trui",
+          "base_price": 60,
+          "reserved": {
+            "ca_loc": 1
+          },
+          "patience_ticks_left": 3600,
+          "eat_ticks_left": 0,
+          "tip": 0
+        }
+      ]
+    },
+    {
+      "type": "snapshot",
+      "tick": 1,
+      "sim_tick": 1,
+      "mode": "quan",
+      "phase": "quan",
+      "phase_tick": 1,
+      "state": "playing",
+      "time_left_ticks": 10799,
+      "money": 0,
+      "earned": 0,
+      "reputation": 3.0,
+      "score": 300,
+      "player": {
+        "pos": [
+          2.0,
+          8.0
+        ],
+        "vel": [
+          0.0,
+          0.0
+        ]
+      },
+      "stock": {},
+      "hand": null,
+      "stoves": [
+        {
+          "id": "B1",
+          "pos": [
+            2,
+            8
+          ],
+          "state": "cooking",
+          "dish": {
+            "order_id": "C1",
+            "dish_id": "ca_loc_nuong_trui",
+            "base_price": 60
+          },
+          "cook_ticks_left": 360,
+          "ready_ticks": 0
+        }
+      ],
+      "tables": [
+        {
+          "id": "T1",
+          "pos": [
+            4,
+            8
+          ],
+          "customer_id": "C1"
+        }
+      ],
+      "customers": [
+        {
+          "id": "C1",
+          "table_id": "T1",
+          "state": "waiting",
+          "order_status": "assigned",
+          "order_tick": 0,
+          "dish_id": "ca_loc_nuong_trui",
+          "base_price": 60,
+          "reserved": {},
+          "patience_ticks_left": 3599,
+          "eat_ticks_left": 0,
+          "tip": 0
+        }
+      ]
+    },
+    {
+      "type": "snapshot",
+      "tick": 360,
+      "sim_tick": 360,
+      "mode": "quan",
+      "phase": "quan",
+      "phase_tick": 360,
+      "state": "playing",
+      "time_left_ticks": 10440,
+      "money": 0,
+      "earned": 0,
+      "reputation": 3.0,
+      "score": 300,
+      "player": {
+        "pos": [
+          2.0,
+          8.0
+        ],
+        "vel": [
+          0.0,
+          0.0
+        ]
+      },
+      "stock": {},
+      "hand": null,
+      "stoves": [
+        {
+          "id": "B1",
+          "pos": [
+            2,
+            8
+          ],
+          "state": "cooking",
+          "dish": {
+            "order_id": "C1",
+            "dish_id": "ca_loc_nuong_trui",
+            "base_price": 60
+          },
+          "cook_ticks_left": 1,
+          "ready_ticks": 0
+        }
+      ],
+      "tables": [
+        {
+          "id": "T1",
+          "pos": [
+            4,
+            8
+          ],
+          "customer_id": "C1"
+        }
+      ],
+      "customers": [
+        {
+          "id": "C1",
+          "table_id": "T1",
+          "state": "waiting",
+          "order_status": "assigned",
+          "order_tick": 0,
+          "dish_id": "ca_loc_nuong_trui",
+          "base_price": 60,
+          "reserved": {},
+          "patience_ticks_left": 3240,
+          "eat_ticks_left": 0,
+          "tip": 0
+        }
+      ]
+    },
+    {
+      "type": "snapshot",
+      "tick": 361,
+      "sim_tick": 361,
+      "mode": "quan",
+      "phase": "quan",
+      "phase_tick": 361,
+      "state": "playing",
+      "time_left_ticks": 10439,
+      "money": 0,
+      "earned": 0,
+      "reputation": 3.0,
+      "score": 300,
+      "player": {
+        "pos": [
+          2.0,
+          8.0
+        ],
+        "vel": [
+          0.0,
+          0.0
+        ]
+      },
+      "stock": {},
+      "hand": {
+        "order_id": "C1",
+        "dish_id": "ca_loc_nuong_trui",
+        "base_price": 60
+      },
+      "stoves": [
+        {
+          "id": "B1",
+          "pos": [
+            2,
+            8
+          ],
+          "state": "idle",
+          "dish": null,
+          "cook_ticks_left": 0,
+          "ready_ticks": 0
+        }
+      ],
+      "tables": [
+        {
+          "id": "T1",
+          "pos": [
+            4,
+            8
+          ],
+          "customer_id": "C1"
+        }
+      ],
+      "customers": [
+        {
+          "id": "C1",
+          "table_id": "T1",
+          "state": "waiting",
+          "order_status": "assigned",
+          "order_tick": 0,
+          "dish_id": "ca_loc_nuong_trui",
+          "base_price": 60,
+          "reserved": {},
+          "patience_ticks_left": 3239,
+          "eat_ticks_left": 0,
+          "tip": 0
+        }
+      ]
+    },
+    {
+      "type": "snapshot",
+      "tick": 398,
+      "sim_tick": 398,
+      "mode": "quan",
+      "phase": "quan",
+      "phase_tick": 398,
+      "state": "playing",
+      "time_left_ticks": 10402,
+      "money": 0,
+      "earned": 0,
+      "reputation": 3.0,
+      "score": 300,
+      "player": {
+        "pos": [
+          4.0,
+          8.0
+        ],
+        "vel": [
+          0.0,
+          0.0
+        ]
+      },
+      "stock": {},
+      "hand": null,
+      "stoves": [
+        {
+          "id": "B1",
+          "pos": [
+            2,
+            8
+          ],
+          "state": "idle",
+          "dish": null,
+          "cook_ticks_left": 0,
+          "ready_ticks": 0
+        }
+      ],
+      "tables": [
+        {
+          "id": "T1",
+          "pos": [
+            4,
+            8
+          ],
+          "customer_id": "C1"
+        }
+      ],
+      "customers": [
+        {
+          "id": "C1",
+          "table_id": "T1",
+          "state": "eating",
+          "order_status": "served",
+          "order_tick": 0,
+          "dish_id": "ca_loc_nuong_trui",
+          "base_price": 60,
+          "reserved": {},
+          "patience_ticks_left": 3202,
+          "eat_ticks_left": 600,
+          "tip": 12
+        }
+      ]
+    },
+    {
+      "type": "snapshot",
+      "tick": 998,
+      "sim_tick": 998,
+      "mode": "quan",
+      "phase": "quan",
+      "phase_tick": 998,
+      "state": "playing",
+      "time_left_ticks": 9802,
+      "money": 72,
+      "earned": 72,
+      "reputation": 3.2,
+      "score": 372,
+      "player": {
+        "pos": [
+          4.0,
+          8.0
+        ],
+        "vel": [
+          0.0,
+          0.0
+        ]
+      },
+      "stock": {},
+      "hand": null,
+      "stoves": [
+        {
+          "id": "B1",
+          "pos": [
+            2,
+            8
+          ],
+          "state": "idle",
+          "dish": null,
+          "cook_ticks_left": 0,
+          "ready_ticks": 0
+        }
+      ],
+      "tables": [
+        {
+          "id": "T1",
+          "pos": [
+            4,
+            8
+          ],
+          "customer_id": null
+        }
+      ],
+      "customers": []
+    },
+    {
+      "type": "snapshot",
+      "tick": 10800,
+      "sim_tick": 10800,
+      "mode": "quan",
+      "phase": "quan",
+      "phase_tick": 10800,
+      "state": "finished",
+      "time_left_ticks": 0,
+      "money": 72,
+      "earned": 72,
+      "reputation": 3.2,
+      "score": 372,
+      "player": {
+        "pos": [
+          4.0,
+          8.0
+        ],
+        "vel": [
+          0.0,
+          0.0
+        ]
+      },
+      "stock": {},
+      "hand": null,
+      "stoves": [
+        {
+          "id": "B1",
+          "pos": [
+            2,
+            8
+          ],
+          "state": "idle",
+          "dish": null,
+          "cook_ticks_left": 0,
+          "ready_ticks": 0
+        }
+      ],
+      "tables": [
+        {
+          "id": "T1",
+          "pos": [
+            4,
+            8
+          ],
+          "customer_id": null
+        }
+      ],
+      "customers": []
+    }
+  ],
+  "end": {
+    "type": "end",
+    "ticks": 10800,
+    "sim_tick": 10800,
+    "mode": "quan",
+    "state": "finished",
+    "reason": "time",
+    "money": 72,
+    "earned": 72,
+    "reputation": 3.2,
+    "score": 372
+  }
+}

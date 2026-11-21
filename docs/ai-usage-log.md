@@ -2,6 +2,7 @@
 
 | Phase | Người | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|---|
+| 1 | Thành viên 4 — Kitchen & Serving (chưa cung cấp handle) | Codex | P1-04: helper bếp/phục vụ/thanh toán, fixture, unit/headless/HTTP test, đối chiếu PRD-0 | Không đo | 68 test pass; đã sửa giả định order_id/items theo PRD bổ sung và lỗi số thực tại mép bán kính. Bằng chứng: docs/proof/phase-1/P1-04-results.json; dependency P1-03 ghi trong docs/notes/P1-04.md. |
 | 1 | lunaHieu | Gemini Web UI (tên model chờ xác nhận) | Chuỗi khoảng 10 lượt: phân tích PRD-0 và Test Contract v1.0; soạn AC-P1-G2-01..05; tạo prompt giới hạn phạm vi cho Codex; review diff code và kết quả kiểm chứng. | Người dùng ước tính khoảng 22.000 token trao đổi trực tiếp (14.000 input, 8.000 output), khoảng 55.000 nếu tính ngữ cảnh lịch sử; $0 qua bản web. | Dùng spec, diff và test thật để kiểm soát đầu ra; chưa có tên model hiển thị nên không đoán. |
 | 1 | lunaHieu | Codex (GPT-6) | Đọc hướng dẫn, PRD-0, phân công và repo; đối chiếu phạm vi Lát 2 với khung Python. | Khoảng 8.000–15.000 token, ước tính thô; chi phí không có số đo. | Ban đầu đánh giá vai Người 5 quá dễ; kiểm lại phạm vi và sửa khuyến nghị thành Người 2. |
 | 1 | lunaHieu | Codex (GPT-6) | Phân tích ranh giới với Người 1, viết đặc tả Lát 2 trong `docs/plan/phase-1.md`, rà từng AC và kế hoạch test. | Khoảng 8.000–15.000 token, ước tính thô; chi phí không có số đo. | Codex thêm helper `_nearest()` ngoài hai khối TODO; phát hiện bằng `git diff`, hoàn tác trước khi triển khai. |
@@ -13,3 +14,5 @@
 | 2 | lunaHieu | Codex (GPT-6) | Đọc spec và repo, triển khai `monsters.py`, hook Gather, validation scenario, test P2-02; chạy 80 test và lưu bằng chứng; lập ma trận AC. | Ước tính thô 20.000–40.000 token; không phải số đo từ ứng dụng hoặc hóa đơn. | Bộ test đầu phát hiện sai lệch số học khi chạm waypoint; review toàn suite phát hiện test Phase 1 trái luật ngạt v1.1. Sửa logic và cập nhật kỳ vọng test có lý do, rồi chạy lại 80/80. |
 
 Các khoảng token là ước tính theo lượng trao đổi, không phải số token đo từ ứng dụng hoặc hóa đơn. Thông tin Gemini Phase 1 do `lunaHieu` cung cấp; cập nhật tên model và số liệu Phase 2 khi có thống kê thực tế.
+
+2026-11-21 — Codex merge `origin/main` (`f1bd68e`) vào `Kitchenserving`: xử lý conflict `quan.py` bằng cách giữ lịch khách/claim P1-03 và dùng chung validation, timers, cleanup P1-04; giữ cả hai phần nhật ký AI. Thêm 3 test tích hợp khách tự sinh; 105 test pass, verifier 4 lượt headless pass. Trên Windows đặt `PYTHONUTF8=1` để subprocess đọc chẩn đoán UTF-8 đồng nhất. Không đo token/chi phí. Bằng chứng: `docs/proof/phase-1/Kitchenserving-main-merge.txt`.
