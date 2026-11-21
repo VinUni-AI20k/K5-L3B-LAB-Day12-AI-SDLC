@@ -74,7 +74,7 @@ class Phase3InventoryAndCurrentQATests(unittest.TestCase):
         scenario = self.path("spoils.json")
         write_json(scenario, {"gather": {"hold": [{"id": "I1", "kind": "ca_linh", "fresh": 30}],
                                          "random_fish": False}})
-        code, stderr, rows = self.run_cli("gather", 1, scenario=scenario)
+        code, stderr, rows = self.run_cli("gather", 4, scenario=scenario)
         self.assertEqual((code, stderr), (0, ""))
         spoiled = events(rows, "spoiled")
         self.assertEqual([(e["tick"], e["data"]["item_id"]) for e in spoiled], [(1, "I1")])
@@ -85,16 +85,17 @@ class Phase3InventoryAndCurrentQATests(unittest.TestCase):
             "stock": [
                 {"id": "I1", "kind": "ca_loc", "fresh": 30},
                 {"id": "I2", "kind": "ca_loc", "fresh": 95},
+                {"id": "I3", "kind": "ca_loc", "fresh": 90},
             ],
             "random_customers": False,
-            "reservations": [{"id": "R1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "arrival_tick": 1}],
+            "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                           "order_status": "reserved", "reserved": ["I1"]}],
         }})
         code, stderr, rows = self.run_cli("quan", 2, scenario=scenario, snapshot_every=1)
         self.assertEqual((code, stderr), (0, ""))
         self.assertEqual(len(events(rows, "spoiled")), 1)
-        arrived = events(rows, "reservation_arrived")
-        self.assertEqual(len(arrived), 1)
-        self.assertIn("I2", arrived[0]["data"]["reserved"])
+        self.assertEqual(snapshots(rows)[0]["customers"][0]["reserved"], ["I1"])
+        self.assertEqual(snapshots(rows)[1]["customers"][0]["reserved"], ["I2"])
 
     def test_price_uses_average_freshness_and_tip_is_calculated_after_price(self):
         scenario = self.path("fresh-price.json")
@@ -125,8 +126,13 @@ class Phase3InventoryAndCurrentQATests(unittest.TestCase):
         inventory = self.path("inventory.json")
         code, stderr, rows = self.run_cli("gather", 1, scenario=scenario, inputs=inputs, inventory_out=inventory)
         self.assertEqual((code, stderr), (0, ""))
-        self.assertEqual(json.load(open(inventory, encoding="utf-8")),
-                         {"items": [{"id": "I1", "kind": "ca_linh", "fresh": 100}]})
+        with open(inventory, encoding="utf-8") as inventory_file:
+            saved = json.load(inventory_file)
+        self.assertEqual(saved["items"][0]["id"], "I1")
+        self.assertAlmostEqual(saved["items"][0]["fresh"], 100 - 0.5 / 60, delta=0.01)
+        code, stderr, quan_rows = self.run_cli("quan", 0, inventory=inventory)
+        self.assertEqual((code, stderr), (0, ""))
+        self.assertEqual(snapshots(quan_rows)[0]["stock"], saved["items"])
         day_scenario = self.path("day.json")
         write_json(day_scenario, {"gather": {"hold": [{"id": "I1", "kind": "ca_linh", "fresh": 100}],
                                              "random_fish": False, "time_left_ticks": 1},
@@ -135,7 +141,7 @@ class Phase3InventoryAndCurrentQATests(unittest.TestCase):
         self.assertEqual((code, stderr), (0, ""))
         quan_snapshots = [s for s in snapshots(day_rows) if s["phase"] == "quan"]
         self.assertTrue(quan_snapshots)
-        self.assertEqual(quan_snapshots[0]["stock"], [{"id": "I1", "kind": "ca_linh", "fresh": 99.9916666667}])
+        self.assertEqual(quan_snapshots[0]["stock"], saved["items"])
 
     def test_current_warns_at_lead_boundary_and_pushes_at_depth_ten(self):
         self.assertIn("current", load_contract()["tuning"]["gather"])
@@ -146,13 +152,33 @@ class Phase3InventoryAndCurrentQATests(unittest.TestCase):
         self.assertEqual(current["speed"], 1.5)
         scenario = self.path("current.json")
         write_json(scenario, {"gather": {"player": {"pos": [50, 10]}, "random_fish": False,
-                                         "monsters": [], "random_current": False,
+                                         "monsters": [],
                                          "current_direction": 1}})
-        code, stderr, rows = self.run_cli("gather", 121, scenario=scenario, snapshot_every=1)
+        start = current["interval_ticks"]
+        code, stderr, rows = self.run_cli("gather", start + 1, scenario=scenario, snapshot_every=1)
         self.assertEqual((code, stderr), (0, ""))
-        self.assertEqual(len(events(rows, "current_warning")), 1)
-        first = [s for s in snapshots(rows) if s["tick"] == 121][-1]
-        self.assertAlmostEqual(first["player"]["pos"][0] - 50, 1.5 * 121 / 60, delta=0.05)
+        self.assertEqual([e["tick"] for e in events(rows, "current_warning")], [start - current["warning_ticks"]])
+        before = [s for s in snapshots(rows) if s["tick"] == start - 1][-1]
+        first = [s for s in snapshots(rows) if s["tick"] == start][-1]
+        self.assertAlmostEqual(first["player"]["pos"][0] - before["player"]["pos"][0], 1.5 / 60, delta=0.01)
+
+        # Start at the surface so oxygen lasts through the entire current.
+        write_json(scenario, {"gather": {"player": {"pos": [50, 0]}, "random_fish": False,
+                                         "monsters": [], "current_direction": -1}})
+        inputs = self.path("dive.json")
+        write_json(inputs, {"frames": [{"tick": start, "move": [0, 1]}]})
+        end = start + current["duration_ticks"]
+        code, stderr, rows = self.run_cli("gather", end, scenario=scenario, inputs=inputs, snapshot_every=1)
+        self.assertEqual(code, 0, stderr)
+        states = snapshots(rows)
+        for tick in range(start, end):
+            state = states[tick]
+            self.assertEqual(state["current"], {"direction": -1, "ticks_left": end - tick})
+            x, depth = state["player"]["pos"]
+            expected = -current["speed"] / 60 if depth >= current["min_depth"] else 0
+            self.assertAlmostEqual(x - states[tick - 1]["player"]["pos"][0], expected, delta=0.001)
+        self.assertIsNone(states[end]["current"])
+        self.assertEqual(states[end]["player"]["pos"][0], states[end - 1]["player"]["pos"][0])
 
     def test_current_manifest_contract_values(self):
         self.assertIn("current", load_contract()["tuning"]["gather"])

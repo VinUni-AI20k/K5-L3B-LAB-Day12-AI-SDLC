@@ -80,7 +80,7 @@ class DaySim:
                 if u["level"] == hp_lvl:
                     g_tuning["gather"]["hp_max"] = u["hp_max"]
 
-        self.sim_gather = GatherSim(g_tuning, g_scen, self.streams, self.ids)
+        self.sim_gather = GatherSim(g_tuning, g_scen, self.streams, self.ids, individual_items=True)
 
     def _init_quan(self, inventory):
         q_scen = dict(self.scenario.get("quan", {}))

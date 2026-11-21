@@ -8,7 +8,8 @@ def _clean(v):
         r = round(v, 3)
         return 0.0 if r == 0 else r  # tránh -0.0
     if isinstance(v, dict):
-        return {k: _clean(x) for k, x in v.items()}
+        # Freshness must round-trip through gather_end and the inventory file.
+        return {k: x if k == "fresh" else _clean(x) for k, x in v.items()}
     if isinstance(v, (list, tuple)):
         return [_clean(x) for x in v]
     return v
