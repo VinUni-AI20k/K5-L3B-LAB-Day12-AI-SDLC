@@ -5,12 +5,15 @@
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out out.jsonl` (đổi `gather` thành `quan` để thử quán).
-- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather` (hoặc `--mode quan`; mở địa chỉ in ra. Phím WASD, E, Space, R).
+- Headless vòng ngày (v1.1, từ Phase 2): `python3 -m chonoi.headless --mode day --days 1 --seed 1 --ticks 22200 --out day.jsonl` (`--days` 1–5; một Ngày không pause ≤ 22.200 tick, phải chạy ≤ 20 s).
+- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather` (hoặc `--mode quan`; mở địa chỉ in ra. Phím WASD, E, Space, R; Esc/P tạm dừng từ Phase 2).
+- Kiểm `game.contract.json` theo số chuẩn v1.1: skill `check-contract`.
 - Trên PowerShell, dùng `$env:PYTHONPATH = 'tests;.'` rồi chạy lệnh unittest. Kiểm tra `python3 --version` trước vì `headless_cmd` gọi `python3` trong tiến trình con.
 
 ## Đọc trước khi sửa
-- Yêu cầu phase: PRD trên lab board (PO tóm tắt trong [kế hoạch](docs/plan/phase-1.md), có danh sách AC-P1-xx).
-- Quyết định cho chỗ PRD mơ hồ: [docs/clarify.md](docs/clarify.md). **Tên event, tên trường và `data` lấy nguyên văn PRD-0 mục D/E.**
+- Yêu cầu phase: PRD/ticket trên lab board. PO tóm tắt trong kế hoạch từng phase, có danh sách AC: [Phase 1](docs/plan/phase-1.md) (AC-P1-xx, Test Contract v1.0), [Phase 2](docs/plan/phase-2.md) (AC-P2-xx, Test Contract v1.1). Phase sau **không** được làm hỏng AC phase trước (test ẩn kiểm lại).
+- Quyết định cho chỗ PRD mơ hồ: [docs/clarify.md](docs/clarify.md). **Tên event, tên trường và `data` lấy nguyên văn PRD-0 mục D/E và TICKET-02 mục 4.4.**
+- Số liệu: từ Phase 2 dùng **số chuẩn** của TICKET-02 mục 1–2 (thay hết số tự chọn ở Phase 1).
 - Hợp đồng tích hợp: [docs/contracts/](docs/contracts/README.md) (kho, sự kiện, schema khách).
 
 ## Cấu trúc & ai giữ file
@@ -25,8 +28,11 @@
 | `game.contract.json`, `docs/contracts/` | Contract, số liệu | @justapea25 |
 | `docs/clarify.md`, `docs/plan/`, `AGENTS.md`, `.agents/skills/`, `README.md`, `CREDITS.md` | PO, harness AI, docs | @linkiewinkie |
 | `docs/standup.md`, `docs/retro.md`, `CHANGELOG.md` | Scrum/Release | @minhthu27 |
+| `chonoi/web/index.html` (từ Phase 2) | Menu, màn chuyển pha, pause, HUD | @linkiewinkie |
 
-- Khung do giảng viên cấp: `chonoi/{headless,inputs,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. **Không sửa**; bắt buộc phải sửa thì báo cả nhóm, một người làm, ghi lý do.
+- **Phase 2:** việc mới (cá bơi/sinh, Cá Sấu, vòng ngày, Shop, pause) đặt trong **file mới** `chonoi/sim/<việc>.py`; file cũ chỉ thêm vài dòng nối. Lead gán người và ghi vào [plan Phase 2](docs/plan/phase-2.md); khi có tên, PO cập nhật bảng này.
+- Khung do giảng viên cấp: `chonoi/{headless,inputs,contract,rng,ids,jsonl,inventory,runner,live}.py`. **Không sửa**; bắt buộc phải sửa thì báo cả nhóm, một người làm, ghi lý do. Phase 2 bắt buộc sửa khung cho `--mode day`, pause, `buy`/`shop_done`, scenario v1.1: chỉ **một người** (Lead gán) sửa các file này.
+- Pause: khi `state` là `paused`, mọi timer gameplay, lịch khách/cá và Shop đứng yên; chỉ tick ngoài tăng.
 - Mỗi người một file test riêng (`tests/test_<lát>.py`); không sửa `tests/test_smoke_p1.py`, `tests/helpers.py`. Cần dữ liệu thì tự dựng scenario trong test.
 - **Số liệu chỉ đọc từ `game.contract.json` / dữ liệu**, không hard-code trong luật.
 - Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
@@ -36,7 +42,8 @@
 - Nhánh ngắn `<handle>/<việc>`; commit nhỏ, thường xuyên; làm cặp thì ghi `Co-authored-by:`.
 - Trước khi push: `git fetch && git rebase origin/main`, rồi chạy skill `run-tests`.
 - Mở PR vào `main` trước phút 50; Lead (@justapea25) review, gộp, gắn tag. Test đỏ thì không gộp.
-- Thứ tự gộp: helper giỏ (lát 1) trước lát 2; schema khách (lát 3) trước lát 4.
+- Thứ tự gộp: helper giỏ (lát 1) trước lát 2; schema khách (lát 3) trước lát 4. Phase 2: `game.contract.json` v1.1 và sửa khung `day` lên trước, rồi các lát dùng chúng.
+- Test cũ phải đổi vì luật/số chuẩn mới: ghi lý do trong commit (vd. "P1 dùng cá đứng yên F1–F6, v1.1 cá bơi → dựng scenario `random_fish: false`").
 - Conflict ở file người khác giữ → giữ bản trên `main`, nhắn chủ file. Vướng quá 10 phút → báo nhóm, người dự phòng vào.
 - File dùng chung (`TEAM.md`, `docs/ai-usage-log.md`): mỗi người chỉ sửa dòng/mục của mình, `git pull --rebase` ngay trước khi sửa.
 
@@ -60,3 +67,4 @@
 |---|---|
 | [`run-tests`](.agents/skills/run-tests/SKILL.md) | Trước khi push/mở PR, sau khi gộp, trước khi gắn tag: unittest + smoke hai tiến trình + kiểm tra cùng seed giống từng byte |
 | [`verify-phase`](.agents/skills/verify-phase/SKILL.md) | Phút 45–55 mỗi phase: điền `docs/verification/phase-n.md` theo AC-P{n}-xx với bằng chứng thật |
+| [`check-contract`](.agents/skills/check-contract/SKILL.md) | Sau khi sửa `game.contract.json`, trước khi gộp: so với số chuẩn v1.1 (TICKET-02 mục 1–2), liệt kê khóa thiếu/sai |
