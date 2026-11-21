@@ -20,6 +20,7 @@
 | 13 | 21/11 … | (P2) Nút `attack`/`photo` khi chưa bật mở rộng: mã 2 hay bỏ qua? | Giả định: **bỏ qua** (TICKET-02 mục 4.2 "mở rộng chưa bật thì bỏ qua"); nút lạ như `jump` vẫn mã 2. Đã sửa 2 test v1.0 theo luật này. | Integrator (nglngnguyen-gh) |
 | 14 | 21/11 … | (P2) RNG trong `--mode day`: mọi Ngày dùng chung một chuỗi hay tách? | Giả định: mỗi Ngày `Streams("<seed>:day<n>")`, gather và quán của Ngày đó dùng chung bộ luồng (tên luồng riêng). Cùng seed → giống từng byte; Ngày khác nhau có cá/khách khác nhau. | Integrator (nglngnguyen-gh) |
 | 15 | 21/11 … | (P2) `scenario.gather` / `scenario.quan` trong `day` áp cho Ngày 1 hay mọi Ngày? | Giả định: **mọi Ngày** (TICKET-02 mục 4.3 "làm mẫu khởi tạo mỗi Ngày"). Tick đổi pha luôn có một snapshot pha mới với `phase_tick: 0`. | Integrator (nglngnguyen-gh) |
+| 16 | 21/11 … | P2 · Trong `day`, khách/bếp/tay dựng sẵn (scenario `quan`) có món **ngoài** kế hoạch Ngày thì sao? (TICKET-02 mục 4.3: "Kho, khách, bếp và món thuộc kế hoạch được kiểm trên kho thực lúc mở quán") | Giả định (lát 3): là mâu thuẫn → mã 2, kiểm lúc dựng `QuanSim(menu_filter=…)`. Quán độc lập (`menu_filter=None`) vẫn nhận cả 6 món. | minhtriet061203 (chờ PO) |
 
 ## Giả định nhóm đã chốt (không cần hỏi, có căn cứ trong PRD)
 

@@ -1,0 +1,42 @@
+# Lát 3 P2 (minhtriet061203) — AC-P2-31, AC-P2-32
+# PYTHONPATH=tests:. python3 -m unittest tests.test_quan_p2_tables_plan -v
+test_defaults_unchanged_for_standalone (tests.test_quan_p2_tables_plan.CarryOverState.test_defaults_unchanged_for_standalone) ... ok
+test_initial_money_earned_reputation (tests.test_quan_p2_tables_plan.CarryOverState.test_initial_money_earned_reputation) ... ok
+test_every_day_plan_dish_is_in_menu (tests.test_quan_p2_tables_plan.DayPlanFilter.test_every_day_plan_dish_is_in_menu) ... ok
+test_fixture_in_plan_is_ok (tests.test_quan_p2_tables_plan.DayPlanFilter.test_fixture_in_plan_is_ok) ... ok
+test_fixture_off_plan_is_bad_input (tests.test_quan_p2_tables_plan.DayPlanFilter.test_fixture_off_plan_is_bad_input) ... ok
+test_keeps_ordering_after_planned_servings (tests.test_quan_p2_tables_plan.DayPlanFilter.test_keeps_ordering_after_planned_servings) ... ok
+test_no_dish_when_only_off_plan_dishes_are_cookable (tests.test_quan_p2_tables_plan.DayPlanFilter.test_no_dish_when_only_off_plan_dishes_are_cookable) ... ok
+test_only_plan_dishes_even_if_other_dishes_cookable (tests.test_quan_p2_tables_plan.DayPlanFilter.test_only_plan_dishes_even_if_other_dishes_cookable) ... ok
+test_plan_then_availability (tests.test_quan_p2_tables_plan.DayPlanFilter.test_plan_then_availability) ... ok
+test_same_seed_same_choices_with_plan (tests.test_quan_p2_tables_plan.DayPlanFilter.test_same_seed_same_choices_with_plan) ... ok
+test_unknown_plan_dish_is_bad_input (tests.test_quan_p2_tables_plan.DayPlanFilter.test_unknown_plan_dish_is_bad_input) ... ok
+test_all_four_tables_busy_skips_turn (tests.test_quan_p2_tables_plan.FourTables.test_all_four_tables_busy_skips_turn) ... ok
+test_customers_fill_tables_in_id_order (tests.test_quan_p2_tables_plan.FourTables.test_customers_fill_tables_in_id_order) ... ok
+test_four_tables_through_headless_snapshot (tests.test_quan_p2_tables_plan.FourTables.test_four_tables_through_headless_snapshot) ... ok
+test_freed_smallest_table_is_reused (tests.test_quan_p2_tables_plan.FourTables.test_freed_smallest_table_is_reused) ... ok
+test_preset_v11_has_four_tables_and_six_dishes (tests.test_quan_p2_tables_plan.FourTables.test_preset_v11_has_four_tables_and_six_dishes) ... ok
+test_new_dish_only_when_its_recipe_is_available (tests.test_quan_p2_tables_plan.SixDishes.test_new_dish_only_when_its_recipe_is_available) ... ok
+test_standalone_uses_all_six_dishes (tests.test_quan_p2_tables_plan.SixDishes.test_standalone_uses_all_six_dishes) ... ok
+
+----------------------------------------------------------------------
+Ran 18 tests in 4.376s
+
+OK
+
+# Regression P1 lát 3: PYTHONPATH=tests:. python3 -m unittest tests.test_quan_customers
+Ran 29 tests in 9.524s
+
+OK
+
+# Toàn bộ: PYTHONPATH=tests:. python3 -m unittest discover -s tests
+Ran 111 tests in 20.599s
+
+OK
+
+# Quán độc lập v1.1, kho đủ 6 nguyên liệu (mỗi loại 50), seed 5, 3000 tick: khách vào T1..T4
+Tất định: 2 lần chạy giống từng byte
+{"type":"event","tick":120,"phase":"quan","name":"customer_arrived","data":{"order_id":"C1","table_id":"T1","dish_id":"goi_bong_sung"}}
+{"type":"event","tick":1020,"phase":"quan","name":"customer_arrived","data":{"order_id":"C2","table_id":"T2","dish_id":"canh_chua_ca_loc"}}
+{"type":"event","tick":1920,"phase":"quan","name":"customer_arrived","data":{"order_id":"C3","table_id":"T3","dish_id":"goi_bong_sung"}}
+{"type":"event","tick":2820,"phase":"quan","name":"customer_arrived","data":{"order_id":"C4","table_id":"T4","dish_id":"canh_chua_ca_loc"}}
