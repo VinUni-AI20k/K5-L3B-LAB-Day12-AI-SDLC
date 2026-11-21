@@ -4,9 +4,10 @@ import json
 import os
 
 from .errors import BadInput
+from .freshness import PHASES, decay_units_per_tick
 from .inventory import KINDS
 
-SUPPORTED_VERSIONS = ("1.0", "1.1")
+SUPPORTED_VERSIONS = ("1.0", "1.1", "1.2")
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
 FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 
@@ -30,7 +31,7 @@ def load_contract(path=DEFAULT_PATH) -> dict:
         raise BadInput(f"không đọc được {path}: {e}")
     if c.get("contract_version") not in SUPPORTED_VERSIONS:
         raise BadInput(f"contract_version phải thuộc {SUPPORTED_VERSIONS}, đang là {c.get('contract_version')!r}")
-    validate_tuning(c.get("tuning"))
+    validate_tuning(c.get("tuning"), c["contract_version"])
     return c
 
 
@@ -251,7 +252,28 @@ def _validate_shop(t, g):
             prev = lv[key]
 
 
-def validate_tuning(t):
+def _validate_freshness(t, required):
+    """v1.2 (Ticket-03): độ tươi bằng số nguyên đơn vị; hao mỗi tick phải ra số nguyên."""
+    f = t.get("freshness")
+    if f is None:
+        if required:
+            raise BadInput("contract 1.2 phải có tuning.freshness")
+        return
+    if not isinstance(f, dict) or set(f) != {"fresh_max", "spoil_below", "units_per_point", "decay_per_s"}:
+        raise BadInput("tuning.freshness phải có đúng fresh_max, spoil_below, units_per_point, decay_per_s")
+    _int_between("freshness.fresh_max", f["fresh_max"], 1, 1000)
+    _int_between("freshness.spoil_below", f["spoil_below"], 1, f["fresh_max"])
+    _int_between("freshness.units_per_point", f["units_per_point"], 1, 100_000)
+    d = f["decay_per_s"]
+    if not isinstance(d, dict) or set(d) != set(PHASES):
+        raise BadInput("tuning.freshness.decay_per_s phải có đúng gather và quan")
+    for phase in PHASES:
+        _between(f"freshness.decay_per_s.{phase}", d[phase], 0, 100)
+        decay_units_per_tick(f, t["tick_hz"], phase)  # phải ra số nguyên đơn vị mỗi tick
+
+
+def validate_tuning(t, version=None):
+    """`version` "1.2" bắt buộc có khối freshness; các bản khác cho phép có sẵn để A và B đọc số trước khi bật v1.2."""
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
@@ -291,6 +313,7 @@ def validate_tuning(t):
                 raise BadInput(f"menu.{dish_id}.recipe: {k!r} phải là nguyên liệu hợp lệ với số nguyên > 0")
     _validate_day_plan(t, menu)
     _validate_shop(t, g)
+    _validate_freshness(t, required=version == "1.2")
     m = (t.get("score") or {}).get("reputation_multiplier")
     if not _num(m) or m < 0:
         raise BadInput("tuning.score.reputation_multiplier phải là số không âm")
