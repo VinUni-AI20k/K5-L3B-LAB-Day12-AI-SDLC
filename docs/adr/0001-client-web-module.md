@@ -15,7 +15,7 @@ Cần UI demo sớm và Ticket-02 yêu cầu menu, pause, Shop, HUD (chữ ≥ 1
 - `chonoi/web/js/{core,gather,quan,shop,shared}/` + `main.js`; `mock/*.json` theo Test Contract v1.1; `assets/`.
 - Sửa **file khung** `chonoi/live.py`:
   - `GET /<file>`: file tĩnh trong `chonoi/web/` theo danh sách đuôi cho phép, chặn thoát khỏi thư mục.
-  - `POST /input`: nhận thêm `pause`, `shop_done`, `attack`, `photo` (bool) và `buy` (chuỗi, chỉ có tác dụng ở một tick) qua `_LiveInputsV11`; `InputState` có thêm `.buy`.
+  - `POST /input`: nhận thêm `pause`, `shop_done`, `attack`, `photo` (bool), `buy` (chuỗi, chỉ có tác dụng ở một tick) và `customer_choice` (object, chỉ có tác dụng ở một tick); `InputState` mang các lệnh theo frame.
   - `GET /state`: `meta` theo `snap.phase` (gather/quan/shop), thêm `menu`.
 - Intro/kết quả của vòng ngày là màn hình bản chơi; client gửi `pause` để timer đứng yên (`docs/clarify.md` #3).
 
@@ -26,6 +26,6 @@ Cần UI demo sớm và Ticket-02 yêu cầu menu, pause, Shop, HUD (chữ ≥ 1
 - Kiểm chứng: `tests/test_p2_ui_live.py` và chạy client thật bằng Chrome headless qua vòng 2 Ngày (`docs/proof/phase-2/ui-day/`). Headless `gather`/`quan`/`day` seed 1 giống từng byte trước và sau thay đổi.
 
 ## Hệ quả
-- Headless, sim, Test Contract: không đổi. Lát 4a đọc `inp.pressed("pause")`, `inp.pressed("shop_done")`, `inp.buy`.
+- Headless và sim dùng cùng `InputState`; lát 4a đọc `inp.pressed("pause")`, `inp.pressed("shop_done")`, `inp.buy`, còn quán đọc `inp.customer_choice`.
 - `tests/test_live.py` (của giảng viên) vẫn chạy; `tests/test_live_static.py` kiểm file tĩnh, mock, chặn thoát thư mục, nút v1.1.
 - Đổi tên trường snapshot/sự kiện phải sửa cả mock.

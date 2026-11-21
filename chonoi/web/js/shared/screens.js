@@ -12,16 +12,19 @@
   const S = (CN.screens = {
     mode: CN.state.mock ? "play" : "menu",   // menu | play | exit
     menuIdx: 0,
-    card: null,                               // {kind: day|evening|result, data, since}
+    card: null,                               // {kind, data, since}
     pausedByCard: false,
     pendingStart: false,
     stats: newStats(),
     dishesSold: {},
     repAtQuan: null,
+    toast: null,
+    pendingCustomerChoice: null,
 
     start() {
       S.mode = "play"; S.card = null; S.pausedByCard = false; S.pendingStart = true;
-      S.stats = newStats(); S.dishesSold = {}; S.repAtQuan = null;
+      S.stats = newStats(); S.dishesSold = {}; S.repAtQuan = null; S.toast = null;
+      S.pendingCustomerChoice = null;
       CN.input.clear(); CN.net.restart();
     },
 
@@ -35,6 +38,18 @@
         return true;
       }
       if (S.mode === "exit") { if (k === "enter") S.mode = "menu"; return true; }
+      if (S.card && S.card.kind === "substitute") {
+        const options = S.card.data.options;
+        const index = Number.parseInt(k, 10) - 1;
+        if (index >= 0 && index < options.length) submitSubstitute(options[index]);
+        else if (k === "arrowup" || k === "w") {
+          S.card.selected = (S.card.selected + options.length - 1) % options.length;
+        } else if (k === "arrowdown" || k === "s") {
+          S.card.selected = (S.card.selected + 1) % options.length;
+        } else if (k === "enter") submitSubstitute(options[S.card.selected]);
+        else if (k === "r" || k === "escape") submitSubstitute("leave");
+        return true;
+      }
       if (S.card) { closeCard(); return true; }
       const snap = CN.state.snap;
       if (snap && snap.state === "paused") {
@@ -49,6 +64,10 @@
     update(snap, fresh) {
       if (S.mode !== "play") return;
       for (const e of fresh) handle(e, snap);
+      if (!S.card && !S.pendingCustomerChoice && snap.state !== "paused" && !snap.finished) {
+        const choosing = (snap.customers || []).find((c) => c.state === "choosing");
+        if (choosing) showSubstitute(snap, choosing);
+      }
       // P1 chạy riêng từng buổi chưa phát phase_start: hiện intro một lần ngay sau khi bấm Chơi / R.
       if (S.pendingStart && (CN.events.restarted || (snap.tick || 0) < 30)) {
         S.pendingStart = false;
@@ -66,6 +85,7 @@
       if (S.card) return drawCard(w, h, snap);
       if (snap.state === "paused") return drawPause(w, h);
       if (snap.day !== undefined && snap.finished) drawSummary(w, h, snap);
+      drawToast(w);
     },
   });
 
@@ -73,13 +93,42 @@
     const snap = CN.state.snap;
     S.card = { kind, data, since: CN.now() };
     S.pausedByCard = false;
-    if (snap && snap.state !== "paused" && !snap.finished) { CN.net.tap("pause"); S.pausedByCard = true; }
+    if (kind !== "substitute" && snap && snap.state !== "paused" && !snap.finished) {
+      CN.net.tap("pause"); S.pausedByCard = true;
+    }
     CN.input.clear();
   }
   function closeCard() {
     S.card = null;
     if (S.pausedByCard) CN.net.tap("pause");
     S.pausedByCard = false;
+  }
+
+  function showSubstitute(snap, customer) {
+    const menu = snap.menu || {};
+    let ids = Object.keys(menu);
+    const planned = snap.day_plan && snap.day_plan.dishes;
+    if (planned && Object.keys(planned).length) ids = Object.keys(planned);
+    const stock = snap.stock || {};
+    const options = ids.filter((id) => {
+      const recipe = (menu[id] || {}).recipe || {};
+      return Object.keys(recipe).length &&
+        Object.entries(recipe).every(([kind, amount]) => (stock[kind] || 0) >= amount);
+    }).sort();
+    if (!options.length) return;
+    showCard("substitute", {
+      customer_id: customer.id,
+      requested_dish_id: customer.dish_id,
+      options,
+    });
+    S.card.selected = 0;
+  }
+
+  function submitSubstitute(dishId) {
+    if (!S.card || S.card.kind !== "substitute") return;
+    S.pendingCustomerChoice = { customer_id: S.card.data.customer_id };
+    CN.net.customerChoice(S.card.data.customer_id, dishId);
+    S.card = null;
   }
 
   function handle(e, snap) {
@@ -96,7 +145,35 @@
         break;
       }
       case "served": { S.stats.served++; const id = d.dish_id || d.dish; if (id) S.dishesSold[id] = (S.dishesSold[id] || 0) + 1; break; }
-      case "customer_left": S.stats.left++; break;
+      case "customer_arrived": {
+        const customer = (snap.customers || []).find((c) => c.id === d.customer_id);
+        if (!S.card && !S.pendingCustomerChoice && customer && customer.state === "choosing") {
+          showSubstitute(snap, customer);
+        }
+        break;
+      }
+      case "customer_left":
+        S.stats.left++;
+        if (S.pendingCustomerChoice && S.pendingCustomerChoice.customer_id === d.customer_id) {
+          S.pendingCustomerChoice = null;
+        }
+        if (S.card && S.card.kind === "substitute" && S.card.data.customer_id === d.customer_id) S.card = null;
+        break;
+      case "customer_substituted":
+        if (S.pendingCustomerChoice && S.pendingCustomerChoice.customer_id === d.customer_id) {
+          S.pendingCustomerChoice = null;
+        }
+        if (S.card && S.card.kind === "substitute" && S.card.data.customer_id === d.customer_id) S.card = null;
+        break;
+      case "customer_choice_failed":
+        if (S.pendingCustomerChoice && S.pendingCustomerChoice.customer_id === d.customer_id) {
+          S.pendingCustomerChoice = null;
+        }
+        S.toast = { text: "Món thay thế không còn khả dụng.", since: CN.now() };
+        break;
+      case "no_dish":
+        S.toast = { text: "Quán hết món có thể nấu. Mời khách quay lại hôm khác.", since: CN.now() };
+        break;
       case "paid": S.stats.money += d.price || 0; S.stats.tips += d.tip || 0; break;
       case "quan_end":
         if (snap.day !== undefined || e.day !== undefined) {
@@ -181,6 +258,22 @@
         ctx.globalAlpha = 1;
       });
       footer(x, y + ch - 20, cw, "Nhấn phím bất kỳ để mở quán");
+    } else if (c.kind === "substitute") {
+      const cw = 660, ch = 220 + d.options.length * 42;
+      const [x, y] = card(w, h, cw, ch);
+      text("Món khách gọi đã hết", x + cw / 2, y + 44, {
+        size: 30, align: "center", weight: "800", color: COLOR.gold,
+      });
+      text("Khách gọi: " + dname(d.requested_dish_id), x + 34, y + 86, { size: 20 });
+      text("Khách đang chờ. Chọn món thay thế:", x + 34, y + 116, { size: 18, color: COLOR.muted });
+      d.options.forEach((id, i) => {
+        const yy = y + 152 + i * 42;
+        if (i === c.selected) ui.panel(x + 24, yy - 23, cw - 48, 36, { fill: "rgba(242,194,48,.22)", r: 8 });
+        text((i + 1) + ".", x + 42, yy, { size: 20, weight: "700", color: COLOR.gold });
+        ui.dish(id, x + 90, yy - 7, 30);
+        text(dname(id), x + 116, yy, { size: 20 });
+      });
+      footer(x, y + ch - 20, cw, "↑/↓ chọn · Enter hoặc 1–9 nhận món · R/Esc mời quay lại");
     } else if (c.kind === "result") {
       const rows = [
         ["Khách đã phục vụ", d.served], ["Khách bỏ đi", d.left], ["Tiền món", d.money + "k"], ["Boa", d.tips + "k"],
@@ -206,6 +299,13 @@
     text("Tiếp tục", x + 82 + kw, y + 113, { size: 20, base: "middle" });
     kw = ui.key(x + 70, y + 162, "M");
     text("Về menu", x + 82 + kw, y + 163, { size: 20, base: "middle" });
+  }
+
+  function drawToast(w) {
+    if (!S.toast || CN.now() - S.toast.since > 4) return;
+    const width = Math.min(720, w - 32), x = (w - width) / 2;
+    ui.panel(x, 76, width, 54, { fill: "rgba(20,28,36,.94)", r: 12 });
+    text(S.toast.text, w / 2, 104, { size: 20, align: "center", base: "middle", color: COLOR.gold });
   }
 
   function drawSummary(w, h, snap) {

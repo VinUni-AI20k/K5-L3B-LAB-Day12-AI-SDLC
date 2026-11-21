@@ -148,7 +148,7 @@ class DaySim:
 
     def inventory_items(self) -> dict:
         if self.phase == "gather" and self.sub_sim is not None:
-            return self.sub_sim.inventory_items()
+            return merge_items(self.stock, self.sub_sim.inventory_items())
         elif self.phase == "quan" and self.sub_sim is not None:
             return dict(self.sub_sim.stock)
         return dict(self.stock)
@@ -271,7 +271,6 @@ class DaySim:
                     self.day += 1
                     # Nâng cấp mua ở shop có hiệu lực từ Ngày tiếp theo
                     self.active_upgrades = dict(self.upgrades)
-                    self.stock = {}
                     self._start_day()
                     evs.extend(self.pending_events)
                     self.pending_events = []

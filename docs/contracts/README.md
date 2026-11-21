@@ -46,7 +46,7 @@
   [--inventory <file.json>] [--inventory-out <file.json>]
   [--days <N>] --ticks <N> --out <file.jsonl> [--snapshot-every <N>]
 ```
-- `--inventory` chỉ với `quan`, `--inventory-out` chỉ với `gather`. `--days` chỉ với `day`, nguyên 1–5, mặc định 1 (v1.1).
+- `--inventory` chỉ với `quan`/`day`; kho hiệu lực được cập nhật nguyên tử khi bắt đầu nấu. Nếu không truyền đường dẫn, `quan`/`day` đọc `inventory.json` nếu có và tạo/cập nhật file đó khi kho thay đổi. `--inventory-out` chỉ với `gather`/`day` và là đích ghi ưu tiên. `--days` chỉ với `day`, nguyên 1–5, mặc định 1 (v1.1).
 - Mã thoát: 0 kết thúc lượt hoặc chạm `--ticks`; 2 cờ/dữ liệu sai, fixture mâu thuẫn; 1 lỗi thực thi/ghi.
 - Kiểm dữ liệu lúc khởi tạo **trước** khi ghi JSONL hoặc kho.
 
@@ -61,6 +61,7 @@
 | `pause` | bool, cạnh lên | gather, quan, shop | v1.1 |
 | `shop_done` | bool, cạnh lên | shop | v1.1 |
 | `buy` | chuỗi khác rỗng, chỉ có tác dụng ở frame khai báo | shop: `oxygen`, `hp` (+ `weapon`, `net`, `buy:<kind>`, `sell:<kind>` nếu bật mở rộng) | v1.1 |
+| `customer_choice` | object `{customer_id, dish_id}`, chỉ có tác dụng ở frame khai báo; `dish_id:"leave"` mời khách quay lại | quan, day (pha quan) | mở rộng |
 | `attack`, `photo` | bool, cạnh lên | gather, chỉ khi bật mở rộng Lao / Sổ tay | v1.1 |
 
 - Trước frame đầu: `move = [0,0]`, mọi nút `false`. Frame chỉ cập nhật trường có mặt.
@@ -77,7 +78,7 @@ Client không chứa luật; chỉ đọc snapshot và gửi input. Chi tiết �
 | Endpoint | Hướng | Nội dung |
 |---|---|---|
 | `GET /state` | sim → client | Snapshot hiện tại (mục 6) + `meta` (tuning của pha đang chạy: `gather`/`quan`/`shop`), `menu` (tuning menu), `events` (event mới từ lần đọc trước), `finished`, `reason`, `error` |
-| `POST /input` | client → sim | `{"move":[a,b], "interact":bool, "catch":bool, "pause":bool, "shop_done":bool, "attack":bool, "photo":bool, "buy":"oxygen"}`, mọi trường tùy chọn. Sai kiểu → HTTP 400 |
+| `POST /input` | client → sim | `{"move":[a,b], "interact":bool, "catch":bool, "pause":bool, "shop_done":bool, "attack":bool, "photo":bool, "buy":"oxygen", "customer_choice":{"customer_id":"C1","dish_id":"ca_loc_nuong_trui"}}`, mọi trường tùy chọn. Sai kiểu → HTTP 400 |
 | `POST /restart` | client → sim | Dựng lại lượt từ đầu |
 | `GET /<file>` | — | File tĩnh trong `chonoi/web/`, chặn thoát thư mục |
 
@@ -112,7 +113,7 @@ DayIntro → gather → EveningIntro → quan → DayResult → Shop → DayIntr
 2. `gather_end` (của pha cũ) → dựng quán với kho bàn giao → `phase_start {}` (quan), kể cả khi ngất (kho rỗng).
 3. `quan_end` → dựng Shop → `phase_start {}` (shop).
 4. Shop: xử lý một `buy` trước cạnh `shop_done`. Đóng bằng nút → `shop_end {reason:"done"}`, hết 600 tick hoạt động → `shop_end {reason:"time"}`. Đóng Shop thì `days_completed += 1`, rồi kết thúc hoặc dựng Ngày kế ngay tick đó.
-5. **Chỉ khi dựng Ngày mới** mới sao `upgrades` sang `active_upgrades`. Oxy và Máu hồi đầy theo cấp có hiệu lực, giỏ làm mới, kho dư bị bỏ sau Shop.
+5. **Chỉ khi dựng Ngày mới** mới sao `upgrades` sang `active_upgrades`. Oxy và Máu hồi đầy theo cấp có hiệu lực, giỏ làm mới; kho dư sau Shop được giữ và cộng với nguyên liệu Gather của ngày sau.
 
 - Giữ qua Ngày: `money`, `earned`, `reputation`, cấp nâng cấp (và bộ đếm id `I<n>` ở v1.2).
 - Shop mua: đủ đúng giá vẫn mua được, trừ `money`, giữ `earned` và điểm. Thiếu tiền → `buy_failed {action, reason:"funds"}`, đã tối đa → `reason:"max_level"`.
@@ -149,10 +150,12 @@ DayIntro → gather → EveningIntro → quan → DayResult → Shop → DayIntr
 | `fish_spawned` | `id, kind, pos` | gather | v1.1 |
 | `monster_hit` | `monster_id, hp, lost, pos` (vị trí người chơi) | gather | v1.1 |
 | `customer_arrived` / `no_dish` | `order_id, table_id, dish_id` / `{}` | quan | v1.0 |
+| `customer_substituted` | `customer_id, table_id, requested_dish_id, dish_id` | quan | mở rộng |
+| `customer_choice_failed` | `customer_id, reason` (unknown_customer/unavailable) | quan | mở rộng |
 | `cook_started` / `dish_ready` / `dish_picked` | `stove_id, order_id, dish_id` (+ `items, base_price` khi bắt đầu nấu) | quan | v1.0 |
 | `served` | `order_id, table_id, dish_id, patience_ticks_left, base_price, tip` | quan | v1.0 |
 | `paid` | `order_id, table_id, base_price, tip, amount, reason` (finished_eating/closing) | quan | v1.0 |
-| `customer_left` | `order_id, table_id, reason` (patience/closing), `reputation` | quan | v1.0 |
+| `customer_left` | `customer_id, table_id, dish_id` (+ `reason:"sold_out"` khi mời quay lại) | quan | v1.0/mở rộng |
 | `quan_end` | `reason:"time", money, earned, shift_earned, reputation` | quan | v1.0 |
 | `dish_burnt` | `stove_id, order_id, dish_id, order_status` | quan (mở rộng `burn`) | v1.1 |
 | `day_start` / `phase_start` | `{}` | day | v1.1 |

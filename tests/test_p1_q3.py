@@ -262,7 +262,13 @@ class Q3ArrivalTests(unittest.TestCase):
         tuning["quan"]["tables"].append({"id": "T2", "pos": [12, 2]})
         tuning["quan"]["first_customer_tick"] = 1
         tuning["quan"]["customer_interval_s"] = 2 / tuning["tick_hz"]
-        session = Session("quan", tuning, {"stock": {"ca_loc": 2}}, seed=10)
+        # Seed 10 requests canh chua rồi lẩu cá linh; stock both complete recipes
+        # so this test isolates arrival timing from the new stockout choice flow.
+        session = Session(
+            "quan", tuning,
+            {"stock": {"ca_loc": 1, "ca_linh": 3, "bong_dien_dien": 2}},
+            seed=10,
+        )
 
         _step(session)
         self.assertEqual([c["table_id"] for c in session.sim.customers], ["T1"])

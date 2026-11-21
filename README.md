@@ -23,7 +23,7 @@ cd cho-noi
 python3 -m chonoi.live --mode day
 ```
 
-Mở địa chỉ in trên terminal. Dùng WASD hoặc phím mũi tên để di chuyển, E để tương tác, Space để bắt cá, Esc/P để tạm dừng và R để chơi lại.
+Mở địa chỉ in trên terminal. Dùng WASD hoặc phím mũi tên để di chuyển, E để tương tác, Space để bắt cá, Esc/P để tạm dừng và R để chơi lại. Khi khách gọi món hết, dùng phím mũi tên + Enter hoặc phím số để chọn món thay thế; nhấn R/Esc để mời khách quay lại hôm khác.
 
 Nếu dùng ZIP, giải nén rồi chạy lệnh cuối từ thư mục `cho-noi`. Trên Windows PowerShell, dùng `python` nếu `python3` là lối tắt Microsoft Store.
 
@@ -42,7 +42,7 @@ Buổi tối có thể tự tìm `inventory.json` trong thư mục chạy lệnh
 python -m chonoi.live --mode quan --seed 1
 ```
 
-Với `--mode day`, kho mặc định cũng được nạp tự động từ `inventory.json`, sau đó buổi sáng có thể cộng nguyên liệu mới vào kho.
+Với `--mode day`, kho mặc định cũng được nạp tự động từ `inventory.json`, sau đó buổi sáng cộng nguyên liệu mới vào kho. Kho được lưu lại khi thu hoạch và khi bắt đầu nấu; nguyên liệu còn dư tiếp tục sang ngày sau.
 
 ### Chơi nối buổi sáng sang quán
 
@@ -50,7 +50,7 @@ Với `--mode day`, kho mặc định cũng được nạp tự động từ `in
 python -m chonoi.live --mode day --seed 1 --inventory-out inventory.json
 ```
 
-Mode `day` tự thu thập cá/rau ở buổi sáng, chuyển kho sang buổi tối và cho Út Sen nấu/bán món trong cùng cửa sổ trình duyệt. Sau buổi tối, kho dùng cho quán là kho khả dụng sau phần nguyên liệu khách đang giữ chỗ.
+Mode `day` tự thu thập cá/rau ở buổi sáng, chuyển kho sang buổi tối và cho Út Sen nấu/bán món trong cùng cửa sổ trình duyệt. Khi bắt đầu nấu, nguyên liệu được trừ và ghi nguyên tử về file kho. Kho còn dư sau buổi tối được giữ cho ngày tiếp theo; kho khả dụng trên HUD vẫn trừ phần nguyên liệu khách đang giữ chỗ.
 
 Chạy headless một Ngày:
 

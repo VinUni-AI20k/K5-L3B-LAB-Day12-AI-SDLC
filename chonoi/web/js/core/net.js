@@ -61,6 +61,11 @@
     },
     // lệnh mua trong Shop (chuỗi, chỉ có tác dụng ở một tick)
     buy(id) { if (!st.mock) enqueue(JSON.stringify({ buy: id })); },
+    customerChoice(customerId, dishId) {
+      if (!st.mock) enqueue(JSON.stringify({
+        customer_choice: { customer_id: customerId, dish_id: dishId },
+      }));
+    },
     restart() {
       lastSent = "";
       if (st.mock) loadMock(); else fetch("/restart", { method: "POST" }).catch(() => {});

@@ -103,9 +103,11 @@ class Session:
             write_inventory(inventory_out, self.sim.inventory_items())
 
 
-def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None, days=None):
+def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None,
+        inventory_out=None, days=None, inventory_path=None):
     sess = Session(mode, tuning, scenario, seed, inventory, days=days)
-    inventory_base = read_inventory_or_empty(inventory_out) if mode in ("gather", "day") and inventory_out else {}
+    inventory_base = read_inventory_or_empty(inventory_out) if mode == "gather" and inventory_out else {}
+    inventory_save_path = inventory_out or inventory_path
     player = InputPlayer(frames, buttons=BUTTONS_V11 if mode == "day" else BUTTONS_V10)
     w = JsonlWriter(out_path)
     try:
@@ -114,11 +116,15 @@ def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, i
         while sess.tick < ticks and not sess.done:
             inp = player.advance(sess.tick)  # bước k đọc input có tick == k
             rows = sess.step(inp)
-            if mode in ("gather", "day") and inventory_out:
-                if any(row["name"] in {"gather", "fish_caught", "faint", "gather_end"} for row in rows):
-                    items = (sess.sim.inventory_items() if mode == "day"
-                             else merge_items(inventory_base, sess.sim.inventory_items()))
-                    write_inventory(inventory_out, items)
+            names = {row["name"] for row in rows}
+            if mode == "gather" and inventory_out and names.intersection(
+                    {"gather", "fish_caught", "faint", "gather_end"}):
+                write_inventory(inventory_out, merge_items(inventory_base, sess.sim.inventory_items()))
+            elif mode == "day" and inventory_save_path and names.intersection(
+                    {"gather", "fish_caught", "faint", "gather_end", "cook_started"}):
+                write_inventory(inventory_save_path, sess.sim.inventory_items())
+            elif mode == "quan" and inventory_save_path and "cook_started" in names:
+                write_inventory(inventory_save_path, sess.sim.stock)
             for row in rows:
                 w.write(row)
             if sess.tick % snapshot_every == 0 or sess.done:
