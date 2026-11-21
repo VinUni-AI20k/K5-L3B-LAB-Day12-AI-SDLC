@@ -366,59 +366,179 @@ function drawUtSenSide(px, py, s, headingDeg, underwater, frameTime) {
   const rad = ((headingDeg || 0) * Math.PI) / 180;
   const flip = Math.cos(rad) < -0.15;
   if (flip) ctx.scale(-1, 1);
-  const r = 1.68 * s;
-  const bob = reducedMotion.matches || snap.finished ? 0 : Math.sin(frameTime / 220) * 1.8;
+  // Nghiêng nhẹ theo hướng bơi
+  const tilt = underwater ? Math.max(-0.35, Math.min(0.35, Math.sin(rad) * 0.35)) : 0;
+  ctx.rotate(tilt);
+
+  const r = 2.4 * s;
+  const anim = reducedMotion.matches || snap.finished ? 0 : frameTime;
+  const bob = anim ? Math.sin(anim / 200) * 2.2 : 0;
+  const kick = anim ? Math.sin(anim / 110) * 0.28 : 0;
+  const strokeW = Math.max(1.4, r * 0.055);
   ctx.translate(0, bob);
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
 
-  // Áo bà ba nâu ấm + thân
-  ctx.fillStyle = "#b56945";
+  // Chân đạp nước (quần bà ba đen)
+  for (const [phase, shade] of [[kick, "#2a2730"], [-kick, "#3d3945"]]) {
+    ctx.save();
+    ctx.translate(-r * 0.65, r * 0.12);
+    ctx.rotate(phase);
+    ctx.fillStyle = shade;
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = strokeW;
+    ctx.beginPath();
+    ctx.ellipse(-r * 0.32, 0, r * 0.36, r * 0.13, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    // Bàn chân
+    ctx.fillStyle = "#f7cfb0";
+    ctx.beginPath();
+    ctx.arc(-r * 0.68, 0, r * 0.1, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+  }
+
+  // Giỏ tre đeo sau lưng
+  ctx.save();
+  ctx.translate(-r * 0.45, -r * 0.24);
+  ctx.rotate(-0.25);
+  ctx.fillStyle = "#c99655";
   ctx.strokeStyle = OUTLINE;
-  ctx.lineWidth = 1.8;
+  ctx.lineWidth = strokeW;
+  roundRect(-r * 0.24, -r * 0.24, r * 0.44, r * 0.46, r * 0.08);
+  ctx.fill(); ctx.stroke();
+  // Nan đan giỏ tre
+  ctx.strokeStyle = "rgba(75, 45, 20, 0.55)";
+  ctx.lineWidth = strokeW * 0.6;
   ctx.beginPath();
-  ctx.ellipse(-r * 0.35, r * 0.15, r * 0.65, r * 0.42, -0.2, 0, Math.PI * 2);
+  ctx.moveTo(-r * 0.2, -r * 0.06); ctx.lineTo(r * 0.16, -r * 0.06);
+  ctx.moveTo(-r * 0.2, r * 0.08); ctx.lineTo(r * 0.16, r * 0.08);
+  ctx.moveTo(-r * 0.02, -r * 0.2); ctx.lineTo(-r * 0.02, r * 0.18);
+  ctx.stroke();
+  ctx.restore();
+
+  // Tóc đuôi gà bay mềm phía sau
+  ctx.save();
+  ctx.translate(-r * 0.2, -r * 0.28);
+  ctx.rotate(kick * 0.4);
+  ctx.fillStyle = "#261d24";
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = strokeW;
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.quadraticCurveTo(-r * 0.42, -r * 0.22, -r * 0.62, r * 0.08);
+  ctx.quadraticCurveTo(-r * 0.36, r * 0.18, -r * 0.05, r * 0.06);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
+  // Dây buộc tóc đỏ
+  ctx.fillStyle = "#e05a47";
+  ctx.beginPath(); ctx.arc(-r * 0.04, 0, r * 0.08, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  ctx.restore();
+
+  // Thân áo bà ba xanh ngọc / nâu ấm
+  ctx.fillStyle = "#4fa394";
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = strokeW;
+  ctx.beginPath();
+  ctx.ellipse(-r * 0.24, r * 0.12, r * 0.48, r * 0.28, -0.15, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  // Khăn rằn quàng cổ bay nhẹ
+  ctx.fillStyle = "#f2e5d0";
+  ctx.beginPath();
+  ctx.ellipse(r * 0.04, r * 0.02, r * 0.18, r * 0.14, 0.2, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.fillStyle = "#b85242";
+  ctx.beginPath();
+  ctx.moveTo(-r * 0.06, r * 0.04);
+  ctx.lineTo(-r * 0.42, r * 0.26 + kick * r * 0.25);
+  ctx.lineTo(-r * 0.24, r * 0.34 + kick * r * 0.25);
+  ctx.closePath();
   ctx.fill(); ctx.stroke();
 
-  // Đầu & má hồng anime
+  // Tay bơi phía trước
+  ctx.save();
+  ctx.translate(r * 0.02, r * 0.2);
+  ctx.rotate(-kick * 0.9);
   ctx.fillStyle = "#fde0c6";
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = strokeW;
   ctx.beginPath();
-  ctx.arc(r * 0.25, -r * 0.1, r * 0.52, 0, Math.PI * 2);
+  ctx.ellipse(r * 0.24, r * 0.08, r * 0.28, r * 0.11, 0.35, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  ctx.restore();
+
+  // Đầu & khuôn mặt anime
+  const hx = r * 0.28, hy = -r * 0.18, hr = r * 0.44;
+  ctx.fillStyle = "#fde0c6";
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = strokeW;
+  ctx.beginPath();
+  ctx.arc(hx, hy, hr, 0, Math.PI * 2);
   ctx.fill(); ctx.stroke();
 
-  // Tóc đen buộc đuôi gà
-  ctx.fillStyle = "#2b2129";
-  ctx.beginPath();
-  ctx.arc(r * 0.16, -r * 0.22, r * 0.5, Math.PI * 0.9, Math.PI * 2.05);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.ellipse(-r * 0.42, -r * 0.25, r * 0.26, r * 0.16, -0.5, 0, Math.PI * 2);
-  ctx.fill(); ctx.stroke();
-
-  // Mắt anime & má hồng
-  ctx.fillStyle = "#1f181c";
-  ctx.beginPath(); ctx.ellipse(r * 0.46, -r * 0.12, r * 0.09, r * 0.13, 0, 0, Math.PI * 2); ctx.fill();
+  // Mắt anime long lanh + má hồng + nụ cười
+  ctx.fillStyle = "#2b1d24";
+  ctx.beginPath(); ctx.ellipse(hx + hr * 0.38, hy + hr * 0.02, hr * 0.17, hr * 0.24, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#5c3b47";
+  ctx.beginPath(); ctx.ellipse(hx + hr * 0.38, hy + hr * 0.07, hr * 0.12, hr * 0.14, 0, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = "#ffffff";
-  ctx.beginPath(); ctx.arc(r * 0.49, -r * 0.17, r * 0.04, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "rgba(244, 143, 143, 0.55)";
-  ctx.beginPath(); ctx.ellipse(r * 0.36, r * 0.08, r * 0.12, r * 0.07, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(hx + hr * 0.43, hy - hr * 0.08, hr * 0.08, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(hx + hr * 0.33, hy + hr * 0.12, hr * 0.04, 0, Math.PI * 2); ctx.fill();
+
+  ctx.fillStyle = "rgba(244, 130, 130, 0.55)";
+  ctx.beginPath(); ctx.ellipse(hx + hr * 0.22, hy + hr * 0.35, hr * 0.2, hr * 0.1, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = "#9e5347";
+  ctx.lineWidth = strokeW * 0.7;
+  ctx.beginPath(); ctx.arc(hx + hr * 0.5, hy + hr * 0.36, hr * 0.14, 0.2, Math.PI * 0.85); ctx.stroke();
+
+  // Tóc mái ôm mặt
+  ctx.fillStyle = "#261d24";
+  ctx.strokeStyle = OUTLINE;
+  ctx.lineWidth = strokeW;
+  ctx.beginPath();
+  ctx.arc(hx - hr * 0.06, hy - hr * 0.1, hr * 1.02, Math.PI * 0.75, Math.PI * 2.02);
+  ctx.quadraticCurveTo(hx + hr * 0.45, hy - hr * 0.32, hx + hr * 0.1, hy - hr * 0.25);
+  ctx.quadraticCurveTo(hx - hr * 0.15, hy - hr * 0.1, hx - hr * 0.42, hy + hr * 0.35);
+  ctx.closePath();
+  ctx.fill(); ctx.stroke();
 
   if (underwater) {
-    // Kính lặn xanh ngọc
-    ctx.fillStyle = "rgba(130, 232, 245, 0.75)";
-    ctx.strokeStyle = "#3c5460";
-    ctx.lineWidth = 1.4;
-    roundRect(r * 0.28, -r * 0.26, r * 0.36, r * 0.24, 4);
+    // Kính lặn + ống thở
+    ctx.fillStyle = "#334c57";
+    ctx.fillRect(hx - hr * 0.92, hy - hr * 0.18, hr * 1.15, hr * 0.14);
+    ctx.fillStyle = "rgba(145, 240, 255, 0.78)";
+    ctx.strokeStyle = "#334c57";
+    ctx.lineWidth = strokeW;
+    roundRect(hx + hr * 0.15, hy - hr * 0.22, hr * 0.56, hr * 0.44, hr * 0.14);
     ctx.fill(); ctx.stroke();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.55)";
+    ctx.beginPath(); ctx.ellipse(hx + hr * 0.32, hy - hr * 0.08, hr * 0.12, hr * 0.06, -0.4, 0, Math.PI * 2); ctx.fill();
   } else {
-    // Nón lá đặc trưng miền Tây
-    ctx.fillStyle = "#ecd396";
-    ctx.strokeStyle = OUTLINE;
-    ctx.lineWidth = 1.6;
+    // Nón lá miền Tây có quai nón
+    ctx.strokeStyle = "#c45b4d";
+    ctx.lineWidth = strokeW * 0.85;
     ctx.beginPath();
-    ctx.moveTo(-r * 0.45, -r * 0.42);
-    ctx.lineTo(r * 0.28, -r * 1.05);
-    ctx.lineTo(r * 0.95, -r * 0.36);
+    ctx.moveTo(hx - hr * 0.25, hy - hr * 0.55);
+    ctx.quadraticCurveTo(hx - hr * 0.05, hy + hr * 0.65, hx + hr * 0.2, hy + hr * 0.85);
+    ctx.stroke();
+
+    ctx.fillStyle = "#f2da99";
+    ctx.strokeStyle = OUTLINE;
+    ctx.lineWidth = strokeW;
+    ctx.beginPath();
+    ctx.moveTo(hx - hr * 1.45, hy - hr * 0.45);
+    ctx.lineTo(hx + hr * 0.05, hy - hr * 1.65);
+    ctx.lineTo(hx + hr * 1.45, hy - hr * 0.38);
+    ctx.quadraticCurveTo(hx, hy - hr * 0.22, hx - hr * 1.45, hy - hr * 0.45);
     ctx.closePath();
     ctx.fill(); ctx.stroke();
+    // Vòng chỉ trên chóp nón
+    ctx.strokeStyle = "rgba(165, 120, 55, 0.45)";
+    ctx.lineWidth = strokeW * 0.6;
+    ctx.beginPath();
+    ctx.moveTo(hx - hr * 0.72, hy - hr * 0.98);
+    ctx.lineTo(hx + hr * 0.76, hy - hr * 0.94);
+    ctx.stroke();
   }
   ctx.restore();
 }
@@ -648,6 +768,38 @@ function drawGather(w, h, frameTime) {
       ? 0 : Math.sin(frameTime / 130 + index * 1.7) * 0.25 * s;
     drawFishAnime(f, fx, fy, s, canCatch, tailSwing);
     if (canCatch) marker("[Space] Bắt cá", fx, fy - 14, w, "#fff0a3");
+  });
+
+  // Thủy quái (Cá Sấu Năm Chèo)
+  (snap.monsters || []).forEach((m, index) => {
+    const mx = sx(m.pos[0]), my = sy(m.pos[1]);
+    const chasing = m.state === "chase";
+    ctx.save();
+    ctx.translate(mx, my);
+    if (Math.cos(((m.heading_deg || 0) * Math.PI) / 180) < 0) ctx.scale(-1, 1);
+    const tail = reducedMotion.matches || snap.finished ? 0 : Math.sin(frameTime / 140 + index) * 0.28 * s;
+    ctx.strokeStyle = chasing ? "#d580ff" : OUTLINE;
+    ctx.lineWidth = chasing ? 3 : 1.8;
+    ctx.fillStyle = "#3f6a48";
+    // Đuôi cá sấu có gai
+    ctx.beginPath();
+    ctx.moveTo(-1.1 * s, 0);
+    ctx.lineTo(-2.3 * s, -0.35 * s + tail);
+    ctx.lineTo(-2.3 * s, 0.35 * s + tail);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    // Thân & mõm dài
+    ctx.beginPath();
+    ctx.ellipse(0, 0, 1.3 * s, 0.52 * s, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    ctx.beginPath();
+    ctx.ellipse(1.15 * s, 0.08 * s, 0.65 * s, 0.24 * s, 0, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+    // Mắt vàng sắc
+    ctx.fillStyle = chasing ? "#ff6b6b" : "#ffd54f";
+    ctx.beginPath(); ctx.arc(0.85 * s, -0.18 * s, 0.14 * s, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    if (chasing) marker("Thủy quái!", mx, my - 1.2 * s, w, "#e1a8ff", "#3a194a");
   });
 
   // Nhân vật Út Sen
