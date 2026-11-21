@@ -156,11 +156,10 @@ class Preview:
             if tick >= 120:
                 state["events"] = [{"name": "crocodile_hit", "tick": 120, "data": {"damage": 1}}]
         elif self.screen == "quan":
-            # Keep fixture markers on the fixtures painted in the Quán background.
-            stoves = [{"id": f"B{i+1}", "pos": [3+i*6, 8], "state": "cooking" if served else "idle",
+            stoves = [{**stove, "state": "cooking" if served else "idle",
                        "cook_ticks_left": 180+i*60, "dish": {"dish_id": DISHES[i]} if served else None}
-                      for i in range(2)]
-            tables = [{"id": f"T{i+1}", "pos": pos} for i, pos in enumerate([[4, 6], [10, 6], [4, 2], [10, 2]])]
+                      for i, stove in enumerate(TUNING["quan"]["stoves"])]
+            tables = TUNING["quan"]["tables"]
             customers = [{"id": f"C{i+1}", "table_id": t["id"], "state": "waiting", "order_status": "reserved",
                           "dish_id": DISHES[i+2], "reserved": {ITEMS[i]: 1},
                           "patience_ticks_left": max(0, 3600-i*280-tick)} for i, t in enumerate(tables)] if served else []
@@ -256,10 +255,9 @@ class LiveScenesPreview(Preview):
         elif self.screen == "day_intro":
             state["menu"] = list(TUNING["menu"])
         elif self.screen == "evening_intro":
-            inventory = items_to_counts(self.inventory)
-            available = items_to_counts([item for item in self.inventory
-                                         if item["fresh"] >= TUNING["inventory"]["spoil_threshold"]])
-            state.update(inventory=inventory, gather_reason=self.gather_reason,
+            threshold = TUNING["inventory"]["spoil_threshold"]
+            available = items_to_counts([item for item in self.inventory if item["fresh"] >= threshold])
+            state.update(inventory=self.inventory, spoil_threshold=threshold, gather_reason=self.gather_reason,
                          cookable=[name for name, dish in TUNING["menu"].items()
                                    if all(available.get(k, 0) >= v for k, v in dish["recipe"].items())])
         elif self.screen in ("day_result", "summary"):

@@ -27,6 +27,25 @@ def _post(url, obj):
 
 
 class LiveServerTest(unittest.TestCase):
+    def test_itemized_basket_state_does_not_change_simulation(self):
+        tuning = load_contract()["tuning"]
+        if "inventory" not in tuning:
+            self.skipTest("Cần kho v1.2 từ P3-02")
+        items = [{"id": "I7", "kind": "ca_loc", "fresh": 29.99}]
+        game = LiveGame("gather", tuning, {"hold": items}, 1)
+        control = LiveGame("gather", tuning, {"hold": items}, 1)
+        state = json.loads(game.state_json())
+        self.assertEqual(state["hold"], items)
+        self.assertEqual(state["meta"]["spoil_threshold"], tuning["inventory"]["spoil_threshold"])
+        self.assertNotIn("spoil_threshold", tuning["gather"])
+
+        for player in (game, control):
+            player.set_input({"interact": True})
+            player._tick_once()
+        self.assertEqual(game.events, control.events)
+        self.assertEqual(game.session.snapshot(), control.session.snapshot())
+        self.assertNotIn("spoil_threshold", game.session.snapshot())
+
     def test_serves_phase_two_art(self):
         server = LiveServer(LiveGame("gather", load_contract()["tuning"], {}, 1), port=0)
         server.start()

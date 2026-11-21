@@ -25,3 +25,7 @@ PowerShell: `$env:PYTHONPATH="tests;."; python -m unittest discover -s tests` �
 | AC-P3-I2-06 | `game.contract.json` v1.2; toàn suite 152 test, gồm hồi quy Phase 1/2 | Đạt |
 
 Các kỳ vọng test Phase 1/2 liên quan file kho, `gather_end.inventory` và snapshot Day đã đổi từ object đếm sang mảng cá thể theo Test Contract v1.2; luật di chuyển, cá, quái và bếp vẫn được kiểm trong toàn suite. Kho đếm chỉ còn là adapter nội bộ cho Quán và fixture cũ, không được nhận qua `--inventory`.
+
+## P3-05 · UI/UX & Verification
+
+HUD Gather, Quán và màn bàn giao hiển thị độ tươi theo ID, đánh dấu hàng ươn dưới 30. Kết quả Chrome, smoke Gather → file kho → Quán và Day Mode nằm trong [báo cáo P3-05](phase-3-p3-05.md).
