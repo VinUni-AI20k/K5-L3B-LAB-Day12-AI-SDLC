@@ -1,6 +1,7 @@
 """Đọc game.contract.json và kiểm dải hợp lệ của tuning (PRD-0 -> v1.1)."""
 
 import json
+import math
 import os
 
 from .errors import BadInput
@@ -12,7 +13,7 @@ FISH_KINDS_V11 = ("ca_linh", "ca_loc", "ca_keo")
 
 
 def _num(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
 
 def _between(name, v, lo, hi):
@@ -77,6 +78,8 @@ def _validate_monsters(m, g):
         raise BadInput("tuning.gather.monsters.spawns phải là mảng")
     seen = set()
     for s in spawns:
+        if not isinstance(s, dict):
+            raise BadInput("tuning.gather.monsters.spawns: mỗi phần tử phải là object")
         sid = s.get("id")
         if not isinstance(sid, str) or sid in seen:
             raise BadInput("tuning.gather.monsters.spawns cần id duy nhất")
@@ -84,11 +87,16 @@ def _validate_monsters(m, g):
         if s.get("kind") not in species:
             raise BadInput(f"spawns.{sid}: kind lạ")
         _pos_in(f"gather.monsters.spawns.{sid}.pos", s.get("pos"), b, ("x", "d"))
+        dlo, dhi = species[s["kind"]]["depths"]
+        if not dlo <= s["pos"][1] <= dhi:
+            raise BadInput(f"spawns.{sid}.pos.d ngoài vùng loài")
         wps = s.get("waypoints")
         if not isinstance(wps, list) or len(wps) != 2:
             raise BadInput(f"spawns.{sid}.waypoints phải gồm đúng 2 điểm")
         for idx, wp in enumerate(wps):
             _pos_in(f"gather.monsters.spawns.{sid}.waypoints[{idx}]", wp, b, ("x", "d"))
+            if not dlo <= wp[1] <= dhi:
+                raise BadInput(f"spawns.{sid}.waypoints[{idx}].d ngoài vùng loài")
         _int_between(f"gather.monsters.spawns.{sid}.from_day", s.get("from_day"), 1, 5)
 
 
@@ -148,13 +156,18 @@ def _validate_gather(g):
         raise BadInput("tuning.gather.fish_x không hợp lệ")
     if not isinstance(g.get("fish_spawn_x"), list) or not g["fish_spawn_x"]:
         raise BadInput("tuning.gather.fish_spawn_x phải là danh sách x")
+    for x in g["fish_spawn_x"]:
+        _between("gather.fish_spawn_x", x, fx[0], fx[1])
+    for key in ("fish_depths", "fish_spawn_depths", "fish_weights"):
+        if not isinstance(g.get(key), dict):
+            raise BadInput(f"tuning.gather.{key} phải là object")
     for fk in FISH_KINDS_V11:
         fd = (g.get("fish_depths") or {}).get(fk)
         sd = (g.get("fish_spawn_depths") or {}).get(fk)
         w = (g.get("fish_weights") or {}).get(fk)
-        if not (isinstance(fd, list) and len(fd) == 2 and g["surface_depth"] < fd[0] < fd[1] <= b["d"][1]):
+        if not (isinstance(fd, list) and len(fd) == 2 and all(_num(d) for d in fd) and g["surface_depth"] < fd[0] < fd[1] <= b["d"][1]):
             raise BadInput(f"tuning.gather.fish_depths.{fk} không hợp lệ")
-        if not (isinstance(sd, list) and len(sd) >= 1 and all(fd[0] <= d <= fd[1] for d in sd)):
+        if not (isinstance(sd, list) and len(sd) >= 1 and all(_num(d) and fd[0] <= d <= fd[1] for d in sd)):
             raise BadInput(f"tuning.gather.fish_spawn_depths.{fk} không hợp lệ")
         if not _num(w) or w <= 0:
             raise BadInput(f"tuning.gather.fish_weights.{fk} phải > 0")

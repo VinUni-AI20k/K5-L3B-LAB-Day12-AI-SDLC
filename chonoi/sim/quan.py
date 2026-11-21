@@ -18,7 +18,7 @@ def _round3(v: float) -> float:
 
 
 def _floor_mul(value: int, rate: float) -> int:
-    return int(Decimal(value) * Decimal(str(rate)))
+    return math.floor(Decimal(value) * Decimal(str(rate)))
 
 
 def _ratio_ge(num: int, den: int, threshold: float) -> bool:
@@ -62,6 +62,8 @@ class QuanSim:
         self.spoil_u = fresh_to_units(self.spoil_th, self.spoil_th)
         self.quan_decay_u = int(round(float(fr["quan_decay_per_s"]) * FRESH_SCALE / self.tick_hz))
 
+        if not isinstance(scenario, dict):
+            raise BadInput("quan phải là object")
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
         raw_stock = inventory if inventory is not None else scenario.get("stock", [])
@@ -73,7 +75,7 @@ class QuanSim:
         for it in self.stock:
             self.ids.reserve(it["id"])
 
-        auto_reserved = validate_quan_state(scenario, tuning, stock_map=raw_stock)
+        fixture_customers, auto_reserved = validate_quan_state(scenario, tuning, stock_map=raw_stock)
 
         self.duration_ticks = round(self.t["duration_s"] * self.tick_hz)
         self.time_left_ticks = int(scenario.get("time_left_ticks", self.duration_ticks))
@@ -111,9 +113,6 @@ class QuanSim:
                 "cook_ticks_left": 0,
                 "ready_ticks": 0,
             }
-        slot_prices = {}
-        if self.hand is not None:
-            slot_prices[self.hand["order_id"]] = int(self.hand["base_price"])
         for s in scenario.get("stoves", []):
             st = stove_map[s["id"]]
             if "pos" in s:
@@ -123,8 +122,6 @@ class QuanSim:
             st["dish"] = dict(s["dish"]) if s.get("dish") is not None else None
             st["cook_ticks_left"] = int(s.get("cook_ticks_left", 0))
             st["ready_ticks"] = int(s.get("ready_ticks", 0))
-            if st["dish"] is not None:
-                slot_prices[st["dish"]["order_id"]] = int(st["dish"]["base_price"])
         self.stoves = sort_by_id(list(stove_map.values()))
 
         table_map = {}
@@ -140,7 +137,7 @@ class QuanSim:
         self.tables = sort_by_id(list(table_map.values()))
 
         customers = []
-        for c in scenario.get("customers", []):
+        for c in fixture_customers:
             cid = c["id"]
             self.ids.reserve(cid)
             ostatus = c.get("order_status", "reserved")
@@ -150,7 +147,6 @@ class QuanSim:
                 reserved = sorted(auto_reserved[cid], key=id_key)
             else:
                 reserved = []
-            default_bp = slot_prices.get(cid, 0) if ostatus == "assigned" else 0
             customers.append({
                 "id": cid,
                 "table_id": c["table_id"],
@@ -161,7 +157,7 @@ class QuanSim:
                 "eat_ticks_left": int(c.get("eat_ticks_left", 0)),
                 "order_status": ostatus,
                 "reserved": reserved,
-                "base_price": int(c.get("base_price", default_bp)),
+                "base_price": int(c.get("base_price", 0)),
                 "tip": int(c.get("tip", 0)),
             })
         self.customers = sort_by_id(customers)
@@ -219,24 +215,27 @@ class QuanSim:
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
 
+        # 1. Nấu, ăn, kiên nhẫn (chỉ tăng ready_ticks cho món đã ready từ đầu bước)
         self._step_stoves(events)
         self._step_customer_timers()
 
+        # 2. Di chuyển rồi xét tối đa một interact (theo đúng đối tượng gần nhất)
         self._move(inp)
         if inp.pressed("interact"):
             self._try_interact(events)
 
+        # 3. Khách ăn xong trả tiền; hết kiên nhẫn hoặc đóng ca rời bàn
         self._settle_and_leave(events)
         if self.done:
             return events
 
+        # 4. Khách mới (nếu còn giờ)
         self._maybe_spawn_customer(events)
         return events
 
     def _step_stoves(self, events: list):
-        already_ready = {st["id"] for st in self.stoves if st["state"] == "ready"}
-        for st in sort_by_id(self.stoves):
-            if st["id"] in already_ready:
+        for st in self.stoves:
+            if st["state"] == "ready":
                 st["ready_ticks"] += 1
             elif st["state"] == "cooking":
                 st["cook_ticks_left"] = max(0, int(st["cook_ticks_left"]) - 1)
@@ -260,7 +259,7 @@ class QuanSim:
     def _move(self, inp):
         speed = float(self.t["walk_speed"])
         mx, mz = inp.move
-        self.vel = ramp_velocity(self, (mx * speed, mz * speed), int(self.t.get("ramp_max_ticks", 6)))
+        self.vel = ramp_velocity(self, (mx * speed, mz * speed), self.t["ramp_max_ticks"])
         b = self.t["bounds"]
         for i, axis in enumerate(("x", "z")):
             self.pos[i] += self.vel[i] / self.tick_hz

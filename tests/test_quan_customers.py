@@ -172,6 +172,17 @@ class QuanCustomers(unittest.TestCase):
         repeated = self.advance(self.session({"stock": stock}, seed=42), first)
         self.assertEqual(initial, repeated)
 
+    def test_legacy_customer_fixture_is_loaded_without_mutating_input(self):
+        # Test của TV4 (PR #7), giữ nguyên ý nghĩa; chỉ đổi kho sang cá thể v1.2.
+        customer = {"id": "C9", "table_id": "T1", "dish": "ca_loc_nuong_trui", "patience_ticks": 2}
+        session = self.session({"stock": _mk_stock("ca_loc"), "customers": [customer]})
+        snapshot = session.snapshot()["customers"][0]
+        self.assertEqual(snapshot["dish_id"], customer["dish"])
+        self.assertEqual(snapshot["patience_ticks_left"], customer["patience_ticks"])
+        self.assertEqual(snapshot["reserved"], ["I1"])
+        self.assertNotIn("dish_id", customer)
+        self.assertNotIn("patience_ticks_left", customer)
+
     def test_invalid_fixture_types_and_links_are_rejected_before_first_tick(self):
         bad_scenarios = [
             {"random_customers": "false"},
@@ -181,6 +192,8 @@ class QuanCustomers(unittest.TestCase):
             {"hand": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}},
             {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "patience_ticks_left": -1}]},
             {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "mon_la"}]},
+            {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                            "patience_ticks": 2, "patience_ticks_left": 1}]},
             {"stock": _mk_stock("bong_sung"), "customers": [
                 {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I1"]}
             ]},

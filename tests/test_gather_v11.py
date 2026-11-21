@@ -3,20 +3,114 @@
 import math
 import unittest
 
-from chonoi.contract import load_contract
+from chonoi.contract import load_contract, validate_tuning
+from chonoi.errors import BadInput
 from chonoi.ids import IdAllocator
 from chonoi.inputs import InputState
 from chonoi.rng import Streams
 from chonoi.sim.gather import GatherSim
+from helpers import Workdir, events, read_jsonl, run_headless, write_json
 
 
 def _inp(move=(0.0, 0.0), edges=()):
     return InputState(move, {}, set(edges))
 
 
+def _items_from_recipe(recipe):
+    """Trải công thức {kind: count} thành danh sách cá thể v1.2 (id I1, I2, ...)."""
+    out = []
+    for kind in sorted(recipe):
+        for _ in range(recipe[kind]):
+            out.append({"id": f"I{len(out) + 1}", "kind": kind, "fresh": 100})
+    return out
+
+
 class GatherV11Tests(unittest.TestCase):
     def setUp(self):
         self.tuning = load_contract()["tuning"]
+
+    # Bốn test dưới đây là test v1.1 của TV2 (PR #8); giữ nguyên ý nghĩa, chỉ đổi fixture sang kho cá thể v1.2.
+    def test_quan_reserves_new_v11_ingredients_through_cli(self):
+        for dish_id in ("ca_keo_nuong", "lau_mam"):
+            with self.subTest(dish_id=dish_id), Workdir() as w:
+                stock = _items_from_recipe(self.tuning["menu"][dish_id]["recipe"])
+                ids = [it["id"] for it in stock]
+                scenario = write_json(w.path("scenario.json"), {"quan": {
+                    "random_customers": False, "stock": stock,
+                    "customers": [{"id": "C1", "table_id": "T1", "dish_id": dish_id,
+                                   "reserved": ids}]}})
+                code, err = run_headless("--mode", "quan", "--ticks", "0", "--seed", "1",
+                                         "--scenario", scenario, "--out", w.path("out.jsonl"))
+                self.assertEqual(code, 0, err)
+                snapshot = read_jsonl(w.path("out.jsonl"))[0]
+                self.assertEqual(snapshot["customers"][0]["reserved"], ids)
+
+    def test_invalid_gather_tuning_is_rejected(self):
+        bad = [
+            ("fish_spawn_x", [1000]),
+            ("fish_spawn_x", [True]),
+            ("fish_depths", []),
+            ("fish_depths", {"ca_linh": ["3", 12]}),
+            ("fish_spawn_depths", {"ca_linh": [None]}),
+            ("fish_speed", float("nan")),
+            ("start_heading_deg", float("inf")),
+        ]
+        for key, value in bad:
+            with self.subTest(key=key, value=value):
+                tuning = load_contract()["tuning"]
+                tuning["gather"][key] = value
+                with self.assertRaises(BadInput):
+                    validate_tuning(tuning)
+        for spawn in (None, dict(self.tuning["gather"]["monsters"]["spawns"][0], pos=[60, 1]),
+                      dict(self.tuning["gather"]["monsters"]["spawns"][0], waypoints=[[60, 1], [64, 24]])):
+            with self.subTest(spawn=spawn):
+                tuning = load_contract()["tuning"]
+                tuning["gather"]["monsters"]["spawns"] = [spawn]
+                with self.assertRaises(BadInput):
+                    validate_tuning(tuning)
+
+    def test_monster_scenario_validation_through_cli(self):
+        monster = dict(self.tuning["gather"]["monsters"]["spawns"][0])
+        monster.pop("from_day")
+        for override in ({"pos": [60, 1]}, {"target_idx": 1.0},
+                         {"state": "recoil", "state_ticks_left": 1, "recoil_dir": [2, 0]},
+                         {"state": "recoil", "state_ticks_left": 0, "recoil_dir": [1, 0]}):
+            with self.subTest(override=override), Workdir() as w:
+                scenario = write_json(w.path("scenario.json"), {"gather": {
+                    "monsters": [dict(monster, **override)]}})
+                code, err = run_headless("--mode", "gather", "--ticks", "1", "--seed", "1",
+                                         "--scenario", scenario, "--out", w.path("out.jsonl"))
+                self.assertEqual(code, 2, err)
+
+    def test_monster_faint_cli_is_deterministic_and_writes_empty_inventory(self):
+        import json
+
+        with Workdir() as w:
+            scenario = write_json(w.path("scenario.json"), {"gather": {
+                "random_fish": False, "player": {"pos": [60, 15], "hp": 1},
+                "hold": [{"id": "I1", "kind": "keo_neo", "fresh": 100},
+                         {"id": "I2", "kind": "ca_keo", "fresh": 100},
+                         {"id": "I3", "kind": "ca_loc", "fresh": 100}],
+                "monsters": [{"id": "M1", "kind": "ca_sau", "pos": [60, 15],
+                              "waypoints": [[60, 24], [64, 24]]}]}})
+            inventory = write_json(w.path("inventory.json"),
+                                   {"items": [{"id": "I9", "kind": "ca_loc", "fresh": 100}]})
+            for name in ("first", "repeat"):
+                code, err = run_headless("--mode", "gather", "--ticks", "3", "--seed", "7",
+                                         "--scenario", scenario, "--inventory-out", inventory,
+                                         "--out", w.path(name + ".jsonl"))
+                self.assertEqual(code, 0, err)
+            with open(w.path("first.jsonl"), "rb") as first, open(w.path("repeat.jsonl"), "rb") as repeat:
+                self.assertEqual(first.read(), repeat.read())
+            rows = read_jsonl(w.path("first.jsonl"))
+            hits = events(rows)
+            self.assertEqual([e["name"] for e in hits], ["monster_hit", "faint", "gather_end"])
+            self.assertEqual([it["kind"] for it in hits[0]["data"]["lost"]], ["ca_loc"])
+            self.assertEqual(hits[1]["data"]["cause"], "monster")
+            self.assertEqual([it["kind"] for it in hits[1]["data"]["lost"]], ["ca_keo", "keo_neo"])
+            self.assertEqual(hits[1]["data"]["hp"], 0)
+            with open(inventory, encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {"items": []})
 
     def test_seeded_initial_fish_8_unique_positions_and_deterministic(self):
         s1 = GatherSim(self.tuning, {}, Streams(7), IdAllocator())
