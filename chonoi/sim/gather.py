@@ -476,12 +476,9 @@ class GatherSim:
         self.invuln_ticks = m_cfg["invuln_ticks"]
         drop_n = math.floor(len(self.hold) * m_cfg["loss_ratio"])
         lost = self._export_items([self.hold.pop() for _ in range(drop_n)])
-        hit = {"monster_id": m["id"], "hp": self.hp, "lost": lost}
-        if self._freshness is None:
-            hit["kind"] = m["kind"]
-        else:
-            hit["pos"] = self.pos.copy()
-        events.append(("monster_hit", hit))
+        events.append(("monster_hit", {
+            "monster_id": m["id"], "hp": self.hp, "lost": lost, "pos": self.pos.copy(),
+        }))
         dx, dy = m["pos"][0] - self.pos[0], m["pos"][1] - self.pos[1]
         norm = math.hypot(dx, dy)
         m["recoil_dir"] = [dx / norm, dy / norm] if norm > 1e-9 else [1.0, 0.0]

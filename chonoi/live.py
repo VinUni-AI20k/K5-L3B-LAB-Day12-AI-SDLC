@@ -123,12 +123,22 @@ class LiveGame:
             cur_phase = snap.get("phase", self.mode)
             snap["meta"] = self.tuning.get(cur_phase, self.tuning.get(self.mode, {}))
             snap["shop_meta"] = self.tuning.get("shop", {})
+            snap["menu_meta"] = self.tuning.get("menu", {})
+            snap["freshness_spoiled_below"] = self.tuning.get("freshness", {}).get("spoiled_below", 30)
             snap["days"] = self.days
             snap["events"] = list(self.events)
             if cur_phase == "quan" and not sim.done:
                 qsim = sim._sub if self.mode == "day" else sim
                 if not qsim.customers:
-                    available = qsim.available_stock()
+                    raw_avail = qsim.available_stock()
+                    if isinstance(raw_avail, list):
+                        available = {}
+                        for it in raw_avail:
+                            k = it.get("kind") if isinstance(it, dict) else it
+                            if k:
+                                available[k] = available.get(k, 0) + 1
+                    else:
+                        available = raw_avail
                     shortages = [
                         {kind: count - max(0, available.get(kind, 0)) for kind, count in dish["recipe"].items()
                          if count > max(0, available.get(kind, 0))}
