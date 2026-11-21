@@ -26,4 +26,5 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `smoke-p1` (`.agents/skills/smoke-p1/SKILL.md`): Chạy smoke test hộp đen 2 tiến trình (`gather` xuất file kho → `quan` đọc file kho) và trích bằng chứng vào `docs/proof/phase-1/` (không commit `*.jsonl`). Dùng từ phút 25 và trước khi gắn tag `phase-1`.
+- `verify-ac` (`.agents/skills/verify-ac/SKILL.md`): Chạy toàn bộ `unittest` + `tools/check_team.py`, đối chiếu `AC-P1-01`..`AC-P1-14` và cập nhật trung thực `docs/verification/phase-1.md`. Dùng sau khi gộp lát vào `main` và ở bước kiểm chứng bàn giao (phút 45–55).

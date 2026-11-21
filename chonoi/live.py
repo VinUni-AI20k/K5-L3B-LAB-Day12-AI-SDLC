@@ -14,12 +14,14 @@ Ngẫu nhiên vẫn đi qua `Streams` (seed); chỉ nhịp chạy theo đồng h
 
 import argparse
 import json
+import mimetypes
 import os
 import sys
 import threading
 import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import unquote
 
 from .contract import load_contract
 from .errors import BadInput
@@ -29,6 +31,7 @@ from .runner import Session
 from .scenario import load_scenario
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
+ROOT_DIR = os.path.dirname(os.path.dirname(WEB_DIR))
 TICK_S = 1.0 / 60.0
 MAX_BODY = 4096
 RECENT_EVENTS = 40
@@ -154,6 +157,19 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
+        elif path.startswith("/assets/"):
+            assets_root = os.path.realpath(os.path.join(ROOT_DIR, "assets"))
+            rel = unquote(path[len("/assets/"):]).lstrip("/")
+            target = os.path.realpath(os.path.join(assets_root, rel))
+            if target.startswith(assets_root + os.sep) and os.path.isfile(target):
+                ctype = mimetypes.guess_type(target)[0] or "application/octet-stream"
+                try:
+                    with open(target, "rb") as f:
+                        self._send(200, f.read(), ctype)
+                    return
+                except OSError:
+                    pass
+            self._send(404, b'{"error":"khong co asset"}')
         else:
             self._send(404, b'{"error":"khong co"}')
 
