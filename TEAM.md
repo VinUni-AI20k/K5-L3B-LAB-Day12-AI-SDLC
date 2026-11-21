@@ -5,7 +5,7 @@
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
 | Phạm Đức Vinh | vindpd203 | `sim/gather` lát 1: oxy, ngạt, Máu, ngất, giỏ | Integrator | (tên 2) |
-| Ngô Duy Khánh | (handle 2) | `sim/gather` lát 2: hái, bắt cá, cập bến, kho | Scrum/Release | (tên 1) |
+| Ngô Duy Khánh | khanhdev | `sim/gather` lát 2: hái, bắt cá, cập bến, kho; cá bơi/sinh; kho cá thể và độ tươi | Scrum/Release | Phạm Đức Vinh |
 | Nguyễn Thế Bảo | NTheBao | `sim/quan` lát 3 + 4: khách, bếp, tiền, uy tín | PO | (tên 4) |
 | (tên 4) | (handle 4) | `client/ui` + `qa` | QA lead | (tên 3) |
 
