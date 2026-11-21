@@ -9,7 +9,7 @@ from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer, LiveInputs, load_frames
 from chonoi.runner import Session
 
-from helpers import Workdir, frames, write_json
+from helpers import Workdir, frames, items, write_json
 
 
 class Units(unittest.TestCase):
@@ -43,11 +43,16 @@ class Units(unittest.TestCase):
             with self.assertRaises(BadInput):
                 load_frames(write_json(w.path("i.json"), frames({"tick": 0, "move": [2, 0]})))
 
-    def test_catch_is_a_v10_button_and_attack_is_not(self):
+    def test_v11_buttons_known_and_unknown_rejected(self):
+        # v1.1 (TICKET-02 mục 4.2): pause/shop_done/attack/photo là nút hợp lệ (mở rộng chưa bật thì sim bỏ qua),
+        # buy là chuỗi khác rỗng; nút lạ vẫn là mã 2. (Trước v1.1 test này kỳ vọng attack bị từ chối.)
         with Workdir() as w:
-            load_frames(write_json(w.path("i.json"), frames({"tick": 0, "catch": True})))
-            with self.assertRaises(BadInput):
-                load_frames(write_json(w.path("j.json"), frames({"tick": 0, "attack": True})))
+            for b in ("catch", "pause", "shop_done", "attack", "photo"):
+                load_frames(write_json(w.path("i.json"), frames({"tick": 0, b: True})))
+            load_frames(write_json(w.path("b.json"), frames({"tick": 0, "buy": "oxygen"})))
+            for bad in ({"tick": 0, "jump": True}, {"tick": 0, "buy": ""}, {"tick": 0, "buy": 1}, {"tick": 0, "pause": 1}):
+                with self.assertRaises(BadInput):
+                    load_frames(write_json(w.path("j.json"), frames(bad)))
 
     def test_live_inputs_keep_fast_tap_edge(self):
         li = LiveInputs()
@@ -62,7 +67,7 @@ class Units(unittest.TestCase):
 
     def test_session_steps_gather_and_dock(self):
         tuning = load_contract()["tuning"]
-        s = Session("gather", tuning, {"hold": ["ca_loc"]}, 1)
+        s = Session("gather", tuning, {"hold": items("ca_loc")}, 1)
         self.assertEqual(s.snapshot()["tick"], 0)
         li = LiveInputs()
         self.assertEqual(s.step(li.advance()), [])

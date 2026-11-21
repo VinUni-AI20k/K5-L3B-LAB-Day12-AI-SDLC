@@ -1,0 +1,4 @@
+Regression P2 — commit fe3930f, lệnh: PYTHONPATH=tests:. python3 -m unittest discover -s tests (Windows: python, PYTHONPATH="tests;.")
+Ran 108 tests in 20.555s
+
+OK

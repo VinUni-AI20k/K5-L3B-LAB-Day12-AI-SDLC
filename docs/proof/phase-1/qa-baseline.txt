@@ -1,0 +1,18 @@
+QA baseline — 2026-11-21
+
+Branch: qa/khoa-phase1-verification
+
+Windows PowerShell command:
+  $env:PYTHONPATH="tests;."
+  python3 -m unittest discover -s tests -v
+
+Initial baseline before QA additions:
+  Ran 32 tests
+  OK
+
+Final verification against the latest Phase 1 implementation:
+  Ran 70 tests
+  OK
+
+The QA fixtures were corrected to keep the guest shift open after arrival and
+to allow enough ticks for cooking, delivery, serving, and payment.

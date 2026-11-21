@@ -1,0 +1,2 @@
+Command: python3 -m unittest test_smoke_p1 test_python_starter_units test_qa_phase2 test_qa_phase3 -v
+Result: Ran 36 tests in 8.248s; OK.

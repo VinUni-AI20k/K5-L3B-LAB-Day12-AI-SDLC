@@ -1,0 +1,4 @@
+Regression P1–P3 trên main — commit 0d4676c, lệnh: PYTHONPATH=tests:. python3 -m unittest discover -s tests (Windows: python, PYTHONPATH="tests;.")
+Ran 121 tests in 25.336s
+
+OK
