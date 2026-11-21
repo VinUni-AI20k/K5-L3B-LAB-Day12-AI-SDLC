@@ -28,5 +28,6 @@
 
 ## Skills / hooks của nhóm
 - **Skill `check-determinism`** (`.agents/skills/check-determinism/SKILL.md`, chạy `python3 tools/check_determinism.py`): chạy headless hai lần cùng seed rồi so từng byte. Dùng sau khi sửa luật trong `chonoi/sim/`, trước khi mở PR và trước khi gắn tag.
+- **Skill `check-no-hardcode`** (`.agents/skills/check-no-hardcode/SKILL.md`, chạy `python3 tools/check_no_hardcode.py`): quét literal số trong `chonoi/sim/` đối chiếu tuning của `game.contract.json`. Dùng sau khi sửa luật trong `chonoi/sim/` và trước khi mở PR.
 - **Hook `protect_locked_files`** (`.agents/hooks/protect_locked_files.py`, nối trong `.claude/settings.json`): hỏi lại người dùng trước khi agent sửa `game.contract.json`, `docs/contracts/` hay `chonoi/inventory.py` (schema kho). Chỉ đồng ý khi Integrator đã báo cả nhóm.
 - Windows không có `python3` thì gõ `python`; hai công cụ trên tự dùng python đang chạy.
