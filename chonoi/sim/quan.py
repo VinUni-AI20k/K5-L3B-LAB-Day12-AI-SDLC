@@ -1,11 +1,12 @@
 """Buổi tối — Mở Quán. KHUNG: đi lại, chặn biên, đồng hồ, kho nạp từ file/scenario.
 
 Nhóm viết tiếp (PRD-0 mục F, Quán):
-  TODO(nhóm, lát 3): khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, kiên nhẫn,
-                     bỏ đi (customer_left), no_dish, vòng đời khách.
+  TODO(nhóm, lát 3): đếm kiên nhẫn, bỏ đi (customer_left).
   TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
                      ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
 """
+
+from collections import Counter
 
 from ..ids import sort_by_id
 from .ramp import ramp_velocity
@@ -40,8 +41,7 @@ class QuanSim:
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        # TODO(nhóm): khách dựng sẵn từ scenario (customers[]) và suy ra giữ chỗ (reserved).
-        self.customers = [dict(c, reserved=c.get("reserved", {})) for c in scenario.get("customers", [])]
+        self.customers = [self._load_customer(c) for c in scenario.get("customers", [])]
         for e in self.customers:
             ids.reserve(e["id"])
         self.money = 0
@@ -49,6 +49,13 @@ class QuanSim:
         self.shift_earned = 0
         self.done = False
         self.reason = None
+
+    def _load_customer(self, customer):
+        if "reserved" not in customer and customer.get("state", "waiting") == "waiting":
+            recipe = self.menu.get(customer.get("dish"), {}).get("recipe", {})
+        else:
+            recipe = customer.get("reserved", {})
+        return dict(customer, reserved=dict(recipe))
 
     @staticmethod
     def _merge(defaults, updates):
@@ -100,15 +107,20 @@ class QuanSim:
         return next((table for table in self.tables if table["id"] not in occupied), None)
 
     def _seat_customer(self, table, events):
+        available = Counter(self.stock)
+        for customer in self.customers:
+            available.subtract(customer["reserved"])
         dishes = [dish for dish, entry in sorted(self.menu.items())
-                  if all(self.stock.get(kind, 0) >= amount for kind, amount in entry["recipe"].items())]
+                  if all(available[kind] >= amount for kind, amount in entry["recipe"].items())]
+        customer_id = self.ids.new("C")
         if not dishes:
+            events.append(("no_dish", {"customer_id": customer_id}))
             return
         dish = self.rng.get("customer_order").choice(dishes)
-        customer_id = self.ids.new("C")
         table_id = table["id"]
         self.customers.append({"id": customer_id, "table_id": table_id, "dish": dish, "state": "waiting",
-                               "patience_ticks": self.patience_max_ticks, "eat_ticks_left": 0, "reserved": {}})
+                               "patience_ticks": self.patience_max_ticks, "eat_ticks_left": 0,
+                               "reserved": dict(self.menu[dish]["recipe"])})
         events.append(("customer_arrived", {"customer_id": customer_id, "table_id": table_id, "dish": dish}))
 
     def _move(self, inp):

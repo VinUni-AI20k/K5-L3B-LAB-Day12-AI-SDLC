@@ -46,3 +46,33 @@ class QuanCustomers(unittest.TestCase):
         arrival, = self.advance(session, self.quan["first_customer_tick"])
         self.assertEqual(arrival["data"]["customer_id"], "C10")
         self.assertEqual([c["id"] for c in session.snapshot()["customers"]], ["C9", "C10"])
+
+    def test_reservation_blocks_other_tables_without_spending_stock(self):
+        self.quan["tables"].append({"id": "T2", "pos": [9, 4]})
+        first = self.quan["first_customer_tick"]
+        interval = round(self.quan["customer_interval_s"] * self.tuning["tick_hz"])
+        stock = {"ca_linh": 3, "bong_dien_dien": 1, "bong_sung": 1}
+        session = self.session({"stock": stock})
+
+        arrival, rejected, next_rejected = self.advance(session, first + 2 * interval)
+        self.assertEqual(arrival["data"]["dish"], "lau_ca_linh_dien_dien")
+        self.assertEqual((rejected["tick"], rejected["name"], rejected["data"]),
+                         (first + interval, "no_dish", {"customer_id": "C2"}))
+        self.assertEqual(next_rejected["data"], {"customer_id": "C3"})
+        snapshot = session.snapshot()
+        customer, = snapshot["customers"]
+        self.assertEqual(customer["reserved"], {"ca_linh": 3, "bong_dien_dien": 1})
+        self.assertEqual(snapshot["stock"], stock)
+        self.assertIsNone(snapshot["tables"][1]["customer_id"])
+        self.assertEqual(snapshot["reputation"], self.quan["reputation_initial"])
+
+    def test_preloaded_order_reserves_its_recipe(self):
+        self.quan["tables"].append({"id": "T2", "pos": [9, 4]})
+        session = self.session({"stock": {"ca_loc": 1, "bong_sung": 2}, "customers": [
+            {"id": "C1", "table_id": "T1", "dish": "ca_loc_nuong_trui", "state": "waiting"},
+        ]})
+
+        arrival, = self.advance(session, self.quan["first_customer_tick"])
+        self.assertEqual(arrival["data"]["dish"], "goi_bong_sung")
+        self.assertEqual([c["reserved"] for c in session.snapshot()["customers"]],
+                         [{"ca_loc": 1}, {"bong_sung": 2}])
