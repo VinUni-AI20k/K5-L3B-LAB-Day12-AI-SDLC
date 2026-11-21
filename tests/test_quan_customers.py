@@ -11,8 +11,8 @@ from chonoi.errors import BadInput
 from chonoi.ids import IdAllocator
 from chonoi.rng import Streams
 from chonoi.sim.quan import QuanSim
-from chonoi.sim.quan_customers import (build_fixture_customers, remove_customer, spawn_customers,
-                                       tick_customers)
+from chonoi.sim.quan_customers import (build_fixture_customers, customers_leave, remove_customer,
+                                       spawn_customers, tick_customers, tick_customers_timers)
 
 from helpers import Workdir, read_jsonl, run_headless, snapshots, write_json
 
@@ -129,22 +129,23 @@ class Spawn(unittest.TestCase):
 
 
 class TickAndLeave(unittest.TestCase):
-    def test_timers_waiting_patience_eating_eat(self):
+    def test_timers_only_waiting_patience_never_eat_timer(self):
         sim = make_sim(stock={"bong_sung": 4})
         sim.tables.append({"id": "T2", "pos": [10, 2]})
         sim.customers = build_fixture_customers([
             waiting("C1", "T1", patience_ticks_left=10, reserved={"bong_sung": 2}),
             waiting("C2", "T2", state="eating", order_status="served", eat_ticks_left=5,
                     patience_ticks_left=7, base_price=40, tip=0)], TUNING, sim.stock)
-        tick_customers(sim, [], "timers")
+        tick_customers_timers(sim, [])
         c1, c2 = sim.customers
         self.assertEqual((c1["patience_ticks_left"], c1["eat_ticks_left"]), (9, 0))
-        self.assertEqual((c2["patience_ticks_left"], c2["eat_ticks_left"]), (7, 4), "khách ăn: kiên nhẫn đứng yên")
+        self.assertEqual((c2["patience_ticks_left"], c2["eat_ticks_left"]), (7, 5),
+                         "khách ăn: kiên nhẫn đứng yên, timer ăn do lát 4 giảm (không giảm đôi)")
 
     def test_patience_zero_leaves_and_costs_reputation(self):
         sim = make_sim(customers=[waiting("C1", "T1", patience_ticks_left=0)])
         ev = []
-        tick_customers(sim, ev, "leave")
+        customers_leave(sim, ev)
         self.assertEqual(sim.customers, [])
         rep = Q["reputation_initial"] + Q["left_reputation_delta"]
         self.assertEqual(sim.reputation, rep)
@@ -154,20 +155,20 @@ class TickAndLeave(unittest.TestCase):
     def test_still_patient_stays(self):
         sim = make_sim(customers=[waiting("C1", "T1", patience_ticks_left=1)])
         ev = []
-        tick_customers(sim, ev, "leave")
+        customers_leave(sim, ev)
         self.assertEqual((len(sim.customers), ev), (1, []))
 
     def test_reputation_clamped_at_min(self):
         sim = make_sim(customers=[waiting("C1", "T1", patience_ticks_left=0)])
         sim.reputation = Q["reputation_min"]
-        tick_customers(sim, [], "leave")
+        customers_leave(sim, [])
         self.assertEqual(sim.reputation, Q["reputation_min"])
 
     def test_leave_cleans_stove_and_hand(self):
         sim = make_sim(customers=[waiting("C1", "T1", patience_ticks_left=0)])
         sim.stoves[0].update(state="cooking", cook_ticks_left=50, dish={"order_id": "C1", "dish_id": "goi_bong_sung"})
         sim.hand = {"order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40}
-        tick_customers(sim, [], "leave")
+        customers_leave(sim, [])
         self.assertEqual((sim.stoves[0]["state"], sim.stoves[0]["dish"], sim.hand), ("idle", None, None))
 
     def test_closing_waiting_leave_without_reputation_cost_eating_stays(self):
@@ -179,7 +180,7 @@ class TickAndLeave(unittest.TestCase):
                     base_price=40, tip=0)], TUNING, sim.stock)
         sim.time_left_ticks = 0
         ev = []
-        tick_customers(sim, ev, "leave")
+        customers_leave(sim, ev)
         self.assertEqual([c["id"] for c in sim.customers], ["C2"])
         self.assertEqual(ev[0][1]["reason"], "closing")
         self.assertEqual(sim.reputation, Q["reputation_initial"])
@@ -192,10 +193,14 @@ class TickAndLeave(unittest.TestCase):
             waiting("C2", "T2", patience_ticks_left=0, reserved={"bong_sung": 2}),
             waiting("C3", "T1", patience_ticks_left=0, reserved={"bong_sung": 2})], TUNING, sim.stock)
         ev = []
-        tick_customers(sim, ev, "leave")
+        customers_leave(sim, ev)
         self.assertEqual([e[1]["table_id"] for e in ev], ["T1", "T2", "T10"])
 
-    def test_bad_phase(self):
+    def test_old_name_tick_customers_wraps_new_functions(self):
+        sim = make_sim(customers=[waiting("C1", "T1", patience_ticks_left=1)])
+        ev = []
+        tick_customers(sim, ev)  # all: timers rồi leave -> kiên nhẫn 0 -> rời
+        self.assertEqual([e[1]["reason"] for e in ev], ["patience"])
         with self.assertRaises(ValueError):
             tick_customers(make_sim(), [], "x")
 

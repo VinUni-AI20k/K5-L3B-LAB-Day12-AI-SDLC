@@ -68,24 +68,25 @@ Do @minhthu27 phát: `cook_started`, `dish_ready`, `dish_picked`, `served`, `pai
 
 Bước `k` đọc tick `k`, biến trạng thái `k → k+1`, event ghi tại `k+1`. Phần khách nằm ở các điểm sau:
 
-1. Tăng đồng hồ, giảm timer ca, nấu, ăn và kiên nhẫn. **→ `tick_customers`, phần giảm timer** (kiên nhẫn của khách `waiting`; thời gian ăn của khách `eating`).
+1. Tăng đồng hồ, giảm timer ca, nấu, ăn và kiên nhẫn. **→ `tick_customers_timers`** (chỉ kiên nhẫn của khách `waiting`; thời gian ăn do lát 4 giảm).
 2. Bếp theo id; di chuyển; tối đa một interact. *(@minhthu27)*
 3. Theo id bàn: khách ăn xong trả tiền rồi rời bàn ngay. *(@minhthu27 phát `paid`; khách bị xóa)*
-4. **→ `tick_customers`, phần rời đi**: nếu ca còn giờ, khách `waiting` có `patience_ticks_left == 0` rời với `reason: "patience"`.
+4. **→ `customers_leave`, phần rời đi**: nếu ca còn giờ, khách `waiting` có `patience_ticks_left == 0` rời với `reason: "patience"`.
 5. Hết ca (`time_left_ticks == 0`): khách còn ăn trả ngay (kể cả vừa được giao món); khách còn chờ rời với `reason: "closing"` và không trừ uy tín; rồi `quan_end`.
 6. Nếu còn giờ: **→ `spawn_customers`** (cuối bước).
 
 Lưu ý: phục vụ đúng tick kiên nhẫn về 0 vẫn hợp lệ (interact ở bước 2 chạy trước bước 4).
 
-Hàm trong `chonoi/sim/quan_customers.py` để @minhthu27 gắn vào `quan.py` (giữ đúng tên phan-cong, thêm tham số `phase`):
+Hàm trong `chonoi/sim/quan_customers.py` để @minhthu27 gắn vào `quan.py` (tên đã thống nhất với @minhthu27):
 ```python
-tick_customers(sim, events, "timers")   # bước 1: giảm kiên nhẫn (waiting) / thời gian ăn (eating)
-tick_customers(sim, events, "leave")    # bước 4 và 5: waiting hết kiên nhẫn rời (patience); hết ca -> closing
+tick_customers_timers(sim, events)      # bước 1: chỉ giảm kiên nhẫn khách waiting (lát 4 tự giảm eat_ticks_left)
+customers_leave(sim, events)            # sau khi khách ăn trả tiền, trước quan_end: patience (trừ uy tín) / closing
 spawn_customers(sim, events)            # bước 6, cuối bước, chỉ khi ca còn giờ
+tick_customers(sim, events, phase)      # tên cũ của khung, gọi hai hàm trên theo phase ("timers"/"leave"/"all")
 remove_customer(sim, customer)          # khi khách ăn xong, trả tiền, rời bàn (nhả giữ chỗ, bỏ món liên quan)
 build_fixture_customers(raw, tuning, stock, stoves, hand)  # __init__: khách từ scenario (kiểm + dựng reserved)
 ```
-`phase="all"` (mặc định) = `timers` rồi `leave`. `tick_customers` **không** xử lý khách `eating`: @minhthu27 trả tiền và gọi `remove_customer` trước.
+`customers_leave` **không** xử lý khách `eating`: @minhthu27 cho khách ăn trả tiền và gọi `remove_customer` trước. Trừ uy tín khi khách `patience` bỏ đi do phía khách (lát 3) làm; lát 4 không trừ.
 QuanSim cần có: `phase_tick` (tăng 1 mỗi bước, lịch khách tính theo nó), `random_customers` (từ scenario, mặc định True).
 
 ## 6. Scenario `quan.customers[]` (PRD mục D)

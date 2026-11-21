@@ -4,8 +4,10 @@ Schema khách và thứ tự bước: docs/contracts/customer.md (PRD-0 mục D/
 File này KHÔNG sửa quan.py; QuanSim chỉ cần gọi các hàm công khai dưới đây:
 
   build_fixture_customers(raw, tuning, stock, stoves, hand)  # __init__: khách dựng sẵn từ scenario
-  tick_customers(sim, events, phase)    # phase "timers" (đầu bước) / "leave" (sau khi trả tiền) / "all"
+  tick_customers_timers(sim, events)    # đầu bước: giảm kiên nhẫn khách waiting (không giảm timer ăn)
+  customers_leave(sim, events)          # sau khi trả tiền, trước quan_end: patience / closing + uy tín
   spawn_customers(sim, events)          # cuối bước, chỉ khi ca còn giờ
+  tick_customers(sim, events, phase)    # tên cũ của khung, gọi hai hàm trên theo phase
   remove_customer(sim, customer)        # dùng khi khách rời bàn vì lý do khác (vd. ăn xong, trả tiền)
 
 Quy ước sim (QuanSim) mà file này đọc/ghi:
@@ -213,34 +215,43 @@ def _clamp_reputation(sim, value):
 
 # --------------------------------------------------------------------------- mỗi bước
 
+def tick_customers_timers(sim, events=None):
+    """Đầu bước: giảm kiên nhẫn của khách waiting. KHÔNG giảm eat_ticks_left (lát 4 tự giảm,
+    giảm ở đây nữa thì khách ăn nhanh gấp đôi). Khách eating giữ nguyên kiên nhẫn."""
+    for c in sim.customers:
+        if c["state"] == "waiting" and c["patience_ticks_left"] > 0:
+            c["patience_ticks_left"] -= 1
+
+
+def customers_leave(sim, events):
+    """Sau khi khách đang ăn đã trả tiền (lát 4), trước quan_end.
+
+    Ca còn giờ: khách waiting có kiên nhẫn 0 rời (reason patience, trừ uy tín left_reputation_delta).
+    Hết ca (time_left_ticks == 0): khách waiting rời với reason closing, không đổi uy tín.
+    Khách eating KHÔNG xử lý ở đây. Phát customer_left theo thứ tự id bàn."""
+    closing = sim.time_left_ticks <= 0
+    for c in _by_table([c for c in sim.customers if c["state"] == "waiting"]):
+        if closing:
+            reason = "closing"
+        elif c["patience_ticks_left"] == 0:
+            reason = "patience"
+        else:
+            continue
+        remove_customer(sim, c)
+        if reason == "patience":
+            sim.reputation = _clamp_reputation(sim, sim.reputation + sim.t["left_reputation_delta"])
+        events.append(("customer_left", {"order_id": c["id"], "table_id": c["table_id"],
+                                         "reason": reason, "reputation": sim.reputation}))
+
+
 def tick_customers(sim, events, phase="all"):
-    """phase="timers": giảm kiên nhẫn (khách waiting) và thời gian ăn (khách eating) — đầu bước.
-    phase="leave":  khách waiting có kiên nhẫn 0 rời (reason patience, trừ uy tín) khi ca còn giờ;
-                    hết ca thì khách waiting rời với reason closing, không đổi uy tín.
-                    Khách eating KHÔNG xử lý ở đây (quan_service trả tiền trước).
-    phase="all":    timers rồi leave."""
+    """Tên cũ của khung (giữ để tương thích): phase "timers" / "leave" / "all" (timers rồi leave)."""
     if phase not in ("timers", "leave", "all"):
         raise ValueError(f"phase không hợp lệ: {phase!r}")
     if phase in ("timers", "all"):
-        for c in sim.customers:
-            if c["state"] == "waiting" and c["patience_ticks_left"] > 0:
-                c["patience_ticks_left"] -= 1
-            elif c["state"] == "eating" and c["eat_ticks_left"] > 0:
-                c["eat_ticks_left"] -= 1
+        tick_customers_timers(sim, events)
     if phase in ("leave", "all"):
-        closing = sim.time_left_ticks <= 0
-        for c in _by_table([c for c in sim.customers if c["state"] == "waiting"]):
-            if closing:
-                reason = "closing"
-            elif c["patience_ticks_left"] == 0:
-                reason = "patience"
-            else:
-                continue
-            remove_customer(sim, c)
-            if reason == "patience":
-                sim.reputation = _clamp_reputation(sim, sim.reputation + sim.t["left_reputation_delta"])
-            events.append(("customer_left", {"order_id": c["id"], "table_id": c["table_id"],
-                                             "reason": reason, "reputation": sim.reputation}))
+        customers_leave(sim, events)
 
 
 def _available_stock(sim):
