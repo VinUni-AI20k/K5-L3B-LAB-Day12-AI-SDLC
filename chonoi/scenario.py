@@ -10,7 +10,7 @@ import json
 from .errors import BadInput
 from .inventory import KINDS_P1, validate_items
 
-GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
+GATHER_KEYS = {"player", "hold", "nodes", "fish", "crocs", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "invuln_ticks", "catch_cd_ticks"}
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
@@ -84,9 +84,13 @@ def _pos(name, pos, bounds, axes=("x", "d")):
 def _validate_gather(b, tuning):
     g = tuning["gather"]
     bounds = g["bounds"]
-    for arr in ("nodes", "fish"):
+    for arr in ("nodes", "fish", "crocs"):
         if arr in b:
             _check_ids(arr, b[arr])
+    for c in b.get("crocs", []):
+        if not (isinstance(c.get("pos"), list) and len(c["pos"]) == 2 and c["pos"][1] > g["surface_depth"]
+                and bounds["x"][0] <= c["pos"][0] <= bounds["x"][1] and bounds["d"][0] <= c["pos"][1] <= bounds["d"][1]):
+            raise BadInput("crocs: vị trí phải nằm trong biên và dưới nước")
     if "random_fish" in b and not isinstance(b["random_fish"], bool):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:

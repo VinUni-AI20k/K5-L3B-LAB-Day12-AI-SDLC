@@ -76,6 +76,22 @@ def _validate_gather(g):
     _between("gather.fresh_max", g.get("fresh_max"), 1, 100)
     _between("gather.fresh_decay_per_s", g.get("fresh_decay_per_s"), 0, 10)
     _between("gather.spoil_threshold", g.get("spoil_threshold"), 0, g.get("fresh_max") or 0)
+    _between("gather.croc_speed", g.get("croc_speed"), 0, 10)
+    _int_between("gather.croc_turn_ticks", g.get("croc_turn_ticks"), 1, 10_000)
+    _between("gather.croc_attack_radius", g.get("croc_attack_radius"), 0.5, 5)
+    _between("gather.croc_attack_cooldown_s", g.get("croc_attack_cooldown_s"), 0, 60)
+    _int_between("gather.croc_drop_count", g.get("croc_drop_count"), 1, 30)
+    crocs = g.get("croc_initial")
+    if not isinstance(crocs, list):
+        raise BadInput("tuning.gather.croc_initial phải là mảng")
+    seen_c = set()
+    for c in crocs:
+        if not isinstance(c, dict) or not isinstance(c.get("id"), str) or c["id"] in seen_c:
+            raise BadInput("tuning.gather.croc_initial: mỗi cá sấu cần id duy nhất")
+        seen_c.add(c["id"])
+        _pos_in(f"gather.croc_initial.{c['id']}.pos", c.get("pos"), g["bounds"], ("x", "d"))
+        if c["pos"][1] <= g["surface_depth"]:
+            raise BadInput(f"tuning.gather.croc_initial.{c['id']}: cá sấu phải ở dưới nước")
     _pos_in("gather.dock_pos", g.get("dock_pos"), b, ("x", "d"))
     _pos_in("gather.start_pos", g.get("start_pos"), b, ("x", "d"))
     if not _num(g.get("start_heading_deg")):

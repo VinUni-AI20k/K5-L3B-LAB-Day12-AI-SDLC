@@ -65,7 +65,17 @@ class GatherSim:
         self.fish_spawn_ticks = 0
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
                       "heading_deg": f.get("heading_deg", 0), "move_ticks": 0} for f in src_fish]
-        for coll in (self.nodes, self.fish):
+        # cá sấu: scenario.crocs THAY danh sách mặc định; mặc định tắt khi scenario khai đàn cá hoặc random_fish=false
+        if "crocs" in scenario:
+            src_crocs = scenario["crocs"]
+        elif "fish" not in scenario and scenario.get("random_fish", True):
+            src_crocs = t["croc_initial"]
+        else:
+            src_crocs = []
+        self.crocs = [{"id": c["id"], "pos": [float(v) for v in c["pos"]],
+                       "heading_deg": float(c.get("heading_deg", 0)), "move_ticks": 0, "cd": 0}
+                      for c in src_crocs]
+        for coll in (self.nodes, self.fish, self.crocs):
             for e in coll:
                 ids.reserve(e["id"])
         # giỏ: mỗi nguyên liệu là một cá thể {id, kind, fresh}; mảng thứ tự nhặt, cuối là mới nhất.
@@ -107,6 +117,8 @@ class GatherSim:
                       for n in sort_by_id(self.nodes)],
             "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
                      for f in sort_by_id(self.fish)],
+            "crocs": [{"id": c["id"], "pos": c["pos"], "heading_deg": c["heading_deg"]}
+                      for c in sort_by_id(self.crocs)],
         }
 
     # --- một bước ---------------------------------------------------------------
@@ -121,6 +133,8 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        for c in self.crocs:
+            c["cd"] = max(0, c["cd"] - 1)
         # hao tươi: hàng đã có trong giỏ từ tick trước (hàng nhặt ở tick này chưa hao)
         for u in self.hold:
             u["fresh"] = max(0.0, u["fresh"] - self.fresh_decay_tick)
@@ -206,10 +220,22 @@ class GatherSim:
                                                        "yield": amount}))
         # 5. cá bơi và sinh đàn mới (sau khi người chơi đã hái/bắt theo vị trí đầu tick)
         self._move_fish()
+        self._wander(self.crocs, float(self.t["croc_speed"]), int(self.t["croc_turn_ticks"]),
+                     self.rng.get("croc_swim"))
         self.fish_spawn_ticks += 1
         if self.fish_spawn_ticks >= int(self.t["fish_spawn_ticks"]):
             self.fish_spawn_ticks = 0
             self._spawn_fish()
+        # 5b. cá sấu tấn công: người chơi dưới nước trong tầm, cá sấu gần nhất đang hết hồi
+        if not self._at_surface():
+            near = [c for c in sort_by_id(self.crocs)
+                    if c["cd"] == 0 and math.dist(self.pos, c["pos"]) <= self.t["croc_attack_radius"]]
+            if near:
+                croc = min(near, key=lambda c: math.dist(self.pos, c["pos"]))
+                dropped = self._drop_lifo(int(self.t["croc_drop_count"]), "croc", events)
+                croc["cd"] = int(round(self.t["croc_attack_cooldown_s"] * TICK))
+                events.append(("croc_attack", {"croc_id": croc["id"], "dropped": len(dropped),
+                                               "pos": list(self.pos)}))
         # 6. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
@@ -263,11 +289,13 @@ class GatherSim:
                 self.vel[i] = min(0.0, self.vel[i])
 
     def _move_fish(self):
-        speed = float(self.t["fish_speed"])
-        turn_ticks = int(self.t["fish_turn_ticks"])
-        rng = self.rng.get("fish_swim")
+        self._wander(self.fish, float(self.t["fish_speed"]), int(self.t["fish_turn_ticks"]),
+                     self.rng.get("fish_swim"))
+
+    def _wander(self, entities, speed, turn_ticks, rng):
+        """Bơi ngẫu nhiên dưới nước: đổi hướng theo rng sau turn_ticks bước, phản xạ ở biên x và mặt/đáy."""
         bounds = self.t["bounds"]
-        for fish in sort_by_id(self.fish):
+        for fish in sort_by_id(entities):
             fish["move_ticks"] += 1
             if fish["move_ticks"] >= turn_ticks:
                 fish["move_ticks"] = 0
