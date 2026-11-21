@@ -36,3 +36,6 @@
 - Kiểm: `node --check` OK; `PYTHONPATH=tests:. python3 -m unittest discover -s tests` → **135 ran, OK (1 skipped)**; `tests.test_live` OK
 - Live curl 200: `--mode gather` :8811, `--mode quan` :8812, `CHONOI_CONTRACT=tests/fixtures/contract-v1.1-day.json --mode day` :8813 — GET `/` + `/state`
 - Grep: không `cdnjs` / URL ngoài; `text()` clamp `HUD_MIN=18` — không còn `size` < 18
+
+## Cảnh báo P4 — khách sắp giận (TV3 → bản Pixi ghép)
+- Port `angryBadge()` (nền #ff1744, viền trắng, "!" trắng, nhãn "khách sắp giận" ≥ 18px; HC: nhãn #ffe600) vào `drawAnimatedTable` khi patience < 25% + panel T1–T4; thanh kiên nhẫn đỏ `#ff1744`. Kiểm: `?demo=fresh&mode=quan` (C1 patience thấp) hoặc live `--mode quan`; `node --check` + `unittest` (gồm `test_quan_soak`).

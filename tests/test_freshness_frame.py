@@ -1,7 +1,6 @@
-"""TV6 khung Phase 3 (T305, T306, T330, T331) — kiểm qua API THẬT của TV1.
+"""TV6 khung Phase 3 (T306/T330/T331 + gather.hold load): day/shop/bàn giao + API TV1.
 
-TV1: `validate_individuals`, `uses_individuals`, `read/write_inventory(..., version=)`,
-`Session(..., contract_version=)`. Không còn `runner.inventory_io` / `_item_ids`.
+quan.stock/reserved v1.2: nguồn sự thật là TV3 (`_validate_quan`) — không kiểm lại ở đây.
 """
 
 import filecmp
@@ -17,7 +16,7 @@ from chonoi.ids import IdAllocator
 from chonoi.inventory import (FRESH_SCALE, fresh_to_units, read_inventory, uses_individuals,
                               validate_individuals, write_inventory)
 from chonoi.runner import Session
-from chonoi.scenario import UNITS_PER_POINT, apply_items_v12, fresh_units, is_v12, load_scenario
+from chonoi.scenario import UNITS_PER_POINT, fresh_units, is_v12, load_scenario
 from chonoi.sim.day import DaySim, DayState
 from chonoi.sim.shop import ShopSim
 from helpers import ROOT, Workdir, events, frames, headless_cmd, read_jsonl, snapshots, write_json
@@ -25,7 +24,6 @@ from helpers import ROOT, Workdir, events, frames, headless_cmd, read_jsonl, sna
 FIXTURE_V11 = os.path.join(ROOT, "tests", "fixtures", "contract-v1.1-day.json")
 FIXTURE_V12 = os.path.join(ROOT, "tests", "fixtures", "contract-v1.2-freshness.json")
 SC_GATHER_V12 = os.path.join(ROOT, "tests", "fixtures", "scenario-gather-hold-v12.json")
-SC_QUAN_V12 = os.path.join(ROOT, "tests", "fixtures", "scenario-quan-reserved-v12.json")
 INV_V12 = os.path.join(ROOT, "tests", "fixtures", "inventory-items-v12.json")
 
 
@@ -65,68 +63,26 @@ class Tv1ApiHelpersTest(unittest.TestCase):
                 read_inventory(path, version="1.1")  # mảng cá thể bị từ chối ở v1.1
 
 
-class ScenarioV12Test(unittest.TestCase):
-    def test_apply_passthrough_when_not_v12(self):
-        block = {"hold": ["ca_loc"]}
-        self.assertIs(apply_items_v12("gather", block, _tuning_v12(), "1.1"), block)
+class GatherHoldScenarioTest(unittest.TestCase):
+    """gather.hold cá thể qua load_scenario (không đụng quan — TV3)."""
 
-    def test_v12_rejects_duplicate_id_and_bad_reserved(self):
-        t = _tuning_v12()
-        with self.assertRaises(BadInput) as cm:
-            apply_items_v12("gather", {
-                "hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100},
-                         {"id": "I1", "kind": "ca_linh", "fresh": 90}],
-            }, t, "1.2")
-        self.assertIn("trùng", str(cm.exception).lower() + str(cm.exception))
-
-        stock = [{"id": "I1", "kind": "ca_loc", "fresh": 20},
-                 {"id": "I2", "kind": "ca_loc", "fresh": 80}]
-        with self.assertRaises(BadInput) as cm:
-            apply_items_v12("quan", {
-                "stock": stock,
-                "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                               "reserved": ["I1"]}],
-            }, t, "1.2")
-        self.assertIn("ươn", str(cm.exception))
-
-        with self.assertRaises(BadInput) as cm:
-            apply_items_v12("quan", {
-                "stock": stock,
-                "customers": [
-                    {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I2"]},
-                    {"id": "C2", "table_id": "T2", "dish_id": "ca_loc_nuong_trui", "reserved": ["I2"]},
-                ],
-            }, t, "1.2")
-        self.assertIn("đã được giữ", str(cm.exception))
-
-        with self.assertRaises(BadInput) as cm:
-            apply_items_v12("quan", {
-                "stock": [{"id": "I9", "kind": "ca_loc", "fresh": 90}],
-                "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                               "reserved": ["I404"]}],
-            }, t, "1.2")
-        self.assertIn("không có trong quan.stock", str(cm.exception))
-
-    def test_v12_view_counts_and_reserved_kinds(self):
-        t = _tuning_v12()
-        with open(SC_QUAN_V12, encoding="utf-8") as f:
-            block = json.load(f)["quan"]
-        view = apply_items_v12("quan", block, t, "1.2")
-        self.assertEqual(view["stock"], {"ca_loc": 2, "bong_sung": 1})
-        self.assertEqual(view["customers"][0]["reserved"], {"ca_loc": 1})
-
-    def test_load_scenario_v12_keeps_original_block(self):
+    def test_load_keeps_individual_hold(self):
         t = _tuning_v12()
         sc = load_scenario(SC_GATHER_V12, "gather", t, "1.2")
         self.assertEqual(sc["hold"][0]["id"], "I1")
+        self.assertEqual(sc["hold"][0]["kind"], "ca_linh")
 
-    def test_version_none_still_validates_individual_payload(self):
-        """headless chưa truyền version → vẫn kiểm khi hold đã là cá thể."""
+    def test_duplicate_hold_id_exit_bad_input(self):
         t = _tuning_v12()
-        with open(SC_GATHER_V12, encoding="utf-8") as f:
-            block = json.load(f)["gather"]
-        view = apply_items_v12("gather", block, t, None)
-        self.assertEqual(view["hold"], ["ca_linh", "ca_loc"])
+        with Workdir() as w:
+            path = write_json(w.path("sc.json"), {"gather": {
+                "hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100},
+                         {"id": "I1", "kind": "ca_linh", "fresh": 90}],
+                "random_fish": False,
+            }})
+            with self.assertRaises(BadInput) as cm:
+                load_scenario(path, "gather", t, "1.2")
+            self.assertIn("trùng", str(cm.exception))
 
 
 class SessionContractVersionTest(unittest.TestCase):

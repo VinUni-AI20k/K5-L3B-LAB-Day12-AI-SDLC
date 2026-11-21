@@ -11,5 +11,7 @@
 - Điều tốt: PO chép được TICKET-02/03/04 vào repo nên agent đọc đề được; UI P1–P2 và cảnh báo P4 nằm ở `chonoi/web/` không đụng sim; PR #2/#4/#5 đã vào `main`.
 - Điều tệ: tag `phase-1`…`phase-3` vẫn chưa gắn; checkbox task từng bị lệch so với code (UI P2 đã có mà `tasks.md` còn `[ ]`); id cá thể xuyên Ngày (T331) chưa có `ItemIds`.
 - Số liệu commit trên `main` (2026-11-21, `git shortlog -sn`): thanhhale288 27, Hai Duong 9, Hela 5 (merge), dqk2210 5, Hải Đăng 4, MinPhuc 4, noobpyno 3, thanhanbk02 1. Đọc chéo: TV6 review PR quán/gather khi merge. Token: từng người chưa điền `/cost` — ô nhật ký còn trống.
-- Một lần AI sai: bản chép TICKET-02 lọc trùng làm rơi ô bảng và chuỗi trong ngoặc kép; phát hiện khi đối chiếu board lần 2, chép lại không lọc (`docs/ai-usage-log.md`).
+- Một lần AI sai:
+  - Bản chép TICKET-02 lọc trùng làm rơi ô bảng và chuỗi trong ngoặc kép; phát hiện khi đối chiếu board lần 2, chép lại không lọc (`docs/ai-usage-log.md`).
+  - TV3: AI báo soak 10 Ngày đỏ vì kỳ vọng "5 khách/Ngày" — đối chiếu JSONL thấy kho nhỏ + `plan_dishes` khiến `no_dish` từ lượt 3 là đúng luật; bài học: sửa kỳ vọng test theo luật, không sửa luật theo kỳ vọng, và dùng `git stash` xác nhận lỗi không có sẵn trên HEAD trước khi đụng test người khác.
 - Nếu làm lại: phút 0 mỗi phase một người khóa `game.contract.json` và gắn tag dù lõi còn nợ, ghi nợ trung thực trong verification — đừng chờ "xanh hết" rồi trễ hạn.

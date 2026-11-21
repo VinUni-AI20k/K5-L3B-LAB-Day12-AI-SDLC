@@ -556,6 +556,23 @@ function bar(x, y, w, h, frac, color, label, bgColor = "rgba(0,0,0,0.5)") {
   ctx.restore();
 }
 
+function angryBadge(x, y, withLabel) {
+  // Phase 4 TV3 (TICKET-04): cảnh báo "khách sắp giận" khi kiên nhẫn < 25%
+  // Nền #ff1744, viền trắng 2px, "!" trắng; nhãn ≥ 18px — HC dùng #ffe600 cho dễ đọc.
+  ctx.fillStyle = "#ff1744";
+  ctx.fillRect(x, y, 26, 24);
+  ctx.strokeStyle = "#ffffff";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x + 1, y + 1, 24, 22);
+  ctx.lineWidth = 1;
+  text("!", x + 13, y + 19, { size: 18, bold: true, align: "center", color: "#ffffff" });
+  if (withLabel) {
+    text("khách sắp giận", x + 32, y + 19, {
+      size: 18, bold: true, color: highContrast ? "#ffe600" : "#ff1744",
+    });
+  }
+}
+
 function fmtTime(ticks) {
   if (ticks === undefined || ticks === null) return "—";
   const s = Math.ceil(ticks / 60);
@@ -1031,15 +1048,13 @@ function drawAnimatedTable(sx, sy, tb, customer, meta, scale) {
       text(shortDish(cd), 0, cy - 0.95 * scale, { size: 18, align: "center", color: "#ffe082" });
     }
 
-    // Thanh kiên nhẫn
+    // Thanh kiên nhẫn + badge TV3 khi < 25%
     const pl = patienceLeft(customer), pm = patienceMax(customer, meta);
     if (pl !== undefined && pm > 0 && customer.state !== "eating") {
       const frac = pl / pm;
       const low = frac < 0.25;
       bar(-0.9 * scale, cy + 0.7 * scale, 1.8 * scale, 8, frac, low ? "#ff1744" : "#ffca28");
-      if (low) {
-        text("💢", 0.9 * scale + 10, cy + 0.7 * scale + 8, { size: 18 });
-      }
+      if (low) angryBadge(0.55 * scale, cy - 1.2 * scale, true);
     }
   }
 
@@ -1362,7 +1377,7 @@ function drawQuan(w, h) {
   const handLbl = dishOf(snap.hand);
   text("Đang bưng: " + (handLbl ? shortDish(handLbl) : "(trống)"), w - 16, 30, { size: 20, align: "right", color: handLbl ? "#ffcc80" : "#90a4ae" });
 
-  // Tình trạng 4 bàn T1..T4
+  // Tình trạng 4 bàn T1..T4 (+ badge TV3 khi sắp giận)
   const tableIds = ["T1", "T2", "T3", "T4"];
   const tw = Math.min(200, (w - 40) / 4 - 10);
   tableIds.forEach((tid, i) => {
@@ -1374,7 +1389,13 @@ function drawQuan(w, h) {
     else {
       const cd = dishOf(c);
       text(cd ? shortDish(cd) : "Đang chờ…", x0 + 10, 94, { size: 18, color: "#ffffff" });
+      const pl = patienceLeft(c), pm = patienceMax(c, meta);
       if (c.state === "eating") text("Đang thưởng thức 😋", x0 + 10, 114, { size: 18, color: "#69f0ae" });
+      else if (pl !== undefined && pm > 0) {
+        const low = pl / pm < 0.25;
+        bar(x0 + 8, 98, tw - 16, 12, pl / pm, low ? "#ff1744" : "#ffca28");
+        if (low) angryBadge(x0 + tw - 32, 44, false);
+      } else text("KN —", x0 + 10, 114, { size: 18, color: "#78909c" });
     }
   });
 

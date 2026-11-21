@@ -14,7 +14,7 @@ import sys
 from .contract import DEFAULT_PATH, load_contract
 from .errors import BadInput
 from .inputs import buttons_for, load_frames
-from .inventory import read_inventory
+from .inventory import menu_kinds, read_inventory
 from .runner import run
 from .scenario import load_scenario
 from .sim.day import missing_day_keys
