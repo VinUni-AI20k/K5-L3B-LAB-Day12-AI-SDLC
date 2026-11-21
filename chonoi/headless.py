@@ -1,13 +1,16 @@
 """Điểm vào headless: python3 -m chonoi.headless --mode gather|quan|day --seed 1 --ticks 600 --out out.jsonl
   [--days N] (chỉ với day, 1..5, mặc định 1)
+  [--leaderboard store.json --player-name NAME] (chỉ với day, đi theo cặp; ghi một mục khi đủ 5 Ngày chuẩn)
 
 Mã thoát: 0 bình thường; 2 tham số/đầu vào sai (kiểm TRƯỚC khi ghi đầu ra); 1 lỗi chạy/ghi.
 """
 
 import argparse
+import math
 import os
 import sys
 
+from . import leaderboard
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import load_frames
@@ -44,8 +47,15 @@ def main(argv=None) -> int:
     p.add_argument("--inventory")
     p.add_argument("--inventory-out", dest="inventory_out")
     p.add_argument("--snapshot-every", dest="snapshot_every", type=_int("snapshot-every"), default=10)
+    p.add_argument("--leaderboard")  # mở rộng P4: store xếp hạng cục bộ
+    p.add_argument("--player-name", dest="player_name")
     a = p.parse_args(argv)
+    board = None
     try:
+        if (a.leaderboard is None) != (a.player_name is None):
+            raise BadInput("--leaderboard và --player-name phải đi cùng nhau")
+        if a.leaderboard is not None and a.mode != "day":
+            raise BadInput("--leaderboard chỉ dùng với --mode day")
         if a.days is not None and a.mode != "day":
             raise BadInput("--days chỉ dùng với --mode day")
         days = 1 if a.days is None else a.days
@@ -59,7 +69,7 @@ def main(argv=None) -> int:
             raise BadInput("--inventory chỉ dùng với quan")
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
-        outs = [x for x in (a.out, a.inventory_out) if x]
+        outs = [x for x in (a.out, a.inventory_out, a.leaderboard) if x]
         ins = [x for x in (a.scenario, a.inputs, a.inventory) if x]
         paths = [os.path.abspath(x) for x in outs + ins]
         if len(set(paths)) != len(paths):
@@ -72,11 +82,14 @@ def main(argv=None) -> int:
         inventory = read_inventory(a.inventory, version=contract["contract_version"]) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
+        if a.leaderboard is not None:
+            leaderboard.validate_name(a.player_name)
+            board = leaderboard.load(a.leaderboard)  # store hỏng → mã 2 trước khi ghi đầu ra
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2
     try:
-        run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+        sim = run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
             inventory=inventory, inventory_out=a.inventory_out, days=days)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim (day: cả lúc mở quán với kho thực)
         sys.stderr.write(f"đầu vào sai: {e}\n")
@@ -86,6 +99,15 @@ def main(argv=None) -> int:
     except OSError as e:
         sys.stderr.write(f"lỗi ghi: {e}\n")
         return 1
+    if board is not None:
+        end = {"reason": sim.reason if sim.done else "tick_limit", "days_completed": sim.days_completed}
+        if leaderboard.qualifies(days, a.scenario, end):
+            score = sim.earned + tuning["score"]["reputation_multiplier"] * math.floor(sim.reputation)
+            try:
+                leaderboard.save(a.leaderboard, leaderboard.add(board, a.player_name, score, sim.days_completed, a.seed))
+            except OSError as e:
+                sys.stderr.write(f"lỗi ghi leaderboard: {e}\n")
+                return 1
     return 0
 
 
