@@ -90,11 +90,13 @@ class Spawn(unittest.TestCase):
         self.assertEqual(ev, [("no_dish", {})])
 
     def test_no_free_table_skips_turn_silently(self):
-        sim = make_sim(customers=[waiting("C1", "T1")])
+        # v1.1 có 4 bàn: phải kín hết bàn mới bỏ lượt (P1 chỉ có T1)
+        full = [waiting(f"C{i}", tb["id"]) for i, tb in enumerate(TUNING["quan"]["tables"], 1)]
+        sim = make_sim(stock=dict(ALL_STOCK, bong_sung=2 * len(full)), customers=full)
         ev = []
         spawn_customers(sim, ev)
         self.assertEqual(ev, [])
-        self.assertEqual(len(sim.customers), 1)
+        self.assertEqual(len(sim.customers), len(full))
 
     def test_lowest_free_table_id_first(self):
         sim = make_sim(customers=[waiting("C1", "T1")])
