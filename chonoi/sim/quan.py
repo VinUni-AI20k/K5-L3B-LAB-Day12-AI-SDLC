@@ -20,6 +20,7 @@ class QuanSim:
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
+        self.freshness = tuning.get("freshness")
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -28,7 +29,8 @@ class QuanSim:
         self._tgt = None
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
+        stock = inventory if inventory is not None else scenario.get("stock", {})
+        self.stock = [dict(item) for item in stock] if isinstance(stock, list) else dict(stock)
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
@@ -78,13 +80,97 @@ class QuanSim:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
         return {
             "player": {"pos": self.pos},
-            "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
+            "stock": (sort_by_id(self.stock) if isinstance(self.stock, list)
+                      else {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}),
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
             "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in self.tables],
             "customers": sort_by_id(self.customers),
         }
+
+    # Vòng tick chọn bếp/bàn và đơn hợp lệ trước khi gọi các hàm này.
+    # Mỗi thao tác trả (tên sự kiện, dữ liệu) hoặc None nếu không thực hiện được.
+    def start_cooking(self, stove, customer, *, base_price=None):
+        """Nấu đơn reserved do vòng tick chọn theo order_tick rồi ID bàn.
+
+        Bên gọi cập nhật trạng thái đơn và giải phóng phần giữ chỗ sau
+        cook_started. Hàm này trừ kho thực đúng lúc món bắt đầu nấu.
+        Với kho cá thể, bên gọi tính base_price theo các nguyên liệu đã giữ.
+        """
+        dish_id = customer["dish_id"]
+        recipe = self.menu.get(dish_id)
+        if stove["state"] != "idle" or recipe is None:
+            return None
+        ingredients = recipe["recipe"]
+        dish = {"dish_id": dish_id, "customer_id": customer["id"]}
+        if customer.get("order_id") is not None:
+            dish["order_id"] = customer["order_id"]
+        cook_ticks = max(1, round(recipe["cook_s"] * TICK))
+        if isinstance(self.stock, list):
+            if self.freshness is None or base_price is None:
+                return None
+            items = self._reserved_ingredients(customer, ingredients)
+            if items is None:
+                return None
+            used_ids = {item["id"] for item in items}
+            self.stock[:] = [item for item in self.stock if item["id"] not in used_ids]
+            dish["base_price"] = base_price
+            event_items = {"items": [dict(item) for item in items]}
+        else:
+            if any(self.stock.get(kind, 0) < quantity for kind, quantity in ingredients.items()):
+                return None
+            for kind, quantity in ingredients.items():
+                self.stock[kind] -= quantity
+            event_items = {}
+        stove.update(state="cooking", dish=dish, cook_ticks_left=cook_ticks, ready_ticks=0)
+        return "cook_started", {"stove_id": stove["id"], **dish, **event_items}
+
+    def _reserved_ingredients(self, customer, recipe):
+        reserved = customer.get("reserved")
+        if not isinstance(reserved, list) or len(reserved) != len(set(reserved)):
+            return None
+        stock_by_id = {item["id"]: item for item in self.stock}
+        items = []
+        counts = {}
+        threshold = self.freshness["spoiled_below"]
+        for item_id in reserved:
+            item = stock_by_id.get(item_id)
+            if item is None or item["fresh"] < threshold:
+                return None
+            kind = item["kind"]
+            counts[kind] = counts.get(kind, 0) + 1
+            items.append(item)
+        if counts != recipe:
+            return None
+        return sorted(sort_by_id(items), key=lambda item: item["kind"])
+
+    def finish_cooking(self, stove):
+        """Đổi trạng thái khi vòng tick đã đếm thời gian nấu về 0."""
+        if stove["state"] != "cooking" or stove["cook_ticks_left"] != 0 or stove["dish"] is None:
+            return None
+        stove.update(state="ready", ready_ticks=0)
+        return "dish_ready", {"stove_id": stove["id"], **stove["dish"]}
+
+    def pick_dish(self, stove):
+        """Bưng một món chín nếu tay đang trống."""
+        if self.hand is not None or stove["state"] != "ready" or stove["dish"] is None:
+            return None
+        self.hand = stove["dish"]
+        stove.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
+        return "dish_picked", {"stove_id": stove["id"], **self.hand}
+
+    def serve_dish(self, table, customer):
+        """Giao món cho đúng đơn. Bên gọi chuyển khách sang trạng thái ăn."""
+        dish = self.hand
+        if not isinstance(dish, dict) or customer["table_id"] != table["id"]:
+            return None
+        if dish.get("customer_id") != customer["id"] or dish.get("dish_id") != customer["dish_id"]:
+            return None
+        if dish.get("order_id") != customer.get("order_id"):
+            return None
+        self.hand = None
+        return "served", {"table_id": table["id"], **dish}
 
     def step(self, inp):
         events = []

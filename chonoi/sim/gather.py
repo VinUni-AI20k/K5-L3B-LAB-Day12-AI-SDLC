@@ -7,22 +7,22 @@ Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` đ�
 cập bến (`interact` trong vùng bến -> `gather_end` reason `docked`), xuất kho, snapshot đầy đủ trường gather.
 
 Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gather"):
-  TODO(nhóm, lát 1): bơi + oxy + biên + giỏ
+  Lát 1 (đã có): oxy, ngạt, Máu, ngất, giỏ.
       - oxy: dưới nước (d > surface_depth) trừ 1 tick/tick, mặt nước hồi oxygen_refill_per_tick, kẹp [0, max]
-      - ngạt: oxy = 0 và đang dưới nước -> đếm zero_oxy_ticks, đủ choke_interval_ticks thì -1 Máu (choke)
+      - ngạt: oxy = 0 và đang dưới nước -> đếm zero_oxy_ticks, đủ choke_interval_ticks thì -1 Máu (choke), rồi đếm lại từ 0
       - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
-      - sự kiện dive / surface / oxygen_empty / choke / faint
-      - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
-  TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
+      - sự kiện dive / surface (data: pos) / oxygen_empty / choke / faint
+      - giỏ: TV2 gọi try_add_hold — cuối mảng là món mới nhất (LIFO), đầy thì hold_full và không thêm
+  Lát 2 (đã có): hái + bắt cá + cập bến + kho.
       - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
-      - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
+      - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks tính từ lần bắt thành công, chỉ khi dưới nước)
       - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
 Các tính năng của phase sau chưa nằm trong khung này.
 """
 
 import math
 
-from ..ids import sort_by_id
+from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
@@ -107,27 +107,67 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-        # 2. bơi + chặn mép
+        # 2. bơi + chặn mép, rồi oxy theo độ sâu CUỐI bước
+        was_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
+        if self._oxygen_and_breath(events, was_surface):
+            return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
+            self._try_harvest(events)
         # 4. bắt cá
         if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+            self._try_catch(events)
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events
 
     # --- tiện ích ---------------------------------------------------------------
+    def try_add_hold(self, kind, events) -> bool:
+        """Thêm một món vào cuối giỏ (LIFO). TV2 gọi khi hái hoặc bắt cá.
+
+        Đầy (`hold_capacity`) thì không thêm, phát `hold_full` và trả False.
+        """
+        if len(self.hold) >= int(self.t["hold_capacity"]):
+            events.append(("hold_full", {"kind": kind}))
+            return False
+        self.hold.append(kind)
+        return True
+
+    def _pos_data(self) -> dict:
+        return {"pos": [self.pos[0], self.pos[1]]}
+
+    def _oxygen_and_breath(self, events, was_surface: bool) -> bool:
+        """Oxy, ngạt, ngất sau khi đã bơi. Trả True nếu buổi kết thúc trong tick này."""
+        now_surface = self._at_surface()
+        if was_surface != now_surface:
+            events.append(("surface" if now_surface else "dive", self._pos_data()))
+        prev = self.oxygen_ticks
+        if now_surface:
+            self.oxygen_ticks = min(self.oxygen_max, prev + int(self.t["oxygen_refill_per_tick"]))
+        else:
+            self.oxygen_ticks = max(0, prev - 1)
+        if prev > 0 and self.oxygen_ticks == 0:
+            events.append(("oxygen_empty", {}))
+        if self.oxygen_ticks == 0 and not now_surface:
+            self.zero_oxy_ticks += 1
+            if self.zero_oxy_ticks >= int(self.t["choke_interval_ticks"]):
+                self.zero_oxy_ticks = 0
+                self.hp -= 1
+                events.append(("choke", {"hp": self.hp}))
+                if self.hp <= 0:
+                    self.hold.clear()
+                    events.append(("faint", {}))
+                    self._finish("fainted", events)
+                    return True
+        else:
+            self.zero_oxy_ticks = 0
+        return False
+
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
 
@@ -155,3 +195,66 @@ class GatherSim:
             elif self.pos[i] >= hi:
                 self.pos[i] = hi
                 self.vel[i] = min(0.0, self.vel[i])
+
+    # --- lát 2 (TV2): gọi giỏ qua TV1, hái nút mặt nước, bắt cá dưới nước -----
+    def _try_add_hold_batch(self, kind: str, events, count: int) -> bool:
+        """Gọi qua `try_add_hold` của TV1 mà không sửa hàm TV1 (chờ TV1 duyệt `count=1`).
+
+        Đảm bảo thêm nguyên tử cả đàn (TICKET-02 §1.1): từ chối số lượng <= 0 hoặc
+        thiếu chỗ cho đủ `count` món, phát đúng một `hold_full` theo hợp đồng `{"kind": kind}`.
+        """
+        if count <= 0:
+            return False
+        if count == 1:
+            return self.try_add_hold(kind, events)
+        if len(self.hold) + count > int(self.t["hold_capacity"]):
+            # Khớp payload `hold_full` trong docs/contracts/README.md (`{"kind": kind}`).
+            events.append(("hold_full", {"kind": kind}))
+            return False
+        for _ in range(count):
+            if not self.try_add_hold(kind, events):
+                return False
+        return True
+
+    def _nearest_in_radius(self, entities, radius: float):
+        """Chọn thực thể gần nhất trong `radius` (<=), tie-break tất định bằng `id_key`."""
+        best = None
+        best_key = None
+        for e in entities:
+            dist = math.dist(self.pos, e["pos"])
+            if dist <= radius:
+                key = (dist, id_key(e["id"]))
+                if best_key is None or key < best_key:
+                    best = e
+                    best_key = key
+        return best
+
+    def _try_harvest(self, events):
+        """Hái nút rau `ready` gần nhất khi đang ở mặt nước (TICKET-02 §1.1)."""
+        if not self._at_surface():
+            return
+        ready_nodes = (n for n in self.nodes if n["regrow_ticks"] == 0)
+        node = self._nearest_in_radius(ready_nodes, self.t["interact_radius"])
+        if node is None:
+            return
+        amount = int(self.t["node_yield"])
+        if not self._try_add_hold_batch(node["kind"], events, amount):
+            return
+        node["regrow_ticks"] = max(1, int(round(self.t["regrow_s"] * TICK)))
+        # TODO(PRD-0): đối chiếu schema payload chính thức của `gather` khi có PRD-0 mục E.
+        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "count": amount}))
+
+    def _try_catch(self, events):
+        """Bắt đàn cá gần nhất khi dưới nước và hết hồi chiêu (TICKET-02 §1.1)."""
+        if self.catch_cd_ticks > 0 or self._at_surface():
+            return
+        fish = self._nearest_in_radius(self.fish, self.t["catch_radius"])
+        if fish is None:
+            return
+        amount = int(self.t["fish_yield"][fish["kind"]])
+        if not self._try_add_hold_batch(fish["kind"], events, amount):
+            return
+        self.fish = [f for f in self.fish if f["id"] != fish["id"]]
+        self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+        # TODO(PRD-0): đối chiếu schema payload chính thức của `fish_caught` khi có PRD-0 mục E.
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "count": amount}))
