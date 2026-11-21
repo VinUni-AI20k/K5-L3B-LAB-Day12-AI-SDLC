@@ -24,8 +24,10 @@ import math
 
 from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
+from .monsters import build_monsters, serialize_monsters, step_monsters
 from .fish import initial_schools, spawn_if_due, swim
 from .ramp import ramp_velocity
+from .shop import upgrade_entry
 
 TICK = 60.0
 AXES = ("x", "d")
@@ -35,9 +37,11 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids):
-        t = tuning["gather"]
+    def __init__(self, tuning, scenario, streams, ids, day: int = 1, active_upgrades=None):
+        t = self._apply_active_upgrades(tuning["gather"], tuning.get("shop"), active_upgrades)
         self.t = t
+        self.day = max(1, int(day))
+        self.active_upgrades = dict(active_upgrades or {})
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -78,11 +82,32 @@ class GatherSim:
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
+        # Thủy quái (Phase 2, T220–T223 & T246): chỉ kích hoạt khi có tuning.gather.monsters
+        self._monster_cfg = t.get("monsters") if isinstance(t.get("monsters"), dict) else None
+        sc_monsters = scenario["monsters"] if "monsters" in scenario else None
+        self.monsters = build_monsters(self._monster_cfg, sc_monsters, self.day, ids)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
         self.done = False
         self.reason = None
+
+    @staticmethod
+    def _apply_active_upgrades(gather_tuning: dict, shop_tuning, active_upgrades) -> dict:
+        """Áp các cấp nâng cấp đang hiệu lực (`active_upgrades`) lên bản sao `tuning.gather` (T246)."""
+        t = dict(gather_tuning)
+        if not active_upgrades or not isinstance(shop_tuning, dict) or not isinstance(shop_tuning.get("upgrades"), dict):
+            return t
+        for uid in sorted(active_upgrades):
+            lv = int(active_upgrades[uid])
+            if lv <= 0:
+                continue
+            entry = upgrade_entry(shop_tuning, uid, lv)
+            if entry:
+                for k, v in entry.items():
+                    if k not in ("level", "price"):
+                        t[k] = v
+        return t
 
     # --- giao diện cho runner -------------------------------------------------
     def inventory_items(self) -> dict:
@@ -103,6 +128,7 @@ class GatherSim:
             "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"],
                        "age_ticks": f.get("age_ticks", 0)}
                      for f in sort_by_id(self.fish)],
+            "monsters": serialize_monsters(self.monsters),
         }
 
     # --- một bước ---------------------------------------------------------------
@@ -122,6 +148,9 @@ class GatherSim:
         was_surface = self._at_surface()
         self._move(inp)
         if self._oxygen_and_breath(events, was_surface):
+            return events
+        # 2b. thủy quái (Cá Sấu Năm Chèo — TICKET-02 §1.2, §4.5): cập nhật theo id rồi tối đa 1 hit
+        if self._monsters_step(events):
             return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
@@ -280,3 +309,33 @@ class GatherSim:
         self.fish = [f for f in self.fish if f["id"] != fish["id"]]
         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
         events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": amount}))
+
+    # --- Phase 2 (TV2, T220–T223): Cá Sấu Năm Chèo, rơi hàng LIFO, ngất --------
+    def _monsters_step(self, events) -> bool:
+        """Cập nhật thủy quái và xử lý tối đa một hit. Trả True nếu buổi kết thúc vì ngất."""
+        if not self.monsters or self._monster_cfg is None:
+            return False
+        hitter = step_monsters(self.monsters, self._monster_cfg, self.t["bounds"], self.pos, self.invuln_ticks)
+        if hitter is None:
+            return False
+        self.hp -= 1
+        loss_ratio = float(self._monster_cfg.get("loss_ratio", 0.5))
+        drop_count = math.floor(len(self.hold) * loss_ratio)
+        lost = [self.hold.pop() for _ in range(drop_count)]
+        self.invuln_ticks = int(self._monster_cfg.get("invuln_ticks", 90))
+        events.append(("monster_hit", {
+            "monster_id": hitter["id"],
+            "hp": self.hp,
+            "lost": lost,
+            "pos": [self.pos[0], self.pos[1]],
+        }))
+        if self.hp <= 0:
+            rem_lost = [self.hold.pop() for _ in range(len(self.hold))]
+            events.append(("faint", {
+                "cause": "monster",
+                "lost": rem_lost,
+                "hp": 0,
+            }))
+            self._finish("fainted", events)
+            return True
+        return False

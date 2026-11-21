@@ -148,10 +148,11 @@ Chi tiết task: [`specs/004-release/tasks.md`](specs/004-release/tasks.md) · P
 - [ ] T430–T431, T442, T452: regression P1–P3; ma trận AC-P4; standup phút 20; xác nhận DoD trước khi TV1 gắn tag.
 
 ### TV6 — UI cảnh báo, retro, demo
-- [ ] T400: chốt phân công P4 trên kênh + standup.
-- [ ] T413: cảnh báo thủy quái / oxy thấp / khách giận + chế độ tương phản cao (`chonoi/web/`).
-- [ ] T433, T440: clarify + ai-usage-log P4; retro cuối (rà hành động P2, số liệu, 1 lỗi AI).
-- [ ] T470: dẫn demo (&lt;5 phút) hoặc video sau 3:00.
+- [x] T400: phân công P4 ghi trong brief + standup.
+- [x] T413: cảnh báo thủy quái / oxy thấp / khách giận + tương phản cao (`?demo=warn`, `?demo=warnq`, phím C).
+- [x] T433, T440: clarify #46 + ai-usage-log P4; retro cuối (rà hành động P2, shortlog, 1 lỗi AI).
+- [x] T441 (riêng TV6): `docs/members/thanhhale288.md`.
+- [ ] T470: dẫn demo (&lt;5 phút) hoặc video **sau 3:00** — chưa tới giờ.
 - [ ] (sau lõi) T461: phụ đề SFX nếu còn giờ.
 
 ### Mọi người

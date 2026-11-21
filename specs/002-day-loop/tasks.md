@@ -59,20 +59,20 @@
 - [ ] T251 [qa] (TV5) Regression P1 với số chuẩn: chạy toàn bộ test (AC-P2-02). Sửa test cũ có lý do trong commit: `tests/test_smoke_p1.py:45` (6 → 8 đàn, đọc từ tuning), `:70-77` (bỏ `day` khỏi danh sách mã 2; thêm `--days 0/6` → 2); sửa `:65-67` và `tests/test_python_starter_units.py:46-50` (`attack` chưa bật → bỏ qua, mã 0 — đề §4.2); `test_session_steps_gather_and_dock` nếu đổi bộ đếm tick
 - [ ] T252 [P] [qa] (TV5) Smoke `day --days 1` + đo thời gian ≤ 20 s; `day --days 2` mua oxy → Ngày 2 oxy max 2700; `cmp` tất định (AC-P2-23, 25, 29, 30) → `docs/proof/phase-2/`
 - [ ] T253 [qa] (TV5) `docs/verification/phase-2.md`: AC-P2-01…31 → test → kết quả trên commit bàn giao
-- [ ] T254 [P] [qa] (TV6) Cập nhật `docs/clarify.md` (theo dõi #30, #32, #33 còn GIẢ ĐỊNH), `docs/ai-usage-log.md`, `docs/retro.md` (phút 45–50)
+- [x] T254 [P] [qa] (TV6) Cập nhật `docs/clarify.md` (theo dõi #30, #32, #33 còn GIẢ ĐỊNH), `docs/ai-usage-log.md`, `docs/retro.md` (phút 45–50)
 - [ ] T255 [qa] (TV1) Gắn tag `phase-2` sau khi TV5 báo xanh (trước 1:55)
 
 ## Client/UI — worker Cursor (chủ TV6), chỉ `chonoi/web/` (+ đọc `chonoi/live.py`)
 
 > Chỉ đọc snapshot/event; không chứa luật; tắt ở headless. Chữ không chân ≥ 18 px ở 1280×720, ≥ 30 FPS. Phụ thuộc T248 (`live.py --mode day`); trước đó làm với fixture snapshot. Màn UI-only (Menu, DayIntro…) hiển thị theo `phase` + event `day_start`/`phase_start`/`shop_end`.
 
-- [ ] T260 [P] [US5] [client/ui] (TV6) Menu chính (Chơi / Thoát)
-- [ ] T261 [P] [US5] [client/ui] (TV6) DayIntro (Ngày + danh sách Má Tư đọc từ `day_plan`, tự chuyển 4 s hoặc phím), EveningIntro (số nhập kho, món nấu được), DayResult (phục vụ/bỏ đi, tiền, boa, Δ uy tín), Summary sau Ngày 5 (tổng tiền, điểm, uy tín, món bán chạy)
-- [ ] T262 [P] [US5] [client/ui] (TV6) Pause menu (Esc/P): làm mờ nền, Tiếp tục / Về menu; gửi `pause`
-- [ ] T263 [P] [US5] [client/ui] (TV6) Shop UI: 2 nâng cấp × 2 cấp, giá, cấp đã mua/đang áp dụng, nút mua (`buy`) và đóng (`shop_done`), đồng hồ 600 tick, thông báo `buy_failed`
-- [ ] T264 [P] [US5] [client/ui] (TV6) HUD sáng: Máu, oxy (< 25% đổi màu/nhấp nháy), thời gian (≤ 30 s đổi màu), độ sâu, giỏ theo loại, đã lấy/cần, hồi bắt, gợi ý hái/cập bến, "Thủy quái!" + viền tím khi Cá Sấu gần, "Hết hơi!"; vẽ Cá Sấu, cá kèo, N5/N6
-- [ ] T265 [P] [US5] [client/ui] (TV6) HUD quán: đồng hồ ca, tiền ca, uy tín, 4 bàn (món + kiên nhẫn < 25% đổi màu), 2 bếp (tiến độ/món chín), món đang cầm, kho khả dụng; tên 6 món
-- [ ] T266 [US5] [client/ui] (TV6) Kiểm tay 1 Ngày trên `chonoi.live`, đo FPS, ảnh vào `docs/proof/phase-2/`
+- [x] T260 [P] [US5] [client/ui] (TV6) Menu chính (Chơi / Thoát)
+- [x] T261 [P] [US5] [client/ui] (TV6) DayIntro (Ngày + danh sách Má Tư đọc từ `day_plan`, tự chuyển 4 s hoặc phím), EveningIntro (số nhập kho, món nấu được), DayResult (phục vụ/bỏ đi, tiền, boa, Δ uy tín), Summary sau Ngày 5 (tổng tiền, điểm, uy tín, món bán chạy)
+- [x] T262 [P] [US5] [client/ui] (TV6) Pause menu (Esc/P): làm mờ nền, Tiếp tục / Về menu; gửi `pause`
+- [x] T263 [P] [US5] [client/ui] (TV6) Shop UI: 2 nâng cấp × 2 cấp, giá, cấp đã mua/đang áp dụng, nút mua (`buy`) và đóng (`shop_done`), đồng hồ 600 tick, thông báo `buy_failed`
+- [x] T264 [P] [US5] [client/ui] (TV6) HUD sáng: Máu, oxy (< 25% đổi màu/nhấp nháy), thời gian (≤ 30 s đổi màu), độ sâu, giỏ theo loại, đã lấy/cần, hồi bắt, gợi ý hái/cập bến, "Thủy quái!" + viền tím khi Cá Sấu gần, "Hết hơi!"; vẽ Cá Sấu, cá kèo, N5/N6
+- [x] T265 [P] [US5] [client/ui] (TV6) HUD quán: đồng hồ ca, tiền ca, uy tín, 4 bàn (món + kiên nhẫn < 25% đổi màu), 2 bếp (tiến độ/món chín), món đang cầm, kho khả dụng; tên 6 món
+- [x] T266 [US5] [client/ui] (TV6) Kiểm tay 1 Ngày trên `chonoi.live`, đo FPS, ảnh vào `docs/proof/phase-2/`
 
 ## Mở rộng — đề xuất cho Phase 3 (không làm ở P2)
 
