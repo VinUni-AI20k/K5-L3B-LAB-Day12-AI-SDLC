@@ -16,7 +16,8 @@
 /*
  * Client chơi trực tiếp (starter). CHỈ ĐỌC snapshot từ GET /state và gửi phím qua POST /input.
  * Trường nào snapshot chưa có thì bỏ qua (nhóm viết luật tới đâu, hình hiện tới đó). Hình khối tạm, thay bằng đồ họa của nhóm.
- * Phím: WASD / mũi tên = di chuyển · E = interact · Space = catch · R = chơi lại.
+ * Phím: WASD / mũi tên = di chuyển · E = interact · Space = catch · P/Esc = tạm dừng · R = chơi lại.
+ * Shop (chế độ day): 1 = mua bình oxy · 2 = mua áo phao · Enter = đóng Shop.
  */
 const cv = document.getElementById("c");
 const ctx = cv.getContext("2d");
@@ -28,11 +29,12 @@ const MOVE_KEYS = { w: "u", arrowup: "u", s: "d", arrowdown: "d", a: "l", arrowl
 let queue = [], inflight = false, lastSent = "";
 
 function currentInput() {
-  const mode = snap ? snap.mode : "gather";
+  const mode = snap ? (snap.view || snap.mode) : "gather";
   const dx = (down.has("r") ? 1 : 0) - (down.has("l") ? 1 : 0);
   let dy = (down.has("d") ? 1 : 0) - (down.has("u") ? 1 : 0);   // gather: xuống = d dương
   if (mode === "quan") dy = -dy;                                // quan: lên (bắc) = z dương
-  return { move: [dx, dy], interact: down.has("interact"), catch: down.has("catch") };
+  return { move: [dx, dy], interact: down.has("interact"), catch: down.has("catch"),
+           pause: down.has("pause"), shop_done: down.has("shop_done") };
 }
 function pushInput() {
   const s = JSON.stringify(currentInput());
@@ -58,6 +60,9 @@ addEventListener("keydown", (e) => {
   if (MOVE_KEYS[k]) { down.add(MOVE_KEYS[k]); e.preventDefault(); }
   else if (k === "e") down.add("interact");
   else if (k === " ") { down.add("catch"); e.preventDefault(); }
+  else if (k === "p" || k === "escape") down.add("pause");
+  else if (k === "enter") down.add("shop_done");
+  else if (k === "1" || k === "2") { queue.push(JSON.stringify({ buy: k === "1" ? "oxygen" : "hp" })); flush(); }
   else if (k === "r") { fetch("/restart", { method: "POST" }); lastSent = ""; down.clear(); }
   pushInput();
 });
@@ -66,6 +71,8 @@ addEventListener("keyup", (e) => {
   if (MOVE_KEYS[k]) down.delete(MOVE_KEYS[k]);
   else if (k === "e") down.delete("interact");
   else if (k === " ") down.delete("catch");
+  else if (k === "p" || k === "escape") down.delete("pause");
+  else if (k === "enter") down.delete("shop_done");
   pushInput();
 });
 addEventListener("blur", () => { down.clear(); pushInput(); });
@@ -120,9 +127,16 @@ function eventLog(w, h) {
 function overlay(w, h) {
   if (offline) text("Mất kết nối tới máy chủ (đã tắt chưa?)", w / 2, 30, { align: "center", color: "#ff8a80", size: 16 });
   if (snap.error) text("Luật của nhóm báo lỗi — xem terminal. R để chơi lại.", w / 2, 52, { align: "center", color: "#ff8a80", size: 15 });
+  if (snap.state === "paused") {
+    ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(0, 0, w, h);
+    text("Tạm dừng", w / 2, h / 2 - 10, { align: "center", size: 32 });
+    text("P / Esc để tiếp tục · R để chơi lại", w / 2, h / 2 + 24, { align: "center", size: 18, color: "#cfd8dc" });
+  }
+  if (snap.day) text(`Ngày ${snap.day} · ${snap.view === "gather" ? "Sáng" : snap.view === "quan" ? "Tối" : "Shop"}`, w / 2, 24, { align: "center", size: 18, color: "#ffd180" });
   if (snap.finished) {
     ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(w / 2 - 190, h / 2 - 50, 380, 100);
-    text("Buổi " + (snap.mode === "gather" ? "sáng" : "tối") + " kết thúc: " + (snap.reason || ""), w / 2, h / 2 - 12, { align: "center", size: 20 });
+    const label = snap.day ? "Hết lượt chơi" : "Buổi " + (snap.mode === "gather" ? "sáng" : "tối") + " kết thúc";
+    text(label + ": " + (snap.reason || ""), w / 2, h / 2 - 12, { align: "center", size: 20 });
     text("Nhấn R để chơi lại", w / 2, h / 2 + 20, { align: "center", color: "#cfd8dc" });
   }
 }
@@ -263,12 +277,30 @@ function drawQuan(w, h) {
   text("WASD/mũi tên đi · E tương tác (bếp / bàn) · R chơi lại", w - 10, h - 14, { size: 12, align: "right", color: "#9fb3c0" });
 }
 
+function drawShop(w, h) {
+  const ups = (snap.meta && snap.meta.upgrades) || {};
+  text("Shop cuối Ngày " + snap.day, w / 2, 70, { align: "center", size: 28 });
+  text(`Tiền ${snap.money ?? 0}k · tự đóng sau ${fmtTime(snap.time_left_ticks)}`, w / 2, 104, { align: "center", size: 18, color: "#cfd8dc" });
+  const rows = [["1", "oxygen", "Bình oxy", "oxygen_max_s", "s"], ["2", "hp", "Áo phao", "hp_max", " Máu"]];
+  rows.forEach(([key, id, name, field, unit], i) => {
+    const lv = (snap.upgrades || {})[id] || 0, levels = ups[id] || [];
+    const next = levels[lv];
+    const y = 160 + i * 60;
+    text(`[${key}] ${name} — cấp ${lv}/${levels.length}`, w / 2 - 220, y, { size: 20 });
+    text(next ? `cấp ${next.level}: ${next[field]}${unit} · giá ${next.price}k` : "đã tối đa", w / 2 + 40, y, { size: 18, color: next && next.price <= snap.money ? "#a5d6a7" : "#ef9a9a" });
+  });
+  text("Cấp vừa mua có hiệu lực từ Ngày kế · Enter đóng Shop", w / 2, 300, { align: "center", size: 16, color: "#9fb3c0" });
+  const stock = snap.stock ? Object.keys(snap.stock).map((k) => (KIND_NAME[k] || k) + "×" + snap.stock[k]).join(", ") : "";
+  text("Kho dư (bỏ sau Shop): " + (stock || "(trống)"), w / 2, 330, { align: "center", size: 14, color: "#cfd8dc" });
+}
+
 function frame() {
   requestAnimationFrame(frame);  // đặt trước để lỗi vẽ không làm dừng vòng lặp
   const [w, h] = fit();
   ctx.fillStyle = "#10161c"; ctx.fillRect(0, 0, w, h);
   if (snap) {
-    if (snap.mode === "quan") drawQuan(w, h); else drawGather(w, h);
+    const view = snap.view || snap.mode;
+    if (view === "quan") drawQuan(w, h); else if (view === "shop") drawShop(w, h); else drawGather(w, h);
     eventLog(w, h);
     overlay(w, h);
   } else {
