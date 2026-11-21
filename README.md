@@ -16,6 +16,10 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 ## Bắt đầu nhanh
 
 ```bash
+git clone <fork-của-nhóm> && cd <fork-của-nhóm>
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
+python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+```
 
 Buổi tối có thể tự tìm `inventory.json` trong thư mục chạy lệnh; không bắt buộc truyền `--inventory`:
 
@@ -23,11 +27,7 @@ Buổi tối có thể tự tìm `inventory.json` trong thư mục chạy lệnh
 python -m chonoi.live --mode quan --seed 1
 ```
 
-Với `--mode day`, kho mặc định cũng được nạp tự động từ `inventory.json`, sau đó buổi sáng có thể cộng nguyên liệu mới vào kho khi kết thúc.bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
-```
+Với `--mode day`, kho mặc định cũng được nạp tự động từ `inventory.json`, sau đó buổi sáng có thể cộng nguyên liệu mới vào kho.
 
 ### Chơi nối buổi sáng sang quán
 
