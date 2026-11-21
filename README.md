@@ -14,12 +14,15 @@ git clone https://github.com/trongnghia2304/K5-L3B-LAB-Day12-AI-SDLC-ChoNoiCaMau
 PYTHONPATH=tests:. python3 -m unittest discover -s tests -v      # test của nhóm (1 lệnh)
 python3 -m chonoi.live --mode gather --inventory-out kho.json    # chơi buổi sáng, mở địa chỉ in ra
 ```
-
+- **Chơi cả Ngày** (sáng → tối → Shop): `python3 -m chonoi.live --mode day --days 5`
 - **Buổi tối:** chạy `python3 -m chonoi.live --mode quan --inventory kho.json`; quán nhận kho buổi sáng mang về.
 - **Windows (PowerShell):** đặt `$env:PYTHONPATH="tests;."` rồi chạy `python3 -m unittest discover -s tests -v`. Nếu báo không thấy `python3`, xem ghi chú Windows trong [`AGENTS.md`](AGENTS.md).
 
-**Headless (Test Contract v1.0):**
+**Headless (gather / quan):**
 `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl [--scenario f.json] [--inputs f.json] [--inventory kho.json | --inventory-out kho.json]`
+**Headless (cả Ngày)**: python3 -m chonoi.headless --mode day --days 5 --seed 1 --ticks 111000 --out day.jsonl
+**Benchmark FPS (bench_cmd, 1280×720, làm nóng 3 s, đo 30 s)**: python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json
+**Soak test nhiều Ngày (soak_cmd, lặp chu kỳ D1–D5, 0 crash)**: python3 -m chonoi.soak --seed 7 --days 10 --out soak.json
 
 **Điều khiển:**
 - **WASD / mũi tên:** bơi (sáng) hoặc đi (tối). Ở buổi sáng, phím xuống là lặn sâu hơn.
@@ -42,6 +45,10 @@ python3 -m chonoi.live --mode gather --inventory-out kho.json    # chơi buổi 
 - **Phase 2:** đạt 11/12 AC, gồm v1.1, cá bơi/sinh, Cá Sấu, 2 bếp/4 bàn, 6 món, `day`, Shop, pause, `burn`.
   - Chưa đạt: UI Phase 2 (menu, pause, màn chuyển Ngày) trên cửa sổ chơi.
   - Chi tiết: [`docs/verification/phase-2.md`](docs/verification/phase-2.md).
+  **Phase 3:** đạt Contract v1.2, kho cá thể `{id, kind, fresh}`, hao độ tươi, sự kiện `spoiled`, giữ chỗ theo ID, tính giá theo độ tươi trung bình, HUD độ tươi (28/28 test QA đạt).
+  - Chi tiết: [`docs/verification/phase-3.md`](docs/verification/phase-3.md).
+- **Phase 4:** đạt Contract v1.3 (`bench_cmd`, `soak_cmd`), 3 cảnh báo HUD, chế độ tương phản cao, phụ đề SFX, `--mode day` trên cửa sổ chơi, đóng gói phát hành `v1.0.0`.
+  - Chi tiết: [`docs/verification/phase-4.md`](docs/verification/phase-4.md).
 
 **Mở rộng đã làm** (khai trong `game.contract.json` → `"extensions"`):
 - **`burn` — Cháy món.** `quan.burn_s: 20`. Món chín để trên bếp quá 1.200 tick (`ready_ticks > 1200`) thì cháy: bỏ món, nguyên liệu mất, bếp rảnh ngay, và phát sự kiện `dish_burnt`.

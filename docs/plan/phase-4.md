@@ -42,9 +42,9 @@ Yêu cầu: [`docs/prd/phase-4.md`](../prd/phase-4.md) · Test Contract **v1.3**
 
 ### mhoo40 — lát 2 → **soak + Đóng gói**
 
-- [ ] `chonoi/soak.py` (`python3 -m chonoi.soak --seed 7 --days 10 --out soak.json`): một `DaySim` chạy N Ngày bằng **bot tất định** (ví dụ: cập bến ngay → quán không thao tác → `shop_done`); kế hoạch Ngày 6–10 dùng lại D1–D5 (`((day-1) % 5) + 1`, báo Tiệp vì đụng `day.py`); bắt lỗi mỗi Ngày → `crashes`; ghi `{days, days_completed, crashes, results, duration_s}`; **không ghi xếp hạng**
-- [ ] Test: chạy 2 lần cùng seed, `results` giống hệt; `days_completed == 10`, `crashes == 0`
-- [ ] **Đóng gói:** thử clone sạch vào thư mục mới, chạy đúng các lệnh trong README (≤ 3 lệnh), ghi lại lệnh + kết quả vào `docs/proof/phase-4/clone-sach.txt`; sửa README mục "chạy game" (yêu cầu: Python 3.10+, chỉ thư viện chuẩn; điều khiển; test; headless; bench; soak)
+- [x] `chonoi/soak.py` (`python3 -m chonoi.soak --seed 7 --days 10 --out soak.json`): một `DaySim` chạy N Ngày bằng **bot tất định** (ví dụ: cập bến ngay → quán không thao tác → `shop_done`); kế hoạch Ngày 6–10 dùng lại D1–D5 (`((day-1) % 5) + 1`, báo Tiệp vì đụng `day.py`); bắt lỗi mỗi Ngày → `crashes`; ghi `{days, days_completed, crashes, results, duration_s}`; **không ghi xếp hạng**
+- [x] Test: chạy 2 lần cùng seed, `results` giống hệt; `days_completed == 10`, `crashes == 0`
+- [x] **Đóng gói:** thử clone sạch vào thư mục mới, chạy đúng các lệnh trong README (≤ 3 lệnh), ghi lại lệnh + kết quả vào `docs/proof/phase-4/clone-sach.txt`; sửa README mục "chạy game" (yêu cầu: Python 3.10+, chỉ thư viện chuẩn; điều khiển; test; headless; bench; soak)
 - AC: P4-03, P4-06
 
 ### trongnghia2304 — lát 3, PO → **Bench/QA (ma trận) + Điều phối retro + `live --mode day`**
