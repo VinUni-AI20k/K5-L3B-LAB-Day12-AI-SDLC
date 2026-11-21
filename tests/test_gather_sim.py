@@ -123,7 +123,7 @@ class TestGatherSim(unittest.TestCase):
 
     def test_catch_fish_and_cooldown(self):
         # Fish F1 is ca_linh at [15, 5], yield = 3
-        sim = make_sim({"player": {"pos": [15, 5]}, "hold": []})
+        sim = make_sim({"player": {"pos": [15, 5]}, "hold": [], "fish": [{"id": "F1", "kind": "ca_linh", "pos": [15, 5]}]})
         inp = LiveInputs()
         inp.set(catch=True)
         evs = sim.step(inp.advance())
@@ -140,7 +140,7 @@ class TestGatherSim(unittest.TestCase):
 
     def test_catch_hold_full_keeps_fish_and_triggers_cooldown(self):
         # Hold has 10 items (capacity 12, free 2). F1 needs 3 items -> hold_full
-        sim = make_sim({"player": {"pos": [15, 5]}, "hold": ["ca_loc"] * 10})
+        sim = make_sim({"player": {"pos": [15, 5]}, "hold": ["ca_loc"] * 10, "fish": [{"id": "F1", "kind": "ca_linh", "pos": [15, 5]}]})
         inp = LiveInputs()
         inp.set(catch=True)
         evs = sim.step(inp.advance())
