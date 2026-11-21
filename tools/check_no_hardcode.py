@@ -7,7 +7,7 @@ import sys
 
 
 ROOT = Path(__file__).resolve().parents[1]
-STRUCTURAL = {0, 1, -1, 0.0, 1.0}
+STRUCTURAL = {0, 1, -1, 0.0, 1.0, 360}  # 360: vòng góc (heading % 360), không phải số tuning
 ALLOW_MARKER = "# allow-hardcode"
 
 
