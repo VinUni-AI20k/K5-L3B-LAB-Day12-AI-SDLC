@@ -28,7 +28,8 @@ TIP = int(PRICE * Q["tip_rate"])  # 40 * 0.2 = 8 (số nguyên, không sát ngư
 def tuning(extra_tables=(), stoves=(("B1", [9, 3]),), edit=None):
     t = copy.deepcopy(T)
     t["quan"]["stoves"] = [{"id": i, "pos": pos} for i, pos in stoves]
-    t["quan"]["tables"] = t["quan"]["tables"] + [{"id": i, "pos": pos} for i, pos in extra_tables]
+    base = [tb for tb in t["quan"]["tables"] if tb["id"] == "T1"]  # bố cục P1: một bàn T1, thêm bàn qua extra_tables
+    t["quan"]["tables"] = base + [{"id": i, "pos": pos} for i, pos in extra_tables]
     if edit:
         edit(t)
     return t

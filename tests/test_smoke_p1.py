@@ -42,7 +42,11 @@ class Contract(unittest.TestCase):
             for key in ("oxygen_ticks", "hp", "oxygen_max_ticks", "hp_max", "at_surface"):
                 self.assertIn(key, s["player"])
             self.assertEqual(s["hold_capacity"], tuning_gather()["hold_capacity"])
-            self.assertEqual(len(s["fish"]), 6)
+            fi = tuning_gather()["fish_initial"]
+            if isinstance(fi, list):  # v1.0: danh sách đàn đứng yên
+                self.assertEqual(len(s["fish"]), len(fi))
+            else:  # v1.1: fish_initial là SỐ đàn, sinh theo seed ở P2-03 (A); đến lúc đó chưa có đàn mặc định
+                self.assertLessEqual(len(s["fish"]), fi)
             self.assertTrue(all(n["pos"][1] == 0 for n in s["nodes"]))
 
     def test_con_02_deterministic_bytes(self):
