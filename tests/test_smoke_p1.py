@@ -198,6 +198,25 @@ class Movement(unittest.TestCase):
 
 
 class Integration(unittest.TestCase):
+    def test_inv_immediate_after_harvest(self):
+        with Workdir() as w:
+            sc = write_json(w.path("sc.json"), {
+                "gather": {
+                    "player": {"pos": [12, 0]},
+                    "hold": ["ca_loc"],
+                    "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [12, 0]}],
+                    "random_fish": False,
+                }
+            })
+            inp = write_json(w.path("in.json"), frames({"tick": 0, "interact": True}))
+            inv = w.path("inv.json")
+            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "1",
+                                     "--scenario", sc, "--inputs", inp,
+                                     "--inventory-out", inv, "--out", w.path("r.jsonl"))
+            self.assertEqual(code, 0, err)
+            with open(inv, encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {"items": {"bong_sung": 1, "ca_loc": 1}})
+
     def test_inv_01_gather_writes_inventory_quan_reads_it(self):
         """Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung."""
         with Workdir() as w:

@@ -4,6 +4,7 @@
 |---|---|---|---|
 | G1: oxy, ngạt, máu, ngất | Unit test oxy = 0 ở nước sâu; đủ 60 tick ngạt trừ máu; HP=0 mất giỏ và kết thúc | `tests/test_p1_logic.py::GatherLogic.test_empty_oxygen_chokes_and_faints` | đạt |
 | G2: hái, bắt cá, giỏ LIFO | Test hái ở mặt nước với giỏ gần đầy, nút mọc lại và sự kiện `hold_full` | `tests/test_p1_logic.py::GatherLogic.test_harvest_lifo_and_hold_full` | đạt |
+| G2: ghi kho tức thì | Headless ghi kho ngay sau hái; Live ghi cùng schema sau sự kiện thu hoạch | `tests/test_smoke_p1.py::Integration.test_inv_immediate_after_harvest`, `tests/test_live.py::LiveInventoryPersistenceTest.test_gather_writes_inventory_immediately` | đạt |
 | G2: cập bến và xuất kho | Smoke test cập bến tick 0, đọc/ghi kho JSON và Quán nạp kho | `tests/test_smoke_p1.py::Integration.test_inv_01_gather_writes_inventory_quan_reads_it` | đạt |
 | Q3: khách, giữ chỗ, kiên nhẫn | Test khách giữ nguyên liệu; hết kiên nhẫn bỏ đi và giảm uy tín | `tests/test_p1_logic.py::QuanLogic.test_customer_leaves_and_reputation_drops` | đạt |
 | Q4: bếp, nấu, bưng, thanh toán | Test bếp nhận món, nấu xong, lấy món, phục vụ bàn và cộng tiền | `tests/test_p1_logic.py::QuanLogic.test_reserved_customer_cooks_serves_and_pays` | đạt |

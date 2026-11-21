@@ -27,7 +27,7 @@ from urllib.parse import unquote
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
-from .inventory import read_inventory
+from .inventory import read_inventory, write_inventory
 from .runner import Session
 from .scenario import load_scenario
 
@@ -120,6 +120,11 @@ class LiveGame:
         for row in s.step(self.inputs.advance()):
             self.events.append(row)
         del self.events[:-RECENT_EVENTS]
+        if self.mode == "gather" and self.inventory_out:
+            inventory_events = {"gather", "fish_caught", "faint", "gather_end"}
+            if any(row["name"] in inventory_events for row in self.events[-RECENT_EVENTS:]
+                   if row["tick"] == s.tick):
+                write_inventory(self.inventory_out, s.sim.inventory_items())
         if s.done and not self._saved:
             self._saved = True
             if self.inventory_out:
@@ -271,7 +276,8 @@ def main(argv=None) -> int:
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--scenario")
     p.add_argument("--inventory", help="chỉ với quan: nạp kho từ file")
-    p.add_argument("--inventory-out", dest="inventory_out", help="chỉ với gather: ghi kho khi kết thúc buổi")
+    p.add_argument("--inventory-out", dest="inventory_out",
+                   help="chỉ với gather: ghi kho ngay khi khởi động, hái/bắt và kết thúc buổi")
     a = p.parse_args(argv)
     try:
         if a.inventory and a.mode != "quan":
