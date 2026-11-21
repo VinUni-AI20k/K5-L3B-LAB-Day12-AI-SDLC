@@ -43,9 +43,10 @@ Mỗi cảnh báo có **biểu tượng tam giác "!" + chữ** trong khung vi�
 |---|---|
 | [`alerts-gather-thuong.png`](alerts-gather-thuong.png), [`alerts-gather-hc.png`](alerts-gather-hc.png) | Thủy quái + Sắp hết hơi, chế độ thường / tương phản cao |
 | [`alerts-quan-thuong.png`](alerts-quan-thuong.png), [`alerts-quan-hc.png`](alerts-quan-hc.png) | Khách sắp giận T1 (banner + nhãn trên bàn) |
+| [`alerts-gather-live-hc.png`](alerts-gather-live-hc.png), [`alerts-gather-live-thuong.png`](alerts-gather-live-thuong.png) | **Sim thật** (`sim/monsters.py` đã vào `main`): người chơi cạnh M1 ở d = 22, oxy 300/1800 → "Thủy quái! Tránh xa" + "Sắp hết hơi! Lên thở", M1 cắn "-1 Máu" |
 | [`pause-menu-hc.png`](pause-menu-hc.png) | Menu Tạm dừng có "H Tương phản cao: Bật" |
 
-- **Ảnh cảnh báo dùng mock** (`day-gather`, `day-quan`): Cá Sấu chưa có trong sim (`sim/monsters.py` chưa vào `main`), nên cảnh báo thủy quái chưa chụp được với sim thật. Phần chơi thử của comtrang378-ship-it (`alerts-*.png`) cần chụp lại khi có quái.
+- Cảnh báo thủy quái và oxy đã chụp với **sim thật**; cảnh báo khách sắp giận chụp trên mock `day-quan`. Snapshot quái thật dùng khóa `species`, mock cũ dùng `kind`; client đọc được cả hai.
 - **Lỗi đã sửa khi chụp:** nhãn "Sắp giận!" của T1 bị biển số T3 vẽ đè. Giờ gom nhãn và vẽ sau tất cả bàn. Chữ tối trên nền sáng (nút phím, bong bóng) không viền đen để khỏi nhoè.
 - Lỗi console: không có.
 

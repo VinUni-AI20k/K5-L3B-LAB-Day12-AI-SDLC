@@ -22,11 +22,12 @@
 - Pause khi chạy riêng gather/quan.
 - `/state` thêm `shift_earned`, `days_completed`, `max_days` (chỉ để hiển thị).
 
-### Trạng thái trên `main` (`0586644`)
+### Trạng thái trên `main` (`48c96b3`)
 - ✅ Giỏ cá thể, hao tươi, `spoiled` ở gather (`1ae5ba7`).
 - ✅ Giá theo độ tươi, `cook_started.items` (AC-P3-05).
 - ✅ HUD độ tươi.
-- ❌ Chưa có: adapter `Item` trong `inventory.py`, scenario v1.2, kho cá thể ở quán, bàn giao trong `day`, lật `"1.2"`.
+- ✅ `Item` + adapter 2 schema + khối `freshness` (`0748ff3`, AC-P3-01). ✅ Bàn giao `day` giữ id xuyên Ngày (`48c96b3`, AC-P3-08).
+- ❌ Chưa có: scenario v1.2, kho cá thể + hao tươi ở quán, lật `"1.2"`.
 
 ### Cách sửa fixture/test cũ khi lật `"1.2"`
 1. File kho: đổi mỗi cặp `kind: n` thành `n` object `{"id":"I<k>","kind":kind,"fresh":100}`, id tăng dần, rồi sắp theo id.

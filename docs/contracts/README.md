@@ -132,7 +132,7 @@ DayIntro → gather → EveningIntro → quan → DayResult → Shop → DayIntr
 | `day_plan` D5 | `lau_mam ×1, lau_ca_linh_dien_dien ×1, ca_loc_nuong_trui ×1` | `lau_mam ×3, canh_chua_ca_loc ×3` |
 | `gather.fish_initial` | Số `8` | Mảng 6 đàn cố định, **không có đàn `ca_keo`**, trong khi kế hoạch D3–D5 cần `ca_keo` (D3 cần 6). Sim đã đọc được khóa ticket (`7858a39`), manifest chưa khai nên vẫn không lấy đủ |
 | Khóa cá | `fish_speed`, `fish_turn_ticks`, `fish_max`, `fish_spawn_ticks`, `fish_spawn_clearance`, `fish_x`, `fish_depths`, `fish_spawn_x`, `fish_spawn_depths`, `fish_weights` | Manifest vẫn chỉ có khối `fish_motion {speed, turn_every_ticks, max_turn_deg, min_depth}`. `sim/gather.py` (`7858a39`) đã đọc được các khóa ticket, chỉ thiếu trong manifest |
-| `gather.monsters` | `species.ca_sau {patrol_speed, chase_speed, detect_radius, exit_radius, depths, hit_radius, recoil_ticks, recoil_dist}`, `spawns[]` (M1, M2 từ Ngày 3), `invuln_ticks:90`, `loss_ratio:0.5` | Chỉ có `detect_radius`, `exit_radius`, `depths` |
+| `gather.monsters` | `species.ca_sau {patrol_speed, chase_speed, detect_radius, exit_radius, depths, hit_radius, recoil_ticks, recoil_dist}`, `spawns[]` (M1, M2 từ Ngày 3), `invuln_ticks:90`, `loss_ratio:0.5` | Đã khớp; M1 từ Ngày 1, M2 từ Ngày 3, scenario có thể thay danh sách |
 | `shop` | `{max_ticks, upgrades}` | ✅ đã thêm `max_ticks: 600` (`721088a`) |
 
 Đã khớp: `contract_version:"1.1"`, 6 món trong `menu`, B1/B2, T1–T4, N1–N6, `fish_yield` đủ 3 loài, `shop.upgrades.oxygen/hp`.
@@ -179,6 +179,6 @@ PO rà bằng cách đọc `chonoi/sim/*.py` và chạy `headless --mode day --s
 | `state` trong snapshot/end của `day` | `playing`/`finished`/`paused` | `running`/`finished`/`paused` (gather/quan riêng vẫn `playing`) | invzble-z |
 | `money`, `earned`, `score` trong pha quán của `day` | tăng khi khách trả tiền | chỉ cộng khi đóng ca (`DaySim` giữ riêng). Bản chơi hiện `shift_earned` để bù | invzble-z |
 | Event đổi pha đầu Ngày 1 | ở tick dựng Ngày | `day_start`/`day_plan`/`phase_start` phát ở tick 1 (bước đầu tiên), snapshot tick 0 đã là pha gather | invzble-z |
-| `gather.monsters[]`, `monster_hit`, `invuln_ticks` | v1.1 | chưa có (`sim/monsters.py` chưa vào `main`) | comtrang378-ship-it |
+| `monsters[]` trong snapshot | `kind` (theo mock/§6) | `sim/monsters.py` đã có, nhưng phát `species` (+ `waypoint_index`, `recoil_ticks`). Client đọc cả hai | comtrang378-ship-it |
 
 Client web đọc được cả hai cách đặt tên (`dish_id`/`dish`, `price`) nên không vỡ khi các lát đổi theo hợp đồng.

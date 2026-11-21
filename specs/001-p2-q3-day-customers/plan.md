@@ -1,3 +1,3 @@
 # Kế hoạch triển khai
 
-`QuanSim` giữ menu gốc, `menu_filter` chỉ giới hạn ứng viên mới; `None` nghĩa là toàn menu. Tuning quyết định bàn và lịch, dùng `sort_by_id`, Streams và reservation ledger sẵn có. Dùng fixture bốn bàn/sáu món giả lập; không thay contract khóa. Kiểm thử Q3, hồi quy P1, headless, rồi bàn giao Q4/Day với các vấn đề mở. `DaySim` và v1.1 thuộc integrator.
+`QuanSim` giữ menu gốc, `menu_filter` chỉ giới hạn ứng viên mới; `None` nghĩa là toàn menu và set rỗng không chọn món. Tuning quyết định bàn và lịch, dùng `sort_by_id`, Streams và reservation ledger. Q3 đã được kiểm thử trong DaySim thật bằng `tests/test_p2_q3_day_integration.py`; kết quả hiện xác nhận bàn giao kho, reservation, ngày mới và headless. Ba lỗi DaySim/Runner còn lại được ghi expected failure và bàn giao cho Integrator; không sửa file của chủ module ở nhánh này. Contract chỉ được cập nhật sau khi có nguồn Ticket-02 và PO/Integrator xác nhận.

@@ -4,6 +4,8 @@
   - Giữ vai trò Integrator: rà soát quy trình nhóm, cấu hình `game.contract.json`, hợp nhất các PR của các thành viên.
   - Cập nhật Test Contract v1.1 cho Phase 2 (`game.contract.json`, `chonoi/contract.py`): 6 món ăn, 2 bếp, 4 bàn, bổ sung `keo_neo`, cấu hình quái vật Cá Sấu, kế hoạch `day_plan` và hệ thống nâng cấp Shop.
   - Triển khai Lát 4a (`sim/day.py`, `runner.py`, `inputs.py`, `headless.py`, `tests/test_p2_day.py`): chế độ `--mode day --days N`, vòng ngày Gather -> Quán -> Shop, bàn giao kho bộ nhớ, Shop (mua nâng cấp oxygen/hp, `bought`/`buy_failed`/`shop_end`), cơ chế pause/resumed, `active_upgrades` áp dụng ngày kế tiếp.
+  - Gắn và đẩy tag `phase-2` lên GitHub remote.
+  - Triển khai AC-P3-01 & AC-P3-08 Phase 3: cài đặt lớp `Item(id, kind, fresh)` (dùng `Fraction`), adapter 2 schema kho đếm / kho cá thể trong `chonoi/inventory.py`, thêm khối `freshness` vào `game.contract.json` & `chonoi/contract.py`, viết 9 unit tests trong `tests/test_p3_inventory.py`, và nâng cấp bàn giao mảng cá thể trong `DaySim` với `IdAllocator` liên tục xuyên Ngày.
 - Tôi đã review (kèm link):
   - Review và merge PR #3 (`p1/quan-lat4` của Kiên), PR #4 (`HoangMinh` của Minh), nhánh `origin/NguyenQuangDung` của Dũng và nhánh `origin/Quoosc` của Quốc.
 - AI sai ở đâu và tôi phát hiện thế nào:

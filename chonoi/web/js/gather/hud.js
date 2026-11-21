@@ -14,7 +14,7 @@
     if (!p.pos || p.pos[1] < 10) return false;                       // Cá Sấu chỉ đuổi khi người chơi ở d ≥ 10
     const species = ((snap.meta || {}).monsters || {}).species || {};
     return (snap.monsters || []).some((m) => {
-      const r = (species[m.kind] || {}).detect_radius || 10;
+      const r = (species[m.species ?? m.kind] || {}).detect_radius || 10;
       return m.state === "chase" || Math.hypot(m.pos[0] - p.pos[0], m.pos[1] - p.pos[1]) <= r;
     });
   }

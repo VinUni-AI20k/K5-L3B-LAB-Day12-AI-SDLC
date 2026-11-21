@@ -121,6 +121,24 @@ try:
     time.sleep(0.4)
     shot("pause-menu-hc.png")
 
+    # 2b. cảnh báo với sim thật (sim/monsters.py): người chơi cạnh M1 ở d=22, oxy 300/1800 (< 25%)
+    srv2 = LiveServer(LiveGame("gather", load_contract()["tuning"],
+                               {"random_fish": False, "player": {"pos": [56, 22], "oxygen_ticks": 300}}, 42), port=0)
+    srv2.start()
+    try:
+        b2 = f"http://127.0.0.1:{srv2.port}/"
+        for c in ("1", "0"):
+            go(b2 + f"?contrast={c}")
+            key("Enter", 13)              # Menu → Chơi (restart cùng scenario), intro hiện
+            time.sleep(0.6)
+            key("e", 69)                  # đóng intro, sim chạy tiếp
+            time.sleep(0.8)
+            st = js("JSON.stringify({m: CN.state.snap.monsters, o2: CN.state.snap.player.oxygen_ticks, d: CN.state.snap.player.pos})")
+            log.append(f"live contrast={c}: {st}")
+            shot(f"alerts-gather-live-{'hc' if c == '1' else 'thuong'}.png")
+    finally:
+        srv2.stop()
+
     # 3. phím H + lưu lựa chọn
     go(base + "?mock=day-quan&contrast=0")
     before = js("CN.contrast.on")

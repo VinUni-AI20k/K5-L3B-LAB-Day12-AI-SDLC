@@ -1,5 +1,21 @@
 # Kiểm chứng Phase 2 — phần Q3
 
+## Tích hợp mới nhất — main `ba17f4d`, verification HEAD `5b79199`
+
+DaySim đã được kiểm thử thật với QuanSim sau PR #12 và các cập nhật Gather/Phase 3 mới nhất. Xem [day integration](../proof/phase-2/q3/day-integration-5b79199.txt), [headless Day 1/3](../proof/phase-2/q3/day-headless-5b79199.txt), [regression](../proof/phase-2/q3/day-regression-5b79199.txt) và [findings/handoff](../proof/phase-2/q3/day-findings.md).
+
+| Phạm vi | Bằng chứng | Kết quả |
+|---|---|---|
+| DaySim→QuanSim; kho Gather, filter không rỗng, reservation/consume/release, ngày mới | `tests/test_p2_q3_day_integration.py` | đạt với các hành vi được assertion |
+| Kế hoạch rỗng | `test_empty_day_plan_is_an_empty_quan_filter`, `test_empty_day_plan_does_not_spawn_customer_for_unplanned_dish` | chưa đạt: `dishes={}` thành `menu_filter=None`, khách vẫn có thể nhận món |
+| Reputation đầu ca và giữa ngày | `test_day_level_reputation_is_passed_into_first_quan_shift`, `test_reputation_earned_in_quan_survives_into_next_day` | chưa đạt: DaySim không truyền/khôi phục uy tín tích lũy |
+| Pause | `test_sim_tick_stays_still_while_paused` | chưa đạt: `sim_tick` tăng cùng tick ngoài; `phase_tick`/timer gameplay đứng |
+| Headless Day 1/3 + replay | `tests.test_p2_q3_day_integration.Q3DayHeadlessIntegrationTests` | đạt; mã 0, 1/1 và 3/3 ngày, replay byte-identical |
+| Q4-F1 sau PR #12 | `tests.test_p2_q3.CustomersPhase2.test_q4_f1_orphan_dish_reproduced` | lỗi tái hiện; chính sách chưa được PO/Kiên duyệt |
+| Test suite | `day-regression-5b79199.txt` | 143 test, 5 expected failures, exit 0; Phase 1 verification 9/9 |
+
+Do ba defect ở DaySim/Runner và Q4-F1/contract/QA còn mở, T07–T10 chưa thể đánh DONE. Bộ test sử dụng schema inventory v1.1; test Phase 3 hiện có vẫn chạy riêng để bảo vệ logic kho cá thể/giá tươi.
+
 | Phạm vi | Bằng chứng | Trạng thái |
 |---|---|---|
 | Q3/Q4 sau merge main `63f850e` | [Log](../proof/phase-2/q3/postmerge-baseline-63f850e.txt) | Q3 P1 23, Q3 P2 12, Q4 7, regression 108; 9/9 bước, exit 0 |

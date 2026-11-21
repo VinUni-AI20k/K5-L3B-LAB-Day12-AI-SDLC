@@ -86,13 +86,19 @@ class LiveV12Test(unittest.TestCase):
         finally:
             server.stop()
 
-    def test_live_v11_has_no_freshness_field(self):
-        server = LiveServer(LiveGame("gather", load_contract()["tuning"], {}, 1), port=0)
+    def test_live_counted_hold_stays_kind_list(self):
+        # Manifest có thể đã khai `freshness` trước khi lật "1.2": khối này chỉ được chuyển tiếp,
+        # giỏ vẫn là mảng tên loài nên HUD dùng cách vẽ kho đếm (CN.inv.hasFresh = false).
+        tuning = load_contract()["tuning"]
+        if tuning.get("contract_version") == "1.2":
+            self.skipTest("manifest đã lật 1.2")
+        server = LiveServer(LiveGame("gather", tuning, {"hold": ["ca_linh", "bong_sung"]}, 1), port=0)
         server.start()
         try:
             with urllib.request.urlopen(f"http://127.0.0.1:{server.port}/state", timeout=5) as r:
                 snap = json.loads(r.read())
-            self.assertNotIn("freshness", snap)
+            self.assertEqual(snap["hold"], ["ca_linh", "bong_sung"])
+            self.assertEqual("freshness" in snap, "freshness" in tuning)
         finally:
             server.stop()
 
