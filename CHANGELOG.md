@@ -1,6 +1,13 @@
 # Changelog
 ## Unreleased
 
+### Phase 4 — asset tự tạo (đồ họa SVG + SFX có phụ đề)
+- 21 SVG trong `chonoi/web/assets/` sinh bởi `tools/gen_assets.py`; HUD dùng sprite cho Út Sen, cá, Cá Sấu (trước đây HUD chưa vẽ thủy quái), cây nổi, bến, bếp, bàn, khách và món; tự về hình khối cũ nếu asset chưa tải.
+- 24 SFX tổng hợp bằng Web Audio (`assets/sfx.js`) kèm phụ đề; phím M tắt/bật tiếng, V ẩn/hiện phụ đề.
+- `chonoi/live.py`: thêm route tĩnh `GET /assets/<tên>` (chỉ `.svg`/`.js`, tên phẳng, chặn `..` và `/`); các route `/`, `/state`, `/input`, `/restart` không đổi. Đây là file khung giảng viên nên ghi lại lý do: cần để client nạp được asset.
+- `tests/test_assets.py` (12 test). Không đổi luật, tick, sự kiện, JSONL hay `game.contract.json`.
+- HUD quán chừa thêm chỗ phía trên cho 3 dòng kho (trước đó bị mép phòng che).
+
 ### Phase 3 — đã vào `main` (chạy được cả v1.1 lẫn v1.2; manifest chính còn `"1.1"`)
 - Kho cá thể dùng chung `chonoi/items.py`, file kho / scenario / giỏ cá thể, giữ chỗ theo id, hao kho quán, giá theo tươi (lát 0, 3, 4). Bật bằng khối `tuning.freshness`; chưa có khối này thì mọi thứ chạy như v1.1.
 - Test hộp đen Phase 3 `tests/test_fresh_p3.py` (28 test) và ma trận `docs/verification/phase-3.md`.
