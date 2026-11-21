@@ -1,0 +1,29 @@
+$ python3 -m chonoi.headless --mode day --days 5 --seed 7 --ticks 120000 --out week.jsonl --leaderboard lb.json --player-name "Út Sen"
+exit 0
+dòng end: {"type":"end","ticks":111000,"sim_tick":111000,"mode":"day","state":"finished","reason":"days_complete","money":0,"earned":0,"reputation":3.0,"score":300,"days_completed":5}
+$ python3 -m chonoi.headless --mode day --days 5 --seed 3 --ticks 120000 --out week2.jsonl --leaderboard lb.json --player-name "Bé Hai"
+exit 0
+$ python3 -m chonoi.live --mode gather --export-leaderboard top.json --leaderboard lb.json
+exit 0
+{
+  "entries": [
+    {
+      "name": "Út Sen",
+      "score": 300,
+      "days_completed": 5,
+      "seed": 7
+    },
+    {
+      "name": "Bé Hai",
+      "score": 300,
+      "days_completed": 5,
+      "seed": 3
+    }
+  ]
+}
+$ python3 -m chonoi.headless --mode gather --seed 1 --ticks 10 --out x.jsonl --leaderboard lb.json --player-name A
+đầu vào sai: --leaderboard chỉ dùng với --mode day
+exit 2
+$ python3 -m chonoi.headless --mode day --seed 1 --ticks 10 --out x.jsonl --leaderboard lb.json
+đầu vào sai: --leaderboard và --player-name phải đi cùng nhau
+exit 2

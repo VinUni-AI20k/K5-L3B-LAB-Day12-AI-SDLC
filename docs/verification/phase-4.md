@@ -30,3 +30,26 @@ Ghi chú trung thực:
 earned sau mỗi Shop: 229, 576, 828, 828, 1172, 1409, 1774, 1774, 2107, 2107; uy tín 4.2 → 5; days_completed 10, crashes 0, ~4.8 s.
 Ngày 4, 8, 10 bot kiếm 0 (kế hoạch cần cá sâu/ca_keo gần Cá Sấu, bot né quái nên không đủ nguyên liệu) — soak vẫn đạt nhưng bot chưa tối ưu. Bot chỉ mua nâng cấp khi đủ tiền, tối đa một lệnh/tick trong 5 tick đầu Shop.
 `--mode day --days` của headless vẫn giới hạn 1..5 (không đổi contract JSONL); soak dùng `Session` trực tiếp.
+
+## Mở rộng (TICKET-04 mục 3) — làm sau Release v1.0.0, chưa có trong tag `phase-4`/`v1.0.0`
+
+Nhóm 3 người nên mở rộng không bắt buộc. Hai mục dưới đây nằm ở các commit **sau** tag; tag và Release không bị gắn lại.
+Lệnh test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests` → 187 test, OK (170 cũ + 17 mới trong `tests/test_leaderboard_p4.py`).
+`pre-push-check`: contract OK, unittest 187 OK, headless gather/quan/day exit 0 (1 Ngày 0.6 s), client JS 31 file OK.
+
+| AC | Nội dung | Bằng chứng | Kết quả |
+|---|---|---|---|
+| AC-P4-X01 | Headless `day` nhận cặp `--leaderboard <store> --player-name <name>`; ghi **đúng một** mục `{name,score,days_completed,seed}` khi đủ 5 Ngày chuẩn (không scenario, reason `days_complete`); `score` khớp dòng `end` | `RecordP4.test_standard_run_writes_one_entry_matching_end_row`, `test_second_run_appends_exactly_one`, `ext/leaderboard_cli.txt` | Đạt |
+| AC-P4-X02 | Không ghi khi lượt không chuẩn: `--days 4`, có `--scenario`, chạm `--ticks` trước khi xong | `RecordP4.test_not_standard_no_entry`, `test_tick_limit_no_entry` | Đạt |
+| AC-P4-X03 | Thiếu một cờ hoặc sai mode (`gather`/`quan`) → mã 2, không tạo file đầu ra; store hỏng / tên rỗng / store trùng `--out` → mã 2 | `BadFlagsP4` (4 test), `ext/leaderboard_cli.txt` | Đạt |
+| AC-P4-X04 | Top 10, điểm giảm dần, hòa → mục ghi trước đứng trước; mục mới hòa với hạng 10 bị loại | `RankingP4` (3 test) | Đạt |
+| AC-P4-X05 | `<run_cmd> --export-leaderboard <out> [--leaderboard <store>]` xuất `{"entries":[…]}`; store chưa có → rỗng; store hỏng → mã 2 | `ExportP4` (4 test), `ext/leaderboard_cli.txt` | Đạt |
+| AC-P4-X06 | JSONL không đổi khi có cờ xếp hạng; soak không ghi xếp hạng | `RecordP4.test_jsonl_unchanged_by_flags`, `SoakDoesNotRecordP4` | Đạt |
+| AC-P4-X07 | GUI: sau tổng kết 5 Ngày nhập tên → top 10 (localStorage), phím H/U/T không kích hoạt khi đang gõ | `ext/ui_check.mjs` (Chrome headless): `phase` stats→name→board, `typed:"Tester"`, `chonoi.hc` không đổi, không mở điện thoại; ảnh `ext/06-name-entry.png`, `ext/07-leaderboard.png` | Đạt |
+| AC-P4-X08 | Phụ đề SFX: phím U bật/tắt và lưu; tự bật khi tắt tiếng; lặp cùng chữ hiện `×n`; tiếng click không có phụ đề | `ui_check.mjs`: `ccStored:"1"`, `linesOn` có `[Cá Sấu cắn] x2` và không có click, `offLines:0`, `mutedLabel:"…Tự bật (tắt tiếng)"` | Đạt |
+| AC-P4-X09 | Ba cảnh báo có phụ đề, chơi thử ở chế độ âm thanh tắt / tương phản cao: thủy quái gần (`[Cá Sấu gầm — đang đến gần]`), oxy sắp hết (`[tim đập nhanh — oxy sắp hết]`), khách sắp giận (`[khách T1 càu nhàu — sắp giận]`) | `ui_check.mjs` (`afterOxy`, `quanAngry`), ảnh `ext/02-…`, `ext/03-gather-hc-captions.png`, `ext/04-quan-angry-caption.png` | Đạt một phần — oxy và khách kiểm trong cảnh thật; phụ đề Cá Sấu gần chỉ kiểm qua code (bot không lái tới gần Cá Sấu) |
+
+Ghi chú trung thực:
+- `ui_check.mjs` gọi `window.__chonoi` (chỉ có với `?debug`) để nhảy cảnh, đặt oxy/kiên nhẫn của khách cho nhanh tới ngưỡng; không phải người chơi thật đi hết vòng.
+  Người phụ trách nên chơi tay một vòng lặn → quán → chợ với âm thanh tắt trước khi gộp.
+- Kiểm trên Linux (WSL2), Chrome 1280×720, node 26. Chưa kiểm Safari/Firefox.

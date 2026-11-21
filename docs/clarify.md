@@ -56,3 +56,12 @@
 - C-P4-03: Cảnh đo = `go("gather")` ở chế độ demo (Ngày 1 buổi sáng, hiệu ứng mặc định), không input → Út Sen đứng ở bến. Seed áp qua `Math.random` thay thế trong `client/src/bench.js`.
 - C-P4-04: Soak Ngày > 5 dùng kế hoạch ((day-1) % 5) + 1 (`DaySim.plan_for`); headless `--days` giữ 1..5.
 - C-P4-05: Mỗi phần tử `results` ghi tại event `shop_end`; `score = earned + 100 × floor(reputation)` như snapshot. Crash = ngoại lệ bất kỳ hoặc một Ngày quá 200 000 tick; được đếm, tiến trình không rơi.
+
+## Mở rộng Phase 4 — giả định Leaderboard / Phụ đề SFX
+| # | Ngày giờ | Câu hỏi | Trả lời / giả định | Ai quyết |
+|---|---|---|---|---|
+| C-P4-06 | 2026-11-21 sau Release | `<run_cmd>` = `python3 -m chonoi.live --mode gather` mở server; export đặt ở đâu? | `chonoi.live` nhận `--export-leaderboard` (và `--leaderboard`), xuất rồi thoát, không mở cổng. `--mode` không bắt buộc khi chỉ export. Không đổi `run_cmd` trong contract. | Nhóm (chưa hỏi giảng viên) |
+| C-P4-07 | 2026-11-21 sau Release | Export không có `--leaderboard` thì đọc store nào? | `leaderboard.json` ở gốc repo (gitignore); chưa có → `{"entries":[]}`. | Nhóm |
+| C-P4-08 | 2026-11-21 sau Release | Có cặp cờ nhưng lượt không chuẩn (`--days` < 5, có scenario, chạm `--ticks`)? | Mã 0, chạy bình thường, **không** ghi mục. Chỉ thiếu một cờ / sai mode / store hỏng / tên rỗng mới là mã 2. | Nhóm |
+| C-P4-09 | 2026-11-21 sau Release | Store lưu toàn bộ lịch sử hay chỉ top 10? | Chỉ top 10 (mục hòa với hạng 10 đến sau bị loại nên không mất thông tin xếp hạng). Store cùng dạng file xuất. | Nhóm |
+| C-P4-10 | 2026-11-21 sau Release | `--player-name` hợp lệ? | Chuỗi không rỗng sau khi bỏ khoảng trắng, ≤ 32 ký tự, không ký tự điều khiển; giữ nguyên Unicode (`"Út Sen"`). | Nhóm |
