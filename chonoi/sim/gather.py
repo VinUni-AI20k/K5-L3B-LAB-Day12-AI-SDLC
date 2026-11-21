@@ -53,28 +53,39 @@ class GatherSim:
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
-        # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
+        # Scenario thay thế danh sách mặc định. Fixture cá giữ vị trí cố định.
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
-        if "fish" in scenario:
-            src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
-            src_fish = t["fish_initial"]
-        else:
-            src_fish = []
+        self.random_fish = "fish" not in scenario and scenario.get("random_fish", True)
+        initial = t["fish_initial"]
+        self.generated_fish = isinstance(initial, int)
+        src_fish = scenario.get("fish", [])
+        if self.random_fish and not self.generated_fish:
+            src_fish = initial
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                      "heading_deg": f.get("heading_deg", 0), "age_ticks": 0} for f in src_fish]
         self.fixture_fish_ids = {f["id"] for f in src_fish} if "fish" in scenario else set()
         self.fish_motion = t.get("fish_motion")
         self.fish_spawn_by_tick = {}
-        if "fish" not in scenario and scenario.get("random_fish", True):
-            for spawn in t.get("fish_spawn_schedule", ()):
-                self.fish_spawn_by_tick.setdefault(spawn["tick"], []).append(spawn)
+        if self.random_fish:
+            if self.generated_fish:
+                self.fish_motion = {
+                    "speed": t["fish_speed"], "turn_every_ticks": t["fish_turn_ticks"],
+                    "min_depth": t["bounds"]["d"][0],
+                }
+            else:
+                for spawn in t.get("fish_spawn_schedule", ()):
+                    self.fish_spawn_by_tick.setdefault(spawn["tick"], []).append(spawn)
         self.elapsed_ticks = 0
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
+        if self.generated_fish and self.random_fish:
+            positions = [(x, depth) for x in t["fish_x"] for depth in t["fish_depths"]]
+            initial_rng = self.rng.get("fish_initial")
+            for pos in initial_rng.sample(positions, initial):
+                self._add_random_fish(pos, initial_rng)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -97,7 +108,8 @@ class GatherSim:
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
+            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"],
+                      "heading_deg": f["heading_deg"], "age_ticks": f["age_ticks"]}
                      for f in sort_by_id(self.fish)],
         }
 
@@ -139,16 +151,25 @@ class GatherSim:
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         else:
-            self._tick_fish()
+            self._tick_fish(events)
         return events
 
     # --- tiện ích ---------------------------------------------------------------
-    def _tick_fish(self):
+    def _add_random_fish(self, pos, rng):
+        weights = self.t["fish_weights"]
+        kind = rng.choices(list(weights), weights=list(weights.values()))[0]
+        fish = {"id": self.ids.new("F"), "kind": kind, "pos": list(pos),
+                "heading_deg": rng.uniform(0, 360), "age_ticks": 0}
+        self.fish.append(fish)
+        return fish
+
+    def _tick_fish(self, events):
         motion = self.fish_motion
+        for fish in self.fish:
+            fish["age_ticks"] += 1
         if motion:
-            turn_now = self.elapsed_ticks % motion["turn_every_ticks"] == 0
-            turn_rng = self.rng.get("fish_turn") if turn_now else None
-            turn_limit = motion["max_turn_deg"]
+            turn_period = motion["turn_every_ticks"]
+            turn_limit = motion.get("max_turn_deg")
             distance = motion["speed"] / TICK
             x_min, x_max = self.t["bounds"]["x"]
             d_min, d_max = motion["min_depth"], self.t["bounds"]["d"][1]
@@ -156,8 +177,12 @@ class GatherSim:
                 if fish["id"] in self.fixture_fish_ids:
                     continue
                 heading = fish["heading_deg"]
-                if turn_rng is not None:
-                    heading += turn_rng.uniform(-turn_limit, turn_limit)
+                if fish["age_ticks"] % turn_period == 0:
+                    turn_rng = self.rng.get("fish_turn")
+                    if turn_limit is None:
+                        heading = turn_rng.uniform(0, 360)
+                    else:
+                        heading += turn_rng.uniform(-turn_limit, turn_limit)
                 angle = math.radians(heading)
                 x = fish["pos"][0] + distance * math.cos(angle)
                 depth = fish["pos"][1] + distance * math.sin(angle)
@@ -168,8 +193,23 @@ class GatherSim:
                 fish["pos"] = [min(x_max, max(x_min, x)), min(d_max, max(d_min, depth))]
                 fish["heading_deg"] = heading % 360
         for spawn in self.fish_spawn_by_tick.get(self.elapsed_ticks, ()):
-            self.fish.append({"id": self.ids.new("F"), "kind": spawn["kind"],
-                              "pos": list(spawn["pos"]), "heading_deg": spawn["heading_deg"]})
+            fish = {"id": self.ids.new("F"), "kind": spawn["kind"], "pos": list(spawn["pos"]),
+                    "heading_deg": spawn["heading_deg"], "age_ticks": 0}
+            self.fish.append(fish)
+            events.append(("fish_spawned", {"id": fish["id"], "kind": fish["kind"], "pos": fish["pos"]}))
+        if self.generated_fish and self.random_fish:
+            self._spawn_fish(events)
+
+    def _spawn_fish(self, events):
+        if self.elapsed_ticks % self.t["fish_spawn_ticks"] or len(self.fish) >= self.t["fish_max"]:
+            return
+        clearance = self.t["fish_spawn_clearance"]
+        positions = [(x, depth) for x in self.t["fish_spawn_x"] for depth in self.t["fish_spawn_depths"]
+                     if all(math.dist((x, depth), fish["pos"]) > clearance for fish in self.fish)]
+        if positions:
+            spawn_rng = self.rng.get("fish_spawn")
+            fish = self._add_random_fish(spawn_rng.choice(positions), spawn_rng)
+            events.append(("fish_spawned", {"id": fish["id"], "kind": fish["kind"], "pos": fish["pos"]}))
 
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
