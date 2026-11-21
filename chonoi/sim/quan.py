@@ -40,7 +40,10 @@ class QuanSim:
         self._tgt = None
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
+        raw_stock = inventory if inventory is not None else scenario.get("stock", {})
+        self._stock_is_list = isinstance(raw_stock, list)
+        self.stock = [dict(x) for x in raw_stock] if self._stock_is_list else dict(raw_stock)
+        self._spoiled_below = tuning.get("freshness", {}).get("spoiled_below", 30)
         self.hand = dict(scenario["hand"]) if scenario.get("hand") is not None else None
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
@@ -73,9 +76,14 @@ class QuanSim:
             c.setdefault("eat_ticks_left", int(round(self.t["eat_s"] * TICK)))
         if "reserved" not in c:
             if c["order_status"] == "reserved":
-                c["reserved"] = dict(self.menu[c["dish_id"]]["recipe"])
+                if self._stock_is_list:
+                    c["reserved"] = []
+                else:
+                    c["reserved"] = dict(self.menu[c["dish_id"]]["recipe"])
             else:
-                c["reserved"] = {}
+                c["reserved"] = [] if self._stock_is_list else {}
+        elif isinstance(c["reserved"], list):
+            c["reserved"] = list(c["reserved"])
         else:
             c["reserved"] = dict(c["reserved"])
         c.setdefault("base_price", self.menu[c["dish_id"]]["price"] if c["state"] == "eating" else 0)
@@ -94,6 +102,13 @@ class QuanSim:
 
     def available_stock(self):
         """Kho vật lý trừ nguyên liệu đã giữ cho những đơn chưa nấu."""
+        if self._stock_is_list:
+            reserved_ids = {rid for c in self.customers if isinstance(c["reserved"], list) for rid in c["reserved"]}
+            available = {}
+            for item in self.stock:
+                if item["id"] not in reserved_ids and item["fresh"] >= self._spoiled_below:
+                    available[item["kind"]] = available.get(item["kind"], 0) + 1
+            return available
         available = dict(self.stock)
         for customer in self.customers:
             for kind, count in customer["reserved"].items():
@@ -102,9 +117,14 @@ class QuanSim:
 
     def snapshot(self) -> dict:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
+        stock_out = (
+            sort_by_id([dict(x) for x in self.stock])
+            if self._stock_is_list
+            else {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}
+        )
         return {
             "player": {"pos": self.pos},
-            "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
+            "stock": stock_out,
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
@@ -207,13 +227,24 @@ class QuanSim:
             if c is None:
                 return
             dish_id = c["dish_id"]
-            base_price = self.menu[dish_id]["price"]
-            items = []
-            for k in sorted(c["reserved"]):
-                amt = c["reserved"][k]
-                self.stock[k] = max(0, self.stock.get(k, 0) - amt)
-                items.extend([k] * amt)
-            c["reserved"] = {}
+            list_price = self.menu[dish_id]["price"]
+            if isinstance(c["reserved"], list):
+                reserved_ids = set(c["reserved"])
+                used = [x for x in self.stock if x["id"] in reserved_ids]
+                self.stock = [x for x in self.stock if x["id"] not in reserved_ids]
+                used.sort(key=lambda x: (x["kind"], id_key(x["id"])))
+                avg_fresh = (sum(x["fresh"] for x in used) / len(used)) if used else 100.0
+                base_price = math.floor(list_price * avg_fresh / 100.0)
+                items = [dict(x) for x in used]
+                c["reserved"] = []
+            else:
+                base_price = list_price
+                items = []
+                for k in sorted(c["reserved"]):
+                    amt = c["reserved"][k]
+                    self.stock[k] = max(0, self.stock.get(k, 0) - amt)
+                    items.extend([k] * amt)
+                c["reserved"] = {}
             c["order_status"] = "assigned"
             stove["state"] = "cooking"
             stove["dish"] = {"order_id": c["id"], "dish_id": dish_id, "base_price": base_price}
@@ -295,7 +326,7 @@ class QuanSim:
         }))
 
     def _cleanup_customer_order(self, c):
-        c["reserved"] = {}
+        c["reserved"] = [] if self._stock_is_list else {}
         if self.hand is not None and self.hand["order_id"] == c["id"]:
             self.hand = None
         for s in self.stoves:

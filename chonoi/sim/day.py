@@ -1,10 +1,11 @@
 """Vòng ngày (`--mode day --days 1..5`): gather -> quan -> shop -> ngày kế / days_complete."""
 
 import copy
+import inspect
 
 from .gather import GatherSim
 from .quan import QuanSim
-from ..ids import IdAllocator
+from ..ids import IdAllocator, sort_by_id
 from ..rng import Streams
 
 
@@ -40,6 +41,7 @@ class DaySim:
 
         self._shop_stock = {}
         self._shop_time_left = 0
+        self.item_ids = IdAllocator()
         self.done = False
         self.reason = None
         self._sub = None
@@ -71,10 +73,25 @@ class DaySim:
         t["menu"] = {did: t["menu"][did] for did in sorted(plan["dishes"]) if did in t["menu"]}
         return t
 
+    def _prepare_gather_scenario(self):
+        g_sc = copy.deepcopy(self.scenario.get("gather", {}))
+        hold = g_sc.get("hold")
+        if isinstance(hold, list) and hold and isinstance(hold[0], dict):
+            if self.day == 1:
+                for item in hold:
+                    self.item_ids.reserve(item["id"])
+            else:
+                for item in hold:
+                    item["id"] = self.item_ids.new("I")
+        return g_sc
+
     def _build_gather(self):
         dt = self._day_tuning()
-        g_sc = self.scenario.get("gather", {})
-        self._sub = GatherSim(dt, g_sc, Streams(self.seed + self.day * 1000), IdAllocator(), day=self.day)
+        g_sc = self._prepare_gather_scenario()
+        kwargs = {"day": self.day}
+        if "item_ids" in inspect.signature(GatherSim.__init__).parameters:
+            kwargs["item_ids"] = self.item_ids
+        self._sub = GatherSim(dt, g_sc, Streams(self.seed + self.day * 1000), IdAllocator(), **kwargs)
         self._sub.money = self.money
         self._sub.earned = self.earned
         self._sub.reputation = self.reputation
@@ -122,6 +139,9 @@ class DaySim:
                 out.append((name, data, "gather", self.day))
             if self._sub.done:
                 inv = self._sub.inventory_items()
+                if isinstance(inv, list):
+                    for item in inv:
+                        self.item_ids.reserve(item["id"])
                 self._build_quan(inv)
                 self.phase = "quan"
                 self.phase_tick = 0
@@ -134,7 +154,10 @@ class DaySim:
             self.earned = self._sub.earned
             self.reputation = self._sub.reputation
             if self._sub.done:
-                self._shop_stock = {k: v for k, v in sorted(self._sub.stock.items()) if v > 0}
+                if isinstance(self._sub.stock, list):
+                    self._shop_stock = sort_by_id([dict(x) for x in self._sub.stock])
+                else:
+                    self._shop_stock = {k: v for k, v in sorted(self._sub.stock.items()) if v > 0}
                 self._shop_time_left = self.tuning["shop"]["max_ticks"]
                 self.phase = "shop"
                 self.phase_tick = 0
@@ -148,7 +171,7 @@ class DaySim:
             if end_reason is not None:
                 out.append(("shop_end", {"reason": end_reason}, "shop", self.day))
                 self.days_completed += 1
-                self._shop_stock = {}
+                self._shop_stock = [] if isinstance(self._shop_stock, list) else {}
                 if self.day >= self.days:
                     self.done = True
                     self.reason = "days_complete"
