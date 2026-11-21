@@ -1,0 +1,40 @@
+# Bằng chứng lát 1 (A): dive/surface, oxy, ngạt, Máu, ngất
+# Lệnh: PYTHONPATH=tests:. python3 -m unittest tests.test_gather_lat1 -v
+
+test_dem_ngat_tang_tung_tick_va_reset_sau_choke (tests.test_gather_lat1.Choke.test_dem_ngat_tang_tung_tick_va_reset_sau_choke) ... ok
+test_ngat_lan_dau_o_t_cong_59_roi_moi_60_tick (tests.test_gather_lat1.Choke.test_ngat_lan_dau_o_t_cong_59_roi_moi_60_tick)
+Chạm oxy 0 ở t = 1 (bắt đầu với 1 tick oxy), dưới nước liên tục -> choke ở 60 và 120. ... ok
+test_noi_len_dung_buoc_dang_le_ngat_thi_khong_ngat (tests.test_gather_lat1.Choke.test_noi_len_dung_buoc_dang_le_ngat_thi_khong_ngat) ... ok
+test_dive_roi_surface_moi_lan_doi_phia_mot_su_kien (tests.test_gather_lat1.DiveSurface.test_dive_roi_surface_moi_lan_doi_phia_mot_su_kien) ... ok
+test_o_yen_mot_phia_khong_phat_su_kien (tests.test_gather_lat1.DiveSurface.test_o_yen_mot_phia_khong_phat_su_kien) ... ok
+test_tat_dinh_tung_byte_khi_co_ngat (tests.test_gather_lat1.DiveSurface.test_tat_dinh_tung_byte_khi_co_ngat) ... ok
+test_mau_ve_0_ngat_mat_gio_lifo_kho_rong (tests.test_gather_lat1.Faint.test_mau_ve_0_ngat_mat_gio_lifo_kho_rong) ... ok
+test_ngat_truoc_ca_cap_ben (tests.test_gather_lat1.Faint.test_ngat_truoc_ca_cap_ben)
+Ngất xét trước interact: E trong bến ở đúng bước ngất vẫn là fainted. ... ok
+test_bat_dau_oxy_0_khong_phat_oxygen_empty (tests.test_gather_lat1.Oxygen.test_bat_dau_oxy_0_khong_phat_oxygen_empty) ... ok
+test_duoi_nuoc_tru_1_moi_tick (tests.test_gather_lat1.Oxygen.test_duoi_nuoc_tru_1_moi_tick) ... ok
+test_mat_nuoc_hoi_oxy_va_kep_toi_da (tests.test_gather_lat1.Oxygen.test_mat_nuoc_hoi_oxy_va_kep_toi_da) ... ok
+test_oxygen_empty_dung_tick_va_mot_lan (tests.test_gather_lat1.Oxygen.test_oxygen_empty_dung_tick_va_mot_lan) ... ok
+
+----------------------------------------------------------------------
+Ran 12 tests in 1.637s
+
+OK
+
+# Toàn bộ bộ test: PYTHONPATH=tests:. python3 -m unittest discover -s tests
+Ran 56 tests in 8.722s
+
+OK
+
+# Lượt thật: lặn chéo xuống, không nổi lên (seed 1, inputs move [1,1] từ tick 0)
+# python3 -m chonoi.headless --mode gather --seed 1 --ticks 20000 --inputs dive.json --out g.jsonl --inventory-out k.json
+{"type":"event","tick":14,"phase":"gather","name":"dive","data":{"pos":[2.542,0.542]}}
+{"type":"event","tick":1813,"phase":"gather","name":"oxygen_empty","data":{"oxygen_ticks":0}}
+{"type":"event","tick":1872,"phase":"gather","name":"choke","data":{"hp":2}}
+{"type":"event","tick":1932,"phase":"gather","name":"choke","data":{"hp":1}}
+{"type":"event","tick":1992,"phase":"gather","name":"choke","data":{"hp":0}}
+{"type":"event","tick":1992,"phase":"gather","name":"faint","data":{"cause":"choke","lost":[],"hp":0}}
+{"type":"event","tick":1992,"phase":"gather","name":"gather_end","data":{"reason":"fainted","inventory":{"items":{}}}}
+{"type":"end","ticks":1992,"sim_tick":1992,"mode":"gather","state":"finished","reason":"fainted","money":0,"earned":0,"reputation":3.0,"score":300}
+# k.json:
+{"items":{}}
