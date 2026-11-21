@@ -19,6 +19,7 @@ import math
 
 from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
+from .monsters import load_monsters, update_monsters
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -53,9 +54,12 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids):
+    def __init__(self, tuning, scenario, streams, ids, *, day=1):
         t = tuning["gather"]
         self.t = t
+        self.tick_hz = tuning.get("tick_hz", TICK)
+        self.monster_config = t.get("monsters", {})
+        self.monsters = load_monsters(self.monster_config, scenario, day)
         if "fish_yield" in self.t and "ca_keo" not in self.t["fish_yield"]:
             self.t["fish_yield"]["ca_keo"] = 2
         self.rng = streams
@@ -94,7 +98,7 @@ class GatherSim:
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
                       "heading_deg": f.get("heading_deg", 0), "age_ticks": int(f.get("age_ticks", 0))}
                      for f in src_fish]
-        for coll in (self.nodes, self.fish):
+        for coll in (self.nodes, self.fish, self.monsters):
             for e in coll:
                 ids.reserve(e["id"])
         self.money = 0
@@ -146,6 +150,7 @@ class GatherSim:
 
     def snapshot(self) -> dict:
         return {
+            **({"monsters": self.monsters} if self.monster_config else {}),
             "player": {"pos": self.pos, "vel": self.vel, "heading_deg": self.heading,
                        "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
@@ -180,6 +185,9 @@ class GatherSim:
         if at_surface != was_at_surface:
             events.append(("surface" if at_surface else "dive", {"pos": self.pos.copy()}))
         self._update_oxygen(at_surface, events)
+        if self.done:
+            return events
+        self._update_monsters(events)
         if self.done:
             return events
         # 3. interact: bến trước, rồi hái
@@ -430,10 +438,27 @@ class GatherSim:
         self.hp -= 1
         events.append(("choke", {"hp": self.hp}))
         if self.hp == 0:
-            lost = list(reversed(self.hold))
-            self.hold.clear()
-            events.append(("faint", {"cause": "choke", "lost": lost, "hp": self.hp}))
-            self._finish("fainted", events)
+            self._faint("choke", events)
+
+    def _update_monsters(self, events):
+        monster = update_monsters(self.monsters, self.monster_config, self.t["bounds"],
+                                  self.tick_hz, self.pos, self.invuln_ticks > 0)
+        if monster is None:
+            return
+        self.hp -= 1
+        count = math.floor(len(self.hold) * self.monster_config["loss_ratio"])
+        lost = [self.hold.pop() for _ in range(count)]
+        self.invuln_ticks = self.monster_config["invuln_ticks"]
+        events.append(("monster_hit", {"monster_id": monster["id"], "hp": self.hp,
+                                       "lost": lost, "pos": self.pos.copy()}))
+        if self.hp == 0:
+            self._faint("monster", events)
+
+    def _faint(self, cause, events):
+        lost = list(reversed(self.hold))
+        self.hold.clear()
+        events.append(("faint", {"cause": cause, "lost": lost, "hp": self.hp}))
+        self._finish("fainted", events)
 
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]

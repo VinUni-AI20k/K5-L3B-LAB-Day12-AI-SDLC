@@ -17,3 +17,6 @@
 
 
 | Phase 2 | Nguyễn Minh Quang (`QuangNEU`) | Antigravity (Gemini 3.8 Flash) | `M2.4`: Nghiệm thu Phase 2 M2 (Unit test 10/10, headless 2 tiến trình, xuất kho 6 nguyên liệu, lập báo cáo `docs/proof/phase-2/m2.md`) | ~8k tokens | 10/10 AC đạt, bàn giao kho 6 món thành công sang Quán, bảo toàn 100% test Phase 1. |
+| Phase 2 | Vũ Quang Huy (`huyvu-03` — M1) | Codex (GPT-6) | `M1.1–M1.2`: Viết Dev Spec, Test Spec và 5 test headless cho Cá Sấu Năm Chèo | Chưa đo | Test dựng được fixture, chưa đạt vì `main` chưa có snapshot `monsters` và luật hit. Chờ M2.3 theo bảng phân công. |
+| Phase 2 | Vũ Quang Huy (`huyvu-03` — M1) | Codex (GPT-6) | `M1.3`: Triển khai trạng thái Cá Sấu, hit, bất tử, mất giỏ và ngất; truyền số Ngày vào gather | Chưa đo | 5 test M1 đạt sau khi nối vào `main` có M2.3. |
+| Phase 2 | Vũ Quang Huy (`huyvu-03` — M1) | Codex (GPT-6) | `M1.4`: Chạy test, smoke hai tiến trình và lưu bằng chứng | Chưa đo | Sửa fallback `tick_hz` cho fixture M2. M1 đạt 5/5. Sáu lỗi ngoài M1 tái hiện trên `main` sạch. |
