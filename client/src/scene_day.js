@@ -71,8 +71,12 @@ export function servings(recipe, stock) { let n = Infinity; for (const [k, q] of
 
 // ---------- EveningIntro: stock received + which plan dishes can be cooked ----------
 export class EveningIntro extends Base {
-  constructor(contract, day, stock, onDone) {
+  // items (v1.2): the gather handover [{ id, kind, fresh }] — listed with fresh %; servings count usable (≥ spoiled_below) only
+  constructor(contract, day, stock, onDone, items = null) {
     super("dusk"); this.onDone = onDone; this.day = day; this.stock = stock || {}; this.menu = contract.tuning.menu;
+    this.below = { spoiled_below: 30, ...contract.freshness }.spoiled_below;
+    this.items = Array.isArray(items) ? items : null;
+    if (this.items) { this.usable = {}; for (const it of this.items) if (it.fresh >= this.below) this.usable[it.kind] = (this.usable[it.kind] || 0) + 1; }
     this.plan = planFor(contract, day);
     this.ids = this.plan ? Object.keys(this.plan.dishes) : Object.keys(this.menu);
   }
@@ -81,18 +85,22 @@ export class EveningIntro extends Base {
     this.bg(); const u = screen.ui; u.imageSmoothingEnabled = false;
     txt(`NGÀY ${this.day} · MỞ QUÁN`, W / 2, 26, { size: 18, align: "center", color: "#ff8a3d", weight: 900, italic: true, stroke: "#3a1410", sw: 5 });
     // stock received
-    const ks = Object.entries(this.stock).filter(([, n]) => n > 0);
-    panel(16, 38, 170, 22 + Math.max(1, ks.length) * 13, { fill: "rgba(8,20,38,.88)", border: "#7ac0ff", r: 6 });
-    txt("NHẬP KHO", 101, 49, { size: 8, align: "center", color: "#9fd8ff", weight: 900 });
+    const ks = Object.entries(this.stock).filter(([, n]) => n > 0), its = this.items, rh = its ? 22 : 13;
+    panel(16, 38, 170, 22 + Math.max(1, ks.length) * rh, { fill: "rgba(8,20,38,.88)", border: "#7ac0ff", r: 6 });
+    txt("NHẬP KHO" + (its ? " · ĐỘ TƯƠI" : ""), 101, 49, { size: 8, align: "center", color: "#9fd8ff", weight: 900 });
     if (!ks.length) txt("Kho trống — giỏ đã mất", 101, 64, { size: 8, align: "center", color: "#ffb0b0", weight: 800 });
-    ks.forEach(([k, n], i) => { const y = 54 + i * 13; u.drawImage(icon(k), 24, y, 10, 10); txt(ucfirst(kindName(k)), 38, y + 8, { size: 8, color: "#fff", weight: 800 }); txt("×" + n, 178, y + 8, { size: 8, align: "right", color: "#cfe", weight: 900 }); });
+    ks.forEach(([k, n], i) => { const y = 54 + i * rh; u.drawImage(icon(k), 24, y, 10, 10); txt(ucfirst(kindName(k)), 38, y + 8, { size: 8, color: "#fff", weight: 800 }); txt("×" + n, 178, y + 8, { size: 8, align: "right", color: "#cfe", weight: 900 });
+      if (!its) return; // v1.2: each item id with its fresh % (spoiled = "ươn" in red); clipped to the panel width
+      let line = "", spoiled = false;
+      for (const it of its.filter((q) => q.kind === k)) { const bad = it.fresh < this.below; spoiled ||= bad; const part = `${it.id} ${bad ? "ươn" : Math.floor(it.fresh) + "%"}`; const next = line ? line + " · " + part : part; if (measure(next, 7, 700) > 150) { line += " …"; break; } line = next; }
+      txt(line, 24, y + 18, { size: 7, color: spoiled ? "#ffb0a0" : "rgba(220,245,255,.8)", weight: 700 }); });
     // plan dishes
     const x0 = 196, w0 = W - x0 - 16;
     panel(x0, 38, w0, 22 + this.ids.length * 24, { fill: "rgba(30,12,16,.88)", border: BORDER, r: 6 });
     txt("THỰC ĐƠN KẾ HOẠCH", x0 + w0 / 2, 49, { size: 8, align: "center", color: GOLD, weight: 900 });
     this.ids.forEach((id, i) => {
       const y = 54 + i * 24, m = this.menu[id]; if (!m) return;
-      const can = servings(m.recipe, this.stock), want = this.plan?.dishes[id];
+      const can = servings(m.recipe, this.usable || this.stock), want = this.plan?.dishes[id];
       u.drawImage(dishIcon(id), x0 + 6, y, 18, 18);
       txt(dishName(id), x0 + 28, y + 8, { size: 8, color: "#fff", weight: 800 });
       txt(Object.entries(m.recipe).map(([k, q]) => `${kindName(k)} ×${q}`).join(" + ") + ` · ${m.price}k`, x0 + 28, y + 18, { size: 7, color: "rgba(255,230,200,.75)", weight: 700 });

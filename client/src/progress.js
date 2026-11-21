@@ -13,24 +13,27 @@ export const UPGRADES = {
   stove: { name: "Bếp than hồng",    desc: "nấu nhanh hơn",           cost: [0, 140, 320],       eff: [1, 0.75, 0.5] },         // × cook time
   decor: { name: "Đèn lồng & bàn ghế", desc: "khách kiên nhẫn hơn",   cost: [0, 120, 300],       eff: [1, 1.15, 1.3] },         // × customer patience
   table2: { name: "Thêm bàn",        desc: "thêm chỗ cho khách",      cost: [0, 250, 600],       eff: [1, 2, 3] },              // tables (for a 1-table contract)
+  spear: { name: "Mũi lao",          desc: "lao sát thương cao hơn",  cost: [0, 150, 350, 700],  eff: [1, 2, 3, 5] },           // harpoon damage per hit
 };
 // which screen sells which track: morning prep (dive gear) vs evening prep (restaurant)
 // "oxy" is superseded by the contract's oxygen upgrade (v1.1) and is no longer sold.
 export const GEAR_UPGRADES = ["cap", "fins", "net"];
 export const QUAN_UPGRADES = ["stove", "decor", "table2"];
+// hunting gear (creative): sold in the day-loop Shop under "Đồ thêm (sáng tạo)"
+export const HUNT_UPGRADES = ["spear"];
 
 export function freshSave() {
   // cu = contract upgrade levels bought (Test Contract v1.1 shop: oxygen, hp); active = levels in effect today
   // (bought levels only apply from the NEXT day: main.js calls activateUpgrades() when it builds a new day).
   // rep = reputation carried across days (null = contract reputation_initial); sold = dishes sold over the run.
-  return { v: 1, day: 1, money: 0, totalEarned: 0, best: 0, up: { oxy: 0, cap: 0, fins: 0, net: 0, stove: 0, decor: 0, table2: 0 },
-    cu: { oxygen: 0, hp: 0 }, active: { oxygen: 0, hp: 0 }, rep: null, sold: {}, tips: 0, catalog: {}, history: [] };
+  return { v: 1, day: 1, money: 0, totalEarned: 0, best: 0, up: { oxy: 0, cap: 0, fins: 0, net: 0, stove: 0, decor: 0, table2: 0, spear: 0 },
+    cu: { oxygen: 0, hp: 0 }, active: { oxygen: 0, hp: 0 }, rep: null, sold: {}, tips: 0, catalog: {}, history: [], hunt: {}, itemSeq: 0 }; // itemSeq: last freshness item id (I<n>, v1.2)
 }
 
 export let save = load() || freshSave();
 
 export function load() {
-  try { const raw = localStorage.getItem(KEY); if (!raw) return null; const s = JSON.parse(raw); if (s && s.v === 1) { const f = freshSave(); return { ...f, ...s, up: { ...f.up, ...s.up }, cu: { ...f.cu, ...s.cu }, active: { ...f.active, ...s.active }, sold: { ...s.sold } }; } } catch (e) {}
+  try { const raw = localStorage.getItem(KEY); if (!raw) return null; const s = JSON.parse(raw); if (s && s.v === 1) { const f = freshSave(); return { ...f, ...s, up: { ...f.up, ...s.up }, cu: { ...f.cu, ...s.cu }, active: { ...f.active, ...s.active }, sold: { ...s.sold }, hunt: { ...s.hunt } }; } } catch (e) {}
   return null;
 }
 // Demo mode (title-menu shortcuts): scenes still read stats()/recordCatch() but nothing is written to storage;
@@ -58,6 +61,7 @@ export function stats(contract) {
     patienceS: q.patience_s,
     patienceMul: UPGRADES.decor.eff[u.decor || 0],                          // × customer patience
     tables: (q.tables?.length || 1) - 1 + UPGRADES.table2.eff[u.table2 || 0], // contract tables + extra ones bought
+    spearDmg: UPGRADES.spear.eff[u.spear || 0],                              // harpoon damage per hit (base 1)
   };
 }
 
@@ -81,6 +85,21 @@ export function recordCatch(speciesId, name) {
   const e = save.catalog[speciesId] || { name, caught: 0, firstDay: save.day };
   e.caught++; save.catalog[speciesId] = e; persist();
   return e.caught === 1; // true = new discovery
+}
+
+// hunting (creative): a trophy fish sold to the trader straight away; money lands in the wallet now and is
+// logged per day so DayResult can show it. Returns the day's hunting income so far.
+export function recordHunt(money) {
+  const m = Math.max(0, Math.round(money || 0)); save.hunt ||= {};
+  save.money += m; save.totalEarned += m; save.hunt[save.day] = (save.hunt[save.day] || 0) + m;
+  const days = Object.keys(save.hunt).map(Number).sort((a, b) => a - b); while (days.length > 30) delete save.hunt[days.shift()];
+  persist(); return save.hunt[save.day];
+}
+export const huntIncome = (day) => save.hunt?.[day] || 0;
+// monsters defeated (GUI hunting): catalog entry keeps a separate "đã hạ" count
+export function recordDefeat(id, name) {
+  const e = save.catalog[id] || { name, caught: 0, firstDay: save.day };
+  e.defeated = (e.defeated || 0) + 1; save.catalog[id] = e; persist(); return e.defeated;
 }
 
 // called once per finished day by main.js

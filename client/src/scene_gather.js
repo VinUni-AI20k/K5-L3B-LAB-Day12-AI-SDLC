@@ -3,15 +3,22 @@
 // Core rules mirrored from Test Contract v1.1 (numbers from tuning.gather): swimming fish schools + scheduled
 // spawns, Cá Sấu Năm Chèo (croc.js), HP / faint, oxygen / choke, docking, the day's NEEDED list.
 // Sáng tạo (creative extras, never change the core numbers above): harpoon aiming, sprint, deep zone 30–60 m
-// with big fish (deep.js), water snakes (creatures.js).
+// with big fish (deep.js), water snakes (creatures.js). Hunting: deep fish have HP (deep.js), the spear deals
+// stats().spearDmg (upgrade "Mũi lao"); contract schools have 1 HP so one hit still catches them exactly as before.
+// Boss Cá Tra Dầu (52–58 m) charges when hit and is sold to the trader (+300k) — no ingredients. Croc / snake can't
+// be killed in the contract; in the GUI they have HP too (croc 24, snake 6): every spear hit stuns (croc 2 s + 3 m
+// push, numbers of the contract "Lao xua" extension) AND deals damage; at 0 HP they are defeated for this dive.
+// Inventory (I or the bag icon): freezes the dive; throw items out of the basket to free space.
 import { W, H, screen, input, clamp, lerp, fx, Particles, txt, panel, measure, reduceMotion } from "./engine.js";
 import { sfx, music } from "./audio.js";
 import { P, R, bands, sky, sun, cloud, bank, hyacinth, godRays, kelp, rock, WATER, diver, fish, nodeArt, dock, KIND_NAME, icon } from "./art.js";
 import { speedLines } from "./cutscene.js";
-import { DEEP, preloadDeep, makeDeepFish, updateDeepFish, drawDeepFish, drawDeepScenery } from "./deep.js";
-import { SNAKE, makeSnakes, updateSnakes, drawSnake, snakeInReach, stunSnake } from "./creatures.js";
-import { stats, recordCatch, save } from "./progress.js";
-import { makeCrocs, updateCrocs, crocHit, startRecoil, crocNear, drawCroc } from "./croc.js";
+import { DEEP, preloadDeep, makeDeepFish, updateDeepFish, drawDeepFish, drawDeepScenery, hurtDeepFish, deepBox } from "./deep.js";
+import { SNAKE, makeSnakes, updateSnakes, drawSnake, snakeInReach, stunSnake, damageSnake } from "./creatures.js";
+import { stats, recordCatch, recordHunt, recordDefeat, save } from "./progress.js";
+import { makeCrocs, updateCrocs, crocHit, startRecoil, crocNear, drawCroc, stunCroc, crocAt, damageCroc, CROC_HUNT } from "./croc.js";
+import * as meta from "./meta.js";
+import { freshCfg, newItem, decay, plain, freshBar } from "./fresh.js"; // chores tracker (sibling module); every call is optional-chained
 
 const VS = 10; // vertical px per metre (camera scrolls with depth)
 
@@ -26,30 +33,36 @@ export class GatherScene {
     this.p = { x: t.start_pos[0], d: 0, vx: 0, vd: 0, heading: 0, face: 1, phase: 0 };
     // harpoon (GUI creative layer): aim with movement or the mouse, Space/click fires a spear on a rope
     this.aim = 0; this.tilt = 0; this.harp = null; this.mouseT = -1; this.mouse = { x: 0, y: 0 };
-    this._onMove = (e) => { const r = screen.pc.getBoundingClientRect(); this.mouse.x = (e.clientX - r.left) / r.width * W; this.mouse.y = (e.clientY - r.top) / r.height * H; this.mouseT = performance.now(); };
+    this._onMove = (e) => { const r = screen.pc.getBoundingClientRect(); this.mouse.x = (e.clientX - r.left) / r.width * W; this.mouse.y = (e.clientY - r.top) / r.height * H; this.mouseT = performance.now(); if (e.type === "pointerdown") this.onClick(this.mouse.x, this.mouse.y); };
     addEventListener("pointermove", this._onMove); addEventListener("pointerdown", this._onMove);
+    // inventory keys not in the engine map: I (open/close), X (throw out); consumed in update()
+    this._onKey = (e) => { const k = (e.key || "").toLowerCase(); if (k === "i") this.keyI = true; else if (k === "x") this.keyX = true; };
+    addEventListener("keydown", this._onKey);
+    this.inv = null; this.holdFrom = []; this.sinks = []; this.tossed = []; this.bagRect = [W - 108 - 6 - 19, 6, 15, 15];
     // effective tuning = contract base + shop upgrades (progress.js); a fresh save gives exactly the contract values
     const st = this.stats = stats(contract);
     this.oxyMax = st.oxygenMax; this.oxy = st.oxygenMax;
     this.swim = st.swimSpeed; this.catchR = st.catchRadius;
     this.hpMax = st.hpMax ?? t.hp_max; this.hp = this.hpMax;
     this.hold = []; this.cap = st.holdCap;
+    // v1.2 freshness: items[i] = { id, kind, fresh, spoiled } kept in step with hold[i] (syncFrom), pick order
+    this.items = []; this.fresh = freshCfg(contract);
+    this.dmg = st.spearDmg ?? 1; this.pops = []; this.bossSeen = false; // hunting: spear damage, floating damage numbers
     this.time = t.duration_s; this.invuln = 0; this.catchCd = 0; this.zeroOxy = 0;
     this.nodes = t.nodes.map((n) => ({ ...n, ready: true, regrow: 0, pop: 0 }));
-    // v1.0: fish_initial is a list of schools; v1.1: a count, placed on distinct standard spawn points
-    const init = Array.isArray(t.fish_initial) ? t.fish_initial : (() => {
-      const pts = []; for (const [kind, ds] of Object.entries(t.fish_spawn_depths || {})) for (const x of t.fish_spawn_x || []) for (const d of ds) pts.push({ kind, pos: [x, d] });
-      const out = [], used = new Set(); let k = 0;
-      while (out.length < Math.min(t.fish_initial, pts.length) && k < 500) { const q = pts[Math.floor(Math.random() * pts.length)]; const key = q.pos.join(","); k++; if (used.has(key)) continue; used.add(key); out.push({ id: "F" + (out.length + 1), ...q }); }
-      return out; })();
-    this.fishSeq = 0;
-    this.fish = init.map((f) => this.newSchool(f.kind, f.pos[0], f.pos[1]));
+    // v1.0: fish_initial is a list of schools; v1.1: a count, each placed with the same weighted procedure as the
+    // scheduled spawn (pickSpawn: fish_weights over species with a free point, uniform point, clearance)
+    this.fishSeq = 0; this.fish = [];
+    if (Array.isArray(t.fish_initial)) this.fish = t.fish_initial.map((f) => this.newSchool(f.kind, f.pos[0], f.pos[1]));
+    else for (let i = 0; i < t.fish_initial; i++) { const q = this.pickSpawn(this.fish); if (!q) break; this.fish.push(this.newSchool(q.kind, q.pos[0], q.pos[1])); }
+    this.fullHintT = 0; // "river full" guidance toast, at most once per 30 s
     this.spawnT = 0;
     // Cá Sấu Năm Chèo: M1 from day 1, M2 only from_day 3 (standalone gather = day-1 layout)
     this.mon = t.monsters || null; this.crocs = makeCrocs(this.mon, this.day); this.crocWarn = 0;
     this.yield = t.fish_yield || {};
     // creative extension: the client river goes deeper than the contract (see deep.js)
     this.maxD = Math.max(t.bounds.d[1], DEEP.depth); preloadDeep(); this.deep = makeDeepFish(); this.camY = 0; this.deepSeen = false;
+    this.deepEnv = { px: 0, pd: 0, contact: (f, nx, nd) => this.bossRam(f, nx, nd) };
     // aggressive creature (creatures.js); env is reused every frame (no per-frame allocation)
     this.snakes = makeSnakes(DEEP.zone); this.snakeSeen = !!save.catalog[SNAKE.id];
     this.snakeEnv = { px: 0, pd: 0, underwater: false, swim: this.swim, deepZone: DEEP.zone, maxD: this.maxD, maxX: t.bounds.x[1], sx: W / 26, sy: VS,
@@ -89,21 +102,48 @@ export class GatherScene {
     this.spawnT -= t.fish_spawn_ticks / this.hz;
     const alive = this.fish.filter((f) => !f.caught);
     if (alive.length >= (t.fish_max ?? 12)) return;
-    const clear = t.fish_spawn_clearance ?? 1, ok = {};
+    const q = this.pickSpawn(alive); if (!q) return; // no free point: skip this turn
+    this.fish.push(this.newSchool(q.kind, q.pos[0], q.pos[1]));
+  }
+  // one spawn draw (v1.1): species by fish_weights renormalised over the species that still have a spawn point at
+  // more than fish_spawn_clearance from every live school, then a uniform point of that species. null = no point.
+  pickSpawn(alive) {
+    const t = this.t, clear = t.fish_spawn_clearance ?? 1, ok = {};
     for (const [kind, ds] of Object.entries(t.fish_spawn_depths || {})) {
-      const pts = []; for (const x of t.fish_spawn_x || []) for (const d of ds) if (alive.every((f) => Math.hypot(f.x - x, f.d - d) > clear)) pts.push([x, d]);
+      const pts = []; for (const x of t.fish_spawn_x || []) for (const d of ds) if (alive.every((f) => f.caught || Math.hypot(f.x - x, f.d - d) > clear)) pts.push([x, d]);
       if (pts.length) ok[kind] = pts;
     }
-    const kinds = Object.keys(ok); if (!kinds.length) return; // no free point: skip this turn
+    const kinds = Object.keys(ok); if (!kinds.length) return null;
     const wts = kinds.map((k) => (t.fish_weights || {})[k] ?? 1), sum = wts.reduce((a, b) => a + b, 0);
     let r = Math.random() * sum, kind = kinds[kinds.length - 1];
     for (let i = 0; i < kinds.length; i++) { r -= wts[i]; if (r < 0) { kind = kinds[i]; break; } }
-    const pt = ok[kind][Math.floor(Math.random() * ok[kind].length)];
-    this.fish.push(this.newSchool(kind, pt[0], pt[1]));
+    return { kind, pos: ok[kind][Math.floor(Math.random() * ok[kind].length)] };
+  }
+  // fish radar: for each needed fish kind still short, the nearest live school of that kind (for the edge arrows)
+  radarTargets() {
+    if (!this.need) return [];
+    const have = {}; for (const k of this.hold) have[k] = (have[k] || 0) + 1;
+    const out = [], p = this.p;
+    for (const [kind, n] of Object.entries(this.need)) {
+      if ((have[kind] || 0) >= n || !(this.t.fish_depths || {})[kind]) continue;
+      let best = null, bd = 1e9;
+      for (const f of this.fish) { if (f.caught || f.hooked || f.kind !== kind) continue; const r = Math.hypot(f.x - p.x, f.d - p.d); if (r < bd) { bd = r; best = f; } }
+      out.push({ kind, f: best, dist: best ? bd : null });
+    }
+    return out;
+  }
+  // guidance: a needed kind has no live school and the river is at fish_max → only catching other fish makes room
+  riverFullHint(dt) {
+    if (this.fullHintT > 0) { this.fullHintT -= dt; return; }
+    const alive = this.fish.filter((f) => !f.caught).length;
+    if (alive < (this.t.fish_max ?? 12)) return;
+    const miss = this.radarTargets().find((r) => !r.f);
+    if (miss) { this.toast("Sông đầy cá rồi — bắt bớt cá khác để " + KIND_NAME[miss.kind] + " ghé tới", "#9fd8ff"); this.fullHintT = 30; }
   }
   crocBite(m) {
     const p = this.p, ratio = this.mon.loss_ratio ?? 0.5;
     const lose = Math.floor(this.hold.length * ratio), lost = lose ? this.hold.splice(this.hold.length - lose, lose) : []; // LIFO
+    this.syncFrom();
     startRecoil(m, p.x, p.d, this.hz);
     this.toast("Cá Sấu Năm Chèo cắn! −1 Máu", "#ff6b6b");
     if (lost.length) { const by = {}; for (const k of lost) by[k] = (by[k] || 0) + 1; this.toast("Rơi mất: " + Object.entries(by).map(([k, n]) => KIND_NAME[k] + " ×" + n).join(", "), "#ffb36b"); }
@@ -118,11 +158,12 @@ export class GatherScene {
 
   endRun(reason) {
     if (this.ended) return; this.ended = true;
-    removeEventListener("pointermove", this._onMove); removeEventListener("pointerdown", this._onMove);
+    removeEventListener("pointermove", this._onMove); removeEventListener("pointerdown", this._onMove); removeEventListener("keydown", this._onKey); this.inv = null;
     if (this.harp?.hit) this.harp.hit.hooked = false; this.harp = null;
     if (reason === "fainted") this.hold = [];
+    this.syncFrom();
     let val = 0; const by = {}; for (const k of this.hold) { by[k] = (by[k] || 0) + 1; val += this.worth(k); }
-    this.result = { reason, by, val: Math.round(val), t: 0 };
+    this.result = { reason, by, val: Math.round(val), t: 0, items: this.items.map(plain) }; // items: v1.2 handover (ids + fresh, spoiled included)
     music(reason === "fainted" ? "theme" : "theme");
     sfx(reason === "fainted" ? "hurt" : "ding");
     if (reason !== "fainted") sfx("fanfare");
@@ -132,7 +173,7 @@ export class GatherScene {
   hurt(kind = "snake") {
     if (kind !== "choke" && this.invuln > 0) return;
     this.hp--; this.flashHurt = 0.4;
-    if (kind === "croc") this.invuln = (this.mon?.invuln_ticks ?? 90) / this.hz; else if (kind === "snake") this.invuln = 1.2;
+    if (kind === "croc") this.invuln = (this.mon?.invuln_ticks ?? 90) / this.hz; else if (kind === "snake" || kind === "fish") this.invuln = 1.2;
     fx.shake(5, 0.4); fx.flash("rgba(220,60,60,.5)", 0.2); sfx("hurt");
     this.toast("-1 ♥", "#ff6b6b");
     if (this.hp <= 0) this.endRun("fainted");
@@ -147,6 +188,18 @@ export class GatherScene {
     const sx = this._sx(p.x), sy = this._sy(p.d);
     for (let i = 0; i < 6; i++) this.ps.add({ x: sx, y: sy, vx: (Math.random() - .5) * 50, vy: (Math.random() - .5) * 50, size: 1, life: 0.35, color: "#ff8a8a" });
   }
+  // push the diver along (nx,nd) by dist m (clamped to the river), with a matching velocity kick
+  shove(nx, nd, dist) {
+    const p = this.p;
+    p.x = clamp(p.x + nx * dist, 0, this.t.bounds.x[1]); p.d = clamp(p.d + nd * dist, this.t.surface_depth + 0.1, this.maxD);
+    p.vx = nx * this.swim * 2; p.vd = nd * this.swim * 2;
+  }
+  // boss contact while charging: −1 Máu (1.2 s invulnerability) + knockback
+  bossRam(f, nx, nd) {
+    const hit = this.invuln <= 0;
+    this.shove(nx, nd, f.sp.push || 2); fx.shake(8, 0.4); sfx("slam");
+    if (hit) { this.toast(f.sp.name + " húc!", "#ff9a5a"); this.hurt("fish"); }
+  }
   onSnakeSeen() {
     if (this.snakeSeen) return; this.snakeSeen = true;
     if (recordCatch(SNAKE.id, SNAKE.name)) this.discover(SNAKE.name);
@@ -154,12 +207,20 @@ export class GatherScene {
   }
   discover(name) { this.toast("Mới! Sổ tay: " + name, "#7dffb0"); fx.flash("rgba(160,255,200,.3)", 0.15); sfx("ding"); }
 
+  get menuOpen() { return !!this.inv; } // main.js: Esc closes the inventory instead of opening the pause menu
   update(dt) {
+    { const kI = this.keyI || this.bagClick, kX = this.keyX, eat = this.clickEat; this.keyI = this.keyX = this.bagClick = this.clickEat = false;
+      if (!this.result && !this.ended) { // inventory freezes the whole dive (timers, O₂, fish, monsters, particles)
+        if (this.inv) return this.updateInv(dt, kI, kX, eat);
+        if (kI) return this.openInv();
+      } }
     for (const a of [this.ps, this.psUI]) a.update(dt);
+    if (this.sinks.length) { for (const q of this.sinks) { q.life -= dt; q.vd += 1.4 * dt; q.x += q.vx * dt; q.d += q.vd * dt; q.rot += q.vr * dt; } this.sinks = this.sinks.filter((q) => q.life > 0); }
     this.toasts.forEach((t) => { t.life -= dt; t.y -= dt * 18; }); this.toasts = this.toasts.filter((t) => t.life > 0);
     if (this.result) { this.result.t += dt; if (input.hit("restart")) this.onEnd({ restart: true }); else if (this.result.t > 0.6 && input.any()) this.onEnd(this.result); return; }
 
     const t = this.t, p = this.p;
+    this.decayHold(dt); // freshness of what is already in the basket (new items start decaying next step)
     // --- input / movement (eased velocity) ---
     let [mx, md] = input.axis();
     if (mx || md) { const n = Math.hypot(mx, md) || 1; mx /= n; md /= n; this.started = true; this.hintT = 0; }
@@ -187,7 +248,7 @@ export class GatherScene {
     // --- oxygen / choke ---
     if (underwater) {
       const deepZone = p.d > DEEP.zone;
-      if (deepZone && !this.deepSeen) { this.deepSeen = true; this.toast("Vùng nước sâu! Cá to — O₂ hao ×" + DEEP.pressure, "#9fd8ff"); sfx("whoosh"); }
+      if (deepZone && !this.deepSeen) { this.deepSeen = true; this.toast("Vùng nước sâu! Cá to có Máu ♥ — O₂ hao ×" + DEEP.pressure, "#9fd8ff"); sfx("whoosh"); }
       this.oxy = clamp(this.oxy - dt * (this.sprint ? 2 : 1) * (deepZone ? DEEP.pressure : 1), 0, this.oxyMax);
       if (this.oxy <= 0) { this.zeroOxy += dt; if (this.zeroOxy >= t.choke_interval_ticks / this.hz) { this.zeroOxy -= t.choke_interval_ticks / this.hz; this.hurt("choke"); if (this.ended) return; } }
       if (Math.random() < 0.3) this.ps.add({ x: this._sx(p.x), y: this._sy(p.d) - 2, vy: -14, g: 0, wobble: 6, seed: Math.random() * 6, size: 1, life: 1.1, color: "rgba(220,245,255,.7)" });
@@ -200,12 +261,15 @@ export class GatherScene {
 
     // --- Cá Sấu Năm Chèo: move (patrol/chase/recoil), then at most one hit on the nearest ---
     updateCrocs(this.crocs, dt, { px: p.x, pd: p.d, bx: t.bounds.x });
+    if (this.crocs.some((m) => m.gone)) this.crocs = this.crocs.filter((m) => !m.gone); // defeated: gone for this dive
     if (p.d >= 10 && this.invuln <= 0) { const m = crocHit(this.crocs, p.x, p.d); if (m) { this.crocBite(m); if (this.ended) return; } }
     { const n = crocNear(this.crocs, p.x, p.d); this.crocWarn = n && n.dist <= n.m.sp.detect_radius ? Math.min(1, this.crocWarn + dt * 4) : Math.max(0, this.crocWarn - dt * 3); }
     // --- fish schools swim + scheduled spawns (v1.1) ---
-    this.swimFish(dt);
-    updateDeepFish(this.deep.filter((f) => !f.hooked), dt, this.maxD);
-    { const e = this.snakeEnv; e.px = p.x; e.pd = p.d; e.underwater = underwater; updateSnakes(this.snakes, dt, e); }
+    this.swimFish(dt); if (this.started) this.riverFullHint(dt);
+    { const e = this.deepEnv; e.px = p.x; e.pd = p.d; updateDeepFish(this.deep.filter((f) => !f.hooked), dt, this.maxD, e); if (this.ended) return; }
+    if (!this.bossSeen) { const b = this.deep.find((f) => f.sp.boss && !f.caught); if (b && Math.hypot(b.x - p.x, b.d - p.d) < 14) { this.bossSeen = true; this.toast(b.sp.name + "! ♥" + b.hp + " — cần mũi lao mạnh", "#ffb36b"); sfx("boom"); fx.shake(3, 0.5); } }
+    for (const q of this.pops) { q.life -= dt; q.d -= dt * 0.8; } if (this.pops.length) this.pops = this.pops.filter((q) => q.life > 0);
+    { const e = this.snakeEnv; e.px = p.x; e.pd = p.d; e.underwater = underwater; updateSnakes(this.snakes, dt, e); if (this.snakes.some((s) => s.gone)) this.snakes = this.snakes.filter((s) => !s.gone); }
     // --- node regrow ---
     for (const n of this.nodes) { if (!n.ready) { n.regrow -= dt; if (n.regrow <= 0) { n.ready = true; this.toast(KIND_NAME[n.kind] + " mọc lại", "#79c75a"); } } if (n.pop > 0) n.pop -= dt; }
 
@@ -230,7 +294,9 @@ export class GatherScene {
   }
 
   harpRange() { return 5 + (this.catchR - this.t.catch_radius) * 2; }
-  hitRadius(f) { return f.sp ? f.sp.radius * 0.7 : 1.1; }
+  hitRadius(f) { return f.wps ? f.sp.hit_radius + 0.4 : f.seg ? 0.4 + SNAKE.bodyR : f.sp ? f.sp.hitR ?? f.sp.radius * 0.7 : 1.1; }
+  // live (not defeated) snake whose body is at the spear tip — stunned ones can be hit again (stun overrides)
+  snakeAt(x, d) { let best = null, bd = 1e9; for (const s of this.snakes) { if (s.state === "dead") continue; const r = Math.hypot(s.x - x, s.d - d); if (r <= 0.4 + SNAKE.bodyR && r < bd) { bd = r; best = s; } } return best; }
   fire() {
     const p = this.p, ax = Math.cos(this.aim), ad = Math.sin(this.aim);
     this.harp = { x: p.x + ax * 0.6, d: p.d + ad * 0.6, ax, ad, dist: 0, state: "out", hit: null };
@@ -240,7 +306,7 @@ export class GatherScene {
   aimTarget() {
     const p = this.p, ax = Math.cos(this.aim), ad = Math.sin(this.aim), R = this.harpRange();
     let best = null, bt = 1e9;
-    for (const f of [...this.fish, ...this.deep]) { if (f.caught || f.hooked) continue; const rx = f.x - p.x, rd = f.d - p.d, tt = rx * ax + rd * ad; if (tt < 0 || tt > R + this.hitRadius(f)) continue; const off = Math.abs(rx * ad - rd * ax); if (off <= this.hitRadius(f) && tt < bt) { bt = tt; best = f; } }
+    for (const f of [...this.fish, ...this.deep, ...this.crocs, ...this.snakes]) { if (f.caught || f.hooked || f.state === "dead") continue; const rx = f.x - p.x, rd = f.d - p.d, tt = rx * ax + rd * ad; if (tt < 0 || tt > R + this.hitRadius(f)) continue; const off = Math.abs(rx * ad - rd * ax); if (off <= this.hitRadius(f) && tt < bt) { bt = tt; best = f; } }
     return best;
   }
   updateHarpoon(dt) {
@@ -248,27 +314,67 @@ export class GatherScene {
     if (h.state === "out") {
       const step = 24 * dt; h.x += h.ax * step; h.d += h.ad * step; h.dist += step;
       if (h.d < 0) { h.d = 0; h.state = "back"; }
-      const sn = snakeInReach(this.snakes, h.x, h.d, 0.4);
-      if (sn) { this.stun(sn); h.state = "back"; }
+      const sn = this.snakeAt(h.x, h.d), cr = sn ? null : crocAt(this.crocs, h.x, h.d);
+      if (sn) { if (!this.hitMonster(sn, "snake")) this.stun(sn); h.state = "back"; }
+      else if (cr) { if (!this.hitMonster(cr, "croc")) this.stunCroc(cr); h.state = "back"; }
       else for (const f of [...this.fish, ...this.deep]) {
         if (f.caught || f.hooked || Math.hypot(f.x - h.x, f.d - h.d) > this.hitRadius(f)) continue;
-        if (this.hold.length + (f.sp ? 1 : this.yield[f.kind] || 1) > this.cap) { this.toast("Giỏ không đủ chỗ cho cả đàn! Về bến (E)", "#ff8a8a"); sfx("hurt"); }
-        else { f.hooked = true; h.hit = f; sfx("catch"); fx.hitstop(0.05); fx.shake(f.sp ? 3 : 2, 0.15); }
+        const hp = f.hp ?? 1; // contract schools: 1 HP → any hit catches them (unchanged core rule)
+        if (this.dmg < hp) this.wound(f, h);
+        else if (!f.sp?.boss && this.hold.length + (f.sp ? 1 : this.yield[f.kind] || 1) > this.cap) { this.toast("Giỏ không đủ chỗ cho cả đàn! Về bến (E)", "#ff8a8a"); sfx("hurt"); }
+        else { if (f.sp) { f.hp = 0; f.hpShow = 1.5; } f.hooked = true; h.hit = f; sfx("catch"); fx.hitstop(f.sp?.boss ? 0.12 : 0.05); fx.shake(f.sp ? (f.sp.boss ? 6 : 3) : 2, 0.15); }
         h.state = "back"; break;
       }
       if (h.dist >= this.harpRange()) h.state = "back";
       if (h.state === "back" && !h.hit) for (let i = 0; i < 4; i++) this.ps.add({ x: this._sx(h.x), y: this._sy(h.d), vx: (Math.random() - .5) * 30, vy: (Math.random() - .5) * 30, size: 1, life: 0.3, color: "rgba(255,255,255,.5)" });
     } else {
-      const dx = p.x - h.x, dd = p.d - h.d, r = Math.hypot(dx, dd), step = (h.hit?.sp ? 11 : 16) * dt;
+      const dx = p.x - h.x, dd = p.d - h.d, r = Math.hypot(dx, dd), step = (h.hit?.sp ? h.hit.sp.reel || 11 : 16) * dt; // bigger fish reel slower
       if (r <= step + 0.3) { const f = h.hit; this.harp = null; this.catchCd = this.t.catch_cooldown_s; if (f) { f.hooked = false; this.grab(f); } return; }
       h.x += dx / r * step; h.d += dd / r * step;
     }
     if (h.hit) { h.hit.x = h.x; h.hit.d = h.d; }
   }
 
+  // non-lethal spear hit on a deep fish: HP down, flash + knockback + HP bar + damage number, spear comes back empty
+  wound(f, h) {
+    const p = this.p, dmg = this.dmg;
+    hurtDeepFish(f, dmg, h.ax, h.ad);
+    this.pops.push({ x: f.x, d: f.d - 1, txt: "-" + dmg, life: 0.9, col: f.sp.boss ? "#ffb36b" : "#ff6b6b" });
+    sfx("slam"); fx.hitstop(0.04); fx.shake(f.sp.boss ? 4 : 2, 0.15);
+    const sx = this._sx(h.x), sy = this._sy(h.d);
+    for (let i = 0; i < 8; i++) this.ps.add({ x: sx, y: sy, vx: (Math.random() - .5) * 70, vy: (Math.random() - .5) * 70, size: 1 + (i % 2), life: 0.4, color: i % 2 ? "#ff6b6b" : "#ffffff" });
+    if (f.sp.boss) this.toast(f.sp.name + " nổi giận! Tránh ra!", "#ff9a5a");
+    else if (f.sp.biteR && Math.hypot(f.x - p.x, f.d - p.d) <= f.sp.biteR + 1) { // big snakehead bites back at close range
+      const dx = p.x - f.x, dd = p.d - f.d, r = Math.hypot(dx, dd) || 1;
+      this.toast(f.sp.name + " đớp trả!", "#ff9a5a"); this.shove(dx / r, dd / r, 1.5); this.hurt("fish");
+    }
+  }
+  // spear damage on a monster (GUI hunting): pop + flash; true when this hit defeated it
+  hitMonster(m, type) {
+    const dmg = this.dmg, dead = type === "croc" ? damageCroc(m, dmg) : damageSnake(m, dmg);
+    this.pops.push({ x: m.x, d: m.d - 1, txt: "-" + dmg, life: 0.9, col: "#ff6b6b" });
+    if (dead) this.defeat(m, type);
+    return dead;
+  }
+  defeat(m, type) {
+    const info = type === "croc" ? CROC_HUNT : SNAKE, k = info.bounty;
+    recordHunt(k); this.huntK = (this.huntK || 0) + k; recordDefeat(info.id, info.name);
+    meta.trackChore?.("monster_defeated:" + info.id);
+    this.toast("Hạ " + info.name + "! +" + k + "k", "#ffe14d");
+    sfx("boom"); sfx("slam"); sfx("coin"); fx.hitstop(type === "croc" ? 0.15 : 0.06); fx.shake(type === "croc" ? 10 : 5, 0.6); fx.flash("rgba(255,220,120,.35)", 0.2);
+    const sx = this._sx(m.x), sy = this._sy(m.d);
+    this.ps.add({ x: sx, y: sy, ring: true, size: 4, life: 0.6, color: "#ffe14d", fade: false });
+    for (let i = 0; i < 14; i++) this.ps.add({ x: sx, y: sy, vx: (Math.random() - .5) * 80, vy: -20 - Math.random() * 40, g: 70, size: 1 + (i % 2), life: 0.7, color: i % 3 ? "#ffe14d" : "#fff6c0" });
+  }
+  stunCroc(m) {
+    stunCroc(m, this.p.x, this.p.d, 2, 3);
+    sfx("slam"); fx.shake(4, 0.25); fx.hitstop(0.05);
+    this.toast("Cá sấu choáng 2 s!", "#ffe14d");
+    this.ps.add({ x: this._sx(m.x), y: this._sy(m.d), ring: true, size: 4, life: 0.4, color: "#ffe14d", fade: false });
+  }
   pick(n) {
     n.ready = false; n.regrow = this.t.regrow_s; n.pop = 0.4;
-    this.hold.push(n.kind); sfx("pick");
+    this.hold.push(n.kind); this.syncFrom(); sfx("pick"); meta.trackChore?.("picked:" + n.kind);
     this.toast("+ " + KIND_NAME[n.kind], "#ffd23a");
     fx.flash("rgba(255,220,120,.25)", 0.12);
     const sx = this._sx(n.pos[0]), sy = this._sy(0);
@@ -282,9 +388,12 @@ export class GatherScene {
   }
   grab(f) {
     f.caught = true; this.catchCd = this.t.catch_cooldown_s;
+    if (f.sp?.boss) return this.sellBoss(f);
+    meta.trackChore?.("fish_caught:" + f.kind);
     const n = Math.min(f.sp ? f.sp.yield : this.yield[f.kind] || 1, this.cap - this.hold.length);
     if (!f.sp) this.fish = this.fish.filter((x) => x !== f);
     for (let i = 0; i < n; i++) this.hold.push(f.kind);
+    this.syncFrom(); if (f.sp) for (let i = this.hold.length - n; i < this.hold.length; i++) this.holdFrom[i] = f.sp.id; // rare deep catch
     sfx("catch"); fx.hitstop(0.05); fx.flash("rgba(180,240,255,.3)", 0.1); fx.shake(2, 0.2);
     if (f.sp) { this.toast(f.sp.name + "!", "#ffe14d"); fx.shake(4, 0.3); }
     this.toast("+ " + KIND_NAME[f.kind] + (n > 1 ? " ×" + n : ""), f.kind === "ca_linh" ? "#d4e8f2" : f.kind === "ca_keo" ? "#c8b89a" : "#8a9a5a");
@@ -294,6 +403,18 @@ export class GatherScene {
     const sx = this._sx(f.x), sy = this._sy(f.d);
     this.ps.add({ x: sx, y: sy, ring: true, size: 2, life: 0.4, color: "#bdefff", fade: false });
     for (let i = 0; i < 10; i++) this.ps.add({ x: sx, y: sy, vx: (Math.random() - .5) * 60, vy: (Math.random() - .5) * 60, size: 1, life: 0.5, color: "#e8fbff" });
+  }
+
+  // boss: no ingredients — sold to the trader on the spot, money straight into the save
+  sellBoss(f) {
+    const k = f.sp.bounty || 300; recordHunt(k); this.huntK = (this.huntK || 0) + k;
+    meta.trackChore?.("boss_killed");
+    this.toast("Bán cho thương lái: +" + k + "k", "#ffe14d"); this.toast(f.sp.name + " hạ gục!", "#ffb36b");
+    sfx("coin"); sfx("sting_win"); fx.hitstop(0.15); fx.flash("rgba(255,220,120,.45)", 0.25); fx.shake(8, 0.5);
+    if (recordCatch(f.sp.id, f.sp.name)) this.discover(f.sp.name);
+    const sx = this._sx(f.x), sy = this._sy(f.d);
+    this.ps.add({ x: sx, y: sy, ring: true, size: 4, life: 0.6, color: "#ffe14d", fade: false });
+    for (let i = 0; i < 18; i++) this.ps.add({ x: sx, y: sy, vx: (Math.random() - .5) * 90, vy: -30 - Math.random() * 50, g: 80, size: 1 + (i % 2), life: 0.8, color: i % 3 ? "#ffe14d" : "#fff6c0" });
   }
 
   // ---- screen transforms (world -> pixel canvas) ----
@@ -342,7 +463,15 @@ export class GatherScene {
 
     // fish
     for (const f of this.fish) { if (f.caught) continue; const x = this._sx(f.x), y = this._sy(f.d); if (x < -20 || x > W + 20 || y < -20 || y > H + 20) continue; fish(c, f.kind, x, y, f.face, time + f.phase, f.kind === "ca_loc" ? 1 : 1); }
-    for (const f of this.deep) { if (f.caught) continue; const x = this._sx(f.x), y = this._sy(f.d); if (x < -60 || x > W + 60 || y < -40 || y > H + 40) continue; drawDeepFish(c, f, x, y, time + f.phase); }
+    for (const f of this.deep) { if (f.caught) continue; const x = this._sx(f.x), y = this._sy(f.d); if (x < -90 || x > W + 90 || y < -50 || y > H + 50) continue; drawDeepFish(c, f, x, y, time + f.phase); }
+    for (const f of this.deep) { // HP bar for ~3 s after a hit (boss: whenever wounded)
+      if (f.caught || !(f.hpShow > 0 || (f.sp.boss && f.hp < f.hpMax))) continue;
+      const b = deepBox(f);
+      this.hpBar(c, this._sx(f.x), this._sy(f.d) - b.h - 7, Math.min(64, Math.max(22, b.w * 1.4)), f.hp, f.hpMax, f.sp.boss ? 1 : clamp(f.hpShow, 0, 1), f.sp.boss ? f.sp.name + " ♥" + f.hp : null);
+    }
+    for (const m of this.crocs) if (m.state !== "dead" && (m.hpShow > 0 || m.hp < m.hpMax)) this.hpBar(c, this._sx(m.x), this._sy(m.d) - 14, 40, m.hp, m.hpMax, m.hpShow > 0 ? 1 : 0.6, m.hpShow > 0 ? "♥" + m.hp : null);
+    for (const s of this.snakes) if (s.state !== "dead" && s.hpShow > 0) this.hpBar(c, this._sx(s.x), this._sy(s.d) - 9, 20, s.hp, s.hpMax, clamp(s.hpShow, 0, 1), null);
+    for (const q of this.pops) txt(q.txt, this._sx(q.x), this._sy(q.d), { size: 11, align: "center", color: q.col, weight: 900, stroke: "#1a1220", sw: 2.5, alpha: clamp(q.life * 2, 0, 1) });
 
     for (const s of this.snakes) drawSnake(c, s, W / 2 - cam * sc, surY, sc, VS, time);
     for (const m of this.crocs) { const x = this._sx(m.x), y = this._sy(m.d); if (x > -60 && x < W + 60 && y > -30 && y < H + 30) drawCroc(c, m, x, y, time + m.t); }
@@ -353,7 +482,12 @@ export class GatherScene {
       for (let k = 1.2; k <= RR; k += 0.6) R(c, Math.round(this._sx(p.x + ax * k)), Math.round(this._sy(p.d + ad * k)), 1, 1, `rgba(255,240,180,${0.5 - k / RR * 0.35})`);
       const ex = this._sx(p.x + ax * RR), ey = this._sy(p.d + ad * RR); c.strokeStyle = "rgba(255,240,180,.4)"; c.strokeRect(Math.round(ex) - 2, Math.round(ey) - 2, 4, 4);
     }
-    if (tgt) { const fx2 = this._sx(tgt.x), fy2 = this._sy(tgt.d); c.strokeStyle = "rgba(255,225,80,.85)"; c.beginPath(); c.arc(fx2, fy2, (tgt.sp ? 20 : 9) + Math.sin(time * 8), 0, TAU); c.stroke(); txt(tgt.sp ? "Space · " + tgt.sp.name + " ×" + tgt.sp.yield : "Space", fx2, fy2 - (tgt.sp ? 23 : 12), { size: 7, align: "center", color: "#ffe14d", weight: 900, stroke: "#1a1220", sw: 2 }); }
+    if (tgt) { // aim label: name + HP (+ yield or bounty); "(N phát)" = hits still needed with the current spear
+      const mon = tgt.wps ? CROC_HUNT : tgt.seg ? SNAKE : null;
+      const fx2 = this._sx(tgt.x), fy2 = this._sy(tgt.d), rr = tgt.wps ? 22 : tgt.seg ? 10 : tgt.sp ? Math.max(20, deepBox(tgt).h + 4) : 9; c.strokeStyle = "rgba(255,225,80,.85)"; c.beginPath(); c.arc(fx2, fy2, rr + Math.sin(time * 8), 0, TAU); c.stroke();
+      const hits = tgt.hp ? Math.ceil(tgt.hp / this.dmg) : 1;
+      const lab = mon ? `${mon.name} ♥${tgt.hp}` + (hits > 1 ? ` (${hits} phát)` : "") : tgt.sp ? `${tgt.sp.name} ♥${tgt.hp}` + (tgt.sp.boss ? ` · ${tgt.sp.bounty}k` : " ×" + tgt.sp.yield) + (hits > 1 ? ` (${hits} phát)` : "") : "Space";
+      txt(lab, fx2, fy2 - rr - 3, { size: 7, align: "center", color: hits > 1 ? "#ffb36b" : "#ffe14d", weight: 900, stroke: "#1a1220", sw: 2 }); }
     if (this.harp) { // rope + spear tip
       const h = this.harp, hx = this._sx(h.x), hy = this._sy(h.d);
       c.strokeStyle = "rgba(230,225,200,.75)"; c.lineWidth = 1; c.beginPath(); c.moveTo(px0, py0); c.lineTo(hx, hy); c.stroke();
@@ -369,6 +503,9 @@ export class GatherScene {
       if (under && !this.harp) { const ax = Math.cos(this.aim) * this._scale(), ay = Math.sin(this.aim) * VS, n = Math.hypot(ax, ay) || 1; c.strokeStyle = "#5a5f6a"; c.lineWidth = 2; c.beginPath(); c.moveTo(px + ax / n * 3, py + ay / n * 3); c.lineTo(px + ax / n * 11, py + ay / n * 11); c.stroke(); c.lineWidth = 1; }
       diver(c, px, py, p.face, p.phase, Math.hypot(p.vx, p.vd) / this.swim, { grab: !!this.harp, tilt: this.tilt * p.face }); }
     this.ps.draw(c, 0, 0);
+    for (const q of this.sinks) { // thrown-out items sinking / drifting away from the diver
+      c.save(); c.globalAlpha = clamp(q.life, 0, 1); c.translate(Math.round(this._sx(q.x)), Math.round(this._sy(q.d))); c.rotate(q.rot); c.drawImage(icon(q.kind), -5, -5, 10, 10); c.restore();
+    }
 
     // danger vignette
     if (this.danger > 0.01) {
@@ -379,6 +516,7 @@ export class GatherScene {
     if (this.flashHurt > 0) { this.flashHurt -= 0.016; }
 
     this.drawHUD(c, time);
+    if (this.inv) this.drawInv(time);
     if (this.result) this.drawResult(c, time);
     else if (this.hintT > 0 && !this.started) this.drawHint(c);
   }
@@ -414,16 +552,23 @@ export class GatherScene {
     txt("↓ " + Math.round(p.d) + "m" + (deepNow ? "  O₂×" + DEEP.pressure : ""), ox + 6 + this.hpMax * 12 + 4, oy + oh + 12, { size: 8, color: deepNow ? "#9fd8ff" : "#dff4ff", weight: 900, stroke: "#06101e", sw: 2 });
     // catch cooldown (harpoon in flight counts as busy)
     { const cdMax = this.t.catch_cooldown_s || 0.5, busy = !!this.harp, k = busy ? 0 : 1 - clamp(this.catchCd / cdMax, 0, 1);
-      const cx = ox + 50, cy = oy + oh + 18; panel(cx, cy, 42, 9, { fill: "rgba(4,16,30,.8)", border: k >= 1 ? "#7dffb0" : "#5a6a7a", r: 4 });
-      u.fillStyle = k >= 1 ? "#7dffb0" : "#ffd23a"; u.fillRect(cx + 1.5, cy + 1.5, 39 * k, 6);
-      txt(k >= 1 ? "Lao ✓" : "Lao…", cx + 21, cy + 7, { size: 7, align: "center", color: "#08131f", weight: 900 }); }
+      const cx = ox + 50, cy = oy + oh + 18; panel(cx, cy, 50, 9, { fill: "rgba(4,16,30,.8)", border: k >= 1 ? "#7dffb0" : "#5a6a7a", r: 4 });
+      u.fillStyle = k >= 1 ? "#7dffb0" : "#ffd23a"; u.fillRect(cx + 1.5, cy + 1.5, 47 * k, 6);
+      txt("Lao ⚔" + this.dmg + (k >= 1 ? " ✓" : "…"), cx + 25, cy + 7, { size: 7, align: "center", color: "#08131f", weight: 900 }); }
     // basket: one row for the contract's 12 slots, two rows once the "Giỏ lưới lớn" upgrade adds more
     const bw = 108, bx = W - bw - 6, by = 6, cap = this.cap, rows = cap > 12 ? 2 : 1, perRow = Math.ceil(cap / rows);
     const slotw = (bw - 10) / perRow, ic = Math.min(10, slotw + 1), bh = 6 + rows * 10 - 1;
     panel(bx, by, bw, bh, { fill: "rgba(8,20,38,.8)", border: "#f3d27a", r: 6 });
     u.imageSmoothingEnabled = false;
-    for (let i = 0; i < cap; i++) { const row = Math.floor(i / perRow), col = i % perRow, sxx = bx + 5 + col * slotw, syy = by + 3 + row * 10; if (this.hold[i]) u.drawImage(icon(this.hold[i]), sxx + (slotw - 1 - ic) / 2, syy + 4.5 - ic / 2, ic, ic); else { u.fillStyle = "rgba(255,255,255,.08)"; u.fillRect(sxx, syy, slotw - 1, 9); } }
-    txt(`Giỏ ${this.hold.length}/${cap}`, bx + bw / 2, by + bh + 9, { size: 7, align: "center", color: this.hold.length >= cap ? "#ff8a8a" : "#cfe", weight: 900 });
+    for (let i = 0; i < cap; i++) { const row = Math.floor(i / perRow), col = i % perRow, sxx = bx + 5 + col * slotw, syy = by + 3 + row * 10; if (this.hold[i]) { u.drawImage(icon(this.hold[i]), sxx + (slotw - 1 - ic) / 2, syy + 4.5 - ic / 2, ic, ic); const it = this.items[i]; if (it) { // v1.2 freshness bar / spoiled tint
+        if (it.spoiled) { u.fillStyle = "rgba(90,90,90,.65)"; u.fillRect(sxx, syy, slotw - 1, 9); u.fillStyle = "#ff5a5a"; u.fillRect(sxx + 1, syy + 1, 2, 2); }
+        freshBar(u, sxx, syy + 8, slotw - 1, 1.5, it.fresh, it.spoiled); } } else { u.fillStyle = "rgba(255,255,255,.08)"; u.fillRect(sxx, syy, slotw - 1, 9); } }
+    { const [gx, gy, gw, gh] = this.bagRect; // clickable bag icon (I)
+      panel(gx, gy, gw, gh, { fill: "rgba(58,36,20,.9)", border: "#f3d27a", r: 4 });
+      u.fillStyle = "#c8955a"; u.fillRect(gx + 4, gy + 5, 7, 7); u.fillStyle = "#8a5a2a"; u.fillRect(gx + 5, gy + 3, 5, 2); u.fillRect(gx + 4, gy + 7, 7, 1);
+      txt("I", gx + gw / 2, gy + gh + 8, { size: 7, align: "center", color: "#f3d27a", weight: 900 }); }
+    { const nSp = this.items.filter((it) => it.spoiled).length;
+      txt(`Giỏ ${this.hold.length}/${cap}` + (nSp ? ` · ${nSp} ươn` : ""), bx + bw / 2, by + bh + 9, { size: 7, align: "center", color: nSp ? "#ff9a9a" : this.hold.length >= cap ? "#ff8a8a" : "#cfe", weight: 900 }); }
     // basket by kind + the day's NEEDED list (collected / needed, ✓ when met)
     const have = {}; for (const k of this.hold) have[k] = (have[k] || 0) + 1;
     const kinds = this.need ? Object.keys(this.need) : Object.keys(have);
@@ -436,16 +581,143 @@ export class GatherScene {
         const yy = ly + 12 + i * lh, n = have[k] || 0, need = this.need?.[k], met = need != null && n >= need;
         u.drawImage(icon(k), bx + 4, yy, 9, 9);
         txt(KIND_NAME[k] || k, bx + 16, yy + 8, { size: 7, color: met ? "#7dffb0" : "#fff", weight: 800 });
+        const band = (this.t.fish_depths || {})[k]; if (band && !met) txt(`${band[0]}–${band[1]} m`, bx + 52, yy + 8, { size: 6, color: "#9fd8ff", weight: 700 });
         txt(need != null ? `${n}/${need}${met ? " ✓" : ""}` : "×" + n, bx + bw - 4, yy + 8, { size: 7, align: "right", color: met ? "#7dffb0" : need != null ? "#ffd23a" : "#cfe", weight: 900 });
       });
     }
 
+    this.drawRadar(u, time);
     // toasts near player
     const px = this._sx(p.x), py = this._sy(p.d);
     this.toasts.forEach((t, i) => txt(t.txt, px, py - 14 + t.y - (this.toasts.length - 1 - i) * 11, { size: 9, align: "center", color: t.col, weight: 900, stroke: "#1a1220", sw: 2.5, alpha: clamp(t.life, 0, 1) }));
     // controls hint (bottom)
-    txt("WASD bơi · E hái/cập bến · Space/chuột: bắn lao · Shift bơi nhanh · Esc/P tạm dừng", W / 2, H - 5, { size: 7, align: "center", color: "rgba(255,255,255,.55)", weight: 700 });
+    txt("WASD bơi · E hái/cập bến · Space/chuột: bắn lao · Shift bơi nhanh · I: túi đồ · Esc/P tạm dừng", W / 2, H - 5, { size: 7, align: "center", color: "rgba(255,255,255,.55)", weight: 700 });
   }
+  // edge-of-screen arrow + fish icon + distance to the nearest school of each needed kind that is off-screen
+  drawRadar(u, time) {
+    const cx = W / 2, cy = H / 2, m = 22;
+    for (const r of this.radarTargets()) {
+      if (!r.f) continue;
+      const tx = this._sx(r.f.x), ty = this._sy(r.f.d);
+      if (tx >= 0 && tx <= W && ty >= 0 && ty <= H) continue; // on screen: no arrow
+      const dx = tx - cx, dy = ty - cy, k = Math.min((W / 2 - m) / Math.abs(dx || 1e-6), (H / 2 - m) / Math.abs(dy || 1e-6));
+      const ax = cx + dx * k, ay = cy + dy * k, ang = Math.atan2(dy, dx), a = 0.7 + 0.3 * Math.sin(time * 4);
+      u.save(); u.globalAlpha = a;
+      u.fillStyle = "rgba(8,20,38,.85)"; u.beginPath(); u.arc(ax, ay, 9, 0, TAU); u.fill(); u.strokeStyle = "#ffd23a"; u.lineWidth = 1; u.stroke();
+      u.translate(ax, ay); u.rotate(ang); u.fillStyle = "#ffd23a"; u.beginPath(); u.moveTo(15, 0); u.lineTo(9, -4); u.lineTo(9, 4); u.closePath(); u.fill();
+      u.restore(); u.save(); u.globalAlpha = a; u.imageSmoothingEnabled = false; u.drawImage(icon(r.kind), ax - 5, ay - 5, 10, 10); u.restore();
+      txt(Math.round(r.dist) + "m", ax, ay + (ay > cy ? -12 : 18), { size: 7, align: "center", color: "#ffe9b0", weight: 900, stroke: "#1a1220", sw: 2, alpha: a });
+    }
+  }
+  hpBar(c, x, y, w, hp, max, a = 1, label = null) {
+    const bw = Math.round(w), bx = Math.round(x - bw / 2), by = Math.round(y);
+    if (x < -40 || x > W + 40 || by < -10 || by > H) return;
+    const k = hp / max; c.globalAlpha = a;
+    R(c, bx - 1, by - 1, bw + 2, 5, "#1a1220"); R(c, bx, by, bw, 3, "#4a1c24"); R(c, bx, by, Math.round(bw * k), 3, k > 0.5 ? "#7dffb0" : k > 0.25 ? "#ffd23a" : "#ff5a5a");
+    c.globalAlpha = 1;
+    if (label) txt(label, x, by - 2, { size: 7, align: "center", color: "#ffb36b", weight: 900, stroke: "#1a1220", sw: 2, alpha: a });
+  }
+
+  // ---------------- inventory (I / bag icon): basket grid, throw items out ----------------
+  // holdFrom[i] = deep species id for a rare catch, null otherwise; kept in step with hold (LIFO splices from the end)
+  syncFrom() { const a = this.holdFrom; while (a.length < this.hold.length) a.push(null); if (a.length > this.hold.length) a.length = this.hold.length;
+    const it = this.items; while (it.length < this.hold.length) it.push(newItem(this.hold[it.length], this.fresh)); if (it.length > this.hold.length) it.length = this.hold.length; }
+  // v1.2: basket items lose gather_decay_per_s; "Ươn!" toast once when an item drops below spoiled_below
+  decayHold(dt) {
+    this.syncFrom();
+    for (const it of decay(this.items, this.fresh.gather_decay_per_s, dt, this.fresh.spoiled_below)) this.toast("Ươn! " + (KIND_NAME[it.kind] || it.kind) + " " + it.id + " đã ươn", "#b0b0b0");
+  }
+  itemName(i) { const id = this.holdFrom[i], sp = id && DEEP.species.find((s) => s.id === id); return sp ? sp.name : KIND_NAME[this.hold[i]] || this.hold[i]; }
+  openInv() { this.syncFrom(); this.inv = { sel: Math.max(0, this.hold.length - 1), confirm: null, t: 0, msg: null }; this.tossed = []; sfx("click"); }
+  closeInv() {
+    this.inv = null; sfx("click");
+    if (!this.tossed.length) return;
+    sfx("splash"); const p = this.p;
+    this.tossed.forEach((kind, i) => this.sinks.push({ kind, x: p.x - p.face * 0.4, d: p.d, vx: -p.face * (0.6 + Math.random() * 0.8) + (Math.random() - .5) * 0.6, vd: -0.8 - i * 0.15, rot: 0, vr: (Math.random() - .5) * 5, life: 1.8 + i * 0.1 }));
+    const sx = this._sx(p.x), sy = this._sy(p.d);
+    for (let i = 0; i < 10; i++) this.ps.add({ x: sx, y: sy, vy: -14 - Math.random() * 10, vx: (Math.random() - .5) * 20, g: 0, wobble: 6, seed: Math.random() * 6, size: 1, life: 1, color: "rgba(220,245,255,.8)" });
+    this.toast("Vứt bỏ " + this.tossed.length + " món", "#9fd8ff"); this.tossed = [];
+  }
+  // geometry shared by drawInv and clicks
+  invGeo() { const pw = 300, ph = 222, px = W / 2 - pw / 2, py = 24, cols = 4, sw = 70, sh = 18; return { pw, ph, px, py, cols, sw, sh, gx: px + 10, gy: py + 24 }; }
+  onClick(mx, my) {
+    const [bx, by, bw, bh] = this.bagRect;
+    if (this.result || this.ended) return;
+    if (mx >= bx - 2 && mx <= bx + bw + 2 && my >= by - 2 && my <= by + bh + 10) { this.bagClick = true; this.clickEat = true; return; }
+    if (!this.inv) return;
+    this.clickEat = true; const g = this.invGeo();
+    const col = Math.floor((mx - g.gx) / g.sw), row = Math.floor((my - g.gy) / (g.sh + 1)), i = row * g.cols + col;
+    if (col < 0 || col >= g.cols || row < 0 || i >= this.hold.length) return;
+    if (i === this.inv.sel) this.inv.clickThrow = true; else { this.inv.sel = i; this.inv.confirm = null; sfx("click"); }
+  }
+  updateInv(dt, toggle, kX, eat) {
+    const v = this.inv; v.t += dt; if (v.msg) { v.msg.life -= dt; if (v.msg.life <= 0) v.msg = null; }
+    if (toggle || input.hit("back")) return this.closeInv();
+    this.syncFrom();
+    const n = this.hold.length, cols = this.invGeo().cols, old = v.sel;
+    if (n) {
+      if (input.hit("left")) v.sel = Math.max(0, v.sel - 1);
+      if (input.hit("right")) v.sel = Math.min(n - 1, v.sel + 1);
+      if (input.hit("up") && v.sel - cols >= 0) v.sel -= cols;
+      if (input.hit("down")) v.sel = Math.min(n - 1, v.sel + cols);
+      if (v.sel !== old) { v.confirm = null; sfx("click"); }
+    }
+    const all = input.down("sprint") && input.hit("interact");
+    const one = !all && (input.hit("interact") || (input.hit("confirm") && !eat) || kX || v.clickThrow);
+    v.clickThrow = false;
+    if (!n || !(all || one)) return;
+    const kind = this.hold[v.sel], idx = all ? this.hold.map((k, i) => (k === kind ? i : -1)).filter((i) => i >= 0) : [v.sel];
+    const rare = idx.some((i) => this.holdFrom[i]);
+    const key = (all ? "all:" : "one:") + v.sel;
+    if (rare && v.confirm !== key) { v.confirm = key; sfx("hurt"); return; } // rare catch: press again to confirm
+    v.confirm = null; this.throwOut(idx);
+  }
+  throwOut(idx) {
+    const v = this.inv;
+    for (const i of [...idx].sort((a, b) => b - a)) { this.tossed.push(this.hold[i]); this.hold.splice(i, 1); this.holdFrom.splice(i, 1); this.items.splice(i, 1); }
+    sfx("bubble"); sfx("pick");
+    if (v) { v.sel = clamp(v.sel, 0, Math.max(0, this.hold.length - 1)); v.msg = { text: "Đã vứt " + (idx.length > 1 ? idx.length + " món" : "1 món") + " — giỏ còn " + this.hold.length + "/" + this.cap, life: 1.4 }; }
+  }
+  drawInv(time) {
+    const u = screen.ui, v = this.inv, g = this.invGeo(), cap = this.cap;
+    u.fillStyle = "rgba(4,8,16,.6)"; u.fillRect(0, 0, W, H);
+    panel(g.px, g.py, g.pw, g.ph, { fill: "rgba(62,38,20,.96)", border: "#f3d27a", r: 8 });
+    u.fillStyle = "rgba(255,220,150,.06)"; for (let y = g.py + 6; y < g.py + g.ph - 4; y += 6) u.fillRect(g.px + 4, y, g.pw - 8, 1); // wood grain
+    txt("TÚI ĐỒ", g.px + 12, g.py + 16, { size: 12, color: "#f3d27a", weight: 900, italic: true, stroke: "#2a1408", sw: 3 });
+    txt(`Giỏ ${this.hold.length}/${cap}`, g.px + g.pw - 12, g.py + 16, { size: 9, align: "right", color: this.hold.length >= cap ? "#ff8a8a" : "#ffe9b0", weight: 900 });
+    u.imageSmoothingEnabled = false;
+    for (let i = 0; i < cap; i++) {
+      const col = i % g.cols, row = Math.floor(i / g.cols), x = g.gx + col * g.sw, y = g.gy + row * (g.sh + 1), sel = i === v.sel && i < this.hold.length;
+      const has = i < this.hold.length, rare = has && this.holdFrom[i];
+      panel(x, y, g.sw - 3, g.sh, { fill: sel ? "rgba(255,170,60,.32)" : has ? "rgba(30,18,8,.75)" : "rgba(30,18,8,.35)", border: sel ? "#ffe14d" : rare ? "#ffb36b" : "rgba(243,210,122,.3)", r: 3 });
+      if (!has) continue;
+      u.drawImage(icon(this.hold[i]), x + 3, y + 4, 10, 10);
+      const it = this.items[i]; // v1.2: id · kind, fresh % with a bar; spoiled = grey + "ươn"
+      if (it && it.spoiled) { u.fillStyle = "rgba(90,90,90,.55)"; u.fillRect(x + 1, y + 1, g.sw - 5, g.sh - 2); }
+      let nm = (it ? it.id + " " : "") + (rare ? "★" : "") + this.itemName(i); if (nm.length > 14) nm = nm.slice(0, 13) + "…";
+      txt(nm, x + 15, y + 8, { size: 7, color: it?.spoiled ? "#c8c8c8" : rare ? "#ffb36b" : "#fff", weight: 800 });
+      if (it) { freshBar(u, x + 15, y + 11, 26, 3, it.fresh, it.spoiled); txt(it.spoiled ? "ươn" : Math.floor(it.fresh) + "%", x + g.sw - 6, y + 16, { size: 7, align: "right", color: it.spoiled ? "#ff7a7a" : "#e8f0d8", weight: 900 }); }
+    }
+    if (!this.hold.length) txt("Giỏ trống", W / 2, g.gy + 14, { size: 9, align: "center", color: "rgba(255,255,255,.6)", weight: 800 });
+    // summary by kind vs today's needed list
+    const have = {}; for (const k of this.hold) have[k] = (have[k] || 0) + 1;
+    const kinds = this.need ? Object.keys(this.need) : []; for (const k of Object.keys(have)) if (!kinds.includes(k)) kinds.push(k);
+    const sy = g.gy + Math.ceil(cap / g.cols) * (g.sh + 1) + 4, cw = Math.min(48, (g.pw - 20) / Math.max(1, kinds.length));
+    txt(this.need ? "CẦN HÔM NAY" : "THEO LOẠI", g.px + 12, sy + 7, { size: 6, color: "#9fd8ff", weight: 900 });
+    kinds.forEach((k, i) => {
+      const x = g.px + 10 + i * cw, y = sy + 10, nh = have[k] || 0, need = this.need?.[k], met = need != null && nh >= need;
+      u.drawImage(icon(k), x, y, 9, 9);
+      txt(need != null ? `${nh}/${need}${met ? "✓" : ""}` : "×" + nh, x + 11, y + 8, { size: 7, color: met ? "#7dffb0" : need != null ? "#ffd23a" : "#cfe", weight: 900 });
+    });
+    const my = g.py + g.ph - 22;
+    if (v.confirm && this.hold.length) txt(`Vứt cá hiếm ${this.itemName(v.sel)}${v.confirm.startsWith("all") ? " (cả loại)" : ""}? Nhấn lần nữa để xác nhận`, W / 2, my, { size: 8, align: "center", color: "#ffb36b", weight: 900, alpha: 0.7 + 0.3 * Math.sin(time * 8) });
+    else if (v.msg) txt(v.msg.text, W / 2, my, { size: 8, align: "center", color: "#9fd8ff", weight: 900 });
+    else if (this.hold.length) { const sel = this.items[v.sel], nSp = this.items.filter((it) => it.spoiled).length;
+      if (sel?.spoiled) txt("Chọn: " + sel.id + " " + this.itemName(v.sel) + " — đã ươn, không nấu được: nên vứt bỏ (E/X)", W / 2, my, { size: 8, align: "center", color: "#ff9a9a", weight: 900 });
+      else txt("Chọn: " + (sel ? sel.id + " " : "") + this.itemName(v.sel) + (sel ? " · tươi " + Math.floor(sel.fresh) + "%" : "") + (nSp ? ` · ${nSp} món ươn — nên vứt bỏ` : ""), W / 2, my, { size: 8, align: "center", color: nSp ? "#ffb0a0" : "#ffe9b0", weight: 800 }); }
+    txt("←↑↓→ chọn · E/Enter/X: Vứt bỏ · Shift+E: vứt cả loại · I/Esc: đóng", W / 2, g.py + g.ph - 7, { size: 7, align: "center", color: "rgba(255,240,200,.75)", weight: 700 });
+  }
+
   heart(u, x, y, full, time) {
     u.save(); u.translate(x, y); u.scale(0.95, 0.95);
     const beat = full && this.hp === 1 ? 1 + Math.sin(time * 8) * 0.12 : 1; u.scale(beat, beat);

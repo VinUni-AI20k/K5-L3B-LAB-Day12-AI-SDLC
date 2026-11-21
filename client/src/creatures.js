@@ -21,6 +21,9 @@ export const SNAKE = {
   push: 1.2,           // m the diver is shoved back on a bite
   retreatS: 3,         // seconds fleeing after a bite
   stunS: 2,            // seconds stunned by Space
+  hp: 6,               // GUI hunting: spear damage per hit; 0 HP = defeated for the rest of the dive
+  bounty: 40,          // k paid when defeated
+  sinkS: 2,            // seconds sinking before it is removed
   // homes: 4 in the contract river (8–28 m), 2 in the deep zone
   spawns: [[24, 20], [52, 26], [68, 12], [84, 25], [45, 47], [88, 53]],
 };
@@ -30,7 +33,7 @@ export function makeSnakes(deepZone) {
     const seg = new Float32Array(SNAKE.segs * 2);
     for (let k = 0; k < SNAKE.segs; k++) { seg[k * 2] = x - k * 0.22; seg[k * 2 + 1] = d; }
     return { id: "S" + (i + 1), hx: x, hd: d, x, d, vx: 0, vd: 0, face: 1, state: "patrol", tm: 0, dir: i % 2 ? -1 : 1,
-      phase: i * 1.9, deep: d > deepZone, seg, moving: 1 };
+      phase: i * 1.9, deep: d > deepZone, seg, moving: 1, hp: SNAKE.hp, hpMax: SNAKE.hp, flash: 0, hpShow: 0, gone: false };
   });
 }
 
@@ -46,6 +49,10 @@ function steer(s, tx, td, sp, dt, k = 0.12) {
 export function updateSnakes(list, dt, env) {
   for (const s of list) {
     s.tm += dt; s.phase += dt;
+    if (s.flash > 0) s.flash -= dt; if (s.hpShow > 0) s.hpShow -= dt;
+    if (s.state === "dead") { // limp, sinking; body still follows below
+      s.vx *= 0.95; s.vd = 1.2; if (s.tm >= SNAKE.sinkS) s.gone = true;
+    } else {
     const dx = env.px - s.x, dd = env.pd - s.d, dist = Math.hypot(dx, dd);
     if (dist <= SNAKE.seenR && env.underwater) env.seen(s);
     const canSee = env.underwater && dist <= SNAKE.alertR;
@@ -83,10 +90,11 @@ export function updateSnakes(list, dt, env) {
         if (s.tm >= SNAKE.stunS) { s.state = "retreat"; s.tm = 0; s.retreatS = 1.5; }
         break;
     }
+    }
     s.x = Math.max(1, Math.min(env.maxX - 1, s.x + s.vx * dt));
     s.d = Math.max(1.5, Math.min(env.maxD - 1, s.d + s.vd * dt));
     if (Math.abs(s.vx) > 0.05) s.face = s.vx > 0 ? 1 : -1;
-    s.moving = s.state === "stunned" ? 0 : Math.min(1, 0.35 + Math.hypot(s.vx, s.vd) / 3);
+    s.moving = s.state === "stunned" || s.state === "dead" ? 0 : Math.min(1, 0.35 + Math.hypot(s.vx, s.vd) / 3);
     // body follows the head (chain constraint measured in screen px, so the snake keeps its length at any angle)
     const g = s.seg; g[0] = s.x; g[1] = s.d;
     for (let k = 1; k < SNAKE.segs; k++) {
@@ -99,8 +107,14 @@ export function updateSnakes(list, dt, env) {
 // nearest stunnable snake within reach of the diver, or null
 export function snakeInReach(list, px, pd, reach) {
   let best = null, bd = 1e9;
-  for (const s of list) { if (s.state === "stunned") continue; const r = Math.hypot(s.x - px, s.d - pd); if (r <= reach + SNAKE.bodyR && r < bd) { bd = r; best = s; } }
+  for (const s of list) { if (s.state === "stunned" || s.state === "dead") continue; const r = Math.hypot(s.x - px, s.d - pd); if (r <= reach + SNAKE.bodyR && r < bd) { bd = r; best = s; } }
   return best;
+}
+// spear damage (GUI hunting): true when this hit defeats it
+export function damageSnake(s, dmg) {
+  s.hp = Math.max(0, s.hp - dmg); s.flash = 0.3; s.hpShow = 3;
+  if (s.hp > 0) return false;
+  s.state = "dead"; s.tm = 0; s.hpShow = 0; return true;
 }
 export function stunSnake(s) { s.state = "stunned"; s.tm = 0; s.vx *= 0.2; s.vd *= 0.2; }
 
@@ -109,7 +123,9 @@ const BAND_A = "#7a8a34", BAND_B = "#3c4a1c", BELLY = "#b7b866", STUN_A = "#9aa2
 export function drawSnake(c, s, ox, oy, sx, sy, t) {
   const g = s.seg, n = SNAKE.segs, hx = ox + g[0] * sx, hy = oy + g[1] * sy;
   if (hx < -80 || hx > W + 80 || hy < -40 || hy > 310) return;
-  const stun = s.state === "stunned", amp = 2.2 * s.moving, sp = s.state === "pursue" ? 14 : 8;
+  const dead = s.state === "dead", stun = s.state === "stunned" || dead, amp = 2.2 * s.moving, sp = s.state === "pursue" ? 14 : 8;
+  const fl = s.flash > 0 ? (Math.floor(s.flash * 20) % 2 ? "#ff5a5a" : "#ffffff") : null, col = (x) => fl || x;
+  if (dead) c.globalAlpha = Math.max(0, 1 - s.tm / SNAKE.sinkS);
   // body tail → head
   for (let k = n - 1; k >= 1; k--) {
     const i = k * 2;
@@ -117,21 +133,22 @@ export function drawSnake(c, s, ox, oy, sx, sy, t) {
     const w = Math.sin(t * sp - k * 0.85 + s.phase) * amp * (0.25 + 0.75 * k / n);
     const x = Math.round(ox + g[i] * sx - ey * w), y = Math.round(oy + g[i + 1] * sy + ex * w);
     const size = k > n - 3 ? 2 : k > n - 6 ? 3 : 4, h = size;
-    c.fillStyle = (k >> 1) % 2 ? (stun ? STUN_A : BAND_A) : (stun ? STUN_B : BAND_B);
+    c.fillStyle = col((k >> 1) % 2 ? (stun ? STUN_A : BAND_A) : (stun ? STUN_B : BAND_B));
     c.fillRect(x - (size >> 1), y - (h >> 1), size, h);
-    if (size > 2) { c.fillStyle = BELLY; c.fillRect(x - (size >> 1), y + (h >> 1) - 1, size, 1); }
+    if (size > 2) { c.fillStyle = col(BELLY); c.fillRect(x - (size >> 1), y + (h >> 1) - 1, size, 1); }
   }
   // head
   const f = s.face, x0 = Math.round(hx), y0 = Math.round(hy);
-  c.fillStyle = stun ? STUN_B : "#2f3a14"; c.fillRect(x0 - 3, y0 - 2, 6, 5); c.fillRect(x0 + (f > 0 ? 3 : -4), y0 - 1, 1, 3);
-  c.fillStyle = BAND_A; c.fillRect(x0 - 2, y0 - 2, 4, 1);
+  c.fillStyle = col(stun ? STUN_B : "#2f3a14"); c.fillRect(x0 - 3, y0 - 2, 6, 5); c.fillRect(x0 + (f > 0 ? 3 : -4), y0 - 1, 1, 3);
+  c.fillStyle = col(BAND_A); c.fillRect(x0 - 2, y0 - 2, 4, 1);
   if (stun) { // X eyes + orbiting stars
-    c.fillStyle = "#ffe14d"; c.fillRect(x0 + f * 1, y0 - 1, 1, 1);
-    for (let i = 0; i < 3; i++) { const a = t * 5 + i * 2.1; c.fillRect(Math.round(x0 + Math.cos(a) * 6), Math.round(y0 - 6 + Math.sin(a) * 2), 1, 1); }
+    c.fillStyle = col("#ffe14d"); c.fillRect(x0 + f * 1, y0 - 1, 1, 1);
+    if (!dead) for (let i = 0; i < 3; i++) { const a = t * 5 + i * 2.1; c.fillRect(Math.round(x0 + Math.cos(a) * 6), Math.round(y0 - 6 + Math.sin(a) * 2), 1, 1); }
   } else {
-    c.fillStyle = "#ffe14d"; c.fillRect(x0 + (f > 0 ? 1 : -2), y0 - 1, 1, 1);
-    c.fillStyle = "#0a0a0a"; c.fillRect(x0 + (f > 0 ? 2 : -3), y0 - 1, 1, 1);
-    if (s.state === "pursue" && Math.floor(t * 6) % 2) { c.fillStyle = "#e0324a"; const tx = f > 0 ? x0 + 4 : x0 - 7; c.fillRect(tx, y0 + 1, 3, 1); c.fillRect(f > 0 ? tx + 3 : tx - 1, y0, 1, 1); c.fillRect(f > 0 ? tx + 3 : tx - 1, y0 + 2, 1, 1); }
+    c.fillStyle = col("#ffe14d"); c.fillRect(x0 + (f > 0 ? 1 : -2), y0 - 1, 1, 1);
+    c.fillStyle = col("#0a0a0a"); c.fillRect(x0 + (f > 0 ? 2 : -3), y0 - 1, 1, 1);
+    if (s.state === "pursue" && Math.floor(t * 6) % 2) { c.fillStyle = col("#e0324a"); const tx = f > 0 ? x0 + 4 : x0 - 7; c.fillRect(tx, y0 + 1, 3, 1); c.fillRect(f > 0 ? tx + 3 : tx - 1, y0, 1, 1); c.fillRect(f > 0 ? tx + 3 : tx - 1, y0 + 2, 1, 1); }
   }
+  c.globalAlpha = 1;
   if (s.state === "alert" || s.state === "pursue") txt("!", x0, y0 - 6 + Math.round(Math.sin(t * 10)), { size: 11, align: "center", color: "#ff3b3b", weight: 900, stroke: "#1a1220", sw: 2 });
 }

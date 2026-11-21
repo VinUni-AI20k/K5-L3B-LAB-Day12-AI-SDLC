@@ -3,49 +3,106 @@
 // Deep species are bigger, slow-patrolling and yield the SAME ingredient kinds in larger amounts,
 // so the kho file between gather and quán keeps its 4 kinds.
 
+// Hunting (creative): every deep species has HP; the harpoon deals stats().spearDmg per hit. A hit that does not
+// kill makes the fish flash, take knockback and flee (state "flee"); the boss Cá Tra Dầu charges instead.
+// hp: hit points · reel: m/s the spear reels it in (bigger = slower) · flee: m/s while fleeing · fleeS: flee time
 export const DEEP = {
   depth: 60,            // client map depth (m)
   zone: 30,             // below this = deep zone
   pressure: 1.5,        // O₂ drain multiplier in the deep zone
   species: [
     { id: "ca_loc_bong", name: "Cá lóc bông", kind: "ca_loc", yield: 3, sprite: "sprites/fish_snakehead.png", fw: 48, fh: 16, frames: 1, facesLeft: true, scale: 1.1, radius: 2.6, speed: 1.1, range: 7,
+      hp: 4, reel: 11, flee: 4.2, fleeS: 2,
       spawns: [[18, 36], [52, 40], [84, 34]] },
     { id: "dan_ca_linh_lon", name: "Đàn cá linh lớn", kind: "ca_linh", yield: 6, sprite: "sprites/fish_silver.png", fw: 16, fh: 16, frames: 1, facesLeft: true, scale: 0.9, radius: 2.8, speed: 1.4, range: 9, school: 6,
+      hp: 3, reel: 11, flee: 4.6, fleeS: 2,
       spawns: [[30, 44], [66, 46], [92, 42]] },
+    // big and heavy: flees slower than the diver swims (4 m/s), and bites back when the diver is within biteR
     { id: "ca_loc_khong_lo", name: "Cá lóc khổng lồ", kind: "ca_loc", yield: 5, sprite: "sprites/fish_big_anim.png", fw: 54, fh: 49, frames: 4, facesLeft: false, scale: 0.75, radius: 3.2, speed: 0.8, range: 6,
+      hp: 8, reel: 8, flee: 3.2, fleeS: 1.6, biteR: 2,
       spawns: [[40, 55], [76, 56]] },
   ],
+  // Boss: giant Mekong catfish. One per dive at 52–58 m, slow patrol; when hit it charges the diver for chargeS
+  // (contact = −1 Máu + knockback). No ingredients (the kho keeps the contract kinds): sold to the trader for bounty k.
+  boss: { id: "ca_tra_dau", name: "Cá Tra Dầu", kind: null, yield: 0, boss: true, sprite: "sprites/fish_catfish.png", fw: 32, fh: 16, frames: 1, facesLeft: true,
+    scale: 3.75, radius: 4.6, hitR: 3.2, speed: 0.7, range: 10, hp: 20, reel: 5, flee: 3, fleeS: 1.2,
+    charge: 5.5, chargeS: 1.5, contactR: 2.8, push: 2.5, bounty: 300, depths: [52, 58], xs: [15, 85] },
 };
 
 const IMG = {};
 export function preloadDeep() {
-  for (const sp of DEEP.species) if (!IMG[sp.sprite]) { const im = new Image(); im.src = "assets/" + sp.sprite; IMG[sp.sprite] = im; }
+  for (const sp of [...DEEP.species, DEEP.boss]) if (!IMG[sp.sprite]) { const im = new Image(); im.src = "assets/" + sp.sprite; IMG[sp.sprite] = im; }
   props();
 }
 
-export function makeDeepFish() {
+// start already on the patrol curve (x = home + sin(phase)·range), so the first update does not teleport it
+function mk(id, sp, x, d, phase) { return { id, sp, kind: sp.kind, x: Math.max(1, Math.min(99, x + Math.sin(phase) * sp.range)), d, hx: x, hd: d, face: 1, caught: false, phase, hp: sp.hp || 1, hpMax: sp.hp || 1, state: "patrol", st: 0, vx: 0, vd: 0, flash: 0, hpShow: 0 }; }
+export function makeDeepFish(rand = Math.random) {
   const out = []; let n = 0;
-  for (const sp of DEEP.species) for (const [x, d] of sp.spawns) out.push({ id: "D" + ++n, sp, kind: sp.kind, x, d, hx: x, hd: d, face: 1, caught: false, phase: n * 1.3 });
+  for (const sp of DEEP.species) for (const [x, d] of sp.spawns) { n++; out.push(mk("D" + n, sp, x, d, n * 1.3)); }
+  const b = DEEP.boss; // one boss per dive, random spot in its band
+  out.push(mk("B1", b, b.xs[0] + rand() * (b.xs[1] - b.xs[0]), b.depths[0] + rand() * (b.depths[1] - b.depths[0]), rand() * 6));
   return out;
 }
 
-// slow patrol around home; never faster than the diver, so they are always catchable
-export function updateDeepFish(list, dt, maxD) {
+// called by the scene when a hit does not kill: knockback along the spear (kx,kd unit), then flee or charge
+export function hurtDeepFish(f, dmg, kx, kd) {
+  f.hp = Math.max(0, f.hp - dmg); f.flash = 0.3; f.hpShow = 3;
+  f.vx = kx * 7; f.vd = kd * 7;
+  if (f.sp.boss) { f.state = "charge"; f.st = f.sp.chargeS; } else { f.state = "flee"; f.st = f.sp.fleeS; }
+}
+
+function band(f, maxD) { return f.sp.boss ? [f.sp.depths[0] - 2, Math.min(maxD - 3, f.sp.depths[1] + 1)] : [DEEP.zone + 1, maxD - 1]; }
+// patrol: slow sway around home; never faster than the diver, so they are always catchable.
+// env (optional): { px, pd, contact(f) } — diver position for flee/charge and the boss contact callback.
+export function updateDeepFish(list, dt, maxD, env) {
   for (const f of list) {
     if (f.caught) continue;
-    f.phase += dt * f.sp.speed / f.sp.range;
-    const nx = f.hx + Math.sin(f.phase) * f.sp.range;
-    f.face = Math.cos(f.phase) >= 0 ? 1 : -1;
-    f.x = Math.max(1, Math.min(99, nx));
-    f.d = Math.max(DEEP.zone + 1, Math.min(maxD - 1, f.hd + Math.sin(f.phase * 2.3) * 0.6));
+    const sp = f.sp, [d0, d1] = band(f, maxD);
+    if (f.flash > 0) f.flash -= dt;
+    if (f.hpShow > 0) f.hpShow -= dt;
+    const tx = f.hx + Math.sin(f.phase) * sp.range, td = Math.max(d0, Math.min(d1, f.hd + Math.sin(f.phase * 2.3) * 0.6));
+    if ((f.state === "flee" || f.state === "charge") && env) {
+      f.st -= dt;
+      const dx = env.px - f.x, dd = env.pd - f.d, r = Math.hypot(dx, dd) || 1e-6;
+      const s = f.state === "charge" ? sp.charge : -sp.flee, k = Math.min(1, dt * (f.state === "charge" ? 5 : 4));
+      f.vx += (dx / r * s - f.vx) * k; f.vd += (dd / r * s - f.vd) * k;
+      f.x += f.vx * dt; f.d += f.vd * dt;
+      if (Math.abs(f.vx) > 0.1) f.face = f.vx > 0 ? 1 : -1;
+      if (f.state === "charge" && r <= sp.contactR) { env.contact?.(f, dx / r, dd / r); f.state = "flee"; f.st = 1; }
+      else if (f.st <= 0) f.state = "return";
+    } else if (f.state === "return" || f.state === "flee" || f.state === "charge") {
+      const dx = tx - f.x, dd = td - f.d, r = Math.hypot(dx, dd), step = sp.speed * 2.5 * dt;
+      f.vx = 0; f.vd = 0;
+      if (r <= step + 0.05) f.state = "patrol"; else { f.x += dx / r * step; f.d += dd / r * step; if (Math.abs(dx) > 0.05) f.face = dx > 0 ? 1 : -1; }
+    } else {
+      f.phase += dt * sp.speed / sp.range;
+      f.face = Math.cos(f.phase) >= 0 ? 1 : -1;
+      f.x = Math.min(99, tx); f.d = td;
+    }
+    f.x = Math.max(1, Math.min(99, f.x)); f.d = Math.max(d0, Math.min(d1, f.d));
   }
+}
+
+// white / red silhouettes of a sprite sheet for the hit flash (built once per image + colour)
+const TINT = new Map();
+function tinted(im, col) {
+  const key = im.src + col; let cv = TINT.get(key);
+  if (!cv) {
+    cv = document.createElement("canvas"); cv.width = im.naturalWidth || im.width; cv.height = im.naturalHeight || im.height;
+    const g = cv.getContext("2d"); g.drawImage(im, 0, 0); g.globalCompositeOperation = "source-in"; g.fillStyle = col; g.fillRect(0, 0, cv.width, cv.height);
+    TINT.set(key, cv);
+  }
+  return cv;
 }
 
 // draw centred at (x,y) in pixel-world space, facing +1 = right
 export function drawDeepFish(c, f, x, y, t) {
   const sp = f.sp, im = IMG[sp.sprite];
   if (!im || !im.complete || !im.naturalWidth) { c.fillStyle = "#334"; c.fillRect(x - 8, y - 3, 16, 6); return; }
-  const n = sp.school || 1;
+  const n = sp.school || 1, prevSmooth = c.imageSmoothingEnabled; c.imageSmoothingEnabled = false;
+  const src = f.flash > 0 ? tinted(im, Math.floor(f.flash * 20) % 2 ? "#ff5a5a" : "#ffffff") : im;
+  const charging = f.state === "charge";
   for (let i = 0; i < n; i++) {
     const ox = n > 1 ? Math.cos(i * 2.1 + t) * 9 + (i % 3) * 6 - 6 : 0, oy = n > 1 ? Math.sin(i * 1.7 + t * 1.3) * 5 + (i % 2) * 6 - 3 : 0;
     const frame = sp.frames > 1 ? Math.floor(t * 6 + i) % sp.frames : 0;
@@ -53,10 +110,14 @@ export function drawDeepFish(c, f, x, y, t) {
     const flip = (f.face === 1) === sp.facesLeft; // sprite faces left: flip to face right
     c.save(); c.translate(Math.round(x + ox), Math.round(y + oy + Math.sin(t * 2 + i) * 1));
     if (flip) c.scale(-1, 1);
-    c.drawImage(im, frame * sp.fw, 0, sp.fw, sp.fh, -w / 2, -h / 2, w, h);
+    if (charging) c.rotate(Math.sin(t * 30) * 0.04);
+    c.drawImage(src, frame * sp.fw, 0, sp.fw, sp.fh, -w / 2, -h / 2, w, h);
     c.restore();
   }
+  c.imageSmoothingEnabled = prevSmooth;
 }
+// half-size of a deep fish on screen (px) — for HP bars / aim rings
+export const deepBox = (f) => ({ w: f.sp.fw * f.sp.scale / 2 + (f.sp.school ? 10 : 0), h: f.sp.fh * f.sp.scale / 2 + (f.sp.school ? 6 : 0) });
 
 // ---- deep scenery: sparse ledges with kelp, atlas props and glowing motes so 30–60 m is not empty ----
 // Atlas rects from assets/manifest.json (bg/uw_props.png, CC0 ansimuz). Drawn with imageSmoothing off.
