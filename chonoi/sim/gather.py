@@ -21,6 +21,7 @@ Các tính năng của phase sau chưa nằm trong khung này.
 """
 
 import math
+from fractions import Fraction
 
 from ..ids import sort_by_id
 from ..inventory import hold_to_items
@@ -51,7 +52,13 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        self.freshness = tuning.get("freshness")
+        self.hold = [dict(item) for item in scenario.get("hold", [])] if self.freshness else list(scenario.get("hold", []))
+        self._fresh_values = {}
+        if self.freshness:
+            for item in self.hold:
+                ids.reserve(item["id"])
+                self._fresh_values[item["id"]] = Fraction(str(item["fresh"]))
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
@@ -89,7 +96,9 @@ class GatherSim:
         self.reason = None
 
     # --- giao diện cho runner -------------------------------------------------
-    def inventory_items(self) -> dict:
+    def inventory_items(self):
+        if self.freshness:
+            return [dict(item) for item in sort_by_id(self.hold)]
         return hold_to_items(self.hold)
 
     def snapshot(self) -> dict:
@@ -122,6 +131,8 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        if self.freshness:
+            self._decay_hold(events)
         # 2. bơi + chặn mép
         was_surface = self._at_surface()
         self._move(inp)
@@ -166,7 +177,7 @@ class GatherSim:
                     if free < amount:
                         events.append(("hold_full", {"action": "gather", "node_id": node["id"], "required": amount, "free": free}))
                     else:
-                        self.hold.extend([node["kind"]] * amount)
+                        self._add_to_hold(node["kind"], amount)
                         node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
                         events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
         # 4. bắt cá
@@ -178,7 +189,7 @@ class GatherSim:
                 if free < amount:
                     events.append(("hold_full", {"action": "catch", "fish_id": fish["id"], "required": amount, "free": free}))
                 else:
-                    self.hold.extend([fish["kind"]] * amount)
+                    self._add_to_hold(fish["kind"], amount)
                     self.fish.remove(fish)
                     self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
                     events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": amount}))
@@ -194,6 +205,26 @@ class GatherSim:
         return events
 
     # --- tiện ích ---------------------------------------------------------------
+    def _add_to_hold(self, kind, amount):
+        for _ in range(amount):
+            if self.freshness:
+                item = {"id": self.ids.new("I"), "kind": kind, "fresh": self.freshness["initial"]}
+                self._fresh_values[item["id"]] = Fraction(str(item["fresh"]))
+                self.hold.append(item)
+            else:
+                self.hold.append(kind)
+
+    def _decay_hold(self, events):
+        decay = Fraction(str(self.freshness["gather_decay_per_s"])) / Fraction(str(TICK))
+        threshold = Fraction(str(self.freshness["spoiled_below"]))
+        for item in sort_by_id(self.hold):
+            previous = self._fresh_values[item["id"]]
+            current = max(Fraction(0), previous - decay)
+            self._fresh_values[item["id"]] = current
+            item["fresh"] = float(current)
+            if previous >= threshold > current:
+                events.append(("spoiled", {"item_id": item["id"], "kind": item["kind"], "location": "hold"}))
+
     def _spawn_fish(self, initial=False):
         t = self.t
         choices = {}
