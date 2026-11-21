@@ -1,13 +1,11 @@
-# Kiểm chứng Phase 2
+# Kiểm chứng Phase 2 — phần Q3
 
 | Phạm vi | Bằng chứng | Trạng thái |
 |---|---|---|
-| Q3 lịch, bốn bàn, menu/filter, reservation | [Q3 proof](../proof/phase-2/q3/README.md); `tests/test_p2_q3.py`, `tests/test_p2_quoc.py` | 10 test đạt trên tuning giả lập; chưa nghiệm thu v1.1 |
-| Q3/Q4 hai bếp và Q4-F1 | `tests/test_p2_q3.py` | Code hiện tại không tiêu thụ reservation hai lần; Q4-F1 tái hiện, chờ chủ Q4 quyết định |
-| Regression P1 | [Log](../proof/phase-2/q3/regression-headless.txt) | 98 test và 9/9 bước đạt, exit 0 |
-| Day và contract v1.1 | Chưa có DaySim/contract v1.1 | Chưa chạy; chờ integrator |
-| Rà soát Q4 5dbdf13 | [Patch và log đề xuất](../proof/phase-2/q3/q4-5dbdf13-proposed-tests.txt) | Trước patch 2/17 test lỗi; sau patch 19/19 đạt trong worktree tách biệt; Q4-F1 vẫn tái hiện, chưa ghép |
-| Kiểm lại Q3 | [Regression hiện tại](../proof/phase-2/q3/current-verification.txt), `current-p2-tests.txt`, `current-p1-q3-tests.txt` | 100 test, 9/9 bước; Q3 P2 12 test, Q3 P1 23 test, exit 0 |
+| Q3/Q4 sau merge main `63f850e` | [Log](../proof/phase-2/q3/postmerge-baseline-63f850e.txt) | Q3 P1 23, Q3 P2 12, Q4 7, regression 108; 9/9 bước, exit 0 |
+| Q4-F1 | `tests/test_p2_q3.py::CustomersPhase2.test_q4_f1_orphan_dish_reproduced` | Tái hiện, chưa có chính sách được duyệt |
+| Day và contract v1.1 | [Đối chiếu](../../specs/001-p2-q3-day-customers/contracts/q3-q4-day.md) | Manifest v1.1 có; Day chưa hỗ trợ, sai khác và hợp đồng chờ duyệt |
+| Lịch sử Q3 | [Q3 proof](../proof/phase-2/q3/README.md) | Log 90/98/100 và patch worktree là kết quả trước merge |
 
 # Ma trận truy vết Phase 2
 

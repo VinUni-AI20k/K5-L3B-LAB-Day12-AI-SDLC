@@ -1,8 +1,10 @@
-# Bàn giao Q3 Phase 2
+# Bàn giao Q3 Phase 2 sau merge
 
-- Bào: cần contract v1.1, `DaySim` truyền `menu_filter` theo plan và inventory vật lý; kiểm reset từng ca, snapshot và headless day. Test độc lập `test_each_new_shift_restarts_arrival_clock_and_copies_inventory` chưa thay thế integration Day thật.
-- Kiên: review `docs/proof/phase-2/q3/q4-5dbdf13-proposed.patch` trên base `5dbdf13` (patch không có context: dùng `git apply --unidiff-zero` trong worktree riêng); xác nhận filter rỗng, `order_tick`, sort ID số, Q4-F1 và fixture nhiều khách cùng món. Patch chưa chỉnh chính sách Q4-F1.
-- Minh: chạy QA sau ghép, kiểm Q3/Q4 hai bếp, schema và determinism v1.1; các log hiện tại là Q3 độc lập hoặc worktree đề xuất.
-- PO: xác nhận no_dish, bàn đầy, kế hoạch hết món, order_tick fixture, patience khi nấu, stock snapshot và xử lý món mồ côi. Các lựa chọn tạm ở `research.md`, `docs/clarify.md`.
+Main `63f850e`; PR #8 merge `9f60259`, PR #6 và #10 đã merge. PR #8 không có review submission trong dữ liệu GitHub lúc kiểm; merge không chứng minh QA phê duyệt. GitHub Issues của repo đang tắt; chuyển nội dung sau qua kênh nhóm phù hợp.
 
-PR dự kiến: thêm menu_filter và order_tick cho khách; test lịch/bàn/menu/ledger và ghi nhận review Q4. Chạy 12 test P2, 23 P1 Q3 và full regression theo log. Dependency: contract v1.1/DaySim, hòa Q4 và PO; chưa đề xuất tag.
+- **Kiên (`ttkien0710`) + Dương (PO): Q4-F1.** Fixture `test_q4_f1_orphan_dish_reproduced`: C1 ở T1, một nguyên liệu cá lóc, patience 2; bắt đầu nấu, qua 2 tick khách rời, ép còn 1 tick nấu, món ready và nhấc được dù khách đã rời. Actual: món mồ côi. Expected cần PO/Kiên chốt: hủy, dùng lại hay chính sách khác. Test chứng minh tái hiện, không chứng minh sửa. Xác định liên kết khách/đơn/món, rồi thêm regression sau quyết định.
+- **Bào (`invzble-z`):** DaySim thật nhận kho gather, truyền ID `day_plan.dishes` vào `QuanSim(..., menu_filter=...)`, reset ca, chạy headless day 1/3 ngày. Đối chiếu day_plan map/mảng và D2–D5, duyệt hợp đồng đề xuất.
+- **Dương (`nganhduong123`):** chốt no_dish, bàn đầy/hết món, patience khi nấu, event customer_id/order_id, state, kế hoạch và Q4-F1; xác nhận ticket gốc.
+- **Minh (`WorkOfMinh`):** QA trên commit tích hợp thực tế: Q3 P1/P2, Q4, hai bếp/reservation, lịch, sáu món, determinism, AC còn mở; xem [log](../../docs/proof/phase-2/q3/postmerge-baseline-63f850e.txt). PR merge không thay thế QA approval.
+
+Chi tiết và người xử lý: [bảng lệch](contracts/q3-q4-day.md). Quốc tự xác nhận phản tư cá nhân; reviewer review PR hậu merge.
