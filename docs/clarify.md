@@ -12,3 +12,7 @@
 | 7 | 2026-11-21 | Id khách sinh mới dùng tiền tố nào? | Giả định: tiền tố `K` (`K1`, `K2`…), nối sau hậu tố lớn nhất của họ `K` đã nạp (fixture khác tiền tố không ảnh hưởng). | M3 |
 | 8 | 2026-11-21 | Chọn món ngẫu nhiên: rút số khi chỉ có đúng một món? | Giả định: luôn rút từ luồng `customer_dish` khi có ≥1 món đủ nguyên liệu; duyệt ứng viên theo id món (Unicode). Cùng seed → cùng kết quả. | M3 |
 | 9 | 2026-11-21 | Khách rời cùng tick với khách khác ăn xong? | Giả định: xử lý một lượt duyệt theo id bàn; ăn xong → `paid`, khách chờ hết kiên nhẫn → `customer_left`. Khách sinh cuối bước chỉ tham gia từ bước sau. | M3 |
+| 10 | 2026-11-21 | Trong `day`, tham số nào truyền kế hoạch ngày cho quán? | Giả định: `QuanSim(..., allowed_dishes=<tập id món của day_plan>)`; `None` = cả menu. Id ngoài menu → `BadInput` (mã 2). Khách fixture không bị lọc. | M3 (Cao), báo M4 |
+| 11 | 2026-11-21 | Có đếm số suất kế hoạch để chặn khách gọi món không? | Theo Ticket02 mục 2: không. Số suất chỉ dùng tính mục tiêu thu gom; khách gọi tiếp món đủ nguyên liệu kể cả khi đã bán đủ suất. | M3 (Cao) theo Ticket02 |
+| 12 | 2026-11-21 | Có 4 bàn mà không món trong kế hoạch đủ nguyên liệu thì sao? | `no_dish` ở mỗi lượt khách còn bàn trống (không tạo khách), đúng PRD "có bàn mà thiếu món thì no_dish". | M3 (Cao) |
+| 13 | 2026-11-21 | Test Phase 1 nào phải đổi khi có 4 bàn, 2 bếp? | Liệt kê và ghi lý do ở `docs/plan/phase-2.md` mục "Test Phase 1 đổi vì luật v1.1". | M3 (Cao) |
