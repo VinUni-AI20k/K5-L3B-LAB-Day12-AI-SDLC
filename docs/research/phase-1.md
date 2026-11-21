@@ -49,7 +49,7 @@ python3 -m chonoi.headless --mode gather|quan --seed N --ticks N --out PATH
         [--snapshot-every N (mặc định 10)]
 ```
 - `headless_cmd` đọc từ `game.contract.json:7`; test hộp đen gọi qua đó (`tests/helpers.py:23-32`).
-- Mã thoát: **0** bình thường; **2** đầu vào sai, kiểm **trước khi ghi đầu ra** (`headless.py:46-71`, test `test_smoke_p1.py:58-68`); **1** lỗi ghi (`:78-80`). Lỗi mức luật lúc dựng sim (`BadInput` trong `__init__`) cũng → 2 (`:75-77`), nhưng lúc đó file `--out` **đã bị mở/tạo** (`runner.py:80`) → vi phạm "thoát trước khi ghi". Khuyến nghị: kiểm mâu thuẫn trong `scenario.py`, không trong `__init__` của sim.
+- Mã thoát: **0** bình thường; **2** đầu vào sai, kiểm **trước khi ghi đầu ra** (`headless.py:46-71`, test `test_smoke_p1.py:58-68`); **1** lỗi ghi (`:78-80`). Lỗi mức luật lúc dựng sim (`BadInput` trong `__init__`) cũng → 2 (`:75-77`) và **không để lại file `--out`**: `runner.py:78` dựng `Session` (gọi `__init__` của sim) **trước** khi `runner.py:80` mở `JsonlWriter`. Đã thử: scenario quan có `stoves:[{"id":"B9",…}]` → `QuanSim._merge` ném `BadInput` (`quan.py:54-56`) → mã 2, không có file đầu ra. *(Bản trước của mục này ghi ngược lại, đã sửa theo phản biện của worker spec.)* Vì vậy kiểm mâu thuẫn mức luật đặt ở `scenario.py` hay trong `__init__` của sim đều an toàn. **Chỉ không an toàn** nếu `BadInput` ném trong `step()`: lúc đó file đã mở và đã ghi snapshot tick 0 (`runner.py:80-82`), `finally` đóng file nhưng không xóa → mã 2 mà vẫn còn file dở. Đừng ném `BadInput` trong `step()`.
 - Mã 2 cho: `--mode day/river`, `--ticks < 0`, `--snapshot-every <= 0`, `--inventory` khác quan, `--inventory-out` khác gather, đường dẫn vào/ra trùng, vừa `quan.stock` vừa `--inventory`, contract ngoài dải (`contract.py`), inputs sai (`inputs.py:26-61`: tick trùng/giảm, nút lạ như `jump`/`attack`, move ngoài [-1,1]), scenario sai (`scenario.py`).
 
 ### 2.2 Inputs (`chonoi/inputs.py`)
@@ -245,7 +245,7 @@ Lưu ý: UI đang hard-code tên event quán (`customer_arrived`, …) — phả
 2. **Lệch 1 tick** ở ngạt/hồi chiêu/mọc lại/lịch khách. Dùng quy ước "giảm bộ đếm ở bước 1, kích hoạt khi về 0 / đạt ngưỡng" như khung; viết unit test cho đúng tick bằng fixture scenario (`oxygen_ticks`, `zero_oxy_ticks`, `catch_cd_ticks`, `regrow_ticks`, `time_left_ticks`).
 3. **Ngất phải xóa giỏ trước `_finish`** — nếu không kho ghi sai.
 4. **`customers` lộ dict thô** (`quan.py:69`): trường lạ từ scenario đi thẳng ra JSONL (đã thử: `"foo":1` hiện trong snapshot). Nên dựng khách với tập trường cố định và sắp khóa cố định; không để bộ đếm nội bộ/`set` trong dict.
-5. **Kiểm mâu thuẫn ở `scenario.py`, không ở `__init__` sim** — ở sim thì file `--out` đã bị tạo dù mã 2.
+5. **Kiểm mâu thuẫn trước vòng tick** — ở `scenario.py` hoặc `__init__` của sim đều được, vì `Session` được dựng trước khi mở file (`runner.py:78-80`, đã thử). Không ném `BadInput` trong `step()`, vì lúc đó file `--out` đã được ghi một phần mà mã thoát vẫn là 2.
 6. **Float & `floor(reputation)`** — rủi ro thấp (mục 4.2), làm tròn uy tín cho chắc.
 7. **Không dùng `set`/`random`/đồng hồ**; luôn `sort_by_id`. RNG đặt tên luồng riêng để phase sau thêm luồng không làm lệch P1.
 8. **Kiểm lại phase trước**: test ẩn phase 2–4 chạy lại kịch bản P1. Mọi tính năng/sáng tạo mới phải tắt ở headless hoặc không đổi chuỗi event P1 (ví dụ cá bơi, sinh vật). Giữ `--mode day` trả mã 2 tới khi phase yêu cầu. Nên lưu file JSONL vàng (golden) của vài kịch bản P1 vào `tests/` và so byte ở mọi phase.
