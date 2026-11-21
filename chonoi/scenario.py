@@ -40,11 +40,20 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
             data = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
+    if mode == "day":
+        from .sim.day_config import validate_day_scenario
+        return validate_day_scenario(data, tuning)
     if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
         raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
     if set(data) - {mode}:
         raise BadInput(f"khối sai mode: chạy --mode {mode} chỉ nhận khối '{mode}'")
     block = data.get(mode, {})
+    validate_phase_block(block, mode, tuning)
+    return block
+
+
+def validate_phase_block(block, mode, tuning):
+    """Điểm nối dùng chung cho mode độc lập và template/đổi pha trong day."""
     if not isinstance(block, dict):
         raise BadInput(f"khối {mode} phải là object")
     allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
@@ -60,7 +69,6 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
         _validate_gather(block, tuning)
     else:
         _validate_quan(block, tuning)
-    return block
 
 
 def _num(v):
@@ -84,6 +92,9 @@ def _pos(name, pos, bounds, axes=("x", "d")):
 def _validate_gather(b, tuning):
     g = tuning["gather"]
     bounds = g["bounds"]
+    kinds = {kind for dish in tuning["menu"].values() for kind in dish["recipe"]}
+    node_kinds = {n["kind"] for n in g["nodes"]}
+    fish_kinds = set(g["fish_yield"])
     for arr in ("nodes", "fish", "monsters"):
         if arr in b:
             _check_ids(arr, b[arr])
@@ -91,7 +102,7 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P2 for k in h):
+        if not isinstance(h, list) or any(not isinstance(k, str) or k not in kinds for k in h):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
@@ -123,7 +134,7 @@ def _validate_gather(b, tuning):
         if p["zero_oxy_ticks"] > 0 and not (oxy == 0 and pos[1] > g["surface_depth"]):
             raise BadInput("player.zero_oxy_ticks > 0 chỉ khi oxy = 0 và đang dưới nước")
     for n in b.get("nodes", []):
-        if n.get("kind") not in NODE_KINDS:
+        if n.get("kind") not in node_kinds:
             raise BadInput(f"nodes.{n['id']}: kind phải là một trong {NODE_KINDS}")
         _pos(f"nodes.{n['id']}.pos", n.get("pos"), bounds)
         if n["pos"][1] != 0:
@@ -131,7 +142,7 @@ def _validate_gather(b, tuning):
         if "regrow_ticks" in n:
             _nonneg_int(f"nodes.{n['id']}.regrow_ticks", n["regrow_ticks"])
     for f in b.get("fish", []):
-        if f.get("kind") not in FISH_KINDS:
+        if f.get("kind") not in fish_kinds:
             raise BadInput(f"fish.{f['id']}: kind phải là một trong {FISH_KINDS}")
         _pos(f"fish.{f['id']}.pos", f.get("pos"), bounds)
         if f["pos"][1] <= g["surface_depth"]:
@@ -177,11 +188,12 @@ def _validate_gather(b, tuning):
 
 
 def _validate_quan(b, tuning):
+    kinds = {kind for dish in tuning["menu"].values() for kind in dish["recipe"]}
     for arr in ("stoves", "tables", "customers"):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate_items(b["stock"])
+        validate_items(b["stock"], kinds)
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")
@@ -225,7 +237,7 @@ def _validate_quan(b, tuning):
         "id", "table_id", "dish_id", "state", "order_tick", "order_status",
         "patience_ticks_left", "eat_ticks_left", "reserved", "base_price", "tip",
     }
-    stock = validate_items(b.get("stock", {}))
+    stock = validate_items(b.get("stock", {}), kinds)
     reserved_totals = {}
     for c in b.get("customers", []):
         extra = set(c) - customer_keys
@@ -246,7 +258,7 @@ def _validate_quan(b, tuning):
             if not isinstance(c["reserved"], dict):
                 raise BadInput(f"customers.{c['id']}.reserved phải là object")
             try:
-                reserved = validate_items(c["reserved"])
+                reserved = validate_items(c["reserved"], kinds)
             except BadInput as e:
                 raise BadInput(f"customers.{c['id']}.reserved: {e}")
             for kind, count in reserved.items():

@@ -28,7 +28,7 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids, *, day=1, oxygen_max_s=None, hp_max=None):
+    def __init__(self, tuning, scenario, streams, ids, day=1, *, oxygen_max_s=None, hp_max=None):
         t = tuning["gather"]
         self.t = t
         self.tuning = tuning

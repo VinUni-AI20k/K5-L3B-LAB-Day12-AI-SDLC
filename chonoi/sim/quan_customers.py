@@ -59,7 +59,7 @@ class CustomerSpawner:
             events.append(("no_dish", {}))
             return
         dish_id = sim.rng.get("customer_dish").choice(cookable)
-        table_id = sim.rng.get("customer_table").choice(free_tables)
+        table_id = free_tables[0]
         customer_id = sim.ids.new("C")
         recipe = dict(sim.menu[dish_id]["recipe"])
         customer = {
@@ -78,5 +78,4 @@ class CustomerSpawner:
             "order_id": customer_id,
             "table_id": table_id,
             "dish_id": dish_id,
-            "reserved": dict(recipe),
         }))
