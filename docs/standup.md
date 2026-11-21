@@ -27,8 +27,6 @@ Ghi chú Phase 3 (C, Scrum): tổng hợp từ PR #43 đến #47, nhánh `p3-04-
 | Phase | Người | Đã xong | Sắp làm | Vướng gì |
 |---|---|---|---|---|
 | 4 | A (NguyenDucNhat3006) | P4-03 benchmark đã gộp (#52, #56), contract nối `bench_cmd` ở #55. P4-10 đã chạy thử trọn một Ngày bằng phím mô phỏng trong Chrome. | Chơi bản demo trước nhóm, D mở kết quả test và ma trận, B và C trình bày bằng chứng. | Buổi trình bày trực tiếp theo lịch nhóm. |
-| 4 | B (TuHoAnh) | **D soạn thay, chờ B xác nhận:** P3-04 quán v1.2 (#49, D mở PR); đã đổi tên hồ sơ `TuHoAnh.md` | Đọc và sửa dòng retro, nhật ký AI; xác nhận tài khoản commit; đối chiếu Ticket-03 | Chưa mở PR cho nhánh của mình; test quán lọt 3 cách phá thử (D đã bổ sung); tài khoản commit khác `TEAM.md` |
-| 4 | C (Cuongngucuteee) | **D soạn thay, chờ C xác nhận:** P4-05 cảnh báo và tương phản cao (#42), P4-06 đóng gói (#39), ghi chép Phase 2 và 3 (#38, #47) | Đọc và sửa dòng retro Phase 4; gom standup | HUD quán v1.2 thật và phím H: D đã chụp và bấm thử (`p4-08-hud-quan-v12*.jpg`) |
 | 4 | D (luongvh2510) | P4-02 contract 1.3 (#55); P4-04 soak 10 Ngày (#54); P4-07 clone sạch và CI Ubuntu (#57); sửa bench theo Ticket-04 (#56); khung ma trận Phase 4 và release notes (#58) | Điền các ô CHỜ, chạy lại kiểm tại commit gắn tag, file đóng gói, tag `phase-4` và Release `v1.0.0` | Chờ A, B, C nộp hồ sơ, nhật ký AI, retro Phase 4; tag và Release cần người dùng đồng ý |
 
-Ghi chú Phase 4: A và D ghi dòng của mình; dòng của B và C do D soạn thay từ lịch sử PR (đánh dấu ở từng dòng), chờ hai bạn đọc và sửa.
+Ghi chú Phase 4: A và D đã ghi dòng của mình. C (Scrum) tổng hợp phần còn lại khi đủ ghi chép.
