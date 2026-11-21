@@ -141,3 +141,67 @@ def validate_tuning(t):
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+    if "day_plan" in t:
+        validate_day_plan(t["day_plan"], menu, expect_days=5)
+    if "shop" in t:
+        _validate_shop(t["shop"])
+
+
+def plan_ingredients(dishes: dict, menu: dict) -> dict:
+    """Tổng nguyên liệu = Σ công thức × số suất (Ticket-02 mục 4.1, day_plan)."""
+    total = {}
+    for dish_id, n in dishes.items():
+        for kind, k in menu[dish_id]["recipe"].items():
+            total[kind] = total.get(kind, 0) + k * n
+    return total
+
+
+def _pos_int_map(name, m, allowed=None):
+    if not isinstance(m, dict) or not m:
+        raise BadInput(f"{name} phải là map khác rỗng id -> số nguyên dương")
+    for k, v in m.items():
+        if allowed is not None and k not in allowed:
+            raise BadInput(f"{name}: id lạ {k}")
+        if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
+            raise BadInput(f"{name}.{k} phải là số nguyên dương")
+
+
+def validate_day_plan(plan, menu, expect_days=None):
+    """Mảng {day, dishes, ingredients?}; ingredients (nếu khai) phải khớp tổng công thức × số suất."""
+    if not isinstance(plan, list) or not plan:
+        raise BadInput("day_plan phải là mảng khác rỗng")
+    days = []
+    for entry in plan:
+        if not isinstance(entry, dict) or not set(entry) <= {"day", "dishes", "ingredients"}:
+            raise BadInput("day_plan: mỗi mục chỉ có day, dishes, ingredients")
+        day = entry.get("day")
+        _int_between("day_plan.day", day, 1, 5)
+        _pos_int_map(f"day_plan[{day}].dishes", entry.get("dishes"), menu)
+        if "ingredients" in entry:
+            _pos_int_map(f"day_plan[{day}].ingredients", entry["ingredients"])
+            if entry["ingredients"] != plan_ingredients(entry["dishes"], menu):
+                raise BadInput(f"day_plan[{day}].ingredients khác tổng công thức × số suất")
+        days.append(day)
+    if len(set(days)) != len(days):
+        raise BadInput("day_plan: trùng số Ngày")
+    if expect_days is not None and sorted(days) != list(range(1, expect_days + 1)):
+        raise BadInput(f"tuning.day_plan phải có đủ Ngày 1..{expect_days}")
+
+
+def _validate_shop(shop):
+    if not isinstance(shop, dict):
+        raise BadInput("tuning.shop phải là object")
+    _int_between("shop.max_ticks", shop.get("max_ticks"), 1, 100_000)
+    ups = shop.get("upgrades")
+    if not isinstance(ups, dict) or not {"oxygen", "hp"} <= set(ups):
+        raise BadInput("tuning.shop.upgrades phải có oxygen và hp")
+    stat = {"oxygen": "oxygen_max_s", "hp": "hp_max"}
+    for kind, levels in ups.items():
+        if not isinstance(levels, list) or not levels:
+            raise BadInput(f"shop.upgrades.{kind} phải là mảng theo cấp")
+        for i, row in enumerate(levels, start=1):
+            if not isinstance(row, dict) or row.get("level") != i:
+                raise BadInput(f"shop.upgrades.{kind}: cấp phải là 1, 2, ... theo thứ tự")
+            _int_between(f"shop.upgrades.{kind}[{i}].price", row.get("price"), 1, 1_000_000)
+            if kind in stat and not (_num(row.get(stat[kind])) and row[stat[kind]] > 0):
+                raise BadInput(f"shop.upgrades.{kind}[{i}].{stat[kind]} phải > 0")

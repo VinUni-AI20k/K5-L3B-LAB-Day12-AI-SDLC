@@ -31,7 +31,7 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None, allowed_dishes=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, allowed_dishes=None, carry=None):
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
@@ -62,6 +62,8 @@ class QuanSim:
         self.money = 0
         self.earned = 0
         self.shift_earned = 0
+        if carry is not None:  # mode day: tiền, earned, uy tín giữ qua Ngày (Ticket-02 mục 2)
+            self.money, self.earned, self.reputation = carry["money"], carry["earned"], carry["reputation"]
         self.done = False
         self.reason = None
 
