@@ -26,7 +26,7 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- `smoke-hai-tien-trinh` (`.agents/skills/smoke-hai-tien-trinh/`): smoke hộp đen gather → file kho → quan + kho sai trả mã 2. Dùng trước khi gộp lát đụng sim/kho/runner và trước khi gắn tag.
+- `smoke-hai-tien-trinh` (`.agents/skills/smoke-hai-tien-trinh/`): smoke hộp đen v1.2 — ngưỡng ươn 30 (fixture TICKET-03), gather → file kho cá thể → quan, kho đếm / sai trả mã 2. Dùng trước khi gộp lát đụng sim/kho/runner và trước khi gắn tag.
   `python3 .agents/skills/smoke-hai-tien-trinh/smoke.py [--proof docs/proof/phase-n]`
 - `kiem-tat-dinh` (`.agents/skills/kiem-tat-dinh/`): chạy headless 2 lần cùng seed, so JSONL + kho từng byte (gather, quan, nhiều seed). Dùng sau khi sửa luật có RNG, thứ tự duyệt, định dạng số, hoặc thêm phần sáng tạo.
   `python3 .agents/skills/kiem-tat-dinh/kiem_tat_dinh.py [--seeds 1 42 -7] [--ticks 3600] [--proof docs/proof/phase-n]`

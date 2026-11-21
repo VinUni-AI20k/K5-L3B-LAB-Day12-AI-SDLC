@@ -1,0 +1,45 @@
+# Lát 3 P3 (minhtriet061203) — kho quán cá thể, hao tươi, spoiled, giữ chỗ theo id (TICKET-03 mục 1)
+# Tuning v1.2 dựng trong test (thêm khối freshness); manifest bật 1.2 ở bước tích hợp p25
+# PYTHONPATH=tests:. python3 -m unittest tests.test_quan_v12_stock -v
+test_cook_consumes_reserved_ids_and_prices_by_fresh (tests.test_quan_v12_stock.CookWithIds.test_cook_consumes_reserved_ids_and_prices_by_fresh) ... ok
+test_clamped_at_zero (tests.test_quan_v12_stock.Decay.test_clamped_at_zero) ... ok
+test_decay_quarter_point_per_second (tests.test_quan_v12_stock.Decay.test_decay_quarter_point_per_second) ... ok
+test_reserved_item_also_decays (tests.test_quan_v12_stock.Decay.test_reserved_item_also_decays) ... ok
+test_contradictions_raise (tests.test_quan_v12_stock.FixtureV12.test_contradictions_raise) ... ok
+test_explicit_reserved_placed_before_auto (tests.test_quan_v12_stock.FixtureV12.test_explicit_reserved_placed_before_auto) ... ok
+test_missing_reserved_allocated_by_order_tick_then_table (tests.test_quan_v12_stock.FixtureV12.test_missing_reserved_allocated_by_order_tick_then_table) ... ok
+test_affected_orders_processed_by_order_tick_then_table (tests.test_quan_v12_stock.ReReserve.test_affected_orders_processed_by_order_tick_then_table) ... ok
+test_rereserve_with_another_fresh_item (tests.test_quan_v12_stock.ReReserve.test_rereserve_with_another_fresh_item) ... ok
+test_retry_only_once (tests.test_quan_v12_stock.ReReserve.test_retry_only_once) ... ok
+test_unfulfillable_not_cooked (tests.test_quan_v12_stock.ReReserve.test_unfulfillable_not_cooked) ... ok
+test_unfulfillable_when_not_enough (tests.test_quan_v12_stock.ReReserve.test_unfulfillable_when_not_enough) ... ok
+test_whole_reservation_released_on_partial_spoil (tests.test_quan_v12_stock.ReReserve.test_whole_reservation_released_on_partial_spoil) ... ok
+test_new_customer_reserves_freshest_then_smallest_id (tests.test_quan_v12_stock.ReserveById.test_new_customer_reserves_freshest_then_smallest_id) ... ok
+test_second_customer_takes_remaining_items (tests.test_quan_v12_stock.ReserveById.test_second_customer_takes_remaining_items) ... ok
+test_spoiled_skipped_when_reserving (tests.test_quan_v12_stock.ReserveById.test_spoiled_skipped_when_reserving) ... ok
+test_bad_reserved_shapes (tests.test_quan_v12_stock.ScenarioFileV12.test_bad_reserved_shapes) ... ok
+test_eating_price_by_fresh_ok (tests.test_quan_v12_stock.ScenarioFileV12.test_eating_price_by_fresh_ok) ... ok
+test_price_above_list_is_bad (tests.test_quan_v12_stock.ScenarioFileV12.test_price_above_list_is_bad) ... ok
+test_reserved_id_array_ok (tests.test_quan_v12_stock.ScenarioFileV12.test_reserved_id_array_ok) ... ok
+test_already_spoiled_never_emits (tests.test_quan_v12_stock.Spoiled.test_already_spoiled_never_emits) ... ok
+test_exactly_at_30_spoils_on_first_step (tests.test_quan_v12_stock.Spoiled.test_exactly_at_30_spoils_on_first_step) ... ok
+test_just_above_threshold_spoils_on_exact_tick (tests.test_quan_v12_stock.Spoiled.test_just_above_threshold_spoils_on_exact_tick) ... ok
+test_multiple_spoil_same_tick_in_id_order (tests.test_quan_v12_stock.Spoiled.test_multiple_spoil_same_tick_in_id_order) ... ok
+test_spoiled_not_available_for_new_orders (tests.test_quan_v12_stock.Spoiled.test_spoiled_not_available_for_new_orders) ... ok
+test_item_ids_continue_after_loaded_stock (tests.test_quan_v12_stock.StockSchema.test_item_ids_continue_after_loaded_stock) ... ok
+test_snapshot_stock_is_item_array_sorted_by_id (tests.test_quan_v12_stock.StockSchema.test_snapshot_stock_is_item_array_sorted_by_id) ... ok
+test_spoiled_items_stay_in_stock (tests.test_quan_v12_stock.StockSchema.test_spoiled_items_stay_in_stock) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 0.055s
+
+OK
+
+# Regression P1–P2 (manifest v1.1): PYTHONPATH=tests:. python3 -m unittest discover -s tests
+Ran 196 tests in 29.304s
+
+OK (skipped=4)
+
+# Skill nhóm
+15/15 cặp giống từng byte · seeds [1, 42, -7] · 3600 tick
+10/10 mục đạt

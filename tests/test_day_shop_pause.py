@@ -4,14 +4,14 @@ import json
 import time
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import hold_items, kinds_of, counts_of, Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
 with open("game.contract.json", encoding="utf-8") as _f:
     TUNING = json.load(_f)["tuning"]
 SHOP = TUNING["shop"]
 GATHER_T = int(TUNING["gather"]["duration_s"] * 60)
 QUAN_T = int(TUNING["quan"]["duration_s"] * 60)
-DOCK_NOW = {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"], "random_fish": False}}
+DOCK_NOW = {"gather": {"hold": hold_items("ca_loc", "bong_sung", "bong_sung"), "random_fish": False}}
 
 
 def run_day(w, *frs, scenario=None, days=1, ticks=60000, seed=1):
@@ -48,7 +48,7 @@ class DayFlow(unittest.TestCase):
                                   (SHOP_OPEN + 1, "shop", "shop_end")])
             self.assertTrue(all(r["day"] == 1 for r in rows if r["type"] == "event"))
             quan0 = [s for s in snapshots(rows) if s["phase"] == "quan" and s["phase_tick"] == 0][0]
-            self.assertEqual(quan0["stock"], {"bong_sung": 2, "ca_loc": 1})
+            self.assertEqual(counts_of(quan0["stock"]), {"bong_sung": 2, "ca_loc": 1})  # v1.2: mảng cá thể
             end = rows[-1]
             self.assertEqual((end["reason"], end["days_completed"], end["mode"]), ("days_complete", 1, "day"))
 
@@ -66,12 +66,12 @@ class DayFlow(unittest.TestCase):
     def test_faint_still_opens_quan_with_empty_stock(self):
         with Workdir() as w:
             sc = {"gather": {"player": {"pos": [20, 5], "oxygen_ticks": 0, "hp": 1, "zero_oxy_ticks": 59},
-                             "hold": ["ca_loc"], "random_fish": False}}
+                             "hold": hold_items("ca_loc"), "random_fish": False}}
             code, err, rows = run_day(w, scenario=sc, ticks=5)
             self.assertEqual(code, 0, err)
             self.assertEqual(names(rows)[3:7], ["choke", "faint", "gather_end", "phase_start"])
             quan0 = [s for s in snapshots(rows) if s["phase"] == "quan"][0]
-            self.assertEqual(quan0["stock"], {})
+            self.assertEqual(quan0["stock"], [])  # v1.2: kho rỗng là []
 
     def test_tick_limit_reason(self):
         with Workdir() as w:

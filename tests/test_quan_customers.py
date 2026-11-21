@@ -14,9 +14,10 @@ from chonoi.inputs import InputState
 from chonoi.rng import Streams
 from chonoi.sim.quan import QuanSim
 
-from helpers import Workdir, events, read_jsonl, run_headless, write_json
+from helpers import hold_items, tuning_v11, Workdir, events, read_jsonl, run_headless, write_json
 
-TUNING = load_contract()["tuning"]
+V12 = "freshness" in load_contract()["tuning"]
+TUNING = tuning_v11()  # v1.2 [THAY THẾ] kho đếm: giữ nhánh v1.1, luật v1.2 ở test_quan_v12_stock.py
 Q = TUNING["quan"]
 FIRST = Q["first_customer_tick"]
 INTERVAL = int(round(Q["customer_interval_s"] * 60))
@@ -79,7 +80,7 @@ class Schedule(unittest.TestCase):
 
     def test_runs_through_headless_jsonl(self):
         with Workdir() as w:
-            inv = write_json(w.path("kho.json"), {"items": {"bong_sung": 2, "ca_loc": 1}})
+            inv = write_json(w.path("kho.json"), {"items": hold_items("bong_sung", "bong_sung", "ca_loc")})  # v1.2
             out = w.path("o.jsonl")
             code, err = run_headless("--mode", "quan", "--seed", "3", "--ticks", str(FIRST), "--inventory", inv,
                                      "--out", out)
@@ -283,11 +284,13 @@ class Fixture(unittest.TestCase):
         self.assertEqual(sim.snapshot()["tables"][0]["customer_id"], "C4")
         self.assertEqual(sim.ids.new("C"), "C5", "id khách mới nối tiếp fixture")
 
+    @unittest.skipIf(V12, "v1.2 [THAY THẾ] stock/reserved theo lượng -> cá thể/id; kiểm ở test_quan_v12_stock.FixtureV12 / ScenarioFileV12")
     def test_valid_fixture_exit_0(self):
         self.assertEqual(self._code({"stock": {"ca_loc": 1},
                                      "customers": [{"id": "C1", "table_id": "T1",
                                                     "dish_id": "ca_loc_nuong_trui"}]}), 0)
 
+    @unittest.skipIf(V12, "v1.2 [THAY THẾ] stock/reserved theo lượng -> cá thể/id; kiểm ở test_quan_v12_stock.FixtureV12 / ScenarioFileV12")
     def test_contradictions_exit_2(self):
         base = {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
         bad = [
@@ -323,6 +326,7 @@ class Fixture(unittest.TestCase):
             with self.subTest(block=block):
                 self.assertEqual(self._code(block), 2)
 
+    @unittest.skipIf(V12, "v1.2 [THAY THẾ] stock/reserved theo lượng -> cá thể/id; kiểm ở test_quan_v12_stock.FixtureV12 / ScenarioFileV12")
     def test_valid_links_exit_0(self):
         base = {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
         ok = [
@@ -336,6 +340,7 @@ class Fixture(unittest.TestCase):
             with self.subTest(block=block):
                 self.assertEqual(self._code(block), 0)
 
+    @unittest.skipIf(V12, "v1.2 [THAY THẾ] stock/reserved theo lượng -> cá thể/id; kiểm ở test_quan_v12_stock.FixtureV12 / ScenarioFileV12")
     def test_reserved_over_inventory_file_exit_2(self):
         with Workdir() as w:
             inv = write_json(w.path("kho.json"), {"items": {"bong_sung": 1}})

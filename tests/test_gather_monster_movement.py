@@ -9,7 +9,18 @@ from chonoi.runner import Session
 from chonoi.sim.gather import GatherSim
 from chonoi.ids import IdAllocator
 from chonoi.rng import Streams
-from helpers import Workdir, events, read_jsonl, run_headless, write_json
+from helpers import hold_items, kinds_of, counts_of, Workdir, events, read_jsonl, run_headless, write_json
+
+
+def _after_one_gather_step(items):
+    """v1.2: giỏ hao 2 đơn vị (0.5/60 điểm) ở ĐẦU bước, trước ngạt/hit (TICKET-03 thứ tự trong tick)."""
+    from chonoi.items import from_public, public
+    out = []
+    for it in items:
+        x = from_public(it)
+        x["fresh_units"] = max(0, x["fresh_units"] - 2)
+        out.append(public(x))
+    return out
 
 
 class MonsterMovement(unittest.TestCase):
@@ -122,15 +133,15 @@ class MonsterCombat(unittest.TestCase):
                 result = self.step(s)
                 hit = next(e for e in result if e["name"] == "monster_hit")
                 count = len(hold) // 2
-                self.assertEqual(hit["data"]["lost"], list(reversed(hold))[:count])
+                self.assertEqual(hit["data"]["lost"], _after_one_gather_step(list(reversed(hold))[:count]))
                 if hp == 1:
                     faint = next(e for e in result if e["name"] == "faint")
-                    self.assertEqual(faint["data"]["lost"], list(reversed(hold))[count:])
+                    self.assertEqual(faint["data"]["lost"], _after_one_gather_step(list(reversed(hold))[count:]))
                     self.assertFalse({it["id"] for it in hit["data"]["lost"]} &
                                      {it["id"] for it in faint["data"]["lost"]})
                     self.assertEqual(s.sim.hold, [])
                 else:
-                    self.assertEqual(s.sim.hold, validate_public_items(hold[:len(hold)-count]))
+                    self.assertEqual(s.sim.hold, validate_public_items(_after_one_gather_step(hold[:len(hold)-count])))
 
     def test_day_parameter_and_fixture_replacement(self):
         for day, expected in [(1, ["M1"]), (2, ["M1"]), (3, ["M1", "M2"])]:
@@ -141,10 +152,11 @@ class MonsterCombat(unittest.TestCase):
 
     def test_hit_lifo_tie_and_invulnerability(self):
         other = dict(self.m, id="M1")
-        s = self.make(monsters=[self.m, other], hold=["ca_loc", "ca_linh", "bong_sung"])
+        s = self.make(monsters=[self.m, other], hold=hold_items("ca_loc", "ca_linh", "bong_sung"))
         ev = self.step(s)
-        self.assertEqual(ev[0]["data"], {"monster_id": "M1", "hp": 2, "lost": ["bong_sung"], "pos": [50.0, 20.0]})
-        self.assertEqual(s.sim.hold, ["ca_loc", "ca_linh"])
+        d = ev[0]["data"]  # v1.2: lost là mảng cá thể (LIFO)
+        self.assertEqual(dict(d, lost=kinds_of(d["lost"])), {"monster_id": "M1", "hp": 2, "lost": ["bong_sung"], "pos": [50.0, 20.0]})
+        self.assertEqual(kinds_of(s.sim.hold), ["ca_loc", "ca_linh"])  # v1.2: giỏ là cá thể
         self.assertEqual(s.sim.invuln_ticks, self.t["gather"]["monsters"]["invuln_ticks"])
         self.assertEqual(s.sim.monsters[1]["recoil_dir"], [1.0, 0.0])
         self.assertEqual(self.step(s), [])
@@ -189,12 +201,12 @@ class MonsterCombat(unittest.TestCase):
 
     def test_faint_after_choke_hit_before_time(self):
         s = self.make(player={"pos": [50, 20], "hp": 2, "oxygen_ticks": 0, "zero_oxy_ticks": 59},
-                      hold=["ca_loc", "ca_linh", "bong_sung"], time_left_ticks=1)
+                      hold=hold_items("ca_loc", "ca_linh", "bong_sung"), time_left_ticks=1)
         ev = self.step(s)
         self.assertEqual([e["name"] for e in ev], ["choke", "monster_hit", "faint", "gather_end"])
-        self.assertEqual(ev[1]["data"]["lost"], ["bong_sung"])
-        self.assertEqual(ev[2]["data"], {"cause": "monster", "lost": ["ca_linh", "ca_loc"], "hp": 0})
-        self.assertEqual(ev[3]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+        self.assertEqual(kinds_of(ev[1]["data"]["lost"]), ["bong_sung"])  # v1.2: mảng cá thể
+        self.assertEqual(dict(ev[2]["data"], lost=kinds_of(ev[2]["data"]["lost"])), {"cause": "monster", "lost": ["ca_linh", "ca_loc"], "hp": 0})
+        self.assertEqual(ev[3]["data"], {"reason": "fainted", "inventory": {"items": []}})  # v1.2: kho rỗng []
 
     def test_fatal_choke_prevents_hit_even_when_invulnerable(self):
         s = self.make(player={"pos": [50, 20], "hp": 1, "oxygen_ticks": 0,
@@ -205,7 +217,7 @@ class MonsterCombat(unittest.TestCase):
         import json
         with Workdir() as w:
             sc = write_json(w.path("scenario.json"), {"gather": {"player": {"pos": [60, 24], "hp": 1},
-                            "hold": ["ca_loc", "ca_linh", "bong_sung"], "random_fish": False}})
+                            "hold": hold_items("ca_loc", "ca_linh", "bong_sung"), "random_fish": False}})
             out, inv = w.path("out.jsonl"), w.path("inventory.json")
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "2",
                                      "--scenario", sc, "--out", out, "--inventory-out", inv)
@@ -213,7 +225,7 @@ class MonsterCombat(unittest.TestCase):
             ev = events(read_jsonl(out))
             self.assertEqual([e["name"] for e in ev], ["monster_hit", "faint", "gather_end"])
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})  # v1.2: kho rỗng []
 
 
 if __name__ == "__main__":

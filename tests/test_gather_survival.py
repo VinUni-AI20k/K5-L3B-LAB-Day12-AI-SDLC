@@ -3,11 +3,22 @@
 import json
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import hold_items, kinds_of, counts_of, Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer
 from chonoi.items import validate_public_items
 from chonoi.runner import Session
+
+
+def _after_one_gather_step(items):
+    """v1.2: giỏ hao 2 đơn vị (0.5/60 điểm) ở ĐẦU bước, trước ngạt/hit (TICKET-03 thứ tự trong tick)."""
+    from chonoi.items import from_public, public
+    out = []
+    for it in items:
+        x = from_public(it)
+        x["fresh_units"] = max(0, x["fresh_units"] - 2)
+        out.append(public(x))
+    return out
 
 
 class GatherSurvival(unittest.TestCase):
@@ -27,7 +38,7 @@ class GatherSurvival(unittest.TestCase):
                 s.sim.hold = validate_public_items(hold, "gather.hold")
                 result = s.step(InputPlayer([]).advance(0))
                 faint = next(e for e in result if e["name"] == "faint")
-                self.assertEqual(faint["data"]["lost"], list(reversed(hold)))
+                self.assertEqual(faint["data"]["lost"], _after_one_gather_step(list(reversed(hold))))
                 self.assertEqual(s.sim.hold, [])
 
     def test_no_transition_at_rest_and_initial_empty(self):
@@ -103,20 +114,21 @@ class GatherSurvival(unittest.TestCase):
 
     def test_faint_lifo_order_final_snapshot_inventory_and_determinism(self):
         sc = {"player": {"pos": [2, 1], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
-              "hold": ["ca_loc", "bong_sung", "ca_linh"], "time_left_ticks": 1,
+              "hold": hold_items("ca_loc", "bong_sung", "ca_linh"), "time_left_ticks": 1,
               "fish": [{"id": "F1", "kind": "ca_loc", "pos": [2, 1]}]}
         with Workdir() as w:
             rows, out, inv = self.run_case(w, sc, [{"tick": 0, "interact": True, "catch": True}], ticks=2)
             rows2, out2, _ = self.run_case(w, sc, [{"tick": 0, "interact": True, "catch": True}], ticks=2, suffix="b")
             self.assertEqual([e["name"] for e in events(rows)], ["choke", "faint", "gather_end"])
-            self.assertEqual(events(rows, "faint")[0]["data"], {"cause": "choke", "lost": ["ca_linh", "bong_sung", "ca_loc"], "hp": 0})
-            self.assertEqual(events(rows, "gather_end")[0]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+            fd = events(rows, "faint")[0]["data"]  # v1.2: lost là mảng cá thể (LIFO)
+            self.assertEqual(dict(fd, lost=kinds_of(fd["lost"])), {"cause": "choke", "lost": ["ca_linh", "bong_sung", "ca_loc"], "hp": 0})
+            self.assertEqual(events(rows, "gather_end")[0]["data"], {"reason": "fainted", "inventory": {"items": []}})
             self.assertEqual([r["type"] for r in rows], ["snapshot", "event", "event", "event", "snapshot", "end"])
             self.assertEqual(snapshots(rows)[-1]["hold"], [])
             self.assertEqual(snapshots(rows)[-1]["player"]["hp"], 0)
             self.assertEqual(rows[-1]["reason"], "fainted")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})  # v1.2: kho rỗng []
             with open(out, "rb") as a, open(out2, "rb") as b:
                 self.assertEqual(a.read(), b.read())
             self.assertEqual(rows, rows2)
