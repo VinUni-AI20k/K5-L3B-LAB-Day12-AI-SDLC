@@ -30,6 +30,12 @@ UNDER = [50, 10]   # xa bến, xa nút, xa cá mặc định
 SURFACE = [50, 0]
 
 
+# P3 [THAY THẾ]: fixture giỏ là cá thể có id và fresh, theo thứ tự nhặt.
+def items(kinds, fresh=100, start=1):
+    return [{"id": f"I{i}", "kind": kind, "fresh": fresh}
+            for i, kind in enumerate(kinds, start)]
+
+
 def run_gather(scenario=None, inputs=None, ticks=1, seed=1):
     """Chạy gather; trả (rows, items_trong_file_kho_hoặc_None). Scenario là khối `gather`."""
     with Workdir() as w:
@@ -75,7 +81,7 @@ class JsonlFormat(unittest.TestCase):
         self.assertEqual(rows[i_ev + 1]["state"], "finished")
 
     def test_end_row_matches_gather_end(self):
-        rows, inv = run_gather({"time_left_ticks": 1, "hold": ["ca_loc"]}, ticks=5)
+        rows, inv = run_gather({"time_left_ticks": 1, "hold": items(["ca_loc"])}, ticks=5)
         end = rows[-1]
         self.assertEqual(end["type"], "end")
         self.assertEqual(end["reason"], "time")
@@ -92,9 +98,10 @@ class JsonlFormat(unittest.TestCase):
 # ----------------------------------------------------------------------------- kho (contract mục 1)
 class Inventory(unittest.TestCase):
     def test_docked_writes_sorted_items(self):
-        rows, inv = run_gather({"hold": ["bong_sung", "ca_loc", "bong_sung"]}, [{"tick": 0, "interact": True}])
-        self.assertEqual(inv, {"items": {"bong_sung": 2, "ca_loc": 1}})
-        self.assertEqual(list(inv["items"]), sorted(inv["items"]))
+        rows, inv = run_gather({"hold": items(["bong_sung", "ca_loc", "bong_sung"])}, [{"tick": 0, "interact": True}])
+        # P3 [THAY THẾ]: kho cá thể theo id, đã hao ở đầu bước cập bến.
+        self.assertEqual(inv, {"items": items(["bong_sung", "ca_loc", "bong_sung"], round(100 - 2 / 240, 6))})
+        self.assertEqual([it["id"] for it in inv["items"]], ["I1", "I2", "I3"])
         self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], inv)
 
     def test_written_only_on_end(self):
@@ -104,7 +111,8 @@ class Inventory(unittest.TestCase):
 
     def test_empty_hold_writes_empty_items(self):
         _, inv = run_gather(inputs=[{"tick": 0, "interact": True}])
-        self.assertEqual(inv, {"items": {}})
+        # P3 [THAY THẾ]: kỳ vọng cá thể và độ tươi thay cho kind/số đếm.
+        self.assertEqual(inv, {"items": []})
 
     def test_dock_checked_before_harvest(self):
         rows, _ = run_gather({"nodes": [{"id": "N1", "kind": "bong_sung", "pos": [3, 0]}]},
@@ -120,12 +128,14 @@ class Inventory(unittest.TestCase):
     @lat1
     def test_fainted_writes_empty_inventory(self):
         sc = {"player": {"pos": UNDER, "hp": 1, "oxygen_ticks": 0, "zero_oxy_ticks": G["choke_interval_ticks"] - 1},
-              "hold": ["ca_loc", "bong_sung"]}
+              "hold": items(["ca_loc", "bong_sung"])}
         rows, inv = run_gather(sc, ticks=5)
-        self.assertEqual(inv, {"items": {}})
+        # P3 [THAY THẾ]: kỳ vọng cá thể và độ tươi thay cho kind/số đếm.
+        self.assertEqual(inv, {"items": []})
         end = events(rows, "gather_end")
         self.assertEqual(len(end), 1)
-        self.assertEqual(end[0]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+        # P3 [THAY THẾ]: kỳ vọng cá thể và độ tươi thay cho kind/số đếm.
+        self.assertEqual(end[0]["data"], {"reason": "fainted", "inventory": {"items": []}})
         self.assertEqual(rows[-1]["reason"], "fainted")
 
 
@@ -177,11 +187,12 @@ class Oxygen(unittest.TestCase):
     @lat1
     def test_faint_drops_hold_lifo(self):
         sc = {"player": {"pos": UNDER, "hp": 1, "oxygen_ticks": 0, "zero_oxy_ticks": G["choke_interval_ticks"] - 1},
-              "hold": ["ca_loc", "bong_sung", "ca_linh"]}
+              "hold": items(["ca_loc", "bong_sung", "ca_linh"])}
         rows, _ = run_gather(sc, ticks=5)
         self.assertEqual(names(rows)[-2:], ["faint", "gather_end"])
         self.assertEqual(events(rows, "faint")[0]["data"],
-                         {"cause": "choke", "lost": ["ca_linh", "bong_sung", "ca_loc"], "hp": 0})
+                         # P3 [THAY THẾ]: kỳ vọng cá thể và độ tươi thay cho kind/số đếm.
+                         {"cause": "choke", "lost": list(reversed(items(["ca_loc", "bong_sung", "ca_linh"], round(100 - 2 / 240, 6)))), "hp": 0})
         self.assertEqual(last(rows)["state"], "finished")
 
 
@@ -219,23 +230,26 @@ class Harvest(unittest.TestCase):
         self.assertEqual([(e["tick"], e["data"]) for e in ev],
                          [(1, {"node_id": "N1", "kind": "bong_sung", "amount": G["node_yield"]})])
         s = last(rows)
-        self.assertEqual(s["hold"], ["bong_sung"] * G["node_yield"])
+        # P3 [THAY THẾ]: kỳ vọng cá thể và độ tươi thay cho kind/số đếm.
+        self.assertEqual(s["hold"], items(["bong_sung"] * G["node_yield"]))
         self.assertFalse(s["nodes"][0]["ready"])
         self.assertEqual(s["nodes"][0]["regrow_ticks"], int(round(G["regrow_s"] * TICK)))
 
     @lat2
     def test_harvest_exact_radius_edge(self):  # ví dụ scenario của PRD D
-        sc = {"player": {"pos": [20, 0], "heading_deg": 0}, "hold": ["ca_loc", "bong_sung"],
+        sc = {"player": {"pos": [20, 0], "heading_deg": 0}, "hold": items(["ca_loc", "bong_sung"]),
               "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [20 + G["interact_radius"], 0]}],
               "fish": [], "random_fish": False, "time_left_ticks": 120}
         rows, _ = run_gather(sc, [{"tick": 0, "interact": True}])
-        self.assertEqual(last(rows)["hold"], ["ca_loc", "bong_sung", "bong_dien_dien"])
+        # P3 [THAY THẾ]: kỳ vọng cá thể và độ tươi thay cho kind/số đếm.
+        self.assertEqual(last(rows)["hold"], items(["ca_loc", "bong_sung"], round(100 - 2 / 240, 6)) + items(["bong_dien_dien"], start=3))
 
     @lat2
     def test_harvest_tie_picks_smaller_id(self):
         nodes = [{"id": "N2", "kind": "bong_sung", "pos": [19, 0]}, {"id": "N1", "kind": "bong_dien_dien", "pos": [21, 0]}]
         rows, _ = run_gather({"player": {"pos": [20, 0]}, "nodes": nodes}, [{"tick": 0, "interact": True}])
-        self.assertEqual(last(rows)["hold"], ["bong_dien_dien"] * G["node_yield"])
+        # P3 [THAY THẾ]: kỳ vọng cá thể và độ tươi thay cho kind/số đếm.
+        self.assertEqual(last(rows)["hold"], items(["bong_dien_dien"] * G["node_yield"]))
 
     @lat2
     def test_no_harvest_underwater_or_out_of_radius(self):
@@ -258,7 +272,7 @@ class Harvest(unittest.TestCase):
 
     @lat2
     def test_hold_full_on_harvest(self):
-        sc = {"player": {"pos": [20, 0]}, "nodes": [self.NODE], "hold": ["ca_loc"] * G["hold_capacity"]}
+        sc = {"player": {"pos": [20, 0]}, "nodes": [self.NODE], "hold": items(["ca_loc"] * G["hold_capacity"])}
         rows, _ = run_gather(sc, [{"tick": 0, "interact": True}])
         self.assertEqual([e["data"] for e in events(rows, "hold_full")],
                          [{"action": "gather", "node_id": "N1", "required": G["node_yield"], "free": 0}])
@@ -270,7 +284,8 @@ class Harvest(unittest.TestCase):
         sc = {"player": {"pos": [20, 0]}, "nodes": [self.NODE], "time_left_ticks": 1}
         rows, inv = run_gather(sc, [{"tick": 0, "interact": True}], ticks=5)
         self.assertEqual(names(rows), ["gather", "gather_end"])
-        self.assertEqual(inv, {"items": {"bong_sung": G["node_yield"]}})
+        # P3 [THAY THẾ]: kỳ vọng cá thể và độ tươi thay cho kind/số đếm.
+        self.assertEqual(inv, {"items": items(["bong_sung"] * G["node_yield"])})
 
     def test_node_regrown_event(self):  # khung đã có
         node = dict(self.NODE, regrow_ticks=2)
@@ -289,7 +304,8 @@ class Catch(unittest.TestCase):
         self.assertEqual([e["data"] for e in events(rows, "fish_caught")],
                          [{"fish_id": "F1", "kind": "ca_linh", "yield": y}])
         s = last(rows)
-        self.assertEqual(s["hold"], ["ca_linh"] * y)
+        # P3 [THAY THẾ]: kỳ vọng cá thể và độ tươi thay cho kind/số đếm.
+        self.assertEqual(s["hold"], items(["ca_linh"] * y))
         self.assertEqual(s["fish"], [])
         self.assertEqual(s["player"]["catch_cd_ticks"], int(round(G["catch_cooldown_s"] * TICK)))
 
@@ -315,7 +331,7 @@ class Catch(unittest.TestCase):
     @lat2
     def test_hold_full_keeps_fish_and_no_cooldown(self):
         cap, y = G["hold_capacity"], G["fish_yield"]["ca_linh"]
-        sc = {"player": {"pos": [30, 10]}, "fish": [self.FISH], "hold": ["ca_loc"] * (cap - y + 1)}
+        sc = {"player": {"pos": [30, 10]}, "fish": [self.FISH], "hold": items(["ca_loc"] * (cap - y + 1))}
         rows, _ = run_gather(sc, [{"tick": 0, "catch": True}])
         self.assertEqual([e["data"] for e in events(rows, "hold_full")],
                          [{"action": "catch", "fish_id": "F1", "required": y, "free": y - 1}])
@@ -326,9 +342,20 @@ class Catch(unittest.TestCase):
 
     @lat2
     def test_hold_keeps_pick_order(self):
-        sc = {"player": {"pos": [30, 10]}, "fish": [self.FISH], "hold": ["bong_sung"]}
+        sc = {"player": {"pos": [30, 10]}, "fish": [self.FISH], "hold": items(["bong_sung"])}
         rows, _ = run_gather(sc, [{"tick": 0, "catch": True}])
-        self.assertEqual(last(rows)["hold"], ["bong_sung"] + ["ca_linh"] * G["fish_yield"]["ca_linh"])
+        # P3 [THAY THẾ]: kỳ vọng cá thể và độ tươi thay cho kind/số đếm.
+        self.assertEqual(last(rows)["hold"], items(["bong_sung"], round(100 - 2 / 240, 6)) + items(["ca_linh"] * G["fish_yield"]["ca_linh"], start=2))
+
+
+class FreshnessContract(unittest.TestCase):
+    def test_prd_threshold_fixture_emits_spoiled_at_tick_one(self):
+        rows, _ = run_gather({"hold": [{"id": "I1", "kind": "ca_linh", "fresh": 30}],
+                              "random_fish": False, "monsters": []})
+        self.assertEqual(events(rows, "spoiled"), [{
+            "type": "event", "tick": 1, "phase": "gather", "name": "spoiled",
+            "data": {"item_id": "I1", "kind": "ca_linh", "location": "hold"}}])
+        self.assertEqual(last(rows)["hold"], items(["ca_linh"], round(30 - 2 / 240, 6)))
 
 
 class Determinism(unittest.TestCase):

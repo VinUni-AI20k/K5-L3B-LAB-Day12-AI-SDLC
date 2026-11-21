@@ -10,6 +10,8 @@ cả hai chạy CÙNG một lớp sim, không nhân đôi logic.
 import math
 
 from .ids import IdAllocator
+from .fresh import item_out
+from .scenario import _validate_reserved
 from .inputs import InputPlayer, BUTTONS_V11
 from .inventory import write_inventory
 from .jsonl import JsonlWriter
@@ -25,6 +27,10 @@ def build_sim(mode, tuning, scenario, seed, inventory, days=1):
         return DaySim(tuning, scenario, streams, ids, days)
     if mode == "gather":
         return GatherSim(tuning, scenario, streams, ids)
+    for it in inventory or []:
+        ids.reserve(it["id"])
+    stock = [item_out(it) for it in inventory] if inventory is not None else scenario.get("stock", [])
+    _validate_reserved(scenario, tuning, stock=stock)
     return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
 
 
@@ -48,6 +54,7 @@ class Session:
         self.tick = 0
         self.sim_tick = 0
         self.paused = False
+        self._inventory_written = False
 
     @property
     def done(self) -> bool:
@@ -96,8 +103,9 @@ class Session:
 
     def write_inventory_if_done(self, inventory_out):
         """File kho: ghi MỘT lần khi có gather_end; chưa kết thúc thì giữ nguyên file đích."""
-        if self.mode == "gather" and self.sim.done and inventory_out:
+        if self.mode == "gather" and self.sim.done and inventory_out and not self._inventory_written:
             write_inventory(inventory_out, self.sim.inventory_items())
+            self._inventory_written = True
 
 
 def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None, days=1):

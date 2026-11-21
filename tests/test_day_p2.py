@@ -9,16 +9,23 @@ import unittest
 
 from chonoi.contract import load_contract, validate_tuning
 from chonoi.errors import BadInput
+from chonoi.ids import sort_by_id
 from chonoi.inputs import InputPlayer, LiveInputs, BUTTONS_V11
 from chonoi.runner import Session
 from chonoi.scenario import load_scenario
 from chonoi.live import LiveGame
 
 
+# P3 [THAY THẾ]: mỗi nguyên liệu có id và fresh thay cho chuỗi/kho đếm.
+def cargo(*kinds, fresh=100):
+    return [{"id": f"I{i}", "kind": kind, "fresh": fresh} for i, kind in enumerate(kinds, 1)]
+
+
 class DayIntegration(unittest.TestCase):
     def setUp(self):
         self.t = deepcopy(load_contract()["tuning"])
-        self.sc = {"gather": {"time_left_ticks": 1, "hold": ["ca_loc"], "random_fish": False},
+        # P3 [THAY THẾ]: cá thể và phần giữ theo id, bàn giao sau hao gather.
+        self.sc = {"gather": {"time_left_ticks": 1, "hold": cargo("ca_loc"), "random_fish": False},
                    "quan": {"time_left_ticks": 1}, "day": {"money": 200, "earned": 200}}
 
     def session(self, days=2):
@@ -29,7 +36,8 @@ class DayIntegration(unittest.TestCase):
         first=s.step(ip.advance(0))
         self.assertEqual([(e['name'],e['phase'],e['day']) for e in first], [('gather_end','gather',1),('phase_start','quan',1)])
         self.assertEqual(s.snapshot()['phase_tick'],0)
-        self.assertEqual(s.snapshot()['stock'],{'ca_loc':1})
+        # P3 [THAY THẾ]: cá thể và phần giữ theo id, bàn giao sau hao gather.
+        self.assertEqual(s.snapshot()['stock'],cargo('ca_loc', fresh=99.991667))
         self.assertEqual(s.sim.active.dish_pool,sorted(self.t['day_plan'][0]['dishes']))
         s.step(ip.advance(1)); self.assertEqual(s.snapshot()['phase'],'shop')
         self.assertEqual(s.end_row()['days_completed'],0)
@@ -103,16 +111,19 @@ class DayIntegration(unittest.TestCase):
 
     def test_quan_template_outside_day_plan_is_rejected_at_handoff(self):
         self.sc['quan']['customers'] = [{'id':'C1','table_id':'T1',
-            'dish_id':'lau_mam','order_status':'unfulfillable','reserved':{}}]
+            # P3 [THAY THẾ]: cá thể và phần giữ theo id, bàn giao sau hao gather.
+            'dish_id':'lau_mam','order_status':'unfulfillable','reserved':[]}]
         s=self.session()
         with self.assertRaises(BadInput):s.step(LiveInputs().advance())
 
     def test_fainted_still_opens_quan_with_empty_inventory(self):
-        self.sc['gather']={'player':{'pos':[60,20],'hp':1},'hold':['ca_loc'], 'random_fish':False,
+        # P3 [THAY THẾ]: cá thể và phần giữ theo id, bàn giao sau hao gather.
+        self.sc['gather']={'player':{'pos':[60,20],'hp':1},'hold':cargo('ca_loc'), 'random_fish':False,
           'monsters':[{'id':'M1','kind':'ca_sau','pos':[60,20.5],'waypoints':[[60,20.5],[64,20.5]]}]}
         s=self.session();rows=s.step(LiveInputs().advance())
         self.assertIn('faint',[r['name'] for r in rows]);self.assertEqual(s.snapshot()['phase'],'quan')
-        self.assertEqual(s.snapshot()['stock'],{})
+        # P3 [THAY THẾ]: cá thể và phần giữ theo id, bàn giao sau hao gather.
+        self.assertEqual(s.snapshot()['stock'],[])
 
     def test_day_three_has_second_monster_and_upgraded_full_hp(self):
         self.sc['day']['upgrades']={'hp':2}
@@ -208,7 +219,8 @@ class MonsterData(unittest.TestCase):
     def test_hit_radius_loss_invulnerability_recoil_from_data(self):
         cfg=self.t['gather']['monsters']['species']['ca_sau'];cfg.update(hit_radius=5,recoil_ticks=2,recoil_dist=4,chase_speed=0)
         self.t['gather']['monsters'].update(invuln_ticks=20,loss_ratio=1)
-        s=Session('gather',self.t,{'player':{'pos':[60,20]},'hold':['ca_loc','ca_linh']},1);li=LiveInputs()
+        # P3 [THAY THẾ]: cá thể và phần giữ theo id, bàn giao sau hao gather.
+        s=Session('gather',self.t,{'player':{'pos':[60,20]},'hold':cargo('ca_loc','ca_linh')},1);li=LiveInputs()
         s.step(li.advance());self.assertEqual(s.sim.hold,[]);self.assertEqual(s.sim.invuln_ticks,20)
         self.assertEqual(s.sim.monsters[0]['state_ticks_left'],2)
         old=s.sim.monsters[0]['pos'][:];s.step(li.advance());self.assertAlmostEqual(s.sim.monsters[0]['pos'][1]-old[1],2)
@@ -228,6 +240,131 @@ class MonsterData(unittest.TestCase):
         s=Session('gather',self.t,sc,1);li=LiveInputs()
         self.assertNotIn('monster_hit',[r['name'] for r in s.step(li.advance())])
         self.assertIn('monster_hit',[r['name'] for r in s.step(li.advance())])
+
+
+
+class DayAdapterP3(unittest.TestCase):
+    """Exercise slice A at the declared B/C interface using boundary doubles.
+
+    The real sim integration cases above remain mandatory after merging B/C.
+    """
+    def setUp(self):
+        from unittest.mock import Mock, patch
+        from chonoi.fresh import item_out, to_units
+        self.t = deepcopy(load_contract()["tuning"])
+        self.t["shop"]["vendor"] = {"buy_multiplier": 1.5,
+            "sell_prices": {"ca_loc": 20, "ca_linh": 8, "ca_keo": 10,
+                            "bong_sung": 5, "bong_dien_dien": 5, "keo_neo": 5}}
+        self.sc = {"gather": {"hold": [
+            {"id": "I10", "kind": "ca_loc", "fresh": 30},
+            {"id": "I2", "kind": "ca_loc", "fresh": 0}]},
+            "quan": {}, "day": {"money": 200, "earned": 200}}
+        self.gathers, self.quans = [], []
+
+        def gather(tuning, scenario, streams, ids):
+            sim = Mock(done=True, phase_tick=1, time_left_ticks=0)
+            items = [{"id": it["id"], "kind": it["kind"], "fresh_u": to_units(it["fresh"])}
+                     for it in scenario.get("hold", [])]
+            sim.inventory_items.return_value = sort_by_id(items)
+            sim.snapshot.return_value = {"hold": [item_out(it) for it in items]}
+            sim.step.return_value = [("gather_end", {"inventory": {"items": [item_out(it) for it in sort_by_id(items)]}})]
+            self.gathers.append(sim)
+            return sim
+
+        def quan(tuning, scenario, streams, ids, inventory, plan_dishes, carry):
+            sim = Mock(done=True, phase_tick=0, time_left_ticks=0, customers=[],
+                       stock=inventory, **carry)
+            sim.step.return_value = [("quan_end", {})]
+            sim.snapshot.side_effect = lambda: {"stock": [item_out(it) for it in sort_by_id(sim.stock)]}
+            self.quans.append(sim)
+            return sim
+
+        for name, factory in (("GatherSim", gather), ("QuanSim", quan)):
+            patcher = patch("chonoi.sim.day." + name, side_effect=factory)
+            patcher.start(); self.addCleanup(patcher.stop)
+
+    def make_day(self):
+        from chonoi.ids import IdAllocator
+        from chonoi.rng import Streams
+        from chonoi.sim.day import DaySim
+        return DaySim(self.t, deepcopy(self.sc), Streams(1), IdAllocator(), days=2)
+
+    def enter_shop(self, day):
+        day.step(LiveInputs().advance())
+        day.step(LiveInputs().advance())
+        self.assertEqual(day.phase, "shop")
+
+    def test_same_tick_handoff_preserves_spoiled_and_does_not_step_quan(self):
+        from chonoi.fresh import item_out
+        day = self.make_day()
+        rows = day.step(LiveInputs().advance())
+        self.assertEqual([r["phase"] for r in rows], ["gather", "quan"])
+        self.quans[-1].step.assert_not_called()
+        original = deepcopy(rows[0]["data"]["inventory"])
+        self.assertEqual([item_out(it) for it in day.stock], original["items"])
+        day.stock[1]["fresh_u"] = 0
+        self.assertEqual(rows[0]["data"]["inventory"], original)
+        self.assertNotEqual(self.gathers[0].inventory_items()[1]["fresh_u"], 0)
+
+    def test_shop_freezes_stock_and_exports_numeric_id_order(self):
+        day = self.make_day(); self.enter_shop(day)
+        before = deepcopy(day.stock)
+        for _ in range(100): day.step(LiveInputs().advance())
+        self.assertEqual(day.stock, before)
+        self.assertEqual([it["id"] for it in day.snapshot()["stock"]], ["I2", "I10"])
+        self.assertEqual([it["fresh"] for it in day.snapshot()["stock"]], [0, 30])
+
+    def test_vendor_sells_freshest_numeric_id_tie_and_rejects_spoiled(self):
+        day = self.make_day(); self.enter_shop(day)
+        day.stock = [{"id": i, "kind": "ca_loc", "fresh_u": u} for i, u in
+                     (("I1", 7199), ("I10", 10000), ("I2", 10000), ("I3", 7200))]
+        inp = LiveInputs(); inp.set(buy="sell:ca_loc")
+        day.step(inp.advance())
+        self.assertEqual([it["id"] for it in day.stock], ["I1", "I10", "I3"])
+        self.assertEqual((day.money, day.earned), (220, 220))
+        inp.set(buy="sell:ca_loc"); day.step(inp.advance())
+        inp.set(buy="sell:ca_loc"); day.step(inp.advance())
+        inp.set(buy="sell:ca_loc"); rows = day.step(inp.advance())
+        self.assertEqual(rows[0]["data"]["reason"], "out_of_stock")
+        self.assertEqual(day.stock[0]["id"], "I1")
+
+    def test_pending_purchase_enters_next_evening_separately_and_fresh(self):
+        day = self.make_day(); self.enter_shop(day)
+        inp = LiveInputs(BUTTONS_V11); inp.set(buy="buy:ca_linh")
+        rows = day.step(inp.advance())
+        self.assertEqual(rows[0]["name"], "vendor_trade")
+        self.assertEqual((day.money, day.earned), (188, 200))
+        self.assertEqual(len(day.stock), 2)
+        for _ in range(10): day.step(inp.advance())
+        inp.set(shop_done=True); day.step(inp.advance())
+        self.assertEqual(day.day, 2)
+        # Template ids are new, in original basket order; freshness resets to template.
+        self.assertEqual(day.active.snapshot()["hold"], [
+            {"id": "I11", "kind": "ca_loc", "fresh": 30},
+            {"id": "I12", "kind": "ca_loc", "fresh": 0}])
+        rows = day.step(inp.advance())
+        self.assertEqual(len(rows[0]["data"]["inventory"]["items"]), 2)
+        self.assertEqual(day.active.snapshot()["stock"][-1],
+                         {"id": "I13", "kind": "ca_linh", "fresh": 100})
+        self.assertEqual(day.pending_purchases, [])
+        self.assertEqual(day.scenario, self.sc)
+
+    def test_vendor_disabled_unknown_funds_and_buy_on_closing_step(self):
+        day = self.make_day(); self.enter_shop(day)
+        inp = LiveInputs(BUTTONS_V11)
+        vendor = day.tuning["shop"].pop("vendor")
+        inp.set(buy="buy:ca_loc")
+        self.assertEqual(day.step(inp.advance())[0]["data"]["reason"], "unknown")
+        day.tuning["shop"]["vendor"] = vendor
+        inp.set(buy="buy:unknown")
+        self.assertEqual(day.step(inp.advance())[0]["data"]["reason"], "unknown")
+        day.money = 0; inp.set(buy="buy:ca_loc")
+        self.assertEqual(day.step(inp.advance())[0]["data"]["reason"], "funds")
+        day.money = 30; day.shop_left = 1
+        inp.set(buy="buy:ca_loc", shop_done=True)
+        rows = day.step(inp.advance())
+        self.assertEqual([r["name"] for r in rows[:2]], ["vendor_trade", "shop_end"])
+        self.assertEqual(day.pending_purchases, ["ca_loc"])
 
 
 if __name__=='__main__':unittest.main()

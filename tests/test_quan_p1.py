@@ -5,6 +5,10 @@ Chạy: PYTHONPATH=tests:. python3 -m unittest test_quan_p1 -v
 
 import unittest
 
+from test_quan import stock_items, item_ids
+
+# P3 [THAY THẾ]: fixtures kho cá thể và giữ chỗ bằng id thay kho đếm.
+
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
 DISH_LOC = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
@@ -23,14 +27,14 @@ def run_quan(w, scenario=None, inputs=None, ticks=1, seed=1, name="q"):
 class Customers(unittest.TestCase):
     def test_khach_den_theo_lich_va_giu_cho(self):
         with Workdir() as w:
-            code, err, rows = run_quan(w, {"stock": {"ca_linh": 3, "bong_dien_dien": 1}}, ticks=120)
+            code, err, rows = run_quan(w, {"stock": stock_items({"ca_linh": 3, "bong_dien_dien": 1})}, ticks=120)
             self.assertEqual(code, 0, err)
             arr = events(rows, "customer_arrived")
             self.assertEqual(len(arr), 1)
             self.assertEqual(arr[0]["tick"], 120)
             self.assertEqual(arr[0]["data"], {"order_id": "C1", "table_id": "T1", "dish_id": "lau_ca_linh_dien_dien"})
             c = snapshots(rows)[-1]["customers"][0]
-            self.assertEqual(c["reserved"], {"bong_dien_dien": 1, "ca_linh": 3})
+            self.assertEqual(c["reserved"], item_ids({"bong_dien_dien": 1, "ca_linh": 3}))
             self.assertEqual(c["order_status"], "reserved")
             self.assertEqual(c["patience_ticks_left"], 3600)
             self.assertEqual(c["order_tick"], 120)
@@ -38,7 +42,7 @@ class Customers(unittest.TestCase):
 
     def test_kien_nhan_bat_dau_giam_tu_buoc_sau(self):
         with Workdir() as w:
-            code, err, rows = run_quan(w, {"stock": {"ca_loc": 1}}, ticks=121, name="a")
+            code, err, rows = run_quan(w, {"stock": stock_items({"ca_loc": 1})}, ticks=121, name="a")
             self.assertEqual(code, 0, err)
             self.assertEqual(snapshots(rows)[-1]["customers"][0]["patience_ticks_left"], 3599)
 
@@ -53,7 +57,7 @@ class Customers(unittest.TestCase):
     def test_het_ban_thi_bo_luot(self):
         with Workdir() as w:
             # v1.1 có 4 bàn: lấp hết bàn (khách chờ không giữ hàng) để lượt khách mới không có chỗ
-            sc = {"stock": {"ca_loc": 2}, "random_customers": True,
+            sc = {"stock": stock_items({"ca_loc": 2}), "random_customers": True,
                   "customers": [{"id": f"C{i}", "table_id": f"T{i}", "dish_id": "ca_loc_nuong_trui",
                                  "order_status": "unfulfillable"} for i in range(1, 5)]}
             code, err, rows = run_quan(w, sc, ticks=120)
@@ -62,7 +66,7 @@ class Customers(unittest.TestCase):
 
     def test_het_kien_nhan_bo_di_tru_uy_tin(self):
         with Workdir() as w:
-            sc = {"stock": {"ca_loc": 1}, "random_customers": False,
+            sc = {"stock": stock_items({"ca_loc": 1}), "random_customers": False,
                   "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
                                  "patience_ticks_left": 1}]}
             code, err, rows = run_quan(w, sc, ticks=2)
@@ -74,7 +78,7 @@ class Customers(unittest.TestCase):
                                                "reputation": 2.5})
             last = snapshots(rows)[-1]
             self.assertEqual(last["customers"], [])
-            self.assertEqual(last["stock"], {"ca_loc": 1})  # phần giữ được nhả, kho còn nguyên
+            self.assertEqual(last["stock"], stock_items({"ca_loc": 1}, 2))  # phần giữ được nhả, kho còn nguyên
 
     def test_khach_bo_di_thi_bo_mon_tren_tay(self):
         with Workdir() as w:
@@ -89,7 +93,7 @@ class Customers(unittest.TestCase):
 class KitchenAndService(unittest.TestCase):
     def test_nau_chin_bung(self):
         with Workdir() as w:
-            sc = {"stock": {"ca_loc": 1}, "random_customers": False, "player": {"pos": [2, 7]},
+            sc = {"stock": stock_items({"ca_loc": 1}), "random_customers": False, "player": {"pos": [2, 7]},
                   "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]}
             inp = [{"tick": 0, "interact": True}, {"tick": 1, "interact": False},
                    {"tick": 361, "interact": True}]
@@ -98,7 +102,7 @@ class KitchenAndService(unittest.TestCase):
             cs = events(rows, "cook_started")
             self.assertEqual(cs[0]["tick"], 1)
             self.assertEqual(cs[0]["data"], {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui",
-                                             "items": ["ca_loc"], "base_price": 60})
+                                             "items": stock_items({"ca_loc": 1}, 1), "base_price": 59})
             rd = events(rows, "dish_ready")
             self.assertEqual((rd[0]["tick"], rd[0]["data"]),
                              (361, {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui"}))
@@ -106,8 +110,8 @@ class KitchenAndService(unittest.TestCase):
             self.assertEqual((pk[0]["tick"], pk[0]["data"]),
                              (362, {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui"}))
             last = snapshots(rows)[-1]
-            self.assertEqual(last["hand"], DISH_LOC)
-            self.assertEqual(last["stock"], {})
+            self.assertEqual(last["hand"], dict(DISH_LOC, base_price=59))
+            self.assertEqual(last["stock"], [])
             self.assertEqual(last["stoves"][0]["state"], "idle")
             self.assertEqual(last["customers"][0]["order_status"], "assigned")
 
@@ -151,7 +155,7 @@ class KitchenAndService(unittest.TestCase):
 
     def test_het_ca_khach_an_tra_tien_khach_cho_roi_khong_tru_uy_tin(self):
         with Workdir() as w:
-            sc = {"random_customers": False, "time_left_ticks": 1, "stock": {"ca_loc": 1},
+            sc = {"random_customers": False, "time_left_ticks": 1, "stock": stock_items({"ca_loc": 1}),
                   "tables": [{"id": "T1", "pos": [9, 2]}],
                   "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
                                  "state": "eating", "base_price": 60, "tip": 0, "eat_ticks_left": 100}]}
@@ -164,7 +168,7 @@ class KitchenAndService(unittest.TestCase):
                              {"reason": "time", "money": 60, "earned": 60, "shift_earned": 60, "reputation": 3.0})
             self.assertEqual(rows[-1]["reason"], "time")
         with Workdir() as w:
-            sc = {"random_customers": False, "time_left_ticks": 1, "stock": {"ca_loc": 1},
+            sc = {"random_customers": False, "time_left_ticks": 1, "stock": stock_items({"ca_loc": 1}),
                   "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]}
             code, err, rows = run_quan(w, sc, ticks=5)
             self.assertEqual(code, 0, err)
@@ -176,9 +180,9 @@ class KitchenAndService(unittest.TestCase):
 class Fixtures(unittest.TestCase):
     def test_fixture_mau_thuan_exit_2(self):
         bad = [
-            {"stock": {}, "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]},
-            {"stock": {"ca_loc": 1}, "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                                                    "reserved": {"bong_sung": 2}}]},
+            {"stock": stock_items({}), "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]},
+            {"stock": stock_items({"ca_loc": 1}), "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                                                    "reserved": ["I999"]}]},
             {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "mon_la"}]},
             {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "state": "eating"}]},
             {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
@@ -199,7 +203,7 @@ class Fixtures(unittest.TestCase):
     def test_khach_chua_phuc_vu_tip_null_hoac_0_hop_le(self):
         with Workdir() as w:
             for tip in (None, 0):
-                sc = {"stock": {"ca_loc": 1}, "random_customers": False,
+                sc = {"stock": stock_items({"ca_loc": 1}), "random_customers": False,
                       "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
                                      "state": "waiting", "order_status": "reserved", "base_price": None, "tip": tip}]}
                 code, err, _ = run_quan(w, sc, ticks=1)
@@ -214,7 +218,7 @@ class Fixtures(unittest.TestCase):
         for key in ("dish_id", "order_tick", "state", "patience_ticks_left", "eat_ticks_left",
                     "order_status", "reserved", "base_price", "tip", "table_id"):
             for bad in ([], {}, "x", -1, True, 1.5):
-                cases.append({"stock": {"ca_loc": 1}, "hand": DISH_LOC, "customers": [dict(base, **{key: bad})]})
+                cases.append({"stock": stock_items({"ca_loc": 1}), "hand": DISH_LOC, "customers": [dict(base, **{key: bad})]})
         for key in ("order_id", "dish_id", "base_price"):
             for bad in ([], {}, None, -1):
                 cases.append({"hand": dict(DISH_LOC, **{key: bad}), "customers": [base]})
@@ -231,7 +235,7 @@ class Fixtures(unittest.TestCase):
 
     def test_cung_seed_ra_giong_tung_byte(self):
         with Workdir() as w:
-            sc = {"stock": {"ca_loc": 3, "bong_sung": 4, "ca_linh": 6, "bong_dien_dien": 2}}
+            sc = {"stock": stock_items({"ca_loc": 3, "bong_sung": 4, "ca_linh": 6, "bong_dien_dien": 2})}
             inp = [{"tick": 0, "move": [-1, 1]}, {"tick": 200, "move": [0, 0]}]
             outs = []
             for name in ("a", "b"):
