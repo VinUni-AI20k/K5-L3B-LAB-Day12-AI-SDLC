@@ -6,6 +6,13 @@ Mọi thay đổi đáng chú ý của game ghi ở đây. Định dạng theo [
 
 Dự kiến phát hành thành **1.0.0** cùng tag `phase-4` (D gắn tag và tạo GitHub Release sau khi cả nhóm đồng ý).
 
+### Phase 3 — contract 1.2 (Ticket-03), THAY ĐỔI PHÁ VỠ (P3-02 đến P3-08)
+- **Kho là kho cá thể** `{"items": [{"id": "I1", "kind": "ca_linh", "fresh": 100}, ...]}` thay cho kho đếm `{"items": {"ca_loc": 2}}` (#43). `game.contract.json` lên `contract_version` **1.2**, khối `tuning.freshness` đúng 4 khóa `initial`, `gather_decay_per_s`, `quan_decay_per_s`, `spoiled_below` (#43, #48).
+- Hàng hao tươi theo thời gian (0.5 điểm/s khi lặn, 0.25 điểm/s trong quán), ươn khi `fresh < 30` (vẫn chiếm ô nhưng không nấu được), giữ chỗ theo id, giá món `floor(giá niêm yết × trung bình fresh / 100)` (#45, #46, #49).
+- Headless ở 1.2: `--inventory` và `--inventory-out` là mảng cá thể; **file kho đếm của v1.1 hoặc sai schema thì mã 2**; scenario `gather.hold`, `quan.stock` là mảng cá thể, `customers[].reserved` là mảng id (P3-08).
+- **Test cũ bị thay đổi vì breaking change:** (1) `tests/helpers.py` `run_headless` mặc định chạy với bản contract 1.1 sinh từ chính `game.contract.json` (biến `CHONOI_CONTRACT`), để các test hồi quy Phase 1-2 vẫn kiểm luật kho đếm không đổi; kiểm 1.2 dùng `run_headless(..., v12=True)` ở `tests/test_p3_v12_cli.py`. (2) `tools/smoke_phase1.py` và `tools/smoke_phase2.py` chạy cùng cách (27 và 15 mục giữ nguyên); đường 1.2 do `tools/smoke_phase3.py` kiểm. (3) `tests/test_contract_v11.py`: khẳng định `contract_version` đổi từ "1.1" sang "1.2", các số chuẩn giữ nguyên. (4) `tests/test_gather_prd.py`: `invuln_ticks` nhận từ v1.1 trở lên.
+- Cách chuyển file kho cũ: dùng `counts_to_individuals` trong `chonoi/inventory.py` (cá thể `I1`, `I2`, ... độ tươi 100).
+
 ### HUD độ tươi (Phase 3, P3-06)
 - Cửa sổ chơi hiển thị độ tươi từng cá thể (thanh dưới ô giỏ), hàng ươn (✕, số ươn, độ tươi thấp nhất) và đơn bị ảnh hưởng ở quán (hàng giữ chỗ đã ươn, đơn không làm được); tính ở `chonoi/freshness_view.py`, chỉ bật khi snapshot có kho cá thể (contract 1.2).
 

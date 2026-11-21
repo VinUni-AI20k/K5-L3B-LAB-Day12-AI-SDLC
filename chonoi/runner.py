@@ -15,7 +15,7 @@ import math
 
 from .ids import IdAllocator
 from .inputs import InputPlayer
-from .inventory import write_inventory
+from .inventory import inventory_schema, write_inventory, write_inventory_v12
 from .jsonl import JsonlWriter
 from .rng import Streams
 from .sim.day import DaySim
@@ -23,13 +23,13 @@ from .sim.gather import GatherSim
 from .sim.quan import QuanSim
 
 
-def build_sim(mode, tuning, scenario, seed, inventory, days=1):
+def build_sim(mode, tuning, scenario, seed, inventory, days=1, contract_version="1.1"):
     streams, ids = Streams(seed), IdAllocator()
     if mode == "gather":
-        return GatherSim(tuning, scenario, streams, ids)
+        return GatherSim(tuning, scenario, streams, ids, contract_version=contract_version)
     if mode == "day":
-        return DaySim(tuning, scenario, streams, days)
-    return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
+        return DaySim(tuning, scenario, streams, days, contract_version=contract_version)
+    return QuanSim(tuning, scenario, streams, ids, inventory=inventory, contract_version=contract_version)
 
 
 def _common(sim, tick, sim_tick, phase_tick, tuning, state):
@@ -45,10 +45,11 @@ def _common(sim, tick, sim_tick, phase_tick, tuning, state):
 class Session:
     """Một lượt chơi: dựng sim, bước từng tick, lấy snapshot / dòng end."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, days=1):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, days=1, contract_version="1.1"):
         self.mode = mode
         self.tuning = tuning
-        self.sim = build_sim(mode, tuning, scenario, seed, inventory, days)
+        self.contract_version = contract_version
+        self.sim = build_sim(mode, tuning, scenario, seed, inventory, days, contract_version)
         self.tick = 0  # tick ngoài: tăng cả lúc pause
         self.sim_ticks = 0  # bước gameplay đã chạy
         self.paused = False
@@ -120,12 +121,15 @@ class Session:
     def write_inventory_if_done(self, inventory_out):
         """File kho: ghi MỘT lần khi có gather_end; chưa kết thúc thì giữ nguyên file đích."""
         if self.mode == "gather" and self.sim.done and inventory_out:
-            write_inventory(inventory_out, self.sim.inventory_items())
+            if inventory_schema(self.contract_version) == "individuals":
+                write_inventory_v12(inventory_out, self.sim.inventory_items())  # v1.2: kho cá thể
+            else:
+                write_inventory(inventory_out, self.sim.inventory_items())
 
 
 def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None,
-        days=1):
-    sess = Session(mode, tuning, scenario, seed, inventory, days)
+        days=1, contract_version="1.1"):
+    sess = Session(mode, tuning, scenario, seed, inventory, days, contract_version)
     player = InputPlayer(frames)
     w = JsonlWriter(out_path)
     try:

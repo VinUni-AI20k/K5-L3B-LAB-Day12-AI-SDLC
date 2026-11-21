@@ -23,7 +23,10 @@ def _between(name, v, lo, hi):
         raise BadInput(f"tuning.{name} phải trong [{lo}, {hi}], đang là {v!r}")
 
 
-def load_contract(path=DEFAULT_PATH) -> dict:
+def load_contract(path=None) -> dict:
+    """Đọc contract. Không truyền `path` thì dùng biến môi trường CHONOI_CONTRACT (chỉ để test hồi quy chạy với bản
+    1.1, xem tests/helpers.py) rồi mới tới game.contract.json."""
+    path = path or os.environ.get("CHONOI_CONTRACT") or DEFAULT_PATH
     try:
         with open(path, encoding="utf-8") as f:
             c = json.load(f)

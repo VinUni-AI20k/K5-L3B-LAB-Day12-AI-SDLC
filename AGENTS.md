@@ -5,7 +5,8 @@
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Kiểm tất định: `python3 tools/check_determinism.py` (cùng seed, output giống từng byte)
-- Smoke Phase 1 (hộp đen, 27 mục): `python3 tools/smoke_phase1.py`
+- Smoke Phase 1 (hộp đen, 27 mục): `python3 tools/smoke_phase1.py`; Phase 2: `python3 tools/smoke_phase2.py` (cả hai chạy contract 1.1 sinh từ `game.contract.json`); Phase 3, contract 1.2 và kho cá thể: `python3 tools/smoke_phase3.py`
+- Test hồi quy Phase 1-2 chạy headless với bản 1.1 (`run_headless` trong `tests/helpers.py`, biến `CHONOI_CONTRACT`); test 1.2 dùng `run_headless(..., v12=True)`.
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live` (menu chính) hoặc `python3 -m chonoi.live --mode gather|quan|day [--days N]` (mở địa chỉ in ra; WASD, E, Space, P/Esc tạm dừng, R chơi lại, M về menu; Shop: 1 mua oxy, 2 mua Máu, Enter sang Ngày mới)
 
