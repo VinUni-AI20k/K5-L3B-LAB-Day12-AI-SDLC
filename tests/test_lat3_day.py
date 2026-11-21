@@ -81,7 +81,9 @@ class DayLoop(unittest.TestCase):
         self.assertEqual((rs[-1]["reason"], rs[-1]["days_completed"], rs[-1]["state"]), ("tick_limit", 0, "playing"))
 
     def test_cap_ben_mang_hang_vao_quan_khach_goi_mon_ke_hoach(self):
-        sc = {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"], "random_fish": False}}
+        hold = [{"id": "I1", "kind": "ca_loc", "fresh": 100}, {"id": "I2", "kind": "bong_sung", "fresh": 100},
+                {"id": "I3", "kind": "bong_sung", "fresh": 100}]
+        sc = {"gather": {"hold": hold, "random_fish": False}}
         with Workdir() as w:
             rs = self.day(w, scenario=sc, frames=[{"tick": 0, "interact": True}], ticks=121)
         self.assertEqual([(r["tick"], r["data"]["reason"]) for r in events(rs, "gather_end")], [(1, "docked")])
@@ -138,7 +140,7 @@ class DayBadInput(unittest.TestCase):
         return code, os.path.exists(out)
 
     def test_quan_stock_hoac_reputation_trong_day_ma_2(self):
-        for block in ({"stock": {"ca_loc": 1}}, {"reputation": 4.0}):
+        for block in ({"stock": [{"id": "I1", "kind": "ca_loc", "fresh": 100}]}, {"reputation": 4.0}):
             with self.subTest(block=block), Workdir() as w:
                 self.assertEqual(self.exit_code(w, scenario={"quan": block}), (2, False))
 
@@ -179,8 +181,10 @@ class Shop(unittest.TestCase):
         self.assertTrue(s.done)
 
     def test_tu_dong_sau_600_buoc_va_snapshot_kho_du(self):
-        s = self.shop(0, stock={"ca_loc": 2, "bong_sung": 0})
-        self.assertEqual(s.snapshot(), {"stock": {"ca_loc": 2}})
+        items = [{"id": "I2", "kind": "bong_sung", "u": 24000}, {"id": "I1", "kind": "ca_loc", "u": 24000}]
+        s = self.shop(0, stock=items)  # v1.2: mảng cá thể, snapshot sắp theo id, Shop không hao
+        self.assertEqual(s.snapshot(), {"stock": [{"id": "I1", "kind": "ca_loc", "fresh": 100.0},
+                                                  {"id": "I2", "kind": "bong_sung", "fresh": 100.0}]})
         for _ in range(599):
             self.assertEqual(s.step(Inp()), [])
         self.assertEqual(s.step(Inp()), [("shop_end", {"reason": "time"})])

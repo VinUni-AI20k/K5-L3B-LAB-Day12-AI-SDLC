@@ -27,7 +27,10 @@ class Idle:
 
 
 def make(stock, plan_dishes=None, seed=1):
-    return QuanSim(TUNING, {"stock": dict(stock)}, Streams(seed), IdAllocator(), plan_dishes=plan_dishes)
+    """`stock` là dict đếm theo kind cho gọn; dựng thành kho cá thể v1.2 (I1, I2, ... tươi 100)."""
+    kinds = [k for k in sorted(stock) for _ in range(stock[k])]
+    items = [{"id": f"I{i + 1}", "kind": k, "fresh": 100} for i, k in enumerate(kinds)]
+    return QuanSim(TUNING, {"stock": items}, Streams(seed), IdAllocator(), plan_dishes=plan_dishes)
 
 
 def run(sim, ticks):
