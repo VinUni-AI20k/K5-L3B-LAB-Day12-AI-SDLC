@@ -36,6 +36,9 @@ class QuanSim(CustomerMixin, FreshStockMixin):
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
         # v1.2: kho là mảng cá thể {id, kind, fresh}; v1.0/v1.1: object đếm (M3: quan_fresh.py)
         self._init_stock(inventory if inventory is not None else scenario.get("stock", {}), tuning)
+        if self.item_mode:
+            for it in self.stock:
+                ids.reserve(it["id"])
         hand = scenario.get("hand")
         self.hand = dict(hand) if hand is not None else None
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))

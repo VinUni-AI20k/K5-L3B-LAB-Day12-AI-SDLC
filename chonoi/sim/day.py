@@ -199,12 +199,8 @@ class DaySim:
             self.earned = self._sub.earned
             self.reputation = self._sub.reputation
             if self._sub.done:
-                if isinstance(self._sub.stock, list):
-                    rem_stock = [
-                        {"id": it["id"], "kind": it["kind"],
-                         "fresh": from_units(it["units"]) if "units" in it else it["fresh"]}
-                        for it in self._sub.stock
-                    ]
+                if getattr(self._sub, "item_mode", False):
+                    rem_stock = self._sub.stock_items_out()
                 else:
                     rem_stock = {k: v for k, v in self._sub.stock.items() if v > 0}
                 out.extend(self._start_shop(rem_stock))
