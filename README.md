@@ -14,10 +14,16 @@ python3 -m chonoi.live --mode gather
 
 Mở địa chỉ lệnh in ra (mặc định `http://127.0.0.1:8000/`). Muốn chơi buổi tối: `python3 -m chonoi.live --mode quan`.
 
-**Chơi nối hai buổi** (quán dùng đúng giỏ mang về):
+**Chơi nối hai buổi:** mặc định, khi Gather kết thúc game tự chuyển sang Quán và mang theo kho:
 
 ```bash
-python3 -m chonoi.live --mode gather --inventory-out kho.json
+python3 -m chonoi.live --mode gather
+```
+
+Muốn giữ Gather ở màn kết thúc và chạy Quán riêng bằng file kho:
+
+```bash
+python3 -m chonoi.live --mode gather --no-auto-transition --inventory-out kho.json
 python3 -m chonoi.live --mode quan --inventory kho.json
 ```
 

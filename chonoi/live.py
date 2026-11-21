@@ -2,10 +2,12 @@
 
     python3 -m chonoi.live --mode gather|quan [--seed N] [--port 8000]
 
+Live mode tự chuyển từ gather sang quan khi gather kết thúc; dùng `--no-auto-transition` để tắt.
+
 Máy chủ HTTP nhỏ (ThreadingHTTPServer) phục vụ `chonoi/web/index.html` và hai API:
     GET  /state  -> snapshot JSON hiện tại (cùng trường như dòng snapshot của headless) + `meta` + `events`
     POST /input  -> {"move": [a, b], "interact": bool, "catch": bool}   (trạng thái phím đang giữ)
-    POST /restart -> chơi lại từ đầu (cùng seed, cùng scenario)
+    POST /restart -> chơi lại từ mode ban đầu (cùng seed, cùng scenario)
 
 Mô phỏng chạy 60 tick/s trong một luồng nền, dùng CÙNG lớp sim như headless (qua `runner.Session`).
 Client chỉ ĐỌC snapshot và tự bỏ qua trường chưa có, nên luật do nhóm viết thêm trường nào cũng không vỡ.
@@ -37,8 +39,10 @@ RECENT_EVENTS = 40
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, auto_transition=True):
         self._args = (mode, tuning, scenario, seed, inventory)
+        self._seed = seed
+        self.auto_transition = auto_transition
         self.mode = mode
         self.tuning = tuning
         self.inventory_out = inventory_out
@@ -48,6 +52,7 @@ class LiveGame:
         self._reset()
 
     def _reset(self):
+        self.mode = self._args[0]
         self.session = Session(*self._args)
         self.inputs = LiveInputs()
         self.events = []
@@ -91,11 +96,18 @@ class LiveGame:
         del self.events[:-RECENT_EVENTS]
         if s.done and not self._saved:
             self._saved = True
-            if self.inventory_out:
+            if self.inventory_out and self.mode == "gather":
                 try:
                     s.write_inventory_if_done(self.inventory_out)
                 except OSError as e:
                     sys.stderr.write(f"lỗi ghi kho: {e}\n")
+            if self.auto_transition and self.mode == "gather":
+                inventory = s.sim.inventory_items()
+                self.mode = "quan"
+                self.session = Session("quan", self.tuning, {}, self._seed, inventory)
+                self.inputs = LiveInputs()
+                self.events = []
+                self._saved = False
 
     # --- API cho handler -----------------------------------------------------------
     def state_json(self) -> bytes:
@@ -222,6 +234,8 @@ def main(argv=None) -> int:
     p.add_argument("--scenario")
     p.add_argument("--inventory", help="chỉ với quan: nạp kho từ file")
     p.add_argument("--inventory-out", dest="inventory_out", help="chỉ với gather: ghi kho khi kết thúc buổi")
+    p.add_argument("--no-auto-transition", action="store_true",
+                   help="giữ màn gather sau khi buổi sáng kết thúc")
     a = p.parse_args(argv)
     try:
         if a.inventory and a.mode != "quan":
@@ -233,7 +247,8 @@ def main(argv=None) -> int:
         inventory = read_inventory(a.inventory) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out,
+                        auto_transition=not a.no_auto_transition)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")

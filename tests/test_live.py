@@ -27,6 +27,35 @@ def _post(url, obj):
 
 
 class LiveServerTest(unittest.TestCase):
+    def test_auto_transition_carries_gather_inventory_into_quan(self):
+        tuning = load_contract()["tuning"]
+        scenario = {"hold": ["ca_loc", "bong_sung"], "time_left_ticks": 1}
+        game = LiveGame("gather", tuning, scenario, 1)
+
+        game._tick_once()
+
+        self.assertEqual(game.mode, "quan")
+        self.assertEqual(game.session.snapshot()["stock"], {"bong_sung": 1, "ca_loc": 1})
+        self.assertEqual(game.session.tick, 0)
+        state = json.loads(game.state_json())
+        self.assertEqual(state["mode"], "quan")
+        self.assertEqual(state["meta"], tuning["quan"])
+        game._tick_once()
+        self.assertEqual(game.session.tick, 1)
+        game.restart()
+        self.assertEqual(game.mode, "gather")
+
+    def test_auto_transition_can_be_disabled(self):
+        tuning = load_contract()["tuning"]
+        scenario = {"time_left_ticks": 1}
+        game = LiveGame("gather", tuning, scenario, 1, auto_transition=False)
+
+        game._tick_once()
+
+        self.assertEqual(game.mode, "gather")
+        self.assertTrue(game.session.done)
+        self.assertEqual(game.session.sim.reason, "time")
+
     def test_state_input_and_clean_stop(self):
         tuning = load_contract()["tuning"]
         server = LiveServer(LiveGame("gather", tuning, {}, 1), port=0)  # cổng ngẫu nhiên
