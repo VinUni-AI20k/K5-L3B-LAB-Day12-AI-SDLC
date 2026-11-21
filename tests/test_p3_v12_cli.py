@@ -47,7 +47,7 @@ def gather(hold, ticks=1, frames=None, seed=42, extra=None):
 
 class Manifest(unittest.TestCase):
     def test_game_contract_is_v12_with_freshness(self):
-        self.assertEqual(CONTRACT["contract_version"], "1.2")
+        self.assertEqual(CONTRACT["contract_version"], "1.3")  # kho cá thể từ 1.2 trở lên
         self.assertEqual(set(T["freshness"]), {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"})
 
 

@@ -31,8 +31,8 @@ def main():
     p = lambda name: os.path.join(t, name)  # noqa: E731
     with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
         contract = json.load(f)
-    check("game.contract.json là 1.2 và có khối freshness 4 khóa",
-          contract["contract_version"] == "1.2" and set(contract["tuning"]["freshness"]) ==
+    check("game.contract.json là 1.3 (kho cá thể từ 1.2) và có khối freshness 4 khóa",
+          contract["contract_version"] == "1.3" and set(contract["tuning"]["freshness"]) ==
           {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"})
     r = lambda args: run(args, v12=True)  # noqa: E731
 
