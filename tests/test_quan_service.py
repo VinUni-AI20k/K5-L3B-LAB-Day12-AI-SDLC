@@ -47,6 +47,26 @@ class QuanService(unittest.TestCase):
         self.assertEqual(served[0]["data"]["tip"], 8)
         self.assertEqual(session.sim.customers[0]["order_status"], "served")
 
+    def test_two_stoves_each_take_oldest_reserved_order(self):
+        # AC-P2-30 (v1.1): B1 [2,8], B2 [5,8]; interact ở từng bếp lấy đơn reserved cũ nhất (order_tick, id bàn)
+        scenario = {
+            "player": {"pos": [2, 8]}, "random_customers": False, "stock": {"bong_sung": 2, "ca_loc": 1},
+            "customers": [{"id": "C1", "table_id": "T2", "dish_id": "goi_bong_sung", "order_tick": 0},
+                          {"id": "C2", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_tick": 0}],
+        }
+        session = Session("quan", self.tuning, scenario, 1)
+        controls = LiveInputs()
+        controls.set(interact=True)
+        first = session.step(controls.advance())
+        controls.set(interact=False)
+        controls.advance()
+        session.sim.pos = list(self.tuning["quan"]["stoves"][1]["pos"])
+        controls.set(interact=True)
+        second = session.step(controls.advance())
+        got = [(r["data"]["stove_id"], r["data"]["order_id"]) for r in first + second if r["name"] == "cook_started"]
+        self.assertEqual(got, [("B1", "C2"), ("B2", "C1")], "cùng order_tick -> id bàn T1 trước T2")
+        self.assertEqual([st["state"] for st in session.sim.stoves], ["cooking", "cooking"])
+
     def test_finished_meal_is_paid_after_eating_ticks(self):
         scenario = {
             "random_customers": False,

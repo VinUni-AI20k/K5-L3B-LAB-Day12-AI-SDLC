@@ -1,0 +1,36 @@
+Smoke --mode day (AC-P2-40..43, 53) trên commit bàn giao
+
+[1] --days 1, không input, 22.200 tick: mã 0, 3.01 s (yêu cầu ≤ 20 s), end = {"ticks": 22200, "reason": "days_complete", "days_completed": 1, "money": 0, "earned": 0, "reputation": 3.0, "score": 300}
+
+[2] --days 3, money/earned 1000, cập bến ngay, Ngày 1 mua oxygen + hp rồi shop_done: mã 0, 3.03 s
+  tick      0 Ngày 1 gather day_start    {}
+  tick      0 Ngày 1 gather day_plan     {"dishes": {"ca_loc_nuong_trui": 3, "goi_bong_sung": 3}}
+  tick      0 Ngày 1 gather phase_start  {}
+  tick      1 Ngày 1 gather gather_end   {"reason": "docked", "inventory": {"items": {"bong_sung": 2, "ca_loc": 1}}}
+  tick      1 Ngày 1 quan   phase_start  {}
+  tick  10801 Ngày 1 quan   quan_end     {"reason": "time", "money": 1000, "earned": 1000, "shift_earned": 0, "reputation": 1.0}
+  tick  10801 Ngày 1 shop   phase_start  {}
+  tick  10803 Ngày 1 shop   bought       {"upgrade": "oxygen", "level": 1, "price": 200, "money": 800}
+  tick  10804 Ngày 1 shop   bought       {"upgrade": "hp", "level": 1, "price": 250, "money": 550}
+  tick  10805 Ngày 1 shop   shop_end     {"reason": "done"}
+  tick  10805 Ngày 2 gather day_start    {}
+  tick  10805 Ngày 2 gather day_plan     {"dishes": {"ca_loc_nuong_trui": 2, "lau_ca_linh_dien_dien": 2}}
+  tick  10805 Ngày 2 gather phase_start  {}
+  tick  21605 Ngày 2 gather gather_end   {"reason": "time", "inventory": {"items": {"bong_sung": 2, "ca_loc": 1}}}
+  tick  21605 Ngày 2 quan   phase_start  {}
+  tick  32405 Ngày 2 quan   quan_end     {"reason": "time", "money": 550, "earned": 1000, "shift_earned": 0, "reputation": 0}
+  tick  32405 Ngày 2 shop   phase_start  {}
+  tick  33005 Ngày 2 shop   shop_end     {"reason": "time"}
+  tick  33005 Ngày 3 gather day_start    {}
+  tick  33005 Ngày 3 gather day_plan     {"dishes": {"goi_bong_sung": 2, "canh_chua_ca_loc": 2, "ca_keo_nuong": 2}}
+  tick  33005 Ngày 3 gather phase_start  {}
+  tick  43805 Ngày 3 gather gather_end   {"reason": "time", "inventory": {"items": {"bong_sung": 2, "ca_loc": 1}}}
+  tick  43805 Ngày 3 quan   phase_start  {}
+  tick  54605 Ngày 3 quan   quan_end     {"reason": "time", "money": 550, "earned": 1000, "shift_earned": 0, "reputation": 0}
+  tick  54605 Ngày 3 shop   phase_start  {}
+  tick  55205 Ngày 3 shop   shop_end     {"reason": "time"}
+  Snapshot đầu mỗi pha gather:
+    Ngày 1: hp_max=3 oxygen_max_ticks=1800 upgrades={} active={} monsters=['M1'] money=1000 earned=1000
+    Ngày 2: hp_max=4 oxygen_max_ticks=2700 upgrades={'oxygen': 1, 'hp': 1} active={'oxygen': 1, 'hp': 1} monsters=['M1'] money=550 earned=1000
+    Ngày 3: hp_max=4 oxygen_max_ticks=2700 upgrades={'oxygen': 1, 'hp': 1} active={'oxygen': 1, 'hp': 1} monsters=['M1', 'M2'] money=550 earned=1000
+  end = {"ticks": 55205, "reason": "days_complete", "days_completed": 3, "money": 550, "earned": 1000, "score": 1000}

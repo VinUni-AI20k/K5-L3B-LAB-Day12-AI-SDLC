@@ -1,0 +1,6 @@
+Smoke tích hợp P2 (AC-P2-50): gather --inventory-out -> quan --inventory, 6 nguyên liệu v1.1
+gather mã thoát 0, end reason = docked
+gather_end.inventory = {"items": {"bong_dien_dien": 1, "bong_sung": 1, "ca_keo": 2, "ca_linh": 1, "ca_loc": 1, "keo_neo": 1}}
+kho.json            = {"items": {"bong_dien_dien": 1, "bong_sung": 1, "ca_keo": 2, "ca_linh": 1, "ca_loc": 1, "keo_neo": 1}}
+quan mã thoát 0, snapshot tick 0 stock = {"bong_dien_dien": 1, "bong_sung": 1, "ca_keo": 2, "ca_linh": 1, "ca_loc": 1, "keo_neo": 1}
+KẾT QUẢ: ĐẠT (kho khớp gather_end, quán tick 0 nhận đúng 6 loại)
