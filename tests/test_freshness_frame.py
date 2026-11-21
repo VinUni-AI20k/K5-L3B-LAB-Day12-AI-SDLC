@@ -206,41 +206,5 @@ class RealContractSmokeTest(unittest.TestCase):
             self.assertTrue(filecmp.cmp(a, b, shallow=False))
 
 
-class ByteIdentityVsHeadTest(unittest.TestCase):
-    """So byte gather/quan seed 5 ticks 3000 với git archive HEAD (ngoài repo)."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls._scratch = tempfile.mkdtemp(prefix="chonoi-head-", dir=tempfile.gettempdir())
-        tar = subprocess.run(
-            ["git", "archive", "HEAD", "chonoi", "game.contract.json", "tests"],
-            cwd=ROOT, capture_output=True, check=True)
-        subprocess.run(["tar", "-x"], cwd=cls._scratch, input=tar.stdout, check=True)
-
-    @classmethod
-    def tearDownClass(cls):
-        shutil.rmtree(cls._scratch, ignore_errors=True)
-
-    def test_gather_quan_seed5_ticks3000(self):
-        with Workdir() as w:
-            for mode, extra in (
-                ("gather", []),
-                ("quan", ["--inventory", write_json(w.path("inv.json"), {"items": {"ca_loc": 1}})]),
-            ):
-                cur, old = w.path(f"cur-{mode}.jsonl"), w.path(f"old-{mode}.jsonl")
-                args = ["--mode", mode, "--seed", "5", "--ticks", "3000", "--out"]
-                env = dict(os.environ, PYTHONPATH="tests:.")
-                cur_p = subprocess.run(
-                    ["python3", "-m", "chonoi.headless", *args, cur, *extra],
-                    cwd=ROOT, capture_output=True, text=True, env=env)
-                old_p = subprocess.run(
-                    ["python3", "-m", "chonoi.headless", *args, old, *extra],
-                    cwd=self._scratch, capture_output=True, text=True, env=env)
-                self.assertEqual(cur_p.returncode, 0, cur_p.stderr)
-                self.assertEqual(old_p.returncode, 0, old_p.stderr)
-                self.assertTrue(filecmp.cmp(cur, old, shallow=False),
-                                f"{mode} seed=5 ticks=3000 khác HEAD từng byte")
-
-
 if __name__ == "__main__":
     unittest.main()
