@@ -167,22 +167,21 @@ class QuanSim:
         # 1. đồng hồ, timer ca, nấu, ăn, kiên nhẫn
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
+        self._tick_patience()
+        self._tick_eating()
+        # 2. xét bếp theo id: món nấu xong -> ready (ready_ticks = 0)
+        self._tick_cooking(events)
+        # 3. di chuyển rồi tối đa MỘT interact (phục vụ ở bước cuối ca vẫn hợp lệ)
+        self._move(inp)
+        self._interact(inp, events)
+        # 4. theo id bàn: ăn xong trả tiền / hết kiên nhẫn / hết ca (closing); dọn xong -> quan_end
+        self._settle_tables(events)
         if self.time_left_ticks <= 0:
-            self._settle_tables(events)
             self.done = True
             self.reason = "time"
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
             return events
-        self._tick_patience()
-        self._tick_eating()
-        self._tick_cooking(events)
-        self._start_cooking(events)
-        # 3. di chuyển rồi tối đa MỘT interact
-        self._move(inp)
-        self._interact(inp, events)
-        # 4. theo id bàn: ăn xong trả tiền / hết kiên nhẫn / hết ca; dọn xong -> quan_end
-        self._settle_tables(events)
         # 5. còn giờ: lượt khách mới
         self._spawn_customer(events)
         return events
@@ -205,57 +204,57 @@ class QuanSim:
                     events.append(("dish_ready", {"stove_id": stove["id"], "order_id": dish["order_id"],
                                                    "dish_id": dish["dish_id"]}))
 
-    def _start_cooking(self, events):
-        orders = sorted((c for c in self.customers if c["state"] == "waiting" and c["order_status"] == "reserved"),
-                        key=lambda c: (c["order_tick"], id_key(c["id"])))
-        for stove in self.stoves:
-            if stove["state"] != "idle" or not orders:
-                continue
-            customer = orders.pop(0)
-            dish_id = customer["dish_id"]
-            recipe = self.menu[dish_id]["recipe"]
-            items = {kind: customer["reserved"].get(kind, 0) for kind in sorted(recipe)}
-            for kind, count in items.items():
-                self.stock[kind] = max(0, self.stock.get(kind, 0) - count)
-            customer["reserved"] = {}
-            customer["order_status"] = "assigned"
-            base_price = self.menu[dish_id]["price"]
-            customer["base_price"] = base_price
-            dish = {"order_id": customer["id"], "dish_id": dish_id, "base_price": base_price}
-            stove.update(state="cooking", dish=dish,
-                         cook_ticks_left=int(round(self.menu[dish_id]["cook_s"] * TICK)), ready_ticks=0)
-            events.append(("cook_started", {"stove_id": stove["id"], "order_id": customer["id"],
-                           "dish_id": dish_id, "items": items, "base_price": base_price}))
+    def _cook_at(self, stove, events) -> bool:
+        """Bếp idle được interact: lấy đơn reserved cũ nhất (order_tick, id bàn), tiêu nguyên liệu giữ, chốt giá."""
+        orders = [c for c in self.customers if c["state"] == "waiting" and c["order_status"] == "reserved"]
+        if not orders:
+            return False
+        customer = min(orders, key=lambda c: (c["order_tick"], id_key(c["table_id"])))
+        dish_id = customer["dish_id"]
+        recipe = self.menu[dish_id]["recipe"]
+        items = {kind: customer["reserved"].get(kind, 0) for kind in sorted(recipe)}
+        for kind, count in items.items():
+            self.stock[kind] = max(0, self.stock.get(kind, 0) - count)
+        customer["reserved"] = {}
+        customer["order_status"] = "assigned"
+        base_price = self.menu[dish_id]["price"]
+        customer["base_price"] = base_price
+        dish = {"order_id": customer["id"], "dish_id": dish_id, "base_price": base_price}
+        stove.update(state="cooking", dish=dish,
+                     cook_ticks_left=int(round(self.menu[dish_id]["cook_s"] * TICK)), ready_ticks=0)
+        events.append(("cook_started", {"stove_id": stove["id"], "order_id": customer["id"],
+                       "dish_id": dish_id, "items": items, "base_price": base_price}))
+        return True
 
     def _interact(self, inp, events):
+        """PRD-0 mục F: tối đa MỘT interact, chọn đối tượng gần nhất theo (khoảng cách, bếp trước bàn, id).
+        Đối tượng được chọn không tương tác được thì bỏ lượt (không thử đối tượng khác)."""
         if not inp.pressed("interact"):
             return
-        candidates = []
         radius = self.t["interact_radius"]
-        if self.hand is None:
-            for stove in self.stoves:
-                distance = self._distance(stove["pos"])
-                if stove["state"] == "ready" and distance <= radius:
-                    candidates.append((distance, 0, stove["id"], "stove", stove))
-        for table in self.tables:
-            customer = next((c for c in self.customers if c["table_id"] == table["id"] and c["state"] == "waiting"
-                             and c["order_status"] == "assigned"), None)
-            if not customer or not isinstance(self.hand, dict) or self.hand.get("order_id") != customer["id"]:
-                continue
-            distance = self._distance(table["pos"])
-            if distance <= radius:
-                candidates.append((distance, 1, table["id"], "table", (table, customer)))
+        candidates = [(self._distance(st["pos"]), 0, id_key(st["id"]), "stove", st) for st in self.stoves]
+        candidates += [(self._distance(tb["pos"]), 1, id_key(tb["id"]), "table", tb) for tb in self.tables]
+        candidates = [c for c in candidates if c[0] <= radius]
         if not candidates:
             return
-        _, _, _, target_type, target = min(candidates, key=lambda c: (c[0], c[1], id_key(c[2])))
+        _, _, _, target_type, obj = min(candidates, key=lambda c: c[:3])
         if target_type == "stove":
-            stove = target
-            dish = dict(stove["dish"])
-            self.hand = dish
-            stove.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
-            events.append(("dish_picked", {"stove_id": stove["id"], "order_id": dish["order_id"],
-                                           "dish_id": dish["dish_id"]}))
+            stove = obj
+            if stove["state"] == "idle":
+                self._cook_at(stove, events)
+            elif stove["state"] == "ready" and self.hand is None:
+                dish = dict(stove["dish"])
+                self.hand = dish
+                stove.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
+                events.append(("dish_picked", {"stove_id": stove["id"], "order_id": dish["order_id"],
+                                               "dish_id": dish["dish_id"]}))
             return
+        table = obj
+        customer = next((c for c in self.customers if c["table_id"] == table["id"]), None)
+        if (customer is None or customer["state"] != "waiting" or customer["order_status"] != "assigned"
+                or not isinstance(self.hand, dict) or self.hand.get("order_id") != customer["id"]):
+            return
+        target = (table, customer)
         table, customer = target
         dish = self.hand
         base_price = dish["base_price"]

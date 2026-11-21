@@ -18,7 +18,12 @@ class QuanService(unittest.TestCase):
         }
         session = Session("quan", self.tuning, scenario, 1)
         controls = LiveInputs()
+        idle = session.step(controls.advance())
+        self.assertNotIn("cook_started", [r["name"] for r in idle], "không interact thì bếp không tự nấu")
+        controls.set(interact=True)
         started = session.step(controls.advance())
+        controls.set(interact=False)
+        controls.advance()
         self.assertEqual([r["name"] for r in started], ["cook_started"])
         self.assertEqual(started[0]["data"]["items"], {"bong_sung": 2})
         self.assertEqual(session.sim.stock["bong_sung"], 0)
@@ -55,6 +60,28 @@ class QuanService(unittest.TestCase):
                                             "tip": 8, "amount": 48, "reason": "finished_eating"})
         self.assertEqual(session.sim.earned, 48)
         self.assertEqual(session.sim.reputation, 3.2)
+
+    def test_serve_on_last_tick_then_closing_pays(self):
+        scenario = {
+            "time_left_ticks": 1, "random_customers": False, "player": {"pos": [9, 2]},
+            "hand": {"order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40},
+            "customers": [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung",
+                           "order_status": "assigned", "reserved": {}}],
+        }
+        session = Session("quan", self.tuning, scenario, 1)
+        controls = LiveInputs()
+        controls.set(interact=True)
+        rows = session.step(controls.advance())
+        self.assertEqual([r["name"] for r in rows], ["served", "paid", "quan_end"])
+        self.assertEqual(rows[1]["data"]["reason"], "closing")
+
+    def test_nearest_object_not_interactable_skips_turn(self):
+        # đứng ngay bếp B1 idle, không có đơn reserved; bàn T1 ở xa -> bỏ lượt, không event
+        scenario = {"player": {"pos": [2, 8]}, "random_customers": False, "stock": {}}
+        session = Session("quan", self.tuning, scenario, 1)
+        controls = LiveInputs()
+        controls.set(interact=True)
+        self.assertEqual(session.step(controls.advance()), [])
 
     def test_closing_collects_eating_order_without_waiting_for_timer(self):
         scenario = {
