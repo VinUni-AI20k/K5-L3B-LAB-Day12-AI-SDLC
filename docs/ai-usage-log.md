@@ -24,3 +24,7 @@
 - Việc: unit test `chonoi/sim/shop.py` + `ramp.py` (`tests/test_shop_ramp_units.py`, 8 test); thay `TODO(nhóm)` đã làm trong docstring `chonoi/scenario.py` bằng chỗ kiểm thật ở `sim/quan.py`; ADR-0001 (RNG tách luồng + số liệu từ contract); ở quán: vòng kiên nhẫn và thanh chờ bàn dùng chung thang xanh lá → vàng → đỏ và bảng màu `a11y.HC` khi bật tương phản cao; `freshColor` có kiểu tương phản cao (món ươn xám sáng `#c8c8c8`).
 - Kiểm: `pre-push-check` → unittest 170 OK, headless gather/quan/day exit 0 (1 Ngày 0.4 s), client-js SKIP (máy không có node). Chơi thử bản demo "Buổi tối — Quán" trên trình duyệt (`?debug`): console không lỗi; đặt tạm kiên nhẫn 3 khách 0.9/0.45/0.15 và đếm điểm ảnh canvas `px` → thường xanh/vàng `#ffd23a`/đỏ `#ff3a3a`, tương phản cao `#ffef00`/`#ff2a2a`. `freshColor` gọi thử đúng cả hai chế độ. Thanh chờ bàn chưa thấy trên màn hình (cần đủ bàn kín khách), chỉ kiểm qua code.
 - AI sai: bản nháp ADR ghi `recoil_dir` là một luồng RNG, thực ra là trường dữ liệu của thủy quái; phát hiện khi grep `get("…")` trong `chonoi/sim` và đã sửa trước khi commit. Lần sửa câu ví dụ đầu tiên để thừa một vế lặp, đọc lại thì thấy và sửa.
+
+## Cao Duy Minh (`workcaominh-gif`) — báo cáo cuối
+- Nhờ Claude Code soạn nháp phần đóng góp của mình trong `docs/retro.md` (mục "Đóng góp từng người") và phản tư `docs/members/workcaominh-gif.md`, dựa trên `git log`, tag và báo cáo các phase. Đã đọc lại, sửa cho đúng việc mình làm; chỉ điền dòng của mình, không viết hộ thành viên khác.
+
