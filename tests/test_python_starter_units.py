@@ -43,11 +43,20 @@ class Units(unittest.TestCase):
             with self.assertRaises(BadInput):
                 load_frames(write_json(w.path("i.json"), frames({"tick": 0, "move": [2, 0]})))
 
-    def test_catch_is_a_v10_button_and_attack_is_not(self):
+    def test_v11_buttons_and_buy_only_at_declared_frame(self):
+        # Lát 0 đổi (v1.1 mục 4.2): attack/photo/pause/shop_done là nút hợp lệ; tên lạ vẫn BadInput.
         with Workdir() as w:
-            load_frames(write_json(w.path("i.json"), frames({"tick": 0, "catch": True})))
+            fr = load_frames(write_json(w.path("i.json"), frames(
+                {"tick": 0, "catch": True, "attack": True, "pause": True}, {"tick": 2, "buy": "oxygen"})))
             with self.assertRaises(BadInput):
-                load_frames(write_json(w.path("j.json"), frames({"tick": 0, "attack": True})))
+                load_frames(write_json(w.path("j.json"), frames({"tick": 0, "jump": True})))
+            with self.assertRaises(BadInput):
+                load_frames(write_json(w.path("k.json"), frames({"tick": 0, "buy": 1})))
+        pl = InputPlayer(fr)
+        s0 = pl.advance(0)
+        self.assertTrue(s0.pressed("pause") and s0.pressed("attack") and s0.buy is None)
+        self.assertEqual(pl.advance(2).buy, "oxygen")
+        self.assertIsNone(pl.advance(3).buy, "buy không kế thừa sang frame sau")
 
     def test_live_inputs_keep_fast_tap_edge(self):
         li = LiveInputs()

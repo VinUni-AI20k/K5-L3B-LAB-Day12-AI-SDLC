@@ -111,7 +111,8 @@ class DaySim:
     def _start_day(self, out):
         self.day += 1
         self.active_upgrades = dict(self.upgrades)
-        gather = GatherSim(self._gather_tuning(), copy.deepcopy(self._gather_tpl), self.streams, self.ids)
+        gather = GatherSim(self._gather_tuning(), copy.deepcopy(self._gather_tpl), self.streams, self.ids,
+                           day=self.day)  # bố trí Cá Sấu theo Ngày (M2 từ Ngày 3)
         out.append(("gather", self.day, "day_start", {}))
         out.append(("gather", self.day, "day_plan", self._plan_data()))
         self._begin("gather", gather, out)
