@@ -1,4 +1,4 @@
-"""File kho v1.0 (Contract G): {"items": {id: số nguyên >= 0}}.
+"""File kho v1.0 (Contract G, giữ nguyên schema ở v1.1; 6 loại nguyên liệu): {"items": {id: số nguyên >= 0}}.
 
 Đọc: từ chối sai schema / id lạ / số âm (BadInput -> mã 2).
 Ghi: bỏ mục bằng 0, qua file tạm cùng thư mục rồi thay thế, byte-ổn-định.
@@ -10,10 +10,14 @@ import tempfile
 
 from .errors import BadInput
 
-KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
+# v1.1: 6 nguyên liệu (thêm ca_keo, keo_neo). KINDS_P1 giữ tên cũ làm bí danh cho mã đang import.
+FISH_KINDS = ("ca_loc", "ca_linh", "ca_keo")
+NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
+KINDS = ("ca_loc", "ca_linh", "ca_keo", "bong_dien_dien", "bong_sung", "keo_neo")
+KINDS_P1 = KINDS
 
 
-def validate_items(items, kinds=KINDS_P1):
+def validate_items(items, kinds=KINDS):
     if not isinstance(items, dict):
         raise BadInput("items phải là object")
     out = {}
@@ -27,7 +31,7 @@ def validate_items(items, kinds=KINDS_P1):
     return out
 
 
-def read_inventory(path: str, kinds=KINDS_P1) -> dict:
+def read_inventory(path: str, kinds=KINDS) -> dict:
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
