@@ -14,7 +14,7 @@
   - Gộp muộn nên nhiều lần phải merge `main` và giải xung đột (`sim/quan.py`, `ai-usage-log.md`, `standup.md`).
   - Chưa review chéo: cả 11 PR đã gộp (#1–#11) đều có 0 review trên GitHub (`gh pr list --json reviews`), dù thỏa thuận là người dự phòng review. Lát 4a đẩy thẳng lên `main`, không qua PR.
   - Hợp đồng viết muộn (`bfb5160`, PR #10) nên code và hợp đồng đã lệch: `customer_id`/`order_id`, payload `paid`, `dish_burned`, `state:"running"` (`docs/contracts/README.md` mục 10). Thiếu đàn cá kèo nên kế hoạch D3–D5 không lấy đủ nguyên liệu (clarify #5).
-  - Nhiều câu hỏi chờ PO quá lâu (Q3 D-01..D-09, Q4-F1, `no_dish`). PO chốt ở clarify #8–#13 lúc cuối phase.
+  - Nhiều câu hỏi chờ PO quá lâu (Q3 D-01..D-09, Q4-F1, `no_dish`). PO chốt ở clarify #10–#15 lúc cuối phase.
 - Trạng thái hành động (lúc `721088a`): `day.py` đã vào `main` (invzble-z, `721088a`), Kiên chưa pair. Adapter kho cá thể chưa có.
 - Hành động bổ sung: **mỗi PR phải có 1 review của người dự phòng trước khi gộp** (Integrator không tự gộp PR chưa review). Người nhận: **invzble-z**, PO kiểm ở retro P4.
 - 1 hành động cho Phase 3: **trả nợ Phase 2 trước khi bật v1.2.** Số chuẩn v1.1 đã có (`b85711d`). Bào đẩy adapter kho cá thể trước phút 12. Kiên (đã xong 3b) pair với Bào làm `day.py`. Người nhận: **invzble-z**. Minh kiểm lại ở standup phút 20.

@@ -128,8 +128,8 @@ DayIntro → gather → EveningIntro → quan → DayResult → Shop → DayIntr
 | `day_plan` D3 | `goi_bong_sung ×2, canh_chua_ca_loc ×2, ca_keo_nuong ×2` | `lau_ca_linh_dien_dien ×2, ca_keo_nuong ×3` |
 | `day_plan` D4 | `lau_mam ×1, ca_loc_nuong_trui ×2, goi_bong_sung ×1` | `lau_mam ×2, goi_bong_sung ×4` |
 | `day_plan` D5 | `lau_mam ×1, lau_ca_linh_dien_dien ×1, ca_loc_nuong_trui ×1` | `lau_mam ×3, canh_chua_ca_loc ×3` |
-| `gather.fish_initial` | Số `8` | Mảng 6 đàn cố định, **không có đàn `ca_keo`**, trong khi kế hoạch D3–D5 cần `ca_keo` (D3 cần 6). Chưa có sinh cá theo lịch thì không lấy đủ được |
-| Khóa cá | `fish_speed`, `fish_turn_ticks`, `fish_max`, `fish_spawn_ticks`, `fish_spawn_clearance`, `fish_x`, `fish_depths`, `fish_spawn_x`, `fish_spawn_depths`, `fish_weights` | Một khối `fish_motion {speed, turn_every_ticks, max_turn_deg, min_depth}` (`max_turn_deg`, `min_depth` không có trong ticket) |
+| `gather.fish_initial` | Số `8` | Mảng 6 đàn cố định, **không có đàn `ca_keo`**, trong khi kế hoạch D3–D5 cần `ca_keo` (D3 cần 6). Sim đã đọc được khóa ticket (`7858a39`), manifest chưa khai nên vẫn không lấy đủ |
+| Khóa cá | `fish_speed`, `fish_turn_ticks`, `fish_max`, `fish_spawn_ticks`, `fish_spawn_clearance`, `fish_x`, `fish_depths`, `fish_spawn_x`, `fish_spawn_depths`, `fish_weights` | Manifest vẫn chỉ có khối `fish_motion {speed, turn_every_ticks, max_turn_deg, min_depth}`. `sim/gather.py` (`7858a39`) đã đọc được các khóa ticket, chỉ thiếu trong manifest |
 | `gather.monsters` | `species.ca_sau {patrol_speed, chase_speed, detect_radius, exit_radius, depths, hit_radius, recoil_ticks, recoil_dist}`, `spawns[]` (M1, M2 từ Ngày 3), `invuln_ticks:90`, `loss_ratio:0.5` | Chỉ có `detect_radius`, `exit_radius`, `depths` |
 | `shop` | `{max_ticks, upgrades}` | ✅ đã thêm `max_ticks: 600` (`721088a`) |
 
