@@ -3,6 +3,7 @@
 import math
 
 from ..ids import id_key, sort_by_id
+from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -24,7 +25,9 @@ class QuanSim:
         self._tgt = None
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
+        # shortcut: kho cá thể v1.2 từ --inventory được gộp về kho đếm (mất id/fresh) — lát 3 thay
+        # bằng kho cá thể + giữ theo id + giá theo fresh.
+        self.stock = dict(hold_to_items(inventory) if inventory is not None else scenario.get("stock", {}))
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = scenario.get("reputation", t["reputation_initial"])

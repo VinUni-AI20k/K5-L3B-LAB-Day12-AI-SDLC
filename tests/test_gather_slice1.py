@@ -13,6 +13,7 @@ import unittest
 
 from helpers import (Workdir, close, events, frames, read_jsonl, run_headless,
                      snapshots, write_json)
+from helpers import counts, items, kinds  # v1.2 kho cá thể
 
 
 class Oxygen(unittest.TestCase):
@@ -105,7 +106,7 @@ class Oxygen(unittest.TestCase):
         """Máu 1, oxy 0 dưới nước: choke tick 60 -> faint, giỏ bỏ theo LIFO, kho rỗng, dừng ngay."""
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {"player": {"pos": [50, 10], "oxygen_ticks": 0, "hp": 1},
-                                                           "hold": ["ca_loc", "bong_sung", "ca_linh"],
+                                                           "hold": items(*["ca_loc", "bong_sung", "ca_linh"]),
                                                            "fish": [], "random_fish": False}})
             inv = w.path("inv.json")
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "70",
@@ -119,28 +120,28 @@ class Oxygen(unittest.TestCase):
             faint = events(rows, "faint")
             self.assertEqual(len(faint), 1, faint)
             self.assertEqual(faint[0]["tick"], 60)
-            self.assertEqual(faint[0]["data"], {"cause": "choke", "hp": 0,
+            self.assertEqual({**faint[0]["data"], "lost": kinds(faint[0]["data"]["lost"])}, {"cause": "choke", "hp": 0,
                                                 "lost": ["ca_linh", "bong_sung", "ca_loc"]},
                              "lost theo thứ tự bỏ LIFO (nhặt sau bỏ trước)")
             ends = events(rows, "gather_end")
             self.assertEqual(len(ends), 1)
             self.assertEqual(ends[0]["tick"], 60)
-            self.assertEqual(ends[0]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+            self.assertEqual(ends[0]["data"], {"reason": "fainted", "inventory": {"items": []}})
             last = snapshots(rows)[-1]
             self.assertEqual(last["state"], "finished")
             self.assertEqual(last["player"]["hp"], 0)
-            self.assertEqual(last["hold"], [])
+            self.assertEqual(kinds(last["hold"]), [])
             self.assertEqual(last["hold_count"], 0)
             self.assertEqual(rows[-1]["reason"], "fainted")
             self.assertEqual(rows[-1]["state"], "finished")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
     def test_ngat_thang_truoc_het_gio(self):
         """Ngạt đúng bước ca cũng hết giờ: faint thắng, chỉ một gather_end, không reason time."""
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {"player": {"pos": [50, 10], "oxygen_ticks": 0, "hp": 1},
-                                                           "hold": ["ca_loc"], "time_left_ticks": 60,
+                                                           "hold": items(*["ca_loc"]), "time_left_ticks": 60,
                                                            "fish": [], "random_fish": False}})
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "70",
                                      "--scenario", sc, "--out", w.path("o.jsonl"))

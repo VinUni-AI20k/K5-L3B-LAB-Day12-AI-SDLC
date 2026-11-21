@@ -120,6 +120,13 @@ def validate_tuning(t):
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
     _validate_gather(g)
+    fr = t.get("freshness")  # v1.2
+    if not isinstance(fr, dict) or set(fr) != {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}:
+        raise BadInput("tuning.freshness phải có đúng initial, gather_decay_per_s, quan_decay_per_s, spoiled_below")
+    _between("freshness.initial", fr["initial"], 0, 100)
+    _between("freshness.spoiled_below", fr["spoiled_below"], 0, 100)
+    _between("freshness.gather_decay_per_s", fr["gather_decay_per_s"], 0, 100)
+    _between("freshness.quan_decay_per_s", fr["quan_decay_per_s"], 0, 100)
     # Quán: dải hợp lệ P1 (PRD mục 13.2)
     _between("quan.duration_s", q.get("duration_s"), 60, 600)
     _bounds("quan", q.get("bounds"), ("x", "z"))

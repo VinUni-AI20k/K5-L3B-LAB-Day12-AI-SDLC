@@ -16,6 +16,7 @@ import unittest
 
 from helpers import (Workdir, close, events, frames, read_jsonl, run_headless,
                      snapshots, write_json)
+from helpers import counts, items, kinds  # v1.2 kho cá thể
 
 
 def contract_gather():
@@ -161,7 +162,7 @@ class V11Kinds(unittest.TestCase):
             fc = events(rows, "fish_caught")
             self.assertEqual(len(fc), 1, fc)
             self.assertEqual(fc[0]["data"], {"fish_id": "F1", "kind": "ca_keo", "yield": 2})
-            self.assertEqual(snapshots(rows)[-1]["hold"], ["ca_keo", "ca_keo"])
+            self.assertEqual(kinds(snapshots(rows)[-1]["hold"]), ["ca_keo", "ca_keo"])
 
     def test_hai_nut_keo_neo(self):
         """Nút mới keo_neo (N5): hái được ở mặt nước, vào giỏ đúng kind, nút bắt đầu mọc lại."""
@@ -179,7 +180,7 @@ class V11Kinds(unittest.TestCase):
             self.assertEqual(len(g), 1, g)
             self.assertEqual(g[0]["data"], {"node_id": "N5", "kind": "keo_neo", "amount": 1})
             s = snapshots(rows)[-1]
-            self.assertEqual(s["hold"], ["keo_neo"])
+            self.assertEqual(kinds(s["hold"]), ["keo_neo"])
             n5 = [n for n in s["nodes"] if n["id"] == "N5"][0]
             self.assertEqual(n5["ready"], False, "hái xong nút bắt đầu mọc lại")
 
