@@ -10,7 +10,7 @@ Người làm: C (Cuongngucuteee), Claude Code hỗ trợ. Ngày 2026-11-21. AC-
 | `oxygen_low` | dưới nước và oxy `<= 25%` oxy tối đa; oxy 0 là mức danger (đang ngạt) | warning / danger | ⚠ 🫁 OXY SẮP HẾT — còn 7 s, nổi lên! |
 | `customer_angry` | khách đang chờ món còn `<= 25%` kiên nhẫn | warning | ⚠ 😠 KHÁCH SẮP GIẬN — C1 bàn T2 còn 12 s |
 
-Hai mốc 25% là giả định (`docs/clarify.md` #14, chờ PO). Cảnh báo chỉ có trong `GET /state` của `chonoi.live` (trường `alerts`), không đổi JSONL headless.
+Hai mốc 25% là giả định (`docs/clarify.md` #16, chờ PO). Cảnh báo chỉ có trong `GET /state` của `chonoi.live` (trường `alerts`), không đổi JSONL headless.
 
 ## Tương phản cao
 

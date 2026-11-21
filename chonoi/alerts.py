@@ -5,7 +5,7 @@ Ba cảnh báo, mỗi cái có biểu tượng và chữ (không chỉ dựa và
 - `oxygen_low` (oxy sắp hết): dưới nước và oxy `<= OXYGEN_LOW_RATIO` của oxy tối đa; oxy = 0 thì mức `danger` (đang ngạt).
 - `customer_angry` (khách sắp giận): khách đang chờ món và kiên nhẫn còn `<= CUSTOMER_ANGRY_RATIO` của `patience_s`.
 
-Hai tỉ lệ dưới đây đề không cho số (Ticket-04 chưa đọc được bản gốc), ghi ở `docs/clarify.md` #14; đổi ở đây là đủ.
+Hai tỉ lệ dưới đây đề không cho số (Ticket-04 chưa đọc được bản gốc), ghi ở `docs/clarify.md` #16; đổi ở đây là đủ.
 Chỉ dùng trong cửa sổ `chonoi.live` (trường `alerts` của GET /state); headless không ghi trường này.
 """
 
