@@ -5,7 +5,7 @@
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
 | Đậu Hoàng Minh | justapea25 | `sim/gather` lát 1 (oxy, ngạt, Máu, giỏ) | Lead / Integrator | lát 2 |
-| | | `sim/gather_harvest` lát 2 (hái, bắt cá) | Developer | |
+| Lê Thế Anh (2A202603983) | LETHESHIYING | `sim/gather_harvest` lát 2 (hái, bắt cá) | Developer (Gather) | lát 1 |
 | | | `sim/quan_customers` lát 3 (khách) | Developer | |
 | | | `sim/quan_service` lát 4 (bếp, phục vụ, tiền) | Developer, Scrum/Release | |
 | Trần Xuân Lộc | Kaylez-TXL | `qa` (test hộp đen, verification) | QA lead | linkiewinkie |
