@@ -1408,8 +1408,9 @@ function drawQuan(w, h) {
     pxRect(kx, top + 46 - kh, 38, kh, "#0d211d");
   }
   // Trăng khuyết & ánh trăng trên mặt nước
-  pxRect(42, top + 12, 16, 16, "#ffe999");
-  pxRect(48, top + 12, 12, 12, "#091b2b");
+  pxRect(42, top + 14, 12, 12, "#ffe999");
+  pxRect(44, top + 12, 8, 16, "#ffe999");
+  pxRect(48, top + 16, 4, 4, "#e6cc7a");
   // Gợn sóng sông đêm lấp lánh
   for (let wy = top + 56; wy < h - bottom - 8; wy += 24) {
     const drift = Math.sin(vis.now * 1.4 + wy * 0.2) * 14;
@@ -1554,7 +1555,7 @@ function drawQuan(w, h) {
 
   (snap.tables || []).forEach((tb) => {
     const c = byTable[tb.id];
-    if (!c) continue;
+    if (!c) return;
     const tx = sx(tb.pos[0]), ty = sy(tb.pos[1]);
     const lowPat = c.state !== "eating" && c.patience_ticks_left !== undefined && (c.patience_ticks_left / patMax) < 0.25;
     const cx = tx + (lowPat ? Math.round(Math.sin(vis.now * 28) * 2) : 0);
