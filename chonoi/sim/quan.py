@@ -1,10 +1,9 @@
 """Buổi tối — Mở Quán. KHUNG: đi lại, chặn biên, đồng hồ, kho nạp từ file/scenario.
 
-Nhóm viết tiếp (PRD-0 mục F, Quán):
-  TODO(nhóm, lát 3): khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, kiên nhẫn,
-                     bỏ đi (customer_left), no_dish, vòng đời khách.
-  TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
-                     ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
+Lát 3: khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, kiên nhẫn,
+       bỏ đi (customer_left), no_dish, vòng đời khách.
+Lát 4: interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
+       ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
 """
 
 import math
@@ -36,6 +35,7 @@ class QuanSim:
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
         self.phase_tick = 0
+        self.random_customers = scenario.get("random_customers", True)
         self.stoves = [dict(s, state=s.get("state", "idle"),
                             dish=dict(s["dish"]) if s.get("dish") is not None else None,
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
@@ -56,11 +56,11 @@ class QuanSim:
         c.setdefault("state", "waiting")
         c.setdefault("order_status", "reserved")
         if c["state"] == "waiting":
-            c.setdefault("patience_ticks_left", int(round(self.t["patience_s"] * 60)))
+            c.setdefault("patience_ticks_left", int(round(self.t["patience_s"] * TICK)))
             c.setdefault("eat_ticks_left", 0)
         else:
             c.setdefault("patience_ticks_left", 0)
-            c.setdefault("eat_ticks_left", int(round(self.t["eat_s"] * 60)))
+            c.setdefault("eat_ticks_left", int(round(self.t["eat_s"] * TICK)))
         if "reserved" not in c:
             if c["order_status"] == "reserved":
                 c["reserved"] = dict(self.menu[c["dish_id"]]["recipe"])
@@ -81,6 +81,14 @@ class QuanSim:
                 raise BadInput(f"id bếp/bàn không tồn tại: {u['id']}")
             by_id[u["id"]].update(u)
         return sort_by_id(list(by_id.values()))
+
+    def available_stock(self):
+        """Kho vật lý trừ nguyên liệu đã giữ cho những đơn chưa nấu."""
+        available = dict(self.stock)
+        for customer in self.customers:
+            for kind, count in customer["reserved"].items():
+                available[kind] = available.get(kind, 0) - count
+        return available
 
     def snapshot(self) -> dict:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
@@ -103,8 +111,9 @@ class QuanSim:
         if inp.pressed("interact"):
             self._interact(events)
         self._process_customers_and_closing(events)
-        # TODO(nhóm, lát 3): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish khi self.time_left_ticks > 0.
-        if self.time_left_ticks <= 0:
+        if self.time_left_ticks > 0:
+            self._arrive(events)
+        else:
             self.done = True
             self.reason = "time"
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
@@ -176,7 +185,7 @@ class QuanSim:
             c["order_status"] = "assigned"
             stove["state"] = "cooking"
             stove["dish"] = {"order_id": c["id"], "dish_id": dish_id, "base_price": base_price}
-            stove["cook_ticks_left"] = int(round(self.menu[dish_id]["cook_s"] * 60))
+            stove["cook_ticks_left"] = int(round(self.menu[dish_id]["cook_s"] * TICK))
             stove["ready_ticks"] = 0
             events.append(("cook_started", {
                 "stove_id": stove["id"],
@@ -212,13 +221,13 @@ class QuanSim:
             return
         dish = self.hand
         self.hand = None
-        patience_max = int(round(self.t["patience_s"] * 60))
+        patience_max = int(round(self.t["patience_s"] * TICK))
         ratio = (cust["patience_ticks_left"] / patience_max) if patience_max > 0 else 0.0
         base_price = dish["base_price"]
         tip = math.floor(base_price * self.t["tip_rate"]) if ratio >= self.t["tip_min_patience_ratio"] else 0
         cust["state"] = "eating"
         cust["order_status"] = "served"
-        cust["eat_ticks_left"] = int(round(self.t["eat_s"] * 60))
+        cust["eat_ticks_left"] = int(round(self.t["eat_s"] * TICK))
         cust["base_price"] = base_price
         cust["tip"] = tip
         events.append(("served", {
@@ -292,6 +301,31 @@ class QuanSim:
                     }))
                     self._cleanup_customer_order(c)
         self.customers = remaining
+
+    def _arrive(self, events):
+        first = self.t["first_customer_tick"]
+        interval = int(round(self.t["customer_interval_s"] * TICK))
+        if not self.random_customers or self.phase_tick < first or (self.phase_tick - first) % interval:
+            return
+        occupied = {c["table_id"] for c in self.customers}
+        table = next((tb for tb in sort_by_id(self.tables) if tb["id"] not in occupied), None)
+        if table is None:
+            return
+        available = self.available_stock()
+        choices = [dish for dish in sorted(self.menu) if all(available.get(k, 0) >= n
+                   for k, n in self.menu[dish]["recipe"].items())]
+        if not choices:
+            events.append(("no_dish", {}))
+            return
+        dish_id = self.rng.get("customer_order").choice(choices)
+        order_id = self.ids.new("C")
+        self.customers.append({"id": order_id, "table_id": table["id"], "dish_id": dish_id,
+                               "order_tick": self.phase_tick, "state": "waiting",
+                               "patience_ticks_left": int(round(self.t["patience_s"] * TICK)),
+                               "eat_ticks_left": 0, "order_status": "reserved",
+                               "reserved": dict(self.menu[dish_id]["recipe"]), "base_price": 0, "tip": 0})
+        events.append(("customer_arrived", {"order_id": order_id, "table_id": table["id"],
+                                            "dish_id": dish_id}))
 
     def _move(self, inp):
         speed = self.t["walk_speed"]
