@@ -2,8 +2,7 @@
   "gather": {
     "fish_yield": {"ca_keo": 2, "ca_ro_dong": 1},
     "nodes": [
-      {"id": "N5", "kind": "keo_neo", "pos": [20, 0]},
-      {"id": "N6", "kind": "rau_muong", "pos": [36, 0]}
+      {"id": "N7", "kind": "rau_muong", "pos": [36, 0]}
     ],
     "fish_initial": [
       {"id": "F7", "kind": "ca_keo", "pos": [22, 6], "heading_deg": 0},

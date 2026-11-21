@@ -1,0 +1,3 @@
+Command: python -m chonoi.headless --mode day --days 2 --seed 7 --ticks 20 --scenario D:\ProjectVin\Day12\K5-L3B-LAB-Day12-AI-SDLC-Nicecentt\docs\proof\phase-2\chur04\day-scenario.json --inputs D:\ProjectVin\Day12\K5-L3B-LAB-Day12-AI-SDLC-Nicecentt\docs\proof\phase-2\chur04\day-inputs.json --out D:\ProjectVin\Day12\K5-L3B-LAB-Day12-AI-SDLC-Nicecentt\docs\proof\phase-2\chur04\day-run1.txt
+Exit: 0
+Elapsed seconds: 0.775124
