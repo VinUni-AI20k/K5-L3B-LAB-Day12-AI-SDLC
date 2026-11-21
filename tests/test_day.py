@@ -137,7 +137,8 @@ class Shop(unittest.TestCase):
         snap = s.snapshot()
         self.assertEqual((snap["day"], snap["phase"], snap["active_upgrades"]["oxygen"]), (2, "gather", 1))
         self.assertEqual(snap["player"]["oxygen_max_ticks"], 2700)  # 45 s
-        self.assertEqual(snap["days_completed"], 1)
+        self.assertEqual(s.sim.days_completed, 1)
+        self.assertNotIn("days_completed", snap)  # chỉ có ở dòng end
 
     def test_hp_upgrade_applied_next_day(self):
         s = self.shop(300, upgrades={"hp": 1})
@@ -235,6 +236,30 @@ class Scenario(unittest.TestCase):
         self.assertEqual(s.sim.plan["ingredients"], {"ca_linh": 4, "ca_keo": 2, "keo_neo": 2, "bong_dien_dien": 2})
 
 
+class PlanAndOrder(unittest.TestCase):
+    def test_prefab_customer_must_be_in_plan(self):
+        # Ngày 1 chỉ có ca_loc_nuong_trui + goi_bong_sung; lau_mam không thuộc kế hoạch -> mã 2
+        c = [{"id": "C1", "table_id": "T1", "dish_id": "lau_mam", "order_status": "unfulfillable"}]
+        with self.assertRaises(BadInput):
+            Session("day", tuning(), fast(extra_quan={"customers": c}), 1, days=1)
+        ok = [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung"}]
+        Session("day", tuning(), fast(extra_quan={"customers": ok}), 1, days=1)
+
+    def test_prefab_customer_checked_for_every_day_run(self):
+        c = [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung"}]  # D2 không có goi_bong_sung
+        with self.assertRaises(BadInput):
+            Session("day", tuning(), fast(extra_quan={"customers": c}), 1, days=2)
+
+    def test_start_events_written_before_tick0_snapshot(self):
+        with tempfile.TemporaryDirectory() as d:
+            out = os.path.join(d, "o.jsonl")
+            self.assertEqual(main(["--mode", "day", "--seed", "1", "--ticks", "0", "--out", out]), 0)
+            with open(out, encoding="utf-8") as f:
+                rows = [json.loads(x) for x in f]
+        self.assertEqual([r.get("name", r["type"]) for r in rows],
+                         ["day_start", "day_plan", "phase_start", "snapshot", "end"])
+
+
 class Cli(unittest.TestCase):
     def run_cli(self, *args):
         with tempfile.TemporaryDirectory() as d:
@@ -252,7 +277,8 @@ class Cli(unittest.TestCase):
         self.assertEqual(a, b)
         code, rows = a
         self.assertEqual(code, 0)
-        self.assertEqual(rows[0]["mode"], "day")
+        first_snap = next(r for r in rows if r["type"] == "snapshot")
+        self.assertEqual((first_snap["mode"], first_snap["tick"], first_snap["phase"]), ("day", 0, "gather"))
         self.assertEqual(rows[-1]["type"], "end")
         self.assertEqual(rows[-1]["days_completed"], 0)
 

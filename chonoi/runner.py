@@ -51,7 +51,7 @@ class Session:
         self._start_events = self._take_start_events()
 
     def _take_start_events(self):
-        """Mode day: sự kiện tick 0 (day_start, day_plan, phase_start) dựng lúc khởi tạo, ghi sau snapshot 0."""
+        """Mode day: sự kiện tick 0 (day_start, day_plan, phase_start) dựng lúc khởi tạo, ghi TRƯỚC snapshot 0."""
         rows = []
         for name, data, phase, day in getattr(self.sim, "_boot", []):
             rows.append({"type": "event", "tick": 0, "phase": phase, "day": day, "name": name, "data": data})
@@ -131,9 +131,9 @@ def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, i
     player = InputPlayer(frames)
     w = JsonlWriter(out_path)
     try:
-        w.write(sess.snapshot())  # tick 0: sau khi dựng scenario, trước mọi input
-        for row in sess.start_events():
+        for row in sess.start_events():  # mode day: event tick 0 (day_start, day_plan, phase_start) đứng TRƯỚC snapshot
             w.write(row)
+        w.write(sess.snapshot())  # tick 0: sau khi dựng scenario, trước mọi input
         last_snapped = 0
         while sess.tick < ticks and not sess.done:
             inp = player.advance(sess.tick)  # bước k đọc input có tick == k

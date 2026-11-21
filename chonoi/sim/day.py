@@ -42,6 +42,7 @@ class DaySim:
         self.reputation = d.get("reputation", tuning["quan"]["reputation_initial"])
         self.upgrades = {k: int(d.get("upgrades", {}).get(k, 0)) for k in UPGRADES}
         self.plans = self._build_plans(tuning["day_plan"], d.get("day_plan", []))
+        self._check_customers_in_plan()
         self.day = 1
         self.days_completed = 0
         self.done = False
@@ -65,6 +66,13 @@ class DaySim:
             plans[o["day"]] = {"dishes": dict(o["dishes"]), "ingredients": ing}
         return plans
 
+    def _check_customers_in_plan(self):
+        """Khách dựng sẵn trong quan.customers phải gọi món thuộc kế hoạch của MỌI Ngày sẽ chạy (mã 2)."""
+        for c in self.quan_scn.get("customers", []):
+            for day in range(1, self.days + 1):
+                if c["dish_id"] not in self.plans[day]["dishes"]:
+                    raise BadInput(f"quan.customers.{c['id']}: món {c['dish_id']} không thuộc kế hoạch Ngày {day}")
+
     @property
     def plan(self):
         return self.plans[self.day]
@@ -82,7 +90,7 @@ class DaySim:
     def snapshot(self):
         snap = self.sub.snapshot() if self._phase != "shop" else {"stock": dict(self.stock)}
         snap.update({"day": self.day, "day_plan": self.plan, "upgrades": dict(self.upgrades),
-                     "active_upgrades": dict(self.active), "days_completed": self.days_completed})
+                     "active_upgrades": dict(self.active)})
         return snap
 
     def end_extra(self):
