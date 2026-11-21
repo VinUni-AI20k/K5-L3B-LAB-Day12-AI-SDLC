@@ -336,6 +336,58 @@ class DayShopPauseCLIBlackBox(unittest.TestCase):
             )
             self.assertEqual(code, 2)
 
+    def test_cli_day_3_spawns_second_crocodile_and_faint_opens_empty_quan(self):
+        """Ghép M1 ↔ M4: Ngày 1–2 có 1 Cá Sấu (M1), Ngày 3 có 2 Cá Sấu (M1, M2); ngất vẫn mở quán kho rỗng."""
+        with Workdir() as w:
+            sc = write_json(w.path("sc_d3.json"), {
+                "gather": {"random_fish": False},
+                "quan": {"time_left_ticks": 1, "random_customers": False},
+            })
+            inp = write_json(w.path("in_d3.json"), frames(
+                {"tick": 0, "interact": True},
+                {"tick": 1, "interact": False},
+                {"tick": 2, "shop_done": True},
+                {"tick": 3, "shop_done": False, "interact": True},
+                {"tick": 4, "interact": False},
+                {"tick": 5, "shop_done": True},
+            ))
+            out = w.path("d3.jsonl")
+            code, err = run_headless(
+                "--mode", "day", "--days", "3", "--seed", "1", "--ticks", "6",
+                "--scenario", sc, "--inputs", inp, "--snapshot-every", "1", "--out", out,
+            )
+            self.assertEqual(code, 0, err)
+            rows = read_jsonl(out)
+            by_day = {s["day"]: [m["id"] for m in s["monsters"]]
+                      for s in snapshots(rows) if s["phase"] == "gather"}
+            self.assertEqual(by_day[1], ["M1"])
+            self.assertEqual(by_day[2], ["M1"])
+            self.assertEqual(by_day[3], ["M1", "M2"])
+
+            # Ngất do Cá Sấu ở gather trong day -> vẫn chuyển sang quan cùng tick với kho rỗng
+            sc_faint = write_json(w.path("sc_faint.json"), {
+                "gather": {
+                    "player": {"pos": [60, 24], "hp": 1},
+                    "hold": ["ca_loc"],
+                    "random_fish": False,
+                },
+                "quan": {"time_left_ticks": 1, "random_customers": False},
+            })
+            out_f = w.path("faint.jsonl")
+            code, err = run_headless(
+                "--mode", "day", "--days", "1", "--seed", "1", "--ticks", "5",
+                "--scenario", sc_faint, "--snapshot-every", "1", "--out", out_f,
+            )
+            self.assertEqual(code, 0, err)
+            f_rows = read_jsonl(out_f)
+            f_names = [e["name"] for e in events(f_rows)]
+            self.assertIn("monster_hit", f_names)
+            self.assertIn("faint", f_names)
+            self.assertIn("gather_end", f_names)
+            quan_snaps = [s for s in snapshots(f_rows) if s["phase"] == "quan"]
+            self.assertTrue(quan_snaps)
+            self.assertEqual(quan_snaps[0]["stock"], {})
+
 
 if __name__ == "__main__":
     unittest.main()
