@@ -28,6 +28,12 @@
       "catch_radius": 2.0,
       "catch_cooldown_s": 0.5,
       "fish_yield": {"ca_linh": 3, "ca_loc": 1},
+      "fish_motion": {
+        "speed": 1.5,
+        "turn_every_ticks": 120,
+        "max_turn_deg": 25,
+        "min_depth": 1
+      },
       "nodes": [
         {"id": "N1", "kind": "bong_dien_dien", "pos": [12, 0]},
         {"id": "N2", "kind": "bong_dien_dien", "pos": [28, 0]},

@@ -78,6 +78,14 @@ def _validate_gather(g):
         raise BadInput("tuning.gather.fish_yield phải có ca_linh và ca_loc")
     for k, v in fy.items():
         _int_between(f"gather.fish_yield.{k}", v, 1, g["hold_capacity"])
+    fish_motion = g.get("fish_motion")
+    if fish_motion is not None:
+        if not isinstance(fish_motion, dict):
+            raise BadInput("tuning.gather.fish_motion phải là object")
+        _between("gather.fish_motion.speed", fish_motion.get("speed"), 0.1, 10)
+        _int_between("gather.fish_motion.turn_every_ticks", fish_motion.get("turn_every_ticks"), 1, 10_000)
+        _between("gather.fish_motion.max_turn_deg", fish_motion.get("max_turn_deg"), 0, 180)
+        _between("gather.fish_motion.min_depth", fish_motion.get("min_depth"), 0, g["bounds"]["d"][1])
     nodes = g.get("nodes")
     if not isinstance(nodes, list) or not nodes:
         raise BadInput("tuning.gather.nodes phải là mảng không rỗng")
