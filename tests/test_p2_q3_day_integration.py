@@ -301,7 +301,8 @@ class Q3DayHeadlessIntegrationTests(unittest.TestCase):
         write_json(input_path, {"frames": frames})
         code, stderr = run_headless("--mode", "day", "--days", str(days), "--seed", "17",
                                     "--ticks", "20", "--snapshot-every", "1",
-                                    "--scenario", sc_path, "--inputs", input_path, "--out", out_path)
+                                    "--scenario", sc_path, "--inputs", input_path, "--out", out_path,
+                                    cwd=root)
         self.assertEqual(code, 0, stderr)
         rows = read_jsonl(out_path)
         return rows, out_path
@@ -317,10 +318,14 @@ class Q3DayHeadlessIntegrationTests(unittest.TestCase):
 
     def test_headless_day_three_replay_is_deterministic(self):
         with tempfile.TemporaryDirectory() as root:
-            first, first_path = self.run_day(root, 3, [2, 5, 8])
+            first_root = os.path.join(root, "first")
+            second_root = os.path.join(root, "second")
+            os.mkdir(first_root)
+            os.mkdir(second_root)
+            first, first_path = self.run_day(first_root, 3, [2, 5, 8])
             with open(first_path, "rb") as f:
                 first_bytes = f.read()
-            second, second_path = self.run_day(root, 3, [2, 5, 8])
+            second, second_path = self.run_day(second_root, 3, [2, 5, 8])
             with open(second_path, "rb") as f:
                 second_bytes = f.read()
         self.assertEqual(first_bytes, second_bytes)

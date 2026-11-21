@@ -175,7 +175,7 @@ class DaySim:
 
     def inventory_items(self):
         if self.phase == "gather" and self.sub_sim is not None:
-            return self.sub_sim.inventory_items()
+            return merge_items(self.stock, self.sub_sim.inventory_items())
         elif self.phase == "quan" and self.sub_sim is not None:
             if getattr(self.sub_sim, "items", None):
                 return list(self.sub_sim.items)

@@ -188,7 +188,8 @@ class InventoryPhase3Tests(unittest.TestCase):
         """AC-P3-08: Headless --mode day --days 2 --ticks 600 chạy trơn tru."""
         with Workdir() as w:
             out_file = w.path("day_smoke.jsonl")
-            code, err = run_headless("--mode", "day", "--days", "2", "--seed", "1", "--ticks", "600", "--out", out_file)
+            code, err = run_headless("--mode", "day", "--days", "2", "--seed", "1", "--ticks", "600",
+                                     "--out", out_file, cwd=os.path.dirname(out_file))
             self.assertEqual(code, 0, f"Headless thất bại: {err}")
             self.assertTrue(os.path.exists(out_file))
             rows = read_jsonl(out_file)

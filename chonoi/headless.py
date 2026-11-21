@@ -66,7 +66,10 @@ def main(argv=None) -> int:
         tuning = contract["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
         if a.mode == "day":
-            frames = load_frames(a.inputs, buttons=BUTTONS_V11, allow_buy=True)
+            frames = load_frames(a.inputs, buttons=BUTTONS_V11, allow_buy=True,
+                                 allow_customer_choice=True)
+        elif a.mode == "quan":
+            frames = load_frames(a.inputs, allow_customer_choice=True)
         else:
             frames = load_frames(a.inputs)
         has_scenario_stock = (
@@ -82,12 +85,16 @@ def main(argv=None) -> int:
             inventory = None
         else:
             inventory = read_inventory_for_mode(a.mode, None)
+        inventory_path = a.inventory
+        if inventory_path is None and not has_scenario_stock and a.mode in ("quan", "day"):
+            inventory_path = "inventory.json"
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2
     try:
         run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out, days=a.days)
+            inventory=inventory, inventory_out=a.inventory_out, inventory_path=inventory_path,
+            days=a.days)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

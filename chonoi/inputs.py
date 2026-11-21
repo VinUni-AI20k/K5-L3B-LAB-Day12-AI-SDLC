@@ -15,17 +15,27 @@ BUTTONS_V11 = ("interact", "catch", "pause", "shop_done", "attack", "photo")
 
 
 class InputState:
-    def __init__(self, move, held, edges, buy=None):
+    def __init__(self, move, held, edges, buy=None, customer_choice=None):
         self.move = move
         self.held = held
         self._edges = edges
         self.buy = buy
+        self.customer_choice = customer_choice
 
     def pressed(self, name: str) -> bool:
         return name in self._edges
 
 
-def load_frames(path, buttons=BUTTONS_V10, allow_buy=False):
+def validate_customer_choice(value):
+    if not isinstance(value, dict) or set(value) != {"customer_id", "dish_id"}:
+        raise BadInput("customer_choice phải gồm customer_id và dish_id")
+    if any(not isinstance(value[key], str) or not value[key] or len(value[key]) > 64
+           for key in ("customer_id", "dish_id")):
+        raise BadInput("customer_choice.customer_id và dish_id phải là chuỗi khác rỗng")
+    return dict(value)
+
+
+def load_frames(path, buttons=BUTTONS_V10, allow_buy=False, allow_customer_choice=False):
     if path is None:
         return []
     try:
@@ -40,6 +50,8 @@ def load_frames(path, buttons=BUTTONS_V10, allow_buy=False):
     allowed = {"tick", "move", *buttons}
     if allow_buy:
         allowed.add("buy")
+    if allow_customer_choice:
+        allowed.add("customer_choice")
     for i, fr in enumerate(data["frames"]):
         if not isinstance(fr, dict):
             raise BadInput(f"frame {i} không phải object")
@@ -64,6 +76,13 @@ def load_frames(path, buttons=BUTTONS_V10, allow_buy=False):
         if "buy" in fr and fr["buy"] is not None:
             if not isinstance(fr["buy"], str):
                 raise BadInput(f"frame {i}: buy phải là chuỗi hoặc null")
+        if "customer_choice" in fr:
+            if not allow_customer_choice:
+                raise BadInput(f"frame {i}: customer_choice chỉ dùng với quan hoặc day")
+            try:
+                validate_customer_choice(fr["customer_choice"])
+            except BadInput as e:
+                raise BadInput(f"frame {i}: {e}")
         frames.append(fr)
     return frames
 
@@ -87,17 +106,20 @@ class InputPlayer:
         """Đọc input có tick == k. Trả trạng thái dùng cho bước k."""
         edges = set()
         buy = None
+        customer_choice = None
         fr = self._frames.get(k)
         if fr:
             if "move" in fr:
                 self._move = normalize(fr["move"])
             buy = fr.get("buy")
+            customer_choice = fr.get("customer_choice")
             for b in self._buttons:
                 if b in fr:
                     if fr[b] and not self._held[b]:
                         edges.add(b)
                     self._held[b] = fr[b]
-        return InputState(self._move, dict(self._held), edges, buy=buy)
+        return InputState(self._move, dict(self._held), edges, buy=buy,
+                          customer_choice=customer_choice)
 
 
 class LiveInputs:
@@ -112,12 +134,15 @@ class LiveInputs:
         self._held = {b: False for b in buttons}
         self._pending = set()
         self._next_buy = None
+        self._next_customer_choice = None
 
-    def set(self, move=None, buy=None, **buttons):
+    def set(self, move=None, buy=None, customer_choice=None, **buttons):
         if move is not None:
             self._move = normalize(move)
         if buy is not None:
             self._next_buy = buy
+        if customer_choice is not None:
+            self._next_customer_choice = validate_customer_choice(customer_choice)
         for b, v in buttons.items():
             if b not in self._held:
                 continue
@@ -129,4 +154,7 @@ class LiveInputs:
         edges, self._pending = self._pending, set()
         buy = self._next_buy
         self._next_buy = None
-        return InputState(self._move, dict(self._held), edges, buy=buy)
+        customer_choice = self._next_customer_choice
+        self._next_customer_choice = None
+        return InputState(self._move, dict(self._held), edges, buy=buy,
+                          customer_choice=customer_choice)

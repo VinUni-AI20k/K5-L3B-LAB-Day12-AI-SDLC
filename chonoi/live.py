@@ -27,7 +27,7 @@ from urllib.parse import unquote
 
 from .contract import load_contract
 from .errors import BadInput
-from .inputs import LiveInputs
+from .inputs import LiveInputs, validate_customer_choice
 from .inventory import merge_items, read_inventory_for_mode, read_inventory_or_empty, write_inventory
 from .runner import Session
 from .scenario import load_scenario
@@ -57,8 +57,8 @@ class _LiveInputsV11(LiveInputs):
         super().__init__(LIVE_BUTTONS)
         self._buy = None
 
-    def set(self, move=None, buy=None, **buttons):
-        super().set(move, **buttons)
+    def set(self, move=None, buy=None, customer_choice=None, **buttons):
+        super().set(move, customer_choice=customer_choice, **buttons)
         if buy is not None:
             self._buy = buy
 
@@ -71,11 +71,14 @@ class _LiveInputsV11(LiveInputs):
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, days=None):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None,
+                 days=None, inventory_path=None):
         self._args = (mode, tuning, scenario, seed, inventory, days)
         self.mode = mode
         self.tuning = tuning
         self.inventory_out = inventory_out
+        self.inventory_path = inventory_path
+        self.inventory_save_path = inventory_out or inventory_path
         self._lock = threading.Lock()
         self._stop = threading.Event()
         # Bench có render (TICKET-04): client ?bench=1 gửi thời gian khung về đây; chonoi/bench.py đọc qua
@@ -140,13 +143,15 @@ class LiveGame:
         for row in s.step(inp):
             self.events.append(row)
         del self.events[:-RECENT_EVENTS]
-        if self.mode in ("gather", "day") and self.inventory_out:
-            inventory_events = {"gather", "fish_caught", "faint", "gather_end"}
-            if any(row["name"] in inventory_events for row in self.events[-RECENT_EVENTS:]
-                   if row["tick"] == s.tick):
-                items = (s.sim.inventory_items() if self.mode == "day"
-                         else merge_items(self.inventory_base, s.sim.inventory_items()))
-                write_inventory(self.inventory_out, items)
+        names = {row["name"] for row in self.events if row["tick"] == s.tick}
+        if self.mode == "gather" and self.inventory_out and names.intersection(
+                {"gather", "fish_caught", "faint", "gather_end"}):
+            write_inventory(self.inventory_out, merge_items(self.inventory_base, s.sim.inventory_items()))
+        elif self.mode == "day" and self.inventory_save_path and names.intersection(
+                {"gather", "fish_caught", "faint", "gather_end", "cook_started"}):
+            write_inventory(self.inventory_save_path, s.sim.inventory_items())
+        elif self.mode == "quan" and self.inventory_save_path and "cook_started" in names:
+            write_inventory(self.inventory_save_path, s.sim.stock)
         if s.done and not self._saved:
             self._saved = True
             if self.inventory_out:
@@ -196,8 +201,16 @@ class LiveGame:
         buy = body.get("buy")
         if buy is not None and (not isinstance(buy, str) or not buy or len(buy) > MAX_BUY_LEN):
             raise ValueError("buy phải là chuỗi khác rỗng")
+        customer_choice = None
+        if "customer_choice" in body:
+            if self.mode not in ("quan", "day"):
+                raise ValueError("customer_choice chỉ dùng với quan hoặc day")
+            try:
+                customer_choice = validate_customer_choice(body["customer_choice"])
+            except BadInput as e:
+                raise ValueError(str(e))
         with self._lock:
-            self.inputs.set(move, buy=buy, **buttons)
+            self.inputs.set(move, buy=buy, customer_choice=customer_choice, **buttons)
 
     def set_bench(self, body: dict):
         frames = body.get("frame_ms")
@@ -224,6 +237,11 @@ class LiveGame:
 
     def restart(self):
         with self._lock:
+            if (self.mode in ("quan", "day") and self.inventory_save_path and
+                    os.path.exists(self.inventory_save_path)):
+                inventory = read_inventory_or_empty(self.inventory_save_path)
+                self._args = (self.mode, self.tuning, self._args[2], self._args[3], inventory, self._args[5])
+                self.inventory_path = self.inventory_save_path
             self._reset()
 
 
@@ -370,7 +388,11 @@ def main(argv=None) -> int:
             inventory = None
         else:
             inventory = read_inventory_for_mode(a.mode, None)
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, days=days)
+        inventory_path = a.inventory
+        if inventory_path is None and not has_scenario_stock and a.mode in ("quan", "day"):
+            inventory_path = "inventory.json"
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out,
+                        inventory_path=inventory_path, days=days)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")

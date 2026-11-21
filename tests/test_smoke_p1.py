@@ -24,7 +24,9 @@ class Contract(unittest.TestCase):
     def test_con_01_ticks_zero_and_end_line(self):
         with Workdir() as w:
             for mode in ("gather", "quan"):
-                code, err = run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", w.path(f"{mode}.jsonl"))
+                out = w.path(f"{mode}.jsonl")
+                code, err = run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out,
+                                         cwd=os.path.dirname(out))
                 self.assertEqual(code, 0, err)
                 rows = read_jsonl(w.path(f"{mode}.jsonl"))
                 self.assertEqual(rows[0]["type"], "snapshot")
@@ -108,8 +110,9 @@ class ScenarioModes(unittest.TestCase):
     def test_quan_player_vel_hop_le(self):
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"quan": {"player": {"pos": [8, 5], "vel": [0, 0]}}})
+            out = w.path("o.jsonl")
             self.assertEqual(run_headless("--mode", "quan", "--seed", "1", "--ticks", "1", "--scenario", sc,
-                                          "--out", w.path("o.jsonl"))[0], 0)
+                                          "--out", out, cwd=os.path.dirname(out))[0], 0)
 
 
 class Movement(unittest.TestCase):

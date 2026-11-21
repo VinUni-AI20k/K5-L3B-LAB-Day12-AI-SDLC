@@ -115,6 +115,9 @@ class QuanSim:
                 elif isinstance(reserved, list) and reserved:
                     raise BadInput(f"customers.{c['id']}: khách đã nấu không giữ nguyên liệu thô")
                 reservation_state = "consumed"
+            elif state == "choosing":
+                reserved = {}
+                reservation_state = "unavailable"
             elif "reserved" in c:
                 reserved = deepcopy(c["reserved"])
                 if isinstance(reserved, list):
@@ -209,6 +212,9 @@ class QuanSim:
 
     def step(self, inp):
         events = []
+        choice = getattr(inp, "customer_choice", None)
+        if choice is not None:
+            events.extend(self._apply_customer_choice(choice))
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.elapsed_ticks += 1
         events.extend(self._decay_stock())
@@ -293,6 +299,48 @@ class QuanSim:
         customer["reserved"] = recipe
         self._reservation_state[customer_id] = "reserved"
         return True
+
+    def _apply_customer_choice(self, choice):
+        events = []
+        customer_id = choice["customer_id"]
+        dish_id = choice["dish_id"]
+        customer = next((c for c in self.customers
+                         if c["id"] == customer_id and c["state"] == "choosing"), None)
+        if customer is None:
+            return [("customer_choice_failed", {"customer_id": customer_id, "reason": "unknown_customer"})]
+        if dish_id == "leave":
+            self.customers.remove(customer)
+            self._reservation_state.pop(customer_id, None)
+            self.reputation = max(float(self.t["reputation_min"]),
+                                  self.reputation + float(self.t["left_reputation_delta"]))
+            events.append(("customer_left", {
+                "customer_id": customer_id,
+                "table_id": customer["table_id"],
+                "dish_id": customer["dish_id"],
+                "reason": "sold_out",
+            }))
+            return events
+        if (dish_id not in self._eligible_dishes() or dish_id not in self.menu or
+                not self._has_recipe(self.menu[dish_id]["recipe"])):
+            return [("customer_choice_failed", {"customer_id": customer_id, "reason": "unavailable"})]
+        requested_dish_id = customer["dish_id"]
+        customer["dish_id"] = dish_id
+        customer["order"] = dish_id
+        customer["order_tick"] = self.elapsed_ticks + 1
+        customer["state"] = "waiting"
+        if not self._reserve_for_customer(customer):
+            customer["dish_id"] = requested_dish_id
+            customer["order"] = requested_dish_id
+            customer["state"] = "choosing"
+            customer["order_tick"] = self.elapsed_ticks + 1
+            return [("customer_choice_failed", {"customer_id": customer_id, "reason": "unavailable"})]
+        events.append(("customer_substituted", {
+            "customer_id": customer_id,
+            "table_id": customer["table_id"],
+            "requested_dish_id": requested_dish_id,
+            "dish_id": dish_id,
+        }))
+        return events
 
     def _consume_reservation(self, customer_id):
         """Debit physical stock once and transfer a reserved recipe to cooking."""
@@ -435,15 +483,16 @@ class QuanSim:
         if not free_tables:
             return events
         available = self._available_stock()
-        dishes = [dish_id for dish_id in self._eligible_dishes()
-                  if self._has_recipe(self.menu[dish_id]["recipe"], available)]
-        if not dishes:
+        available_dishes = [dish_id for dish_id in self._eligible_dishes()
+                            if self._has_recipe(self.menu[dish_id]["recipe"], available)]
+        if not available_dishes:
             events.append(("no_dish", {}))
             return events
-        dish_id = self.rng.get("customer_dish").choice(dishes)
+        dish_id = self.rng.get("customer_dish").choice(self._eligible_dishes())
         tb = free_tables[0]
+        choosing = dish_id not in available_dishes
         c = {"id": self.ids.new("C"), "table_id": tb["id"], "dish_id": dish_id,
-             "state": "waiting",
+             "state": "choosing" if choosing else "waiting",
              "order": dish_id,
              "order_tick": self.elapsed_ticks,
              "patience_ticks_left": int(round(self.t["patience_s"] * self.tick_hz)),
@@ -451,7 +500,10 @@ class QuanSim:
              "patience_max_ticks": int(round(self.t["patience_s"] * self.tick_hz)),
              "eat_ticks_left": int(round(self.t["eat_s"] * self.tick_hz)),
              "reserved": {}}
-        if not self._reserve_for_customer(c):
+        if choosing:
+            c["requested_dish_id"] = dish_id
+            self._reservation_state[c["id"]] = "unavailable"
+        elif not self._reserve_for_customer(c):
             return events
         self.customers.append(c)
         events.append(("customer_arrived", {"customer_id": c["id"], "table_id": tb["id"],
@@ -488,7 +540,7 @@ class QuanSim:
                                             "money": price, "tip": tip, "reputation": self.reputation,
                                             "patience_ratio": patience_ratio}))
                     continue
-            elif c["state"] in ("waiting", "ordered"):
+            elif c["state"] in ("waiting", "ordered", "choosing"):
                 c["patience_ticks_left"] = max(0, int(c.get("patience_ticks_left", 0)) - 1)
                 c["patience_ticks"] = c["patience_ticks_left"]
                 if c["patience_ticks_left"] <= 0:
