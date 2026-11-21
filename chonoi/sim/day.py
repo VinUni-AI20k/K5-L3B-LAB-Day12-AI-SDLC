@@ -95,7 +95,7 @@ class DaySim:
         self.day_plan = self._get_plan(day_num)
         eff_tuning = _apply_active_upgrades(self.tuning, self.active_upgrades)
         gather_sc = dict(self._gather_template)
-        self._sub = GatherSim(eff_tuning, gather_sc, self.rng, self.ids)
+        self._sub = GatherSim(eff_tuning, gather_sc, self.rng, self.ids, day=day_num)
         self._sub.money = self.money
         self._sub.earned = self.earned
         self._sub.reputation = self.reputation
