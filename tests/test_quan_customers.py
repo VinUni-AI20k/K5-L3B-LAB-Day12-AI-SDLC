@@ -14,7 +14,8 @@ from chonoi.sim.quan import QuanSim
 from chonoi.sim.quan_customers import (build_fixture_customers, customers_leave, remove_customer,
                                        spawn_customers, tick_customers, tick_customers_timers)
 
-from helpers import Workdir, read_jsonl, run_headless, snapshots, write_json
+from chonoi.inventory import validate_item_list
+from helpers import Workdir, read_jsonl, run_headless, snapshots, to_items, write_json
 
 TUNING = load_contract()["tuning"]
 Q = TUNING["quan"]
@@ -25,11 +26,45 @@ INTERVAL = int(round(Q["customer_interval_s"] * 60))
 ALL_STOCK = {"ca_loc": 1, "bong_sung": 2, "ca_linh": 3, "bong_dien_dien": 1}
 
 
+def _stock(stock):
+    """v1.2: dict đếm / mảng cá thể ngoài -> cá thể nội bộ; cá thể nội bộ (có units) giữ nguyên."""
+    if stock is None or (isinstance(stock, list) and stock and "units" in stock[0]):
+        return stock
+    return validate_item_list(to_items(stock))
+
+
+def _raw(customers):
+    """v1.2: reserved theo lượng -> bỏ để hệ thống tự cấp theo id; {} -> []."""
+    out = []
+    for c in customers:
+        c = dict(c)
+        if isinstance(c.get("reserved"), dict):
+            if c["reserved"]:
+                del c["reserved"]
+            else:
+                c["reserved"] = []
+        out.append(c)
+    return out
+
+
+def bfc(raw, tuning, stock=None, *a):
+    return build_fixture_customers(_raw(raw), tuning, _stock(stock), *a)
+
+
+def reserved_counts(sim_or_stock, c):
+    stock = sim_or_stock.stock if hasattr(sim_or_stock, "stock") else sim_or_stock
+    by = {it["id"]: it["kind"] for it in stock}
+    out = {}
+    for iid in c["reserved"]:
+        out[by[iid]] = out.get(by[iid], 0) + 1
+    return out
+
+
 def make_sim(stock=None, customers=None, seed=1, **scenario):
     sc = dict(scenario)
-    sc["stock"] = ALL_STOCK if stock is None else stock
+    sc["stock"] = to_items(ALL_STOCK if stock is None else stock)
     if customers is not None:
-        sc["customers"] = build_fixture_customers(customers, TUNING, sc["stock"])
+        sc["customers"] = bfc(customers, TUNING, sc["stock"])
     sim = QuanSim(TUNING, sc, Streams(seed), IdAllocator())
     sim.phase_tick = FIRST
     return sim
@@ -59,7 +94,7 @@ class Spawn(unittest.TestCase):
         sim = make_sim()
         spawn_customers(sim, [])
         c = sim.customers[0]
-        self.assertEqual(c["reserved"], TUNING["menu"][c["dish_id"]]["recipe"])
+        self.assertEqual(reserved_counts(sim, c), TUNING["menu"][c["dish_id"]]["recipe"])  # v1.2: mảng id
 
     def test_next_customers_every_interval(self):
         sim = make_sim()
@@ -134,7 +169,7 @@ class TickAndLeave(unittest.TestCase):
     def test_timers_only_waiting_patience_never_eat_timer(self):
         sim = make_sim(stock={"bong_sung": 4})
         sim.tables.append({"id": "T2", "pos": [10, 2]})
-        sim.customers = build_fixture_customers([
+        sim.customers = bfc([
             waiting("C1", "T1", patience_ticks_left=10, reserved={"bong_sung": 2}),
             waiting("C2", "T2", state="eating", order_status="served", eat_ticks_left=5,
                     patience_ticks_left=7, base_price=40, tip=0)], TUNING, sim.stock)
@@ -176,7 +211,7 @@ class TickAndLeave(unittest.TestCase):
     def test_closing_waiting_leave_without_reputation_cost_eating_stays(self):
         sim = make_sim(stock={"bong_sung": 4})
         sim.tables.append({"id": "T2", "pos": [10, 2]})
-        sim.customers = build_fixture_customers([
+        sim.customers = bfc([
             waiting("C1", "T1", reserved={"bong_sung": 2}),
             waiting("C2", "T2", state="eating", order_status="served", eat_ticks_left=5,
                     base_price=40, tip=0)], TUNING, sim.stock)
@@ -190,7 +225,7 @@ class TickAndLeave(unittest.TestCase):
     def test_leave_events_ordered_by_table_id(self):
         sim = make_sim(stock={"bong_sung": 6})
         sim.tables.extend([{"id": "T2", "pos": [10, 2]}, {"id": "T10", "pos": [11, 2]}])
-        sim.customers = build_fixture_customers([
+        sim.customers = bfc([
             waiting("C1", "T10", patience_ticks_left=0, reserved={"bong_sung": 2}),
             waiting("C2", "T2", patience_ticks_left=0, reserved={"bong_sung": 2}),
             waiting("C3", "T1", patience_ticks_left=0, reserved={"bong_sung": 2})], TUNING, sim.stock)
@@ -209,13 +244,14 @@ class TickAndLeave(unittest.TestCase):
 
 class Fixture(unittest.TestCase):
     def build(self, raw, stock=None, stoves=(), hand=None):
-        return build_fixture_customers(raw, TUNING, stock, stoves, hand)
+        return bfc(raw, TUNING, stock, stoves, hand)
 
     def test_defaults_and_derived_reserved(self):
-        c = self.build([waiting("C1", "T1", "lau_ca_linh_dien_dien")], stock={"ca_linh": 3, "bong_dien_dien": 1})[0]
+        stock = _stock({"ca_linh": 3, "bong_dien_dien": 1})
+        c = self.build([waiting("C1", "T1", "lau_ca_linh_dien_dien")], stock=stock)[0]
         self.assertEqual((c["state"], c["order_status"], c["order_tick"]), ("waiting", "reserved", 0))
         self.assertEqual((c["patience_ticks_left"], c["eat_ticks_left"]), (PATIENCE, 0))
-        self.assertEqual(c["reserved"], {"ca_linh": 3, "bong_dien_dien": 1})
+        self.assertEqual(reserved_counts(stock, c), {"ca_linh": 3, "bong_dien_dien": 1})  # v1.2: mảng id
 
     def test_sorted_by_id(self):
         out = self.build([waiting("C10", "T10"), waiting("C2", "T2")])
@@ -229,7 +265,7 @@ class Fixture(unittest.TestCase):
 
     def test_reserved_must_match_recipe(self):
         with self.assertRaises(BadInput):
-            self.build([waiting(reserved={"bong_sung": 1})])
+            self.build([waiting(reserved=["I1"])], stock={"bong_sung": 2})  # v1.2: giữ 1 id thiếu công thức
 
     def test_bad_fields(self):
         for bad in (waiting(dish_id_x=1), waiting(state="sleeping"), waiting(order_status="x"),
@@ -244,7 +280,7 @@ class Fixture(unittest.TestCase):
 
     def test_eating_rules(self):
         ok = waiting(state="eating", order_status="served", eat_ticks_left=EAT, base_price=40, tip=8)
-        self.assertEqual(self.build([ok])[0]["reserved"], {})
+        self.assertEqual(self.build([ok])[0]["reserved"], [])
         for bad in (dict(ok, eat_ticks_left=0), {k: v for k, v in ok.items() if k != "tip"},
                     {k: v for k, v in ok.items() if k != "base_price"},
                     dict(ok, order_status="reserved"), waiting(order_status="served")):
@@ -264,13 +300,13 @@ class Fixture(unittest.TestCase):
         with self.assertRaises(BadInput):   # món không khớp dish_id
             self.build([c], hand=dict(payload, dish_id="ca_loc_nuong_trui"))
         with self.assertRaises(BadInput):   # assigned mà còn giữ chỗ
-            self.build([waiting(order_status="assigned", reserved={"bong_sung": 2})], hand=payload)
+            self.build([waiting(order_status="assigned", reserved=["I1", "I2"])], hand=payload)
         with self.assertRaises(BadInput):   # bếp cooking timer 0
             self.build([c], stoves=[dict(stove, cook_ticks_left=0)])
 
     def test_unfulfillable_and_reserved_have_no_dish(self):
         payload = {"order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40}
-        self.assertEqual(self.build([waiting(order_status="unfulfillable")])[0]["reserved"], {})
+        self.assertEqual(self.build([waiting(order_status="unfulfillable")])[0]["reserved"], [])
         with self.assertRaises(BadInput):
             self.build([waiting(order_status="unfulfillable")], hand=payload)
         with self.assertRaises(BadInput):

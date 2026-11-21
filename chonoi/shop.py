@@ -5,6 +5,8 @@ Nâng cấp theo dữ liệu tuning.shop.upgrades; mua cấp kế tiếp, đủ 
 Cấp vừa mua ghi vào `upgrades` (hiển thị ngay); `active_upgrades` chỉ đổi khi dựng Ngày mới (day.py lo).
 """
 
+from . import inventory as inv
+
 
 class ShopSim:
     mode = "day"
@@ -16,13 +18,13 @@ class ShopSim:
         self.earned = earned
         self.reputation = reputation
         self.upgrades = upgrades  # dict dùng chung với DaySession: cấp đã mua
-        self.stock = dict(stock)  # kho dư từ ca, chỉ để hiển thị (bị bỏ sau Shop)
+        self.stock = [dict(it) for it in stock]  # kho dư từ ca (cá thể), không hao tươi, bị bỏ sau Shop
         self.time_left_ticks = int(self.cfg["max_ticks"])
         self.done = False
         self.reason = None
 
     def snapshot(self) -> dict:
-        return {"stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}}
+        return {"stock": [inv.item_out(it) for it in inv.by_id(self.stock)]}
 
     def buy(self, action, events):
         levels = self.cfg["upgrades"].get(action)

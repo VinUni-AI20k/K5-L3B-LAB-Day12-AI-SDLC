@@ -15,6 +15,7 @@ Khách rời vì kiên nhẫn / closing thì `quan_customers.remove_customer` t�
 
 import math
 
+from .. import inventory as inv
 from ..ids import id_key
 from .quan_customers import remove_customer
 
@@ -89,20 +90,22 @@ def _use_stove(sim, s, events):
 
 
 def _start_cooking(sim, s, events):
-    """Nhận đơn `reserved` CŨ NHẤT (order_tick, id) mà kho đủ nguyên liệu."""
-    for c in sorted(sim.customers, key=lambda c: (c["order_tick"], id_key(c["id"]))):
-        if c["state"] != "waiting" or c["order_status"] != "reserved":
+    """Nhận đơn `reserved` CŨ NHẤT (order_tick rồi id bàn). v1.2: tiêu đúng các id đang giữ,
+    chốt base_price = floor(giá niêm yết × trung bình fresh / 100)."""
+    for c in sorted(sim.customers, key=lambda c: (c["order_tick"], id_key(c["table_id"]))):
+        if c["state"] != "waiting" or c["order_status"] != "reserved" or not c["reserved"]:
             continue
-        recipe = sim.menu[c["dish_id"]]["recipe"]
-        if any(sim.stock.get(k, 0) < n for k, n in recipe.items()):
-            continue
-        for k, n in recipe.items():
-            sim.stock[k] -= n
-        c["reserved"], c["order_status"] = {}, "assigned"
+        ids = set(c["reserved"])
+        used = [it for it in sim.stock if it["id"] in ids]
+        sim.stock = [it for it in sim.stock if it["id"] not in ids]
+        price = inv.priced(sim.menu[c["dish_id"]]["price"], used)
+        c["reserved"], c["order_status"] = [], "assigned"
         s.update(state="cooking", ready_ticks=0,
-                 dish={"order_id": c["id"], "dish_id": c["dish_id"], "base_price": sim.menu[c["dish_id"]]["price"]},
+                 dish={"order_id": c["id"], "dish_id": c["dish_id"], "base_price": price},
                  cook_ticks_left=int(round(sim.menu[c["dish_id"]]["cook_s"] * TICK)))
-        events.append(("cook_started", {"stove_id": s["id"], "order_id": c["id"], "dish_id": c["dish_id"]}))
+        items = [inv.item_out(it) for it in sorted(used, key=lambda it: (it["kind"], id_key(it["id"])))]
+        events.append(("cook_started", {"stove_id": s["id"], "order_id": c["id"], "dish_id": c["dish_id"],
+                                        "items": items}))
         return
 
 

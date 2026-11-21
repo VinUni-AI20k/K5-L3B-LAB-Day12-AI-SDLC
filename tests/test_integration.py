@@ -4,7 +4,7 @@ import json
 import unittest
 from pathlib import Path
 
-from helpers import ROOT, Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import ROOT, Workdir, counts, same_items, events, frames, kinds, read_jsonl, run_headless, snapshots, to_items, write_json
 
 
 TUNING = json.loads((Path(ROOT) / "game.contract.json").read_text(encoding="utf-8"))["tuning"]
@@ -35,16 +35,20 @@ class Phase1Integration(unittest.TestCase):
         return rows, inventory
 
     def _assert_handoff(self, rows, inventory, reason, items, quan_output="quan.jsonl"):
-        expected = {"items": items}
-        self.assertEqual([event["data"] for event in events(rows, "gather_end")],
-                         [{"reason": reason, "inventory": expected}])
+        # v1.2: kho cá thể; so theo loại, và file/gather_end/snapshot quán phải trùng nhau từng cá thể
+        ends = [event["data"] for event in events(rows, "gather_end")]
+        self.assertEqual([(e["reason"], counts(e["inventory"]["items"])) for e in ends], [(reason, items)])
+        expected = ends[0]["inventory"]
         self.assertEqual(rows[-1]["reason"], reason)
         self.assertTrue(inventory.is_file(), "gather_end phải ghi file kho")
-        self.assertEqual(json.loads(inventory.read_text(encoding="utf-8")), expected)
+        saved = json.loads(inventory.read_text(encoding="utf-8"))
+        self.assertEqual(set(saved), {"items"})
+        self.assertTrue(same_items(saved["items"], expected["items"]), (saved, expected))
         quan = self._run("quan", 0, quan_output, "--inventory", str(inventory))
         initial = snapshots(quan)[0]
         self.assertEqual(initial["tick"], 0)
-        self.assertEqual(initial["stock"], items)
+        self.assertEqual(counts(initial["stock"]), items)
+        self.assertEqual([it["id"] for it in initial["stock"]], [it["id"] for it in expected["items"]])
 
     def test_dock_o_buoc_cuoi_va_kho_tat_dinh(self):
         dock = GATHER["dock_pos"]
@@ -114,7 +118,7 @@ class Phase1Integration(unittest.TestCase):
         rows, _ = self._gather(scenario, {"tick": 0, "catch": True})
         self.assertEqual(events(rows, "fish_caught"), [])
         final = snapshots(rows)[-1]
-        self.assertEqual(final["hold"], hold)
+        self.assertEqual(kinds(final["hold"]), hold)  # v1.2: kho cá thể
         self.assertEqual([fish["id"] for fish in final["fish"]], ["F1", "F2"])
         self.assertEqual(final["player"]["catch_cd_ticks"], 0)
         self.assertEqual([row["data"] for row in events(rows, "hold_full")],
@@ -136,19 +140,20 @@ class Phase1Integration(unittest.TestCase):
         self._assert_handoff(rows, inventory, "fainted", {})
         self.assertEqual([(row["tick"], row["name"]) for row in events(rows)],
                          [(1, "choke"), (1, "faint"), (1, "gather_end")])
-        self.assertEqual(events(rows, "faint")[0]["data"], {"cause": "choke", "hp": 0, "lost": hold[::-1]})
+        d = events(rows, "faint")[0]["data"]
+        self.assertEqual(dict(d, lost=kinds(d["lost"])), {"cause": "choke", "hp": 0, "lost": hold[::-1]})
 
     def test_quan_goi_mon_theo_kho_va_lich_khach(self):
         first_tick = QUAN["first_customer_tick"]
         recipe = TUNING["menu"][DISH]["recipe"]
         for items, event_name in ((recipe, "customer_arrived"), ({}, "no_dish")):
             with self.subTest(event=event_name):
-                inventory = write_json(self.work.path(f"{event_name}.json"), {"items": items})
+                inventory = write_json(self.work.path(f"{event_name}.json"), {"items": to_items(items)})
                 rows = self._run("quan", first_tick, "quan.jsonl", "--inventory", inventory)
                 order_events = [row for row in events(rows) if row["name"] in {"customer_arrived", "no_dish"}]
                 self.assertEqual([(row["tick"], row["name"]) for row in order_events], [(first_tick, event_name)])
                 final = snapshots(rows)[-1]
-                self.assertEqual(final["stock"], items)
+                self.assertEqual(counts(final["stock"]), items)
                 if items:
                     table_id = QUAN["tables"][0]["id"]
                     customer, = final["customers"]
@@ -156,7 +161,8 @@ class Phase1Integration(unittest.TestCase):
                         "order_id": customer["id"], "table_id": table_id, "dish_id": DISH,
                     })
                     self.assertEqual(customer["order_tick"], first_tick)
-                    self.assertEqual(customer["reserved"], recipe)
+                    by = {it["id"]: it["kind"] for it in final["stock"]}
+                    self.assertEqual(counts([{"kind": by[i]} for i in customer["reserved"]]), recipe)
                 else:
                     self.assertEqual(order_events[0]["data"], {})
                     self.assertEqual(final["customers"], [])

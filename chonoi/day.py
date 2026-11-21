@@ -12,6 +12,7 @@ kho dư bị bỏ sau Shop. DayIntro/EveningIntro/DayResult là màn UI, không 
 import copy
 import math
 
+from . import inventory as inv
 from .ids import IdAllocator
 from .rng import Streams
 from .runner import PauseMixin, common_snapshot
@@ -38,6 +39,8 @@ class DaySession(PauseMixin):
         self.plans = {p["day"]: p for p in copy.deepcopy(tuning["day_plan"])}
         for p in d.get("day_plan", []):
             self.plans[p["day"]] = p
+        self.item_ids = IdAllocator()  # I1, I2... tăng xuyên pha và Ngày
+        self.hold_tpl = inv.validate_item_list(self.gather_tpl.get("hold", []), "gather.hold")
         self.day = 1
         self.days_completed = 0
         self.tick = 0
@@ -63,7 +66,11 @@ class DaySession(PauseMixin):
             if lv:
                 t["gather"][field] = t["shop"]["upgrades"][uid][lv - 1][key]
         sc = dict(self.gather_tpl)
-        self.sim = GatherSim(t, sc, self.streams, IdAllocator(), day=self.day)
+        if self.day == 1:  # Ngày đầu giữ nguyên id trong mẫu; các Ngày kế cấp id mới theo thứ tự mảng
+            hold = [dict(it) for it in self.hold_tpl]
+        else:
+            hold = [{"id": self.item_ids.new("I"), "kind": it["kind"], "units": it["units"]} for it in self.hold_tpl]
+        self.sim = GatherSim(t, sc, self.streams, IdAllocator(), day=self.day, item_ids=self.item_ids, hold=hold)
         self._sync_into_sim()
         self.phase_tick = 0
         out.append(("gather", "phase_start", {}))
@@ -73,7 +80,7 @@ class DaySession(PauseMixin):
         dishes = self._plan()["dishes"]
         t["menu"] = {k: v for k, v in t["menu"].items() if k in dishes}  # lọc menu theo kế hoạch trước
         sc = dict(self.quan_tpl, reputation=self.reputation)
-        self.sim = QuanSim(t, sc, self.streams, IdAllocator(), inventory=dict(items))
+        self.sim = QuanSim(t, sc, self.streams, IdAllocator(), inventory=items)
         self._sync_into_sim()
         self.phase_tick = 0
         out.append(("quan", "phase_start", {}))
@@ -121,7 +128,7 @@ class DaySession(PauseMixin):
         sim = self.sim
         self._sync_from_sim()
         if sim.phase == "gather":
-            self._start_quan(sim.inventory_items(), out)
+            self._start_quan([dict(it) for it in sim.hold], out)  # bàn giao trong bộ nhớ, không hao thêm
         elif sim.phase == "quan":
             self._start_shop(sim.stock, out)
         else:  # shop đóng

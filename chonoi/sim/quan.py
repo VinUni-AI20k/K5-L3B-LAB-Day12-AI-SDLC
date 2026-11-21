@@ -8,6 +8,7 @@ Phân chia lát:
   Chỉ người làm lát 4 sửa file này (thứ tự gọi trong step); lát 3 KHÔNG cần sửa file này.
 """
 
+from .. import inventory as inv
 from ..ids import sort_by_id
 from . import quan_customers as customers
 from . import quan_service as service
@@ -31,8 +32,13 @@ class QuanSim:
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
         self._tgt = None
         self._ramp_left = 0
-        # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
+        # kho cá thể v1.2: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
+        self.fresh_cfg = tuning["freshness"]
+        self.decay_units = inv.units_per_tick(self.fresh_cfg["quan_decay_per_s"])
+        if inventory is not None:
+            self.stock = [dict(it) for it in inventory]
+        else:
+            self.stock = inv.validate_item_list(scenario.get("stock", []), "quan.stock")
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
@@ -66,7 +72,7 @@ class QuanSim:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
         return {
             "player": {"pos": self.pos},
-            "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
+            "stock": [inv.item_out(it) for it in inv.by_id(self.stock)],
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
@@ -82,9 +88,13 @@ class QuanSim:
         timers = getattr(customers, "tick_customers_timers", None) or getattr(customers, "tick_customers", None)
         leave = getattr(customers, "customers_leave", None)
         closing = self.time_left_ticks <= 0
-        service.tick_service(self, events)              # 1. bếp nấu -> dish_ready, khách ăn đếm ngược
         if timers:
             timers(self, events)                        # 1. kiên nhẫn (lát 3)
+        # 1b. v1.2: hao tươi kho thô (kể cả hàng đang giữ), phát hết spoiled theo id, rồi xử lý giữ chỗ bị ươn
+        spoiled = inv.decay(self.stock, self.decay_units, self.fresh_cfg["spoiled_below"], "stock", events)
+        if spoiled:
+            customers.rereserve_spoiled(self, set(spoiled))
+        service.tick_service(self, events)              # 1c. bếp nấu -> dish_ready, khách ăn đếm ngược
         self._move(inp)                                 # 2. đi lại
         if inp.pressed("interact"):
             service.interact(self, events)              # 2. tối đa MỘT interact
