@@ -105,7 +105,9 @@ class DaySession:
 
     # --- dựng pha -----------------------------------------------------------------
     def _day_tuning(self):
-        """Tuning của Ngày hiện tại: oxy/Máu theo cấp đang áp dụng, quái theo from_day, menu theo kế hoạch."""
+        """Tuning của Ngày hiện tại: oxy/Máu theo cấp đang áp dụng, quái theo from_day.
+        Menu giữ đủ 6 món; lọc theo kế hoạch do QuanSim(menu_filter=…) làm (hợp đồng mục 5.3), để fixture
+        có món ngoài kế hoạch báo mã 2 thay vì KeyError."""
         t = copy.deepcopy(self.tuning)
         ups = t["shop"]["upgrades"]
         g = t["gather"]
@@ -116,8 +118,6 @@ class DaySession:
         mons = g.get("monsters")
         if isinstance(mons, dict):
             mons["spawns"] = [m for m in mons.get("spawns", []) if m.get("from_day", 1) <= self.day]
-        dishes = self.plan[self.day]["dishes"]
-        t["menu"] = {k: v for k, v in t["menu"].items() if k in dishes}  # lọc theo kế hoạch trước nguyên liệu
         return t
 
     def _start_day(self) -> list:
@@ -145,7 +145,8 @@ class DaySession:
         if phase == "gather":
             inventory = self.sim.inventory_items()  # ngất -> rỗng; quán vẫn mở
             quan_sc = copy.deepcopy(self.scenario.get("quan", {}))
-            self.sim = QuanSim(self._day_t, quan_sc, self._streams, IdAllocator(), inventory=inventory)
+            self.sim = QuanSim(self._day_t, quan_sc, self._streams, IdAllocator(), inventory=inventory,
+                               menu_filter=sorted(self.plan[self.day]["dishes"]))  # lọc kế hoạch trước nguyên liệu
             self._sync_into(self.sim)
             self.phase_tick = 0
             return [self._event("phase_start", {}, "quan")]

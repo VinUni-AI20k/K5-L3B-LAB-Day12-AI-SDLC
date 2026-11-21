@@ -2,6 +2,9 @@
 # PYTHONPATH=tests:. python3 -m unittest tests.test_quan_p2_tables_plan -v
 test_defaults_unchanged_for_standalone (tests.test_quan_p2_tables_plan.CarryOverState.test_defaults_unchanged_for_standalone) ... ok
 test_initial_money_earned_reputation (tests.test_quan_p2_tables_plan.CarryOverState.test_initial_money_earned_reputation) ... ok
+test_day1_customer_only_orders_plan_dish (tests.test_quan_p2_tables_plan.DayModeIntegration.test_day1_customer_only_orders_plan_dish) ... ok
+test_day1_no_dish_when_only_off_plan_cookable (tests.test_quan_p2_tables_plan.DayModeIntegration.test_day1_no_dish_when_only_off_plan_cookable) ... ok
+test_day_fixture_customer_off_plan_exit_2 (tests.test_quan_p2_tables_plan.DayModeIntegration.test_day_fixture_customer_off_plan_exit_2) ... ok
 test_every_day_plan_dish_is_in_menu (tests.test_quan_p2_tables_plan.DayPlanFilter.test_every_day_plan_dish_is_in_menu) ... ok
 test_fixture_in_plan_is_ok (tests.test_quan_p2_tables_plan.DayPlanFilter.test_fixture_in_plan_is_ok) ... ok
 test_fixture_off_plan_is_bad_input (tests.test_quan_p2_tables_plan.DayPlanFilter.test_fixture_off_plan_is_bad_input) ... ok
@@ -20,19 +23,23 @@ test_new_dish_only_when_its_recipe_is_available (tests.test_quan_p2_tables_plan.
 test_standalone_uses_all_six_dishes (tests.test_quan_p2_tables_plan.SixDishes.test_standalone_uses_all_six_dishes) ... ok
 
 ----------------------------------------------------------------------
-Ran 18 tests in 4.376s
+Ran 21 tests in 2.111s
 
 OK
 
 # Regression P1 lát 3: PYTHONPATH=tests:. python3 -m unittest tests.test_quan_customers
-Ran 29 tests in 9.524s
+Ran 29 tests in 3.376s
 
 OK
 
 # Toàn bộ: PYTHONPATH=tests:. python3 -m unittest discover -s tests
-Ran 111 tests in 20.599s
+Ran 128 tests in 18.813s
 
 OK
+
+# Skill nhóm
+15/15 cặp giống từng byte · seeds [1, 42, -7] · 3600 tick
+10/10 mục đạt
 
 # Quán độc lập v1.1, kho đủ 6 nguyên liệu (mỗi loại 50), seed 5, 3000 tick: khách vào T1..T4
 Tất định: 2 lần chạy giống từng byte
@@ -40,3 +47,13 @@ Tất định: 2 lần chạy giống từng byte
 {"type":"event","tick":1020,"phase":"quan","name":"customer_arrived","data":{"order_id":"C2","table_id":"T2","dish_id":"canh_chua_ca_loc"}}
 {"type":"event","tick":1920,"phase":"quan","name":"customer_arrived","data":{"order_id":"C3","table_id":"T3","dish_id":"goi_bong_sung"}}
 {"type":"event","tick":2820,"phase":"quan","name":"customer_arrived","data":{"order_id":"C4","table_id":"T4","dish_id":"canh_chua_ca_loc"}}
+
+# --mode day Ngày 1 (kế hoạch: ca_loc_nuong_trui, goi_bong_sung), giỏ {ca_keo×2, bong_sung×2}, cập bến tick 0
+{"type":"event","tick":0,"phase":"gather","day":1,"name":"day_plan","data":{"dishes":{"ca_loc_nuong_trui":3,"goi_bong_sung":3},"ingredients":{"bong_sung":6,"ca_loc":3}}}
+{"type":"event","tick":0,"phase":"gather","day":1,"name":"phase_start","data":{}}
+{"type":"event","tick":1,"phase":"quan","day":1,"name":"phase_start","data":{}}
+{"type":"event","tick":121,"phase":"quan","day":1,"name":"customer_arrived","data":{"order_id":"C1","table_id":"T1","dish_id":"goi_bong_sung"}}
+
+# --mode day, khách dựng sẵn gọi ca_keo_nuong (ngoài kế hoạch D1) -> mã 2 (trước đây: KeyError, mã 1)
+đầu vào sai: customers.C1: món 'ca_keo_nuong' không thuộc kế hoạch Ngày ['ca_loc_nuong_trui', 'goi_bong_sung']
+exit=2

@@ -171,6 +171,42 @@ class DayPlanFilter(unittest.TestCase):
         self.assertEqual(len(sim.customers), 1)
 
 
+class DayModeIntegration(unittest.TestCase):
+    """AC-P2-32 qua `--mode day` (runner lát 4 gọi QuanSim(menu_filter=…))."""
+
+    DOCK = {"frames": [{"tick": 0, "interact": True}]}  # cập bến ngay tick 0 -> quán mở cùng tick
+
+    def _run(self, scenario, ticks):
+        with Workdir() as w:
+            sc = write_json(w.path("sc.json"), scenario)
+            ip = write_json(w.path("in.json"), self.DOCK)
+            out = w.path("o.jsonl")
+            code, err = run_headless("--mode", "day", "--seed", "3", "--ticks", str(ticks), "--scenario", sc,
+                                     "--inputs", ip, "--out", out)
+            return code, err, (read_jsonl(out) if code == 0 else [])
+
+    def test_day1_customer_only_orders_plan_dish(self):
+        # kho mang về đủ cá kèo nướng (ngoài kế hoạch D1) và 1 suất gỏi (trong kế hoạch) -> khách gọi gỏi
+        sc = {"gather": {"hold": ["ca_keo", "ca_keo", "bong_sung", "bong_sung"], "random_fish": False}}
+        code, err, rows = self._run(sc, 1 + FIRST)
+        self.assertEqual(code, 0, err)
+        arr = events(rows, "customer_arrived")
+        self.assertEqual([(e["phase"], e["day"], e["data"]["dish_id"]) for e in arr], [("quan", 1, "goi_bong_sung")])
+
+    def test_day1_no_dish_when_only_off_plan_cookable(self):
+        sc = {"gather": {"hold": ["ca_keo", "ca_keo"], "random_fish": False}}
+        code, err, rows = self._run(sc, 1 + FIRST)
+        self.assertEqual(code, 0, err)
+        self.assertEqual([e["data"] for e in events(rows, "no_dish")], [{}])
+        self.assertEqual(events(rows, "customer_arrived"), [])
+
+    def test_day_fixture_customer_off_plan_exit_2(self):
+        sc = {"gather": {"hold": ["ca_keo", "ca_keo"], "random_fish": False},
+              "quan": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_keo_nuong"}]}}
+        code, err, _ = self._run(sc, 5)
+        self.assertEqual(code, 2, err)
+
+
 class CarryOverState(unittest.TestCase):
     """Hợp đồng mục 5.3: runner day truyền money/earned/reputation vào QuanSim."""
 
