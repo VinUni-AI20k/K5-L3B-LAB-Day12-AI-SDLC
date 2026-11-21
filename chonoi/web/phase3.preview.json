@@ -1,0 +1,6 @@
+{
+  "contract_version": "1.2",
+  "extensions": [],
+  "freshness": {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30},
+  "fixture": {"lot_values": [97.5, 83.25, 66.5, 52.5], "hold_spoiled": 28.5, "stock_edge": 30, "stock_spoiled": 29.75}
+}
