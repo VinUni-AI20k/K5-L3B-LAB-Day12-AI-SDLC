@@ -3,7 +3,8 @@
 from .gather import GatherSim
 from .quan import QuanSim
 from ..day_config import day_plans, gather_tuning
-from ..ids import IdAllocator
+from ..ids import IdRegistry
+from ..inventory import clone_items
 from ..rng import Streams
 
 
@@ -15,7 +16,7 @@ class DaySim:
         self.gather_scenario = scenario.get("gather", {})
         self.quan_scenario = scenario.get("quan", {})
         self.streams = Streams(seed)
-        self.ids = IdAllocator()
+        self.ids = IdRegistry()
         initial = scenario.get("day", {})
         self.plans = day_plans(tuning, initial.get("day_plan", ()))
         self.money = initial.get("money", 0)
@@ -34,7 +35,9 @@ class DaySim:
         self.plan = self.plans[self.day]
         self.phase = "gather"
         effective = gather_tuning(self.tuning, self.active_upgrades)
-        self.current = GatherSim(effective, self.gather_scenario, self.streams, self.ids,
+        gather_scenario = self.gather_scenario if self.day == 1 else {
+            key: value for key, value in self.gather_scenario.items() if key != "hold"}
+        self.current = GatherSim(effective, gather_scenario, self.streams, self.ids,
                                  day=self.day, active_upgrades=self.active_upgrades)
         self.current.reputation = self.reputation
 
@@ -42,13 +45,13 @@ class DaySim:
         menu = {dish: self.tuning["menu"][dish] for dish in self.plan["dishes"]}
         tuning = {**self.tuning, "menu": menu}
         scenario = {**self.quan_scenario, "reputation": self.reputation}
-        self.current = QuanSim(tuning, scenario, self.streams, self.ids, inventory=stock)
+        self.current = QuanSim(tuning, scenario, self.streams, self.ids, inventory=clone_items(stock))
         self.current.money = self.money
         self.current.earned = self.earned
         self.phase = "quan"
 
     def _start_shop(self):
-        self.shop_stock = self.current.stock_snapshot()
+        self.shop_stock = self.current.inventory_items()
         self.current = None
         self.shop_ticks = self.tuning["shop"]["max_ticks"]
         self.phase = "shop"
@@ -58,7 +61,11 @@ class DaySim:
         return self.shop_ticks if self.phase == "shop" else self.current.time_left_ticks
 
     def snapshot(self):
-        state = {"stock": self.shop_stock.copy()} if self.phase == "shop" else self.current.snapshot()
+        state = {"stock": clone_items(self.shop_stock)} if self.phase == "shop" else self.current.snapshot()
+        if self.phase == "gather":
+            state["hold"] = self.current.inventory_items()
+        elif self.phase == "quan":
+            state["stock"] = self.current.inventory_items()
         return {**state, "day": self.day, "day_plan": self.plan,
                 "upgrades": self.upgrades.copy(), "active_upgrades": self.active_upgrades.copy()}
 
@@ -88,7 +95,7 @@ class DaySim:
             return [("phase_start", {})]
         if self.phase == "shop" and events and events[-1][0] == "shop_end":
             self.days_completed += 1
-            self.shop_stock.clear()
+            self.shop_stock = []
             if self.days_completed == self.days:
                 self.done, self.reason = True, "days_complete"
             else:

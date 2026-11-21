@@ -1,6 +1,5 @@
 """P3-03 stock and reservations with the v1.2 tuning."""
 
-import shutil
 import sys
 import unittest
 from pathlib import Path
@@ -10,11 +9,7 @@ from chonoi.contract import load_contract
 from chonoi.errors import BadInput
 from chonoi.inputs import BUTTONS_V11, InputPlayer
 from chonoi.runner import Session
-from chonoi.sim.gather import GatherSim
-from helpers import ROOT, Workdir, events, read_jsonl, run_headless, snapshots, write_json
-
-
-FRESHNESS = {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30}
+from helpers import Workdir, events, read_jsonl, run_headless, snapshots, write_json
 
 
 def item(item_id, fresh=100, kind="ca_loc"):
@@ -27,10 +22,7 @@ def customer(customer_id, table="T1", **fields):
 
 class RestaurantStockTest(unittest.TestCase):
     def setUp(self):
-        self.contract = load_contract()
-        self.contract["contract_version"] = "1.2"
-        self.tuning = self.contract["tuning"]
-        self.tuning["freshness"] = FRESHNESS.copy()
+        self.tuning = load_contract()["tuning"]
 
     def quan(self, items, customers=(), **scenario):
         return Session("quan", self.tuning, {
@@ -139,16 +131,14 @@ class RestaurantStockTest(unittest.TestCase):
                 self.quan(stock, bad)
 
     def test_day_receives_item_handoff_and_shop_does_not_decay_stock(self):
-        session = Session("day", self.tuning, {"gather": {"time_left_ticks": 1},
+        session = Session("day", self.tuning, {"gather": {"time_left_ticks": 1, "hold": [item("I9", 30.25)]},
                                                "quan": {"time_left_ticks": 1}}, 17)
-        handoff = [item("I9", 30.25)]
-        # Stand in for the v1.2 Gather adapter while exercising the real Quan and Shop.
-        with patch.object(GatherSim, "inventory_items", return_value=handoff):
-            self.step(session, 1)
+        rows = self.step(session, 1)
+        handoff = events(rows, "gather_end")[0]["data"]["inventory"]["items"]
         self.assertEqual((session.snapshot()["phase_tick"], session.snapshot()["stock"]), (0, handoff))
         self.step(session, 1)
         shop_stock = session.snapshot()["stock"]
-        self.assertAlmostEqual(shop_stock[0]["fresh"], 30.25 - 1 / 240)
+        self.assertAlmostEqual(shop_stock[0]["fresh"], handoff[0]["fresh"] - 1 / 240)
         self.step(session, 60)
         self.assertEqual(session.snapshot()["stock"], shop_stock)
         self.step(session, 1, [{"tick": session.tick, "shop_done": True}])
@@ -156,28 +146,24 @@ class RestaurantStockTest(unittest.TestCase):
 
     def test_headless_v12_uses_item_files_and_rejects_bad_inputs_before_output(self):
         with Workdir() as work:
-            copy = Path(work.path("repo"))
-            shutil.copytree(Path(ROOT, "chonoi"), copy / "chonoi", ignore=shutil.ignore_patterns("__pycache__"))
-            write_json(copy / "game.contract.json", self.contract)
             output = work.path("out.jsonl")
             args = ("--mode", "quan", "--seed", "17", "--ticks", "0", "--out", output)
-            # Use the isolated module's manifest and the current Python executable.
             with patch("helpers.headless_cmd", return_value=[sys.executable, "-m", "chonoi.headless"]):
                 for value in ({"ca_loc": 1}, [item("I1"), item("I1")], [item("I1", -1)],
                               [item("I1", 101)], [item("I1", float("nan"))], [item("I1", kind="unknown")]):
                     source = write_json(work.path("stock.json"), {"items": value})
-                    code, err = run_headless(*args, "--inventory", source, cwd=copy)
+                    code, err = run_headless(*args, "--inventory", source)
                     self.assertEqual(code, 2, err)
                     self.assertFalse(Path(output).exists())
                 items = [item("I10", 29.9999), item("I2", 99.99166666666666)]
                 source = write_json(work.path("stock.json"), {"items": items})
-                code, err = run_headless(*args, "--inventory", source, cwd=copy)
+                code, err = run_headless(*args, "--inventory", source)
                 self.assertEqual(code, 0, err)
                 self.assertEqual(snapshots(read_jsonl(output))[0]["stock"], [items[1], items[0]])
                 Path(output).unlink()
                 fixture = write_json(work.path("scenario.json"), {"quan": {
                     "stock": items, "customers": [customer("C1", reserved=["I10"])],
                 }})
-                code, err = run_headless(*args, "--scenario", fixture, cwd=copy)
+                code, err = run_headless(*args, "--scenario", fixture)
                 self.assertEqual(code, 2, err)
                 self.assertFalse(Path(output).exists())

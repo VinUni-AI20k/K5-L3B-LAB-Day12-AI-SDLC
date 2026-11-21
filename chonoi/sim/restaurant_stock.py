@@ -5,17 +5,16 @@ from fractions import Fraction
 
 from ..errors import BadInput
 from ..ids import id_key, sort_by_id
-from ..inventory import validate_individual_items
+from ..inventory import validate_inventory_items
 
 
 class RestaurantStock:
-    def __init__(self, items, freshness, tick_hz):
-        self.items = sort_by_id(validate_individual_items(items))
+    def __init__(self, items, inventory_tuning, tick_hz):
+        self.items = sort_by_id(validate_inventory_items(items))
         for item in self.items:
             item["fresh"] = Fraction(str(item["fresh"]))
-        self.per_tick = Fraction(str(freshness["quan_decay_per_s"])) / tick_hz
-        self.minimum = Fraction(str(freshness["spoiled_below"]))
-        self.freshness_scale = Fraction(str(freshness["initial"]))
+        self.per_tick = Fraction(str(inventory_tuning["quan_decay_per_s"])) / tick_hz
+        self.minimum = Fraction(str(inventory_tuning["spoil_threshold"]))
 
     @staticmethod
     def _external(item):
@@ -86,7 +85,8 @@ class RestaurantStock:
         items = self._claim_items(recipe, claim, blocked)
         if not items:
             return None
-        base_price = price * sum(item["fresh"] for item in items) // (len(items) * self.freshness_scale)
+        # fresh is a percentage on the schema's 0–100 scale.
+        base_price = price * sum(item["fresh"] for item in items) // (len(items) * 100)
         consumed = set(claim)
         self.items[:] = [item for item in self.items if item["id"] not in consumed]
         items.sort(key=lambda item: (item["kind"], id_key(item["id"])))

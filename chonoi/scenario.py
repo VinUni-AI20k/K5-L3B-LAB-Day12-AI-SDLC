@@ -10,7 +10,7 @@ import math
 
 from .day_config import gather_tuning
 from .errors import BadInput
-from .inventory import KINDS_P2, validate_individual_items, validate_items
+from .inventory import KINDS_P2, validate_inventory_items, validate_items
 from .sim.monsters import monster_config
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "monsters", "random_fish", "time_left_ticks"}
@@ -52,8 +52,22 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
         quan = _validate_block(data.get("quan", {}), "quan", tuning)
         if quan.keys() & {"stock", "reputation"}:
             raise BadInput("day không nhận quan.stock hoặc quan.reputation")
+        _check_item_ids_across_blocks(data)
         return data
-    return _validate_block(data.get(mode, {}), mode, tuning)
+    block = _validate_block(data.get(mode, {}), mode, tuning)
+    _check_item_ids_across_blocks({mode: block})
+    return block
+
+
+def _check_item_ids_across_blocks(data):
+    seen = set()
+    for mode, field in (("gather", "hold"), ("quan", "stock")):
+        raw = data.get(mode, {}).get(field)
+        if isinstance(raw, list) and (not raw or isinstance(raw[0], dict)):
+            for item in validate_inventory_items(raw):
+                if item["id"] in seen:
+                    raise BadInput(f"id nguyên liệu trùng trong scenario: {item['id']}")
+                seen.add(item["id"])
 
 
 def _validate_day(initial, tuning):
@@ -120,8 +134,10 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P2 for k in h):
-            raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
+        if isinstance(h, list) and (not h or isinstance(h[0], dict)):
+            validate_inventory_items(h)
+        elif not isinstance(h, list) or any(k not in KINDS_P2 for k in h):
+            raise BadInput("hold phải là mảng nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
     p = b.get("player", {})
@@ -208,8 +224,10 @@ def _validate_quan(b, tuning):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate = validate_individual_items if "freshness" in tuning else validate_items
-        validate(b["stock"])
+        if isinstance(b["stock"], list):
+            validate_inventory_items(b["stock"])
+        else:
+            validate_items(b["stock"])
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")

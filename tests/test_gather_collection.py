@@ -180,7 +180,8 @@ class GatherCollection(unittest.TestCase):
             with open(inventory, encoding="utf-8") as f:
                 saved = json.load(f)
             self.assertEqual(saved, events(rows, "gather_end")[0]["data"]["inventory"])
-            self.assertEqual(saved, {"items": {"bong_sung": self.g["node_yield"]}})
+            self.assertEqual([item["kind"] for item in saved["items"]], ["bong_sung"] * self.g["node_yield"])
+            self.assertEqual([item["id"] for item in saved["items"]], ["I1"])
             code, err = run_headless("--mode", "quan", "--seed", "1", "--ticks", "0",
                                      "--inventory", inventory, "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
@@ -217,9 +218,9 @@ class GatherCollection(unittest.TestCase):
             rows = read_jsonl(w.path("g.jsonl"))
             self.assertEqual([r["name"] for r in events(rows)], ["choke", "faint", "gather_end"])
             self.assertEqual(events(rows, "faint")[0]["data"]["lost"], ["bong_sung", "ca_loc"])
-            self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": {}})
+            self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": []})
             with open(inventory, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
 
 if __name__ == "__main__":

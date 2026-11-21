@@ -8,7 +8,7 @@ from copy import deepcopy
 
 from ..errors import BadInput
 from ..ids import sort_by_id
-from ..inventory import validate_items
+from ..inventory import clone_items, items_to_counts, materialize_items
 from .kitchen import KitchenServingMixin
 from .ramp import ramp_velocity
 from .restaurant_stock import RestaurantStock
@@ -58,11 +58,15 @@ class QuanSim(KitchenServingMixin):
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có inventory")
-        freshness = tuning.get("freshness")
-        default_stock = [] if freshness is not None else {}
-        stock = inventory if inventory is not None else scenario.get("stock", default_stock)
-        self.item_stock = RestaurantStock(stock, freshness, self.tick_hz) if freshness is not None else None
-        self.stock = self.item_stock.items if self.item_stock is not None else validate_items(stock)
+        legacy_orders = any(isinstance(c.get("reserved"), dict) for c in scenario.get("customers", []))
+        default_stock = {} if legacy_orders else []
+        stock_source = inventory if inventory is not None else scenario.get("stock", default_stock)
+        self.stock_items = materialize_items(stock_source, ids, allow_legacy=inventory is None)
+        inventory_tuning = tuning.get("inventory")
+        # Keep explicitly counted Phase 1/2 fixtures usable through the internal adapter.
+        self.item_stock = (RestaurantStock(self.stock_items, inventory_tuning, self.tick_hz)
+                           if isinstance(stock_source, list) and inventory_tuning is not None else None)
+        self.stock = self.item_stock.items if self.item_stock is not None else items_to_counts(self.stock_items)
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", self._ticks(t["duration_s"]))
         self.phase_tick = 0
@@ -102,9 +106,14 @@ class QuanSim(KitchenServingMixin):
 
     def snapshot(self) -> dict:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
+        items = self.inventory_items()
+        stock = items
+        if self.item_stock is None:
+            stock = {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}
         return {
             "player": {"pos": self.pos, "vel": self.vel},
-            "stock": self.stock_snapshot(),
+            "stock": stock,
+            "stock_items": items,
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
@@ -112,10 +121,18 @@ class QuanSim(KitchenServingMixin):
             "customers": sort_by_id(self.customers),
         }
 
-    def stock_snapshot(self):
+    def inventory_items(self):
+        """Danh sách cá thể còn trong kho vật lý sau các lần nấu."""
         if self.item_stock is not None:
             return self.item_stock.snapshot()
-        return {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}
+        remaining = self.stock.copy()
+        kept = []
+        for item in self.stock_items:
+            kind = item["kind"]
+            if remaining.get(kind, 0) > 0:
+                kept.append(item)
+                remaining[kind] -= 1
+        return clone_items(kept)
 
     def step(self, inp):
         if self.done:
