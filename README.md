@@ -3,6 +3,63 @@
 > **Làm theo nhóm 4–6 người** · Dùng AI để xây game 2D qua **4 phase** trong **3 giờ**: Út Sen lặn bắt cá, hái rau trên mặt nước rồi tối mở quán phục vụ khách.
 > **Yêu cầu từng phase mở đúng mốc giờ tại lab board:** **[Chợ Nổi Lab](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg)** (cần đăng nhập claude.ai; có trợ giảng AI cho từng phase).
 
+## Nhóm Nhom001 — Release v1.0.0 (Phase 4, Test Contract v1.3)
+
+**Quán Ăn Chợ Nổi** — Út Sen lặn bắt cá bằng lao móc, hái rau trên sông, tối mở quán trên nhà bè; 5 Ngày theo kế hoạch của Má Tư.
+Bản tải về: GitHub Release **v1.0.0** → `quan-an-cho-noi-v1.0.0.zip` (giải nén, chạy `./run.sh`; macOS có thể bấm đúp `run.command`).
+Ghi chú phát hành: [`docs/release/RELEASE_NOTES_v1.0.0.md`](docs/release/RELEASE_NOTES_v1.0.0.md) · thay đổi: [`CHANGELOG.md`](CHANGELOG.md).
+
+### Yêu cầu môi trường
+- macOS hoặc Linux, **Python ≥ 3.9** (chỉ thư viện chuẩn, không `pip install`), `git`.
+- Trình duyệt hiện đại có ES modules + WebAudio (Chrome/Edge/Firefox/Safari bản gần đây). Màn hình ≥ 1280×720, có bàn phím.
+- Mở qua HTTP (không mở `file://` vì trình duyệt chặn ES modules). Cổng mặc định 8099.
+- Benchmark (`tools/bench.py`) cần Chrome hoặc Chromium cài sẵn. Đóng gói Release cần thêm lệnh `zip`.
+
+### Chạy bản GUI từ clone sạch (3 lệnh)
+
+```bash
+git clone https://github.com/workcaominh-gif/K5-L3B-LAB-Day12-AI-SDLC-Nhom001.git
+cd K5-L3B-LAB-Day12-AI-SDLC-Nhom001
+python3 -m http.server 8099 --bind 127.0.0.1
+```
+
+Rồi mở **http://127.0.0.1:8099/client/index.html** (Ctrl+C trong terminal để dừng).
+
+### Điều khiển (bản GUI)
+
+| Phím | Tác dụng |
+|---|---|
+| WASD / mũi tên | Bơi (lặn) hoặc đi (bến, nhà bè, chợ) |
+| Shift | Bơi nhanh (tốn oxy hơn) |
+| Space / chuột trái | Bắn lao móc |
+| E | Tương tác: cập bến, hái rau, nấu/bưng/phục vụ, nói chuyện, mua bán |
+| Enter / chuột | Chọn trong menu |
+| N · Tab | Mở quán từ bảng thực đơn · đổi tab trong Shop |
+| I | Túi đồ (X vứt, Shift+E vứt cả loại) |
+| T | Điện thoại (tin nhắn, việc vặt của Bà Tư, thuê người, trang trí) |
+| C | Đóng quán sớm |
+| Esc / P | Tạm dừng / cài đặt |
+| M | Tắt/bật tiếng |
+| H | Chế độ tương phản cao (lưu lại giữa các lần chơi) |
+
+Màn hình gợi ý phím luôn hiện ở đáy HUD. Video mở đầu: lần bấm đầu bật tiếng, sau đó phím/chuột bất kỳ hoặc nút "Bỏ qua" để vào màn hình tiêu đề.
+
+### Test, headless, benchmark, soak
+
+```bash
+PYTHONPATH=tests:. python3 -m unittest discover -s tests                         # toàn bộ test tự động
+python3 -m chonoi.headless --mode day --days 5 --seed 7 --ticks 120000 --out week.jsonl   # trọn D1–D5 headless
+python3 tools/bench.py --seed 42 --duration 30 --out bench.json                   # bench_cmd: FPS bản GUI qua Chrome/Chromium headless
+python3 tools/soak.py --seed 7 --days 10 --out soak.json                           # soak_cmd: 10 Ngày liên tiếp, đạt khi crashes == 0
+bash tools/package.sh                                                              # tạo dist/quan-an-cho-noi-v1.0.0.zip
+```
+
+Lệnh chuẩn đọc từ `game.contract.json`: `headless_cmd`, `bench_cmd`, `soak_cmd`. Cửa sổ khung của starter vẫn chạy được: `python3 -m chonoi.live --mode gather`.
+
+### Sáng tạo của nhóm
+Bản GUI `client/` (không bắt buộc, tắt hoàn toàn ở headless): video mở đầu, nhà bè ban đêm với bảng thực đơn và nhân viên, Bà Tư và việc vặt, điện thoại, Chợ Chú Sáu, săn cá có máu, Cá Sấu và boss Cá Tra Dầu, địa hình đáy sông + dòng nước, nhạc tổng hợp bằng WebAudio, chế độ tương phản cao.
+Asset và giấy phép: [`CREDITS.md`](CREDITS.md) · mã nguồn: [`LICENSE`](LICENSE) (MIT, asset giữ giấy phép riêng).
+
 ## Nhóm Nhom001 — Phase 2 (Test Contract v1.1)
 
 **Một vòng Ngày headless** (gather → quán → Shop; mỗi Ngày tối đa 22.200 tick, ~1 s):

@@ -49,3 +49,10 @@
 - Đơn chuyển unfulfillable do ươn không phát event riêng (contract không định nghĩa); thấy qua snapshot.
 - Snapshot quán xuất `fresh` từ đơn vị nguyên; dung sai quan sát ±0.01 theo contract.
 - `customers[].reserved` trong snapshot sắp theo kind rồi id.
+
+## Phase 4 (TICKET-04 v1.3) — giả định Bench/Soak
+- C-P4-01: `bench_cmd` = `python3 tools/bench.py`, `soak_cmd` = `python3 tools/soak.py` (chạy từ gốc repo). Chỉ stdlib; trình duyệt = Chrome/Chromium hệ thống (ghi đè bằng `CHONOI_BROWSER`). Không có Playwright/websockets → không dùng CDP; trang tự đo rồi POST `/bench-result` về server cục bộ.
+- C-P4-02: "từ lúc khởi chạy" trong `load_ms` hiểu là từ lúc runner spawn trình duyệt (tham số `t0` epoch ms) tới khung rAF đầu tiên sau khi `state.mode === "gather"`.
+- C-P4-03: Cảnh đo = `go("gather")` ở chế độ demo (Ngày 1 buổi sáng, hiệu ứng mặc định), không input → Út Sen đứng ở bến. Seed áp qua `Math.random` thay thế trong `client/src/bench.js`.
+- C-P4-04: Soak Ngày > 5 dùng kế hoạch ((day-1) % 5) + 1 (`DaySim.plan_for`); headless `--days` giữ 1..5.
+- C-P4-05: Mỗi phần tử `results` ghi tại event `shop_end`; `score = earned + 100 × floor(reputation)` như snapshot. Crash = ngoại lệ bất kỳ hoặc một Ngày quá 200 000 tick; được đếm, tiến trình không rơi.

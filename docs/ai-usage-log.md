@@ -9,3 +9,8 @@
 ## Phase 3 — Agent F (Claude) — Quán/day/Shop v1.2
 - Việc: chuyển `quan.py` sang kho cá thể + hao tươi + giữ theo id + giá chốt; `day.py`/`shop.py`/`scenario.py`/`headless.py` theo schema mới; lớp chuyển fixture `tests/v12_compat.py`; test `test_quan_p3.py`, `test_smoke_p3.py`; proof + docs Phase 3.
 - Kiểm: full test 151 OK; `docs/proof/phase-3/run_proof.sh`. Người cần đọc lại trước commit (chưa commit).
+
+## Phase 4 — Agent (Claude Code · Claude Opus 5.5) — Bench + Soak v1.3
+- Việc: contract 1.3 + `validate_root`; `DaySim.plan_for` (lặp kế hoạch); `tools/soak.py` (bot tham lam), `tools/bench.py` + `client/bench.html` + `client/src/bench.js`; `tests/test_p4_soak.py` (11 test); proof `docs/proof/phase-4/`; `docs/verification/phase-4.md`.
+- Kiểm: 162 test OK; bench 30 s thật trên Chrome headless; soak 10/10.
+- AI sai/thiếu: 3 test cũ khóa cứng `contract_version == "1.2"` → nới thành chấp nhận "1.2"/"1.3" (có lý do: ticket đổi version). Bot chưa đủ nguyên liệu ở Ngày 4/8/10 (earned không tăng). Lần đo thử đầu `load_ms` 9909 ms (Chrome lạnh) — cần đo lại trên máy chấm. Người cần đọc lại trước commit (chưa commit).

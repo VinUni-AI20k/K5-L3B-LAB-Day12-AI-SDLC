@@ -5,12 +5,39 @@
 - Điều tệ / bị kẹt: 4 test P1 vỡ vì số chuẩn (4 bàn, 8 đàn, nút `attack` hợp lệ, `--mode day`) phải sửa kèm lý do; ticket mơ hồ ở nhiều chỗ (mẫu scenario mỗi Ngày, resume có nhận cạnh không, event tick 0 trước/sau snapshot) → 21 giả định trong `docs/clarify.md` chưa được PO xác nhận; phần UI (menu, DayIntro, HUD, pause menu) chưa làm.
 - 1 hành động cho Phase 3: **Duyet (PO)** mang C-P2-B02, C-P2-B04, C-P2-B05 hỏi giảng viên đầu Phase 3 và cập nhật test nếu câu trả lời khác giả định.
 
-## Phase 4 (cuối)
-- Rà lại hành động Phase 2: đã làm chưa? vì sao?
-- Điều tốt / điều tệ:
-- Số liệu: số commit theo người, cách đọc code của nhau, token theo người:
-- Một lần AI sai và cách nhóm phát hiện:
-- Nếu làm lại, đổi gì:
+## Phase 4 (cuối) — Release v1.0.0
+
+### Rà lại hành động đã chốt ở retro Phase 2
+Hành động: **Duyet (PO)** mang C-P2-B02, C-P2-B04, C-P2-B05 hỏi giảng viên đầu Phase 3 và cập nhật test nếu câu trả lời khác giả định.
+- **Đã làm gì:** cả ba vẫn nằm trong [`docs/clarify.md`](clarify.md) với cách hiểu của nhóm; test AC-P2-72 viết theo giả định C-P2-B05 và đang đạt.
+- **Còn kẹt:** chưa có câu trả lời của giảng viên được ghi lại; C-P2-B04 vẫn ghi "Nhóm (cần hỏi PO)". Vì vậy chưa có test nào phải đổi, nhưng cũng chưa chắc test ẩn đồng ý với ta.
+- **Vì sao:** đầu Phase 3 cả nhóm dồn vào breaking change độ tươi (TICKET-03) nên việc hỏi bị đẩy lùi; hành động có người làm nhưng không có mốc giờ và không có chỗ ghi "đã hỏi lúc nào".
+- **Sửa:** PO điền cột trả lời trong `clarify.md` (hoặc ghi "không hỏi kịp") trước khi gắn `phase-4`; từ nay mỗi hành động retro có người, mốc giờ và nơi ghi kết quả.
+
+### Điều tốt
+- Hợp đồng là nguồn sự thật: sim headless, test và client đọc cùng `game.contract.json`, đổi số chuẩn ở một chỗ.
+- Mỗi breaking change (v1.1, v1.2) có CHANGELOG, ma trận truy vết và lý do sửa test ghi ngay tại test, nên regression P1–P2 vẫn chạy.
+- Bản GUI chạy không cần backend: một lệnh `python3 -m http.server` là chơi được; đóng gói Release bằng `bash tools/package.sh`.
+
+### Cần sửa
+- Agent báo "xong" khi tính năng mới chỉ qua test headless; phải chơi thử trên trình duyệt mới thấy lỗi (xem phần AI sai bên dưới).
+- Hai lát song song cùng sửa một file test (đã nêu ở Phase 3) vẫn lặp lại ở client: nhiều agent cùng sửa `client/src` gây khó ghép.
+- Ghi chép (retro, phản tư cá nhân) dồn về cuối giờ.
+
+### Một lần AI sai và cách nhóm kiểm chứng
+1. **Commit không ai yêu cầu.** Một agent tự tạo commit cục bộ khi nhóm chỉ yêu cầu sửa file. Phát hiện khi xem `git log` trước khi push: có commit lạ không đúng phân công. Gỡ bằng `git reset --soft HEAD~1` (giữ nguyên thay đổi, bỏ commit), rồi người phụ trách tự commit đúng phần việc. Từ đó quy tắc: agent không được chạy lệnh git ghi.
+2. **Client sập khi hợp đồng đổi kiểu dữ liệu.** Hợp đồng chuyển `fish_initial` từ danh sách sang một số (v1.1: 8 đàn sinh theo seed), test headless vẫn xanh nhưng client đọc `fish_initial` như mảng nên màn lặn hỏng. Chỉ phát hiện khi mở trình duyệt chơi thử; sửa client đọc theo kiểu mới rồi chơi lại để xác nhận.
+3. **"Xong" nhưng chỉ test headless.** Vì hai lỗi trên, nhóm thêm bước bắt buộc: mỗi tính năng client phải được chơi thử trên trình duyệt (mở `client/index.html` qua `http.server`, đi hết vòng lặn → quán → chợ) trước khi đánh dấu xong.
+
+### Số liệu
+- Commit từ khi fork (`git shortlog -sne f0a1906..HEAD`, lúc viết): hxlinh 18 · cduyminh 12 · NMinh-123 1 · usVNno1TH 1. Ánh xạ tài khoản Git ↔ người trong `TEAM.md` do từng thành viên xác nhận trong `docs/members/`.
+- Đọc code của nhau: nhánh ngắn theo module, xem trực tiếp trước khi gộp; AI dùng để review nhưng người gộp chạy lại test.
+- Token theo người: ghi trong [`docs/ai-usage-log.md`](ai-usage-log.md) (mỗi người tự điền).
+
+### Hành động tiếp theo (nếu làm lại)
+- PO chốt câu hỏi mở với giảng viên trong 10 phút đầu mỗi phase, ghi giờ hỏi và câu trả lời.
+- Chia quyền sở hữu file (test, `client/src/*`) trước khi giao việc cho agent song song.
+- Định nghĩa "xong" = test headless xanh **và** chơi thử trên trình duyệt **và** ghi bằng chứng.
 
 ## Retro Phase 3 (đổi kho)
 - Tốt: helper độ tươi đơn vị nguyên (240/điểm) chốt sớm ở `inventory.py` → gather và quán dùng chung, ngưỡng 30/floor chính xác.

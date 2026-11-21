@@ -1,0 +1,4 @@
+$ cd docs/proof/phase-4 && python3 ../../../tools/bench.py --seed 42 --duration 30 --out bench.json
+2026-11-21T04:35:43Z
+bench: {"avg_fps": 60.003, "p1_low_fps": 59.524, "frames": 1801, "measured_s": 30.015, "load_ms": 1953} (browser=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome)
+exit=0

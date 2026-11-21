@@ -1,0 +1,4 @@
+$ cd docs/proof/phase-4 && python3 ../../../tools/soak.py --seed 7 --days 10 --out soak.json
+2026-11-21T04:35:43Z
+soak: days_completed=10/10 crashes=0 duration_s=4.75 -> PASS
+exit=0
