@@ -4,12 +4,12 @@
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
-| Trần Quang Hà | tranha1764 | `sim/gather` (Lát 1: bơi, oxy, biên, giỏ) | Integrator | `sim/quan` |
-| Nguyễn Thành Tâm | ngthanhtamtb | `sim/gather` (Lát 2: hái, bắt cá, bến, kho) | PO | `sim/gather` (Lát 1) |
-| Mai Danh Hiếu | danhhieu204ns | `sim/quan` (Lát 3: khách, giữ chỗ, kiên nhẫn) | Scrum/Release | `sim/quan` (Lát 4) |
-| Ngô Minh Cương | ngominhcuong | `sim/quan` (Lát 4: bếp, bưng, phục vụ, tiền) | Dev | `sim/quan` (Lát 3) |
-| Nguyễn Quang Tiệp | nguyenquangtiep | `client/ui` (HUD & giao diện 2 buổi) | Dev | `qa` |
-| Đoàn Trí Hùng | hungdt31 | `qa` (Test, smoke 2 tiến trình, verification) | QA Lead | `client/ui` |
+| Trần Quang Hà | tranha1764 | `sim/gather` | Integrator | `sim/quan` |
+| Nguyễn Thành Tâm | ngthanhtamtb | `sim/gather` | PO | `sim/gather` |
+| Mai Danh Hiếu | danhhieu204ns | `sim/quan` | Scrum/Release | `sim/quan` |
+| Ngô Minh Cương | ngominhcuong | `sim/quan` | Dev | `sim/quan` |
+| Nguyễn Quang Tiệp | nguyenquangtiep | `client/ui` | Dev | `qa` |
+| Đoàn Trí Hùng | hungdt31 | `qa` | QA Lead | `client/ui` |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên/Anh Năm, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA Lead (bộ test, `docs/verification/`) · Scrum/Release (theo dõi mốc bàn giao). Có thể kiêm.
 
