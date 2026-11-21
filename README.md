@@ -26,6 +26,8 @@ python3 -m chonoi.live --mode gather --inventory-out kho.json    # chơi buổi 
 - **E:** cập bến hoặc hái nút trên mặt nước (sáng); nấu, bưng, phục vụ (tối).
 - **Space:** bắt đàn cá khi đang dưới nước.
 - **R:** chơi lại.
+- **M:** tắt/bật tiếng. **V:** ẩn/hiện phụ đề SFX. **H:** bật/tắt **chế độ tương phản cao** (nhớ lựa chọn cho lần mở sau).
+- **Cảnh báo trên HUD** (chữ + biểu tượng, góc phải): "Thủy quái!" (Cá Sấu trong 15 m, kèm viền tím), "Oxy sắp hết!" (dưới 25%) / "Hết hơi!" (oxy cạn, đang dưới nước), "Khách sắp giận!" (kiên nhẫn dưới 25%).
 
 **Cách tính điểm** (mọi snapshot và dòng `end`): `điểm = earned + 100 × floor(uy tín)`.
 - `earned` là tổng thu của lượt, gồm tiền món và tiền boa, đơn vị nghìn đồng.
