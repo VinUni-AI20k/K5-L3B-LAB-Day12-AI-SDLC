@@ -48,6 +48,19 @@ for m in gather quan; do
 done
 ```
 
+## 3b. Từ Phase 2: vòng ngày (`--mode day`, Test Contract v1.1)
+
+```bash
+python3 .agents/skills/check-contract/check_contract.py      # số chuẩn v1.1
+time python3 -m chonoi.headless --mode day --days 1 --seed 1 --ticks 22200 --out $T/day1.jsonl   # phải ≤ 20 s
+tail -1 $T/day1.jsonl          # end: reason "days_complete", days_completed 1
+grep -o '"name":"[a-z_]*"' $T/day1.jsonl | sort | uniq -c   # có day_start, day_plan, phase_start ×3, gather_end, quan_end, shop_end
+python3 -m chonoi.headless --mode day --days 3 --seed 1 --ticks 66600 --out $T/day3.jsonl
+grep -o '"active_upgrades":{[^}]*}' $T/day3.jsonl | uniq     # cấp mua ở Ngày n chỉ hiện từ Ngày n+1
+```
+
+QA lưu bằng chứng Phase 2 vào `docs/proof/phase-2/` (`integration.*` cho smoke ở mục 2, `day.*` cho vòng ngày).
+
 ## 4. Báo kết quả
 
 - Ghi số test, OK/FAIL và kết quả smoke/tất định vào mô tả PR hoặc commit.
