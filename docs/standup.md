@@ -26,4 +26,4 @@ Ghi chú Phase 3 (C, Scrum): tổng hợp từ PR #43 đến #47, nhánh `p3-04-
 
 | Phase | Người | Đã xong | Sắp làm | Vướng gì |
 |---|---|---|---|---|
-| 4 | A (NguyenDucNhat3006) | P4-03 benchmark đã gộp (#52), contract nối `bench_cmd` ở #55. P4-10 đã chạy thử trọn một Ngày qua máy chủ live. | Chơi bản demo trước nhóm, D mở kết quả test và ma trận, B và C trình bày bằng chứng. | Lượt chạy thử gửi thao tác qua HTTP. Cần thao tác bàn phím trong buổi trình bày. |
+| 4 | A (NguyenDucNhat3006) | P4-03 benchmark đã gộp (#52, #56), contract nối `bench_cmd` ở #55. P4-10 đã chạy thử trọn một Ngày bằng phím mô phỏng trong Chrome. | Chơi bản demo trước nhóm, D mở kết quả test và ma trận, B và C trình bày bằng chứng. | Buổi trình bày trực tiếp theo lịch nhóm. |
