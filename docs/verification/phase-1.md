@@ -8,7 +8,7 @@
 | G2: cập bến và xuất kho | Smoke test cập bến tick 0, đọc/ghi kho JSON và Quán nạp kho | `tests/test_smoke_p1.py::Integration.test_inv_01_gather_writes_inventory_quan_reads_it` | đạt |
 | Q3: khách, giữ chỗ, kiên nhẫn | Test khách giữ nguyên liệu; hết kiên nhẫn bỏ đi và giảm uy tín | `tests/test_p1_logic.py::QuanLogic.test_customer_leaves_and_reputation_drops` | đạt |
 | Q4: bếp, nấu, bưng, thanh toán | Test bếp nhận món, nấu xong, lấy món, phục vụ bàn và cộng tiền | `tests/test_p1_logic.py::QuanLogic.test_reserved_customer_cooks_serves_and_pays` | đạt |
-| Hộp đen headless | Chạy gather/quán với seed cố định và JSONL; output determinism, mã 2 cho đầu vào sai | `docs/proof/phase-1/smoke.txt`, `tests/test_smoke_p1.py` | đạt |
+| Hộp đen headless | Chạy gather/quán với seed cố định và JSONL; output determinism, mã 2 cho đầu vào sai | `docs/proof/phase-1/smoke.txt`, `docs/proof/phase-1/verify-run.txt` (skill `phase-1-verification`: 44 test, sha256 2 lần chạy trùng, 3 ca mã 2), `tests/test_smoke_p1.py` | đạt |
 | Giao diện HUD | Khung live đọc snapshot oxy/máu/giỏ/kho/bếp/khách; không chứa luật mô phỏng | `chonoi/web/index.html` | đạt |
 
 ## Đánh giá ngắn
