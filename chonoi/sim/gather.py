@@ -211,11 +211,19 @@ class GatherSim:
 
     # --- v1.2: độ tươi trong giỏ (B viết thân hàm) -------------------------------------
     def _decay_hold(self, events):
-        """TODO(B, Ticket-03 mục 1): mỗi bước giỏ hao fresh.cfg(tuning)["gather_decay_u"] (2 đơn vị = 0.5/s);
-        với mỗi cá thể vừa ươn (fresh.decay trả theo id) phát spoiled{item_id, kind, location: "hold"}.
-        Hàng mới bắt/hái có fresh 100 và hao từ bước sau. Gợi ý:
-            for it in fresh.decay(self.hold, fresh.cfg(self.tuning)["gather_decay_u"], self.tuning): ...
-        B cũng đổi _try_harvest/_try_catch: khi self.fresh_on thì thêm fresh.new_item(self.ids, kind, tuning)."""
+        """Độ tươi trong giỏ (Ticket-03 mục 1), gọi ở ĐẦU bước khi self.fresh_on: giỏ hao gather_decay_u
+        (2 đơn vị = 0.5/s mỗi tick, kể cả hàng ươn, kẹp đáy 0); mỗi cá thể VỪA ươn (đi từ >= 30 xuống < 30)
+        phát đúng một lần spoiled{item_id, kind, location: "hold"}, nhiều cá thể thì theo id.
+        Hàng mới bắt/hái được thêm ở cuối bước nên bắt đầu hao từ bước sau."""
+        decay_u = fresh.cfg(self.tuning)["gather_decay_u"]
+        for it in fresh.decay(self.hold, decay_u, self.tuning):
+            events.append(("spoiled", {"item_id": it["id"], "kind": it["kind"], "location": "hold"}))
+
+    def _add_to_hold(self, kind, amount):
+        """Thêm `amount` hàng loại `kind` vào cuối giỏ. v1.2: mỗi hàng là cá thể mới (id I<n> theo thứ tự vào
+        giỏ, fresh ban đầu); v1.1: chuỗi kind."""
+        for _ in range(amount):
+            self.hold.append(fresh.new_item(self.ids, kind, self.tuning) if self.fresh_on else kind)
 
     # --- v1.1: quái (A viết thân hàm) -------------------------------------------------
     def _update_monsters(self, events) -> bool:
@@ -415,7 +423,7 @@ class GatherSim:
             events.append(("hold_full", {"action": "gather", "node_id": node["id"],
                                          "required": amount, "free": free}))
             return
-        self.hold.extend([node["kind"]] * amount)
+        self._add_to_hold(node["kind"], amount)
         node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
         events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
 
@@ -435,7 +443,7 @@ class GatherSim:
             events.append(("hold_full", {"action": "catch", "fish_id": fish["id"],
                                          "required": amount, "free": free}))
             return
-        self.hold.extend([fish["kind"]] * amount)
+        self._add_to_hold(fish["kind"], amount)
         self.fish.remove(fish)
         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
         events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": amount}))
