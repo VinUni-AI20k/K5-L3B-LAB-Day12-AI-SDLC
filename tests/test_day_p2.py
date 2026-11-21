@@ -10,7 +10,7 @@ import time
 import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
-from qa_helpers import pending, press, run_case, snap_at
+from qa_helpers import press, run_case, snap_at
 
 with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json"),
           encoding="utf-8") as _f:
@@ -157,13 +157,12 @@ class Shop(unittest.TestCase):
         rows = run_day(self, scenario=short_day(money=999, earned=999), inputs=[buy(0, "oxygen")], ticks=4)
         self.assertEqual([e for e in events(rows) if e["name"] in ("bought", "buy_failed")], [])
 
-    @pending("lát 4 (_pay)")
     def test_ac_p2_06_tien_va_uy_tin_giu_qua_ngay(self):
         c = {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "state": "eating",
              "order_status": "served", "eat_ticks_left": 300, "base_price": 60, "tip": 12}
         sc = short_day()
         sc["quan"]["customers"] = [c]
-        rows = run_day(self, scenario=sc, ticks=1000, days=2, every=1000)
+        rows = run_day(self, scenario=sc, ticks=SHOP_START + SHOP_TICKS + 1, days=2)
         s = snap_at(rows, SHOP_START + SHOP_TICKS)
         self.assertEqual((s["day"], s["money"], s["earned"]), (2, 72, 72))
         self.assertAlmostEqual(s["reputation"], 3.2, places=2)
