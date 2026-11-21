@@ -29,7 +29,7 @@ Chạy giao diện Gather và ghi kho tức thì vào `inventory.json`:
 python3 -m chonoi.live --mode gather --inventory-out inventory.json
 ```
 
-File được tạo sau lần hái/bắt cá đầu tiên, sau đó cập nhật ngay mỗi lần thu hoạch hoặc bắt cá, khi ngất và khi kết thúc buổi. Dùng cùng file cho Quán:
+File được tạo sau lần hái/bắt cá đầu tiên, sau đó cập nhật ngay mỗi lần thu hoạch hoặc bắt cá, khi ngất và khi kết thúc buổi. Nếu file đã có kho từ lần chạy trước, số lượng được cộng dồn thay vì xóa. Dùng cùng file cho Quán:
 
 ```powershell
 python3 -m chonoi.live --mode quan --inventory inventory.json

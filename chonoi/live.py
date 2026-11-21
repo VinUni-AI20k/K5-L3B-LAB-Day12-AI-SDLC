@@ -27,7 +27,7 @@ from urllib.parse import unquote
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
-from .inventory import read_inventory, write_inventory
+from .inventory import merge_items, read_inventory, read_inventory_or_empty, write_inventory
 from .runner import Session
 from .scenario import load_scenario
 
@@ -79,6 +79,8 @@ class LiveGame:
         self._reset()
 
     def _reset(self):
+        self.inventory_base = (read_inventory_or_empty(self.inventory_out)
+                               if self.mode == "gather" and self.inventory_out else {})
         self.session = Session(*self._args)
         self.inputs = _LiveInputsV11()
         self.events = []
@@ -124,12 +126,13 @@ class LiveGame:
             inventory_events = {"gather", "fish_caught", "faint", "gather_end"}
             if any(row["name"] in inventory_events for row in self.events[-RECENT_EVENTS:]
                    if row["tick"] == s.tick):
-                write_inventory(self.inventory_out, s.sim.inventory_items())
+                write_inventory(self.inventory_out,
+                                merge_items(self.inventory_base, s.sim.inventory_items()))
         if s.done and not self._saved:
             self._saved = True
             if self.inventory_out:
                 try:
-                    s.write_inventory_if_done(self.inventory_out)
+                    s.write_inventory_if_done(self.inventory_out, self.inventory_base)
                 except OSError as e:
                     sys.stderr.write(f"lỗi ghi kho: {e}\n")
 
