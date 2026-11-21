@@ -64,7 +64,7 @@ Phần mở rộng hiển thị chỉ chạy ở client trình duyệt [`chonoi/
 - Thay hình khối cá mặc định bằng sprite pixel art trong `assets/fish/` (`ca_loc`, `ca_linh`), giữ fallback hình khối khi ảnh chưa tải.
 - Bối cảnh miền Tây Nam Bộ: trời ánh hồng buổi sớm, bờ dừa nước, nước phù sa đậm dần theo độ sâu, Út Sen áo bà ba khăn rằn kính lặn, nhà bè buổi tối đèn dây vàng và khói bếp.
 - HUD đọc trực tiếp `snapshot`: hiển thị **kho khả dụng** (đã trừ phần khách đang giữ chỗ), tên món tiếng Việt, cảnh báo sắp ngạt (`NGẠT`) và cảnh báo `GIỎ ĐẦY!`.
-- **Bằng chứng lõi vẫn đúng:** [`docs/proof/phase-1/unittest-output.txt`](docs/proof/phase-1/unittest-output.txt) (**36/36 test pass**, gồm toàn bộ `test_smoke_p1.py` và `test_e_qa_p1.py`) và [`docs/proof/phase-1/smoke-2proc-log.txt`](docs/proof/phase-1/smoke-2proc-log.txt) (`PASS`).
+- **Bằng chứng lõi vẫn đúng:** [`docs/proof/phase-1/unittest-output.txt`](docs/proof/phase-1/unittest-output.txt) (**60/60 test pass**, gồm toàn bộ `test_smoke_p1.py`, `test_gather_lat1.py`, `test_lat3_khach.py` và `test_e_qa_p1.py`) và [`docs/proof/phase-1/smoke-2proc-log.txt`](docs/proof/phase-1/smoke-2proc-log.txt) (`PASS`).
 
 ## Lịch 3 giờ & Tài liệu nhóm
 

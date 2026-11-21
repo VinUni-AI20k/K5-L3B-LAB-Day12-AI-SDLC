@@ -1,4 +1,4 @@
-Commit: f0a1906
+Commit: e2c3b9b
 Command: python tools/check_team.py
 Exit code: 1
 

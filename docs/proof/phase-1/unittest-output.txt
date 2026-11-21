@@ -1,4 +1,4 @@
-Commit: f0a1906
+Commit: e2c3b9b
 Command: PYTHONPATH=tests:. python -m unittest discover -s tests -v
 Exit code: 0
 
@@ -6,6 +6,32 @@ test_contract_v10_required_fields_and_ranges (test_e_qa_p1.ContractTuningRangesT
 test_live_serves_updated_hud_quan_state_and_fish_assets (test_e_qa_p1.LiveHudAndAssetsTest.test_live_serves_updated_hud_quan_state_and_fish_assets) ... ok
 test_two_process_all_four_kinds_and_score_formula (test_e_qa_p1.SmokeTwoProcessExtraTest.test_two_process_all_four_kinds_and_score_formula) ... ok
 test_two_process_empty_hold_and_quan_determinism (test_e_qa_p1.SmokeTwoProcessExtraTest.test_two_process_empty_hold_and_quan_determinism) ... ok
+test_dem_ngat_tang_tung_tick_va_reset_sau_choke (test_gather_lat1.Choke.test_dem_ngat_tang_tung_tick_va_reset_sau_choke) ... ok
+test_ngat_lan_dau_o_t_cong_59_roi_moi_60_tick (test_gather_lat1.Choke.test_ngat_lan_dau_o_t_cong_59_roi_moi_60_tick)
+Chạm oxy 0 ở t = 1 (bắt đầu với 1 tick oxy), dưới nước liên tục -> choke ở 60 và 120. ... ok
+test_noi_len_dung_buoc_dang_le_ngat_thi_khong_ngat (test_gather_lat1.Choke.test_noi_len_dung_buoc_dang_le_ngat_thi_khong_ngat) ... ok
+test_dive_roi_surface_moi_lan_doi_phia_mot_su_kien (test_gather_lat1.DiveSurface.test_dive_roi_surface_moi_lan_doi_phia_mot_su_kien) ... ok
+test_o_yen_mot_phia_khong_phat_su_kien (test_gather_lat1.DiveSurface.test_o_yen_mot_phia_khong_phat_su_kien) ... ok
+test_tat_dinh_tung_byte_khi_co_ngat (test_gather_lat1.DiveSurface.test_tat_dinh_tung_byte_khi_co_ngat) ... ok
+test_mau_ve_0_ngat_mat_gio_lifo_kho_rong (test_gather_lat1.Faint.test_mau_ve_0_ngat_mat_gio_lifo_kho_rong) ... ok
+test_ngat_truoc_ca_cap_ben (test_gather_lat1.Faint.test_ngat_truoc_ca_cap_ben)
+Ngất xét trước interact: E trong bến ở đúng bước ngất vẫn là fainted. ... ok
+test_bat_dau_oxy_0_khong_phat_oxygen_empty (test_gather_lat1.Oxygen.test_bat_dau_oxy_0_khong_phat_oxygen_empty) ... ok
+test_duoi_nuoc_tru_1_moi_tick (test_gather_lat1.Oxygen.test_duoi_nuoc_tru_1_moi_tick) ... ok
+test_mat_nuoc_hoi_oxy_va_kep_toi_da (test_gather_lat1.Oxygen.test_mat_nuoc_hoi_oxy_va_kep_toi_da) ... ok
+test_oxygen_empty_dung_tick_va_mot_lan (test_gather_lat1.Oxygen.test_oxygen_empty_dung_tick_va_mot_lan) ... ok
+test_cung_seed_cung_byte (test_lat3_khach.Lat3.test_cung_seed_cung_byte) ... ok
+test_het_ban_trong_thi_bo_luot (test_lat3_khach.Lat3.test_het_ban_trong_thi_bo_luot) ... ok
+test_het_ca_khach_cho_roi_closing_khong_tru_uy_tin (test_lat3_khach.Lat3.test_het_ca_khach_cho_roi_closing_khong_tru_uy_tin) ... ok
+test_id_khach_moi_noi_tiep_id_dung_san (test_lat3_khach.Lat3.test_id_khach_moi_noi_tiep_id_dung_san) ... ok
+test_inventory_khong_du_cho_khach_giu_exit_2 (test_lat3_khach.Lat3.test_inventory_khong_du_cho_khach_giu_exit_2) ... ok
+test_khach_dau_tien_o_tick_120_giu_dung_cong_thuc (test_lat3_khach.Lat3.test_khach_dau_tien_o_tick_120_giu_dung_cong_thuc) ... ok
+test_khach_het_kien_nhan_bo_di_tru_uy_tin (test_lat3_khach.Lat3.test_khach_het_kien_nhan_bo_di_tru_uy_tin) ... ok
+test_kho_rong_thi_no_dish (test_lat3_khach.Lat3.test_kho_rong_thi_no_dish) ... ok
+test_random_customers_false_khong_sinh_khach (test_lat3_khach.Lat3.test_random_customers_false_khong_sinh_khach) ... ok
+test_scenario_hop_le_tu_cap_reserved (test_lat3_khach.Lat3.test_scenario_hop_le_tu_cap_reserved) ... ok
+test_scenario_mau_cua_D_hop_le (test_lat3_khach.Lat3.test_scenario_mau_cua_D_hop_le) ... ok
+test_scenario_mau_thuan_exit_2 (test_lat3_khach.Lat3.test_scenario_mau_thuan_exit_2) ... ok
 test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
 test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
 test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
@@ -44,6 +70,6 @@ test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 36 tests in 27.944s
+Ran 60 tests in 28.832s
 
 OK
