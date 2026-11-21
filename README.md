@@ -45,6 +45,10 @@ Ví dụ: earned 72, uy tín 3.2 → điểm = 72 + 100 × 3 = 372.
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
 
+## Sáng tạo của nhóm
+
+Nhóm không thêm nội dung sáng tạo ngoài đề. Hai yếu tố dễ bị nhầm là đều theo yêu cầu Phase 4: chế độ tương phản cao (phím C) và cảnh báo có biểu tượng và chữ. Bằng chứng: `docs/verification/phase-4.md`.
+
 ## Lịch 3 giờ
 
 | Mốc | Phase | Hạn tag |

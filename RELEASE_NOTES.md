@@ -1,6 +1,6 @@
 # Quán Ăn Chợ Nổi v1.0.0
 
-> Bản đã đối chiếu với code trên `main`. Các mục trong [ ] cần nhóm điền trước khi phát hành.
+> Bản đã đối chiếu với code trên nhánh phát hành (tag `phase-4`).
 
 ## Có gì trong bản này
 - **Một ngày trọn vẹn:** buổi sáng lặn và hái (`gather`), buổi tối mở quán (`quan`), rồi Shop. Chế độ `day` chạy một hoặc nhiều ngày (1 đến 10), kế hoạch D1–D5 lặp ở ngày 6–10.
@@ -27,16 +27,17 @@ Môi trường: Python 3 (chỉ thư viện chuẩn). Benchmark cần trình duy
 - **Món cháy** có mã nhưng tắt mặc định (`burn_s` là `null` trong contract).
 - **Benchmark** đo trên Windows với Chrome. Chưa đo trên macOS hoặc Linux.
 - **Clone sạch** đã kiểm trên Windows (Git Bash). Chưa kiểm trên macOS hoặc Linux.
-- [Nhóm điền thêm nếu còn lỗi đã biết.]
+- **Bot soak** hiện không điều khiển người chơi, nên soak chỉ kiểm vòng 10 Ngày không lỗi, chưa kiểm gameplay.
+- **Không có bản đóng gói cho macOS/Linux** được kiểm; bản đóng gói là bản `git archive` của tag, chưa kiểm trên máy khác.
 
 ## Số liệu
 Benchmark ba lần trên Windows, Chrome, 1280×720, seed 42: trung bình 59–60 FPS, 1% low 24–59 FPS (lần đầu có một đợt khung chậm). Xem `docs/proof/phase-4/`.
 
 ## Test
-[Điền kết quả thật trên commit phát hành. Bản hiện tại: 189 test, OK.]
+189 test, OK, trên commit phát hành (tag `phase-4`). Lệnh: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`.
 
 ## Ghi công
-Xem [CREDITS.md](CREDITS.md). [Nhóm kiểm lại tài sản đã dùng.]
+Không dùng tài sản hình hay âm thanh bên ngoài. Xem [CREDITS.md](CREDITS.md).
 
 ## Giấy phép
-[Điền theo phương án nhóm chọn: xem `LICENSE`.]
+MIT. Xem [LICENSE](LICENSE).
