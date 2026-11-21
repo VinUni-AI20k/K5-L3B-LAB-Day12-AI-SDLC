@@ -10,6 +10,7 @@ Nhóm viết tiếp (PRD-0 mục F, Quán):
 from ..ids import sort_by_id
 from .ramp import ramp_velocity
 
+
 class QuanSim:
     mode = "quan"
     phase = "quan"
@@ -38,12 +39,17 @@ class QuanSim:
         self.customers = []
         for c in scenario.get("customers", []):
             customer = dict(c)
+            # PRD-0 mục D: khách mặc định waiting, order_tick 0, order_status reserved, kiên nhẫn đầy.
+            customer.setdefault("state", "waiting")
+            customer.setdefault("order_tick", 0)
+            customer.setdefault("order_status", "reserved")
+            customer.setdefault("eat_ticks_left", 0)
             reserved = customer.get("reserved")
             if reserved is None:
                 dish = self.menu.get(customer.get("dish_id"), {})
-                reserved = dish.get("recipe", {}) if customer.get("order_status") in (None, "reserved") else {}
+                reserved = dish.get("recipe", {}) if customer["order_status"] == "reserved" else {}
             customer["reserved"] = dict(reserved)
-            if customer.get("state") == "waiting":
+            if customer["state"] == "waiting":
                 customer.setdefault("patience_ticks_left", int(round(t["patience_s"] * self.tick_hz)))
             self.customers.append(customer)
         for e in self.customers:
@@ -91,6 +97,7 @@ class QuanSim:
             self._expire_customers(events)
             self._spawn_customer(events)
         if self.time_left_ticks <= 0:
+            self._close_customers(events)  # PRD-0 mục F.4: dọn khách rồi mới phát quan_end
             self.done = True
             self.reason = "time"
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
@@ -109,12 +116,24 @@ class QuanSim:
                 if stove.get("cook_ticks_left", 0) == 0:
                     stove["state"] = "ready"
             elif stove.get("state") == "ready":
-                self._decrement(stove, "ready_ticks")
+                # PRD-0 mục F.1: chỉ tăng ready_ticks cho món đã ready ở đầu bước (món vừa chín bước này chưa tăng).
+                stove["ready_ticks"] = stove.get("ready_ticks", 0) + 1
         for customer in self.customers:
             if customer.get("state") == "waiting":
                 self._decrement(customer, "patience_ticks_left")
             elif customer.get("state") == "eating":
                 self._decrement(customer, "eat_ticks_left")
+
+    def _release_order(self, order_id):
+        """Khách rời: nhả món của đơn đang nấu, ready hoặc trên tay (PRD-0 mục F.4); phần giữ nguyên liệu
+        đi theo khách nên tự nhả khi khách bị xóa khỏi danh sách."""
+        for stove in self.stoves:
+            dish = stove.get("dish")
+            if isinstance(dish, dict) and dish.get("order_id") == order_id:
+                stove.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
+        hand = self.hand
+        if isinstance(hand, dict) and hand.get("order_id") == order_id:
+            self.hand = None
 
     def _expire_customers(self, events):
         for customer in sort_by_id(self.customers, key=lambda c: c["table_id"]):
@@ -125,9 +144,22 @@ class QuanSim:
                 max(self.t["reputation_min"], self.reputation + self.t["left_reputation_delta"]),
             )
             self.customers.remove(customer)
+            self._release_order(customer["id"])
             events.append(("customer_left", {
                 "order_id": customer["id"], "table_id": customer["table_id"],
                 "reason": "patience", "reputation": self.reputation,
+            }))
+
+    def _close_customers(self, events):
+        """Hết ca: khách còn chờ rời với reason closing và KHÔNG trừ uy tín (khách còn ăn trả tiền ở lát 4)."""
+        for customer in sort_by_id(self.customers, key=lambda c: c["table_id"]):
+            if customer.get("state") != "waiting":
+                continue
+            self.customers.remove(customer)
+            self._release_order(customer["id"])
+            events.append(("customer_left", {
+                "order_id": customer["id"], "table_id": customer["table_id"],
+                "reason": "closing", "reputation": self.reputation,
             }))
 
     def _spawn_customer(self, events):
