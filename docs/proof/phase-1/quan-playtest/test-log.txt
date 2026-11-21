@@ -1,0 +1,188 @@
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_bad_tuning_exit_2 (test_p1_contract.TestHeadlessExit2.test_bad_tuning_exit_2)
+Contract sai d\u1ea3i -> headless tr\u1ea3 mã 2 (ch\u1ea1y trên b\u1ea3n sao t\u1ea1m c\u1ee7a repo không c\u1ea7n thi\u1ebft: g\u1ecdi hàm). ... ok
+test_default_contract_valid (test_p1_contract.TestTuningRanges.test_default_contract_valid) ... ok
+test_gather_range_edges_accepted (test_p1_contract.TestTuningRanges.test_gather_range_edges_accepted) ... ok
+test_gather_ranges (test_p1_contract.TestTuningRanges.test_gather_ranges) ... ok
+test_menu_recipe (test_p1_contract.TestTuningRanges.test_menu_recipe) ... ok
+test_quan_ranges (test_p1_contract.TestTuningRanges.test_quan_ranges) ... ok
+test_reputation (test_p1_contract.TestTuningRanges.test_reputation) ... ok
+test_score_multiplier (test_p1_contract.TestTuningRanges.test_score_multiplier) ... ok
+test_stoves_tables (test_p1_contract.TestTuningRanges.test_stoves_tables) ... ok
+test_tick_hz_must_be_60 (test_p1_contract.TestTuningRanges.test_tick_hz_must_be_60) ... ok
+test_depth_just_beyond_surface_threshold_still_consumes_oxygen (test_p1_lat1.GatherCore.test_depth_just_beyond_surface_threshold_still_consumes_oxygen) ... ok
+test_dive_precedes_oxygen_empty_on_the_same_tick (test_p1_lat1.GatherCore.test_dive_precedes_oxygen_empty_on_the_same_tick) ... ok
+test_faint_preempts_actions_and_timeout_and_exports_empty_inventory (test_p1_lat1.GatherCore.test_faint_preempts_actions_and_timeout_and_exports_empty_inventory) ... ok
+test_first_choke_is_59_ticks_after_depletion_then_every_60_ticks (test_p1_lat1.GatherCore.test_first_choke_is_59_ticks_after_depletion_then_every_60_ticks) ... ok
+test_movement_into_dock_on_final_tick_keeps_inventory (test_p1_lat1.GatherCore.test_movement_into_dock_on_final_tick_keeps_inventory) ... ok
+test_oxygen_and_transition_events_follow_depth_after_movement (test_p1_lat1.GatherCore.test_oxygen_and_transition_events_follow_depth_after_movement) ... ok
+test_oxygen_stays_at_zero_and_empty_is_emitted_only_on_depletion (test_p1_lat1.GatherCore.test_oxygen_stays_at_zero_and_empty_is_emitted_only_on_depletion) ... ok
+test_reaching_exact_surface_depth_on_choke_tick_spares_hp (test_p1_lat1.GatherCore.test_reaching_exact_surface_depth_on_choke_tick_spares_hp) ... ok
+test_same_seed_and_inputs_produce_identical_jsonl_and_inventory (test_p1_lat1.GatherCore.test_same_seed_and_inputs_produce_identical_jsonl_and_inventory) ... ok
+test_surface_threshold_is_inclusive_and_refill_caps_at_max (test_p1_lat1.GatherCore.test_surface_threshold_is_inclusive_and_refill_caps_at_max) ... ok
+test_surfacing_on_the_choke_tick_refills_oxygen_and_spares_hp (test_p1_lat1.GatherCore.test_surfacing_on_the_choke_tick_refills_oxygen_and_spares_hp) ... ok
+test_timeout_underwater_keeps_inventory (test_p1_lat1.GatherCore.test_timeout_underwater_keeps_inventory) ... ok
+test_catch_yield_and_cooldown (test_p1_lat2.Catch.test_catch_yield_and_cooldown) ... ok
+test_cooldown_blocks_then_allows (test_p1_lat2.Catch.test_cooldown_blocks_then_allows) ... ok
+test_exact_radius_and_tie_by_id (test_p1_lat2.Catch.test_exact_radius_and_tie_by_id) ... ok
+test_hold_full_keeps_fish_no_cooldown (test_p1_lat2.Catch.test_hold_full_keeps_fish_no_cooldown) ... ok
+test_no_catch_at_surface (test_p1_lat2.Catch.test_no_catch_at_surface) ... ok
+test_catch_on_last_tick_counts (test_p1_lat2.DockAndInventory.test_catch_on_last_tick_counts) ... ok
+test_dock_at_exact_radius_writes_hold (test_p1_lat2.DockAndInventory.test_dock_at_exact_radius_writes_hold) ... ok
+test_full_run_gather_catch_dock_then_quan (test_p1_lat2.DockAndInventory.test_full_run_gather_catch_dock_then_quan)
+Hái \u1edf m\u1eb7t n\u01b0\u1edbc, l\u1eb7n b\u1eaft cá, n\u1ed5i lên r\u1ed3i v\u1ec1 b\u1ebfn; quán \u0111\u1ecdc \u0111úng kho (smoke hai ti\u1ebfn trình). ... ok
+test_gather_on_last_tick_counts (test_p1_lat2.DockAndInventory.test_gather_on_last_tick_counts) ... ok
+test_tick_limit_after_gather_no_inventory (test_p1_lat2.DockAndInventory.test_tick_limit_after_gather_no_inventory) ... ok
+test_cannot_regather_while_regrowing (test_p1_lat2.Gather.test_cannot_regather_while_regrowing) ... ok
+test_gather_at_exact_radius (test_p1_lat2.Gather.test_gather_at_exact_radius) ... ok
+test_hold_full_keeps_node (test_p1_lat2.Gather.test_hold_full_keeps_node) ... ok
+test_nearest_then_smallest_id (test_p1_lat2.Gather.test_nearest_then_smallest_id) ... ok
+test_no_gather_underwater (test_p1_lat2.Gather.test_no_gather_underwater) ... ok
+test_out_of_radius_nothing (test_p1_lat2.Gather.test_out_of_radius_nothing) ... ok
+test_regrow_after_regrow_s (test_p1_lat2.Gather.test_regrow_after_regrow_s) ... ok
+test_skip_not_ready_node (test_p1_lat2.Gather.test_skip_not_ready_node) ... ok
+test_random_customers_false_disables_spawn (test_p1_lat3.CustomerArrivalSchedule.test_random_customers_false_disables_spawn)
+random_customers: False t\u1eaft l\u1ecbch khách \u0111\u1ebfn. ... ok
+test_t01_no_spawn_at_tick_119 (test_p1_lat3.CustomerArrivalSchedule.test_t01_no_spawn_at_tick_119)
+T01: Khách ch\u01b0a \u0111\u1ebfn \u1edf tick 119. ... ok
+test_t02_spawn_at_tick_120 (test_p1_lat3.CustomerArrivalSchedule.test_t02_spawn_at_tick_120)
+T02: Khách \u0111\u1ea7u tiên \u0111\u1ebfn \u1edf tick 120. ... ok
+test_t03_next_spawn_interval (test_p1_lat3.CustomerArrivalSchedule.test_t03_next_spawn_interval)
+T03: L\u01b0\u1ee3t khách ti\u1ebfp theo \u0111úng kho\u1ea3ng th\u1eddi gian (1020, 1920). ... ok
+test_t04_find_available_table_lowest_id (test_p1_lat3.CustomerArrivalSchedule.test_t04_find_available_table_lowest_id)
+T04: Bàn tr\u1ed1ng có ID nh\u1ecf nh\u1ea5t \u0111\u01b0\u1ee3c ch\u1ecdn. ... ok
+test_t05_no_table_skips_turn (test_p1_lat3.CustomerArrivalSchedule.test_t05_no_table_skips_turn)
+T05: Không còn bàn thì b\u1ecf l\u01b0\u1ee3t. ... ok
+test_customer_data_model_and_snapshot (test_p1_lat3.CustomerInitializationAndReservations.test_customer_data_model_and_snapshot)
+Ki\u1ec3m tra c\u1ea5u trúc d\u1eef li\u1ec7u khách hàng theo h\u1ee3p \u0111\u1ed3ng trong snapshot. ... ok
+test_customer_fixture_with_insufficient_inventory_flag_exit_2 (test_p1_lat3.CustomerInitializationAndReservations.test_customer_fixture_with_insufficient_inventory_flag_exit_2)
+Kho n\u1ea1p qua --inventory không \u0111\u1ee7 nguyên li\u1ec7u cho khách fixture -> mã 2. ... ok
+test_customer_fixture_with_inventory_flag (test_p1_lat3.CustomerInitializationAndReservations.test_customer_fixture_with_inventory_flag)
+Kh\u1edfi t\u1ea1o khách v\u1edbi kho n\u1ea1p qua --inventory. ... ok
+test_infer_customer_reserved_when_missing (test_p1_lat3.CustomerInitializationAndReservations.test_infer_customer_reserved_when_missing)
+Khách fixture thi\u1ebfu reserved \u0111\u01b0\u1ee3c suy ra \u0111úng theo công th\u1ee9c món. ... ok
+test_eating_customer_not_expired_by_patience (test_p1_lat3.CustomerPatienceAndLeft.test_eating_customer_not_expired_by_patience)
+Khách \u0111ang \u0103n (eating) không b\u1ecb tr\u1eeb kiên nh\u1eabn và không r\u1eddi quán do patience. ... ok
+test_t14_patience_not_reduced_on_arrival_tick (test_p1_lat3.CustomerPatienceAndLeft.test_t14_patience_not_reduced_on_arrival_tick)
+T14: Kiên nh\u1eabn không gi\u1ea3m ngay t\u1ea1i tick \u0111\u1ebfn (120: 3600, 121: 3599). ... ok
+test_t15_customer_left_when_patience_zero (test_p1_lat3.CustomerPatienceAndLeft.test_t15_customer_left_when_patience_zero)
+T15: Khách h\u1ebft kiên nh\u1eabn r\u1eddi quán (customer_left, reason=patience). ... ok
+test_t16_customer_left_releases_reserved (test_p1_lat3.CustomerPatienceAndLeft.test_t16_customer_left_releases_reserved)
+T16: R\u1eddi quán gi\u1ea3i phóng reserved, kho kh\u1ea3 d\u1ee5ng \u0111\u01b0\u1ee3c ph\u1ee5c h\u1ed3i. ... ok
+test_t17_customer_left_decreases_reputation (test_p1_lat3.CustomerPatienceAndLeft.test_t17_customer_left_decreases_reputation)
+T17: Khách r\u1eddi quán do h\u1ebft kiên nh\u1eabn làm gi\u1ea3m \u0111úng 0.5 uy tín. ... ok
+test_t18_reputation_clamped_to_minimum (test_p1_lat3.CustomerPatienceAndLeft.test_t18_reputation_clamped_to_minimum)
+T18: Uy tín \u0111\u01b0\u1ee3c k\u1eb9p không th\u1ea5p h\u01a1n reputation_min (0). ... ok
+test_customer_dish_selection_deterministic (test_p1_lat3.DishSelectionAndReservation.test_customer_dish_selection_deterministic)
+Cùng seed t\u1ea1o ra cùng món \u0111\u01b0\u1ee3c ch\u1ecdn. ... ok
+test_t06_select_valid_dish_headless (test_p1_lat3.DishSelectionAndReservation.test_t06_select_valid_dish_headless)
+T06: Khách \u0111\u1ebfn ch\u1ecdn món h\u1ee3p l\u1ec7 theo kho và phát customer_arrived. ... ok
+test_t07_no_dish_when_empty_stock (test_p1_lat3.DishSelectionAndReservation.test_t07_no_dish_when_empty_stock)
+T07: Không có món nào \u0111\u1ee7 nguyên li\u1ec7u -> no_dish. ... ok
+test_t08_available_stock_and_no_over_reserve (test_p1_lat3.DishSelectionAndReservation.test_t08_available_stock_and_no_over_reserve)
+T08: Tính nguyên li\u1ec7u kh\u1ea3 d\u1ee5ng chính xác, không gi\u1eef v\u01b0\u1ee3t t\u1ed3n. ... ok
+test_customer_fixture_cooking_state_no_double_reservation (test_p1_lat3.EdgeCasesAndDeterminism.test_customer_fixture_cooking_state_no_double_reservation)
+Khách fixture \u1edf tr\u1ea1ng thái cooking không chi\u1ebfm gi\u1eef reserved t\u1eeb stock. ... ok
+test_inventory_missing_one_ingredient_emits_no_dish (test_p1_lat3.EdgeCasesAndDeterminism.test_inventory_missing_one_ingredient_emits_no_dish)
+Inventory thi\u1ebfu \u0111úng 1 nguyên li\u1ec7u -> không \u0111\u1ee7 n\u1ea5u món nào -> no_dish. ... ok
+test_sample_inventory_determinism_identical_bytes (test_p1_lat3.EdgeCasesAndDeterminism.test_sample_inventory_determinism_identical_bytes)
+T19 & B\u01af\u1edaC 9: Hai l\u1ea7n ch\u1ea1y cùng seed và inventory.sample.json cho JSONL gi\u1ed1ng t\u1eebng byte. ... ok
+test_ticks_zero_lat3 (test_p1_lat3.EdgeCasesAndDeterminism.test_ticks_zero_lat3)
+Ch\u1ea1y --ticks 0 trong ch\u1ebf \u0111\u1ed9 quan t\u1ea1o snapshot tick 0 h\u1ee3p l\u1ec7 và end line. ... ok
+test_quan_customer_duplicate_table (test_p1_lat3.ScenarioValidation.test_quan_customer_duplicate_table)
+1. Hai khách cùng s\u1eed d\u1ee5ng m\u1ed9t bàn -> mã 2. ... ok
+test_quan_customer_invalid_id (test_p1_lat3.ScenarioValidation.test_quan_customer_invalid_id)
+4. Customer ID không h\u1ee3p l\u1ec7 ho\u1eb7c trùng -> mã 2. ... ok
+test_quan_customer_nonexistent_dish (test_p1_lat3.ScenarioValidation.test_quan_customer_nonexistent_dish)
+3. Khách s\u1eed d\u1ee5ng món không t\u1ed3n t\u1ea1i trong menu -> mã 2. ... ok
+test_quan_customer_nonexistent_table (test_p1_lat3.ScenarioValidation.test_quan_customer_nonexistent_table)
+2. Khách s\u1eed d\u1ee5ng bàn không t\u1ed3n t\u1ea1i -> mã 2. ... ok
+test_quan_customer_order_status_contradiction (test_p1_lat3.ScenarioValidation.test_quan_customer_order_status_contradiction)
+8. Tr\u1ea1ng thái \u0111\u01a1n hàng mâu thu\u1eabn v\u1edbi nguyên li\u1ec7u gi\u1eef -> mã 2. ... ok
+test_quan_customer_reserved_exceeds_stock (test_p1_lat3.ScenarioValidation.test_quan_customer_reserved_exceeds_stock)
+7. T\u1ed5ng nguyên li\u1ec7u gi\u1eef v\u01b0\u1ee3t quá kho th\u1ef1c t\u1ebf trong scenario -> mã 2. ... ok
+test_quan_customer_reserved_invalid_format (test_p1_lat3.ScenarioValidation.test_quan_customer_reserved_invalid_format)
+5. reserved có s\u1ed1 l\u01b0\u1ee3ng âm, ki\u1ec3u sai ho\u1eb7c nguyên li\u1ec7u không h\u1ee3p l\u1ec7 -> mã 2. ... ok
+test_quan_customer_reserved_recipe_mismatch (test_p1_lat3.ScenarioValidation.test_quan_customer_reserved_recipe_mismatch)
+6. Nguyên li\u1ec7u gi\u1eef không phù h\u1ee3p công th\u1ee9c -> mã 2. ... ok
+test_quan_reference_nonexistent_customer (test_p1_lat3.ScenarioValidation.test_quan_reference_nonexistent_customer)
+10. Tham chi\u1ebfu order/customer không t\u1ed3n t\u1ea1i -> mã 2. ... ok
+test_quan_stove_and_hand_share_order (test_p1_lat3.ScenarioValidation.test_quan_stove_and_hand_share_order)
+9. B\u1ebfp và tay cùng gi\u1eef m\u1ed9t \u0111\u01a1n -> mã 2. ... ok
+test_quan_valid_customer_fixture (test_p1_lat3.ScenarioValidation.test_quan_valid_customer_fixture) ... ok
+test_quan_valid_customer_fixture_missing_reserved (test_p1_lat3.ScenarioValidation.test_quan_valid_customer_fixture_missing_reserved)
+Khách fixture thi\u1ebfu reserved nh\u01b0ng h\u1ee3p l\u1ec7 và suy ra \u0111\u01b0\u1ee3c. ... ok
+test_eating_customer_pays_closing_then_quan_end (test_p1_lat4.TestClosing.test_eating_customer_pays_closing_then_quan_end) ... ok
+test_no_new_customer_after_closing (test_p1_lat4.TestClosing.test_no_new_customer_after_closing)
+H\u1ebft ca thì không xét l\u01b0\u1ee3t khách (b\u01b0\u1edbc 5 ch\u1ec9 khi còn gi\u1edd). ... ok
+test_patience_zero_on_closing_tick_is_closing (test_p1_lat4.TestClosing.test_patience_zero_on_closing_tick_is_closing)
+PRD-0 F4: ch\u1ec9 'n\u1ebfu ca còn gi\u1edd' m\u1edbi r\u1eddi patience; \u0111úng tick h\u1ebft ca -> closing, không tr\u1eeb uy tín. ... ok
+test_served_on_last_tick_pays_closing (test_p1_lat4.TestClosing.test_served_on_last_tick_pays_closing)
+Ph\u1ee5c v\u1ee5 \u0111úng tick h\u1ebft ca v\u1eabn h\u1ee3p l\u1ec7, r\u1ed3i khách tr\u1ea3 ngay v\u1edbi closing. ... ok
+test_waiting_customer_leaves_closing_without_penalty (test_p1_lat4.TestClosing.test_waiting_customer_leaves_closing_without_penalty) ... ok
+test_cook_started_and_dish_ready (test_p1_lat4.TestCooking.test_cook_started_and_dish_ready) ... ok
+test_idle_stove_no_reserved_order_skips (test_p1_lat4.TestCooking.test_idle_stove_no_reserved_order_skips) ... ok
+test_items_sorted_by_kind (test_p1_lat4.TestCooking.test_items_sorted_by_kind) ... ok
+test_oldest_reserved_order_by_order_tick_then_table (test_p1_lat4.TestCooking.test_oldest_reserved_order_by_order_tick_then_table) ... ok
+test_ready_ticks_only_for_dish_ready_at_step_start (test_p1_lat4.TestCooking.test_ready_ticks_only_for_dish_ready_at_step_start) ... ok
+test_cook_carry_serve_pay (test_p1_lat4.TestFullLoopFixture.test_cook_carry_serve_pay) ... ok
+test_same_seed_byte_identical (test_p1_lat4.TestFullLoopFixture.test_same_seed_byte_identical) ... ok
+test_chosen_object_not_interactable_skips_turn (test_p1_lat4.TestInteractSelection.test_chosen_object_not_interactable_skips_turn)
+\u0110\u1ed1i t\u01b0\u1ee3ng \u0111\u01b0\u1ee3c ch\u1ecdn (b\u1ebfp \u0111ang n\u1ea5u) không t\u01b0\u01a1ng tác \u0111\u01b0\u1ee3c -> b\u1ecf l\u01b0\u1ee3t, không th\u1eed bàn. ... ok
+test_only_rising_edge (test_p1_lat4.TestInteractSelection.test_only_rising_edge)
+Gi\u1eef E không l\u1eb7p t\u01b0\u01a1ng tác: ch\u1ec9 c\u1ea1nh lên. ... ok
+test_out_of_radius_nothing (test_p1_lat4.TestInteractSelection.test_out_of_radius_nothing) ... ok
+test_radius_edge_inclusive (test_p1_lat4.TestInteractSelection.test_radius_edge_inclusive)
+\u0110úng mép interact_radius v\u1eabn t\u01b0\u01a1ng tác \u0111\u01b0\u1ee3c. ... ok
+test_stove_before_table_at_equal_distance (test_p1_lat4.TestInteractSelection.test_stove_before_table_at_equal_distance)
+Hòa kho\u1ea3ng cách: b\u1ebfp tr\u01b0\u1edbc bàn. ... ok
+test_leave_drops_dish_in_hand (test_p1_lat4.TestLeavingDropsDish.test_leave_drops_dish_in_hand) ... ok
+test_patience_leave_drops_cooking_dish_no_refund (test_p1_lat4.TestLeavingDropsDish.test_patience_leave_drops_cooking_dish_no_refund) ... ok
+test_dish_picked_to_empty_hand (test_p1_lat4.TestPickAndServe.test_dish_picked_to_empty_hand) ... ok
+test_full_hand_cannot_pick (test_p1_lat4.TestPickAndServe.test_full_hand_cannot_pick) ... ok
+test_serve_on_tick_patience_reaches_zero_is_valid (test_p1_lat4.TestPickAndServe.test_serve_on_tick_patience_reaches_zero_is_valid) ... ok
+test_served_below_ratio_no_tip_no_reputation (test_p1_lat4.TestPickAndServe.test_served_below_ratio_no_tip_no_reputation) ... ok
+test_served_with_tip_at_ratio_threshold (test_p1_lat4.TestPickAndServe.test_served_with_tip_at_ratio_threshold)
+Kiên nh\u1eabn còn l\u1ea1i sau b\u01b0\u1edbc 1 \u0111úng tip_min_patience_ratio -> có boa floor(giá × tip_rate). ... ok
+test_tip_reputation_clamped_to_max (test_p1_lat4.TestPickAndServe.test_tip_reputation_clamped_to_max) ... ok
+test_wrong_order_on_table_skips (test_p1_lat4.TestPickAndServe.test_wrong_order_on_table_skips) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví d\u1ee5 smoke test trong PRD-0 m\u1ee5c G: c\u1eadp b\u1ebfn \u1edf tick 0, quán \u0111\u1ecdc kho \u0111úng n\u1ed9i dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+B\u1ecf 6 tick t\u0103ng t\u1ed1c r\u1ed3i \u0111o 60 tick: quãng \u2248 swim_speed × 1 s (±0.1). Ngang, xu\u1ed1ng, chéo (không nhanh h\u01a1n). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Ch\u1eb7n t\u1eebng mép c\u1ee7a vùng n\u01b0\u1edbc, k\u1ec3 c\u1ea3 d không âm (không bay lên kh\u1ecfi m\u1eb7t n\u01b0\u1edbc) và \u0111áy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+\u0110\u1ea3o t\u1eeb +speed sang -speed: v\u1eadn t\u1ed1c ch\u1ea1m m\u1ee5c tiêu sau t\u1ed1i \u0111a ramp_max_ticks tick k\u1ec3 t\u1eeb lúc \u0111\u1ed5i input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 134 tests in 23.407s
+
+OK

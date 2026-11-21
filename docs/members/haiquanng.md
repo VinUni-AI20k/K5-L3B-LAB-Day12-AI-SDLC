@@ -1,0 +1,6 @@
+# haiquanng — phản tư cá nhân
+
+- **Tôi đã làm** — Lát 2 gather: hàm giỏ dùng chung `_add_to_hold` + hái nút ([273c1ce](https://github.com/HoangHongNgo/K5-L3B-LAB-Day12-AI-SDLC-ChoNoi/commit/273c1cee640ee6a3010b58e730a6b0904b88cc3c)), bắt cá + cooldown + `hold_full` giữ đàn ([d891cdf](https://github.com/HoangHongNgo/K5-L3B-LAB-Day12-AI-SDLC-ChoNoi/commit/d891cdfa6f5ba228be08d5fba12429bb39ded813)), test cập bến / bước cuối / ghi kho ([896a1dd](https://github.com/HoangHongNgo/K5-L3B-LAB-Day12-AI-SDLC-ChoNoi/commit/896a1dd51e30f7b32338c5288408aa3b49efbdda)). Gộp qua PR #2.
+- **Tôi đã review** — Chưa review PR của đồng đội tại thời điểm ghi (lát 1 đã gộp trước). Nhánh của tôi được một reviewer AI riêng rà toàn bộ: không lỗi nghiêm trọng, 3 góp ý nhỏ về test.
+- **AI sai ở đâu và tôi phát hiện thế nào** — Test chạy toàn trình ban đầu cho người chơi xuất phát tại `[4, 0]`, nằm trong `dock_radius` 3 của bến `[2, 0]`, nên bấm E sẽ cập bến chứ không hái. Phát hiện khi đối chiếu số trong `game.contract.json` trước khi chạy; sửa bằng cách xuất phát ở `x = 10` rồi bơi về bến.
+- **Điều tôi học được** — Viết test hộp đen trước và nhìn nó đỏ giúp chắc luật đúng mốc tick (cooldown 30, mọc lại 1200). Thứ tự xét trong một bước (bến trước hái) phải phản ánh cả trong dữ liệu test, không chỉ trong code.

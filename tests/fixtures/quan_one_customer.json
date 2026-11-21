@@ -1,0 +1,20 @@
+{
+  "quan": {
+    "player": {"pos": [2, 7], "vel": [0, 0]},
+    "stock": {"bong_sung": 2, "ca_loc": 1},
+    "hand": null,
+    "reputation": 3.0,
+    "customers": [
+      {
+        "id": "C1",
+        "table_id": "T1",
+        "dish_id": "goi_bong_sung",
+        "order_tick": 0,
+        "state": "waiting",
+        "patience_ticks_left": 3600,
+        "order_status": "reserved",
+        "reserved": {"bong_sung": 2}
+      }
+    ]
+  }
+}

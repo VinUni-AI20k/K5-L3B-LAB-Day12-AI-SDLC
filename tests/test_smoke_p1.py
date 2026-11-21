@@ -227,6 +227,43 @@ class Integration(unittest.TestCase):
             self.assertFalse(os.path.exists(inv))
             self.assertEqual(read_jsonl(w.path("r.jsonl"))[-1]["reason"], "tick_limit")
 
+    def test_dock_at_radius_on_last_allowed_tick_takes_priority(self):
+        g = tuning_gather()
+        dock_x, dock_depth = g["dock_pos"]
+        with Workdir() as w:
+            scenario = write_json(w.path("dock.json"), {"gather": {
+                "player": {"pos": [dock_x + g["dock_radius"], dock_depth]},
+                "time_left_ticks": 1,
+                "hold": ["bong_sung"],
+            }})
+            inputs = write_json(w.path("inputs.json"), frames({"tick": 0, "interact": True}))
+            inventory, output = w.path("inventory.json"), w.path("out.jsonl")
+            code, error = run_headless("--mode", "gather", "--seed", "42", "--ticks", "1",
+                                       "--scenario", scenario, "--inputs", inputs, "--inventory-out", inventory,
+                                       "--out", output)
+            self.assertEqual(code, 0, error)
+            rows = read_jsonl(output)
+            end_events = events(rows, "gather_end")
+            self.assertEqual(len(end_events), 1)
+            self.assertEqual((end_events[0]["tick"], end_events[0]["data"]["reason"]), (1, "docked"))
+            self.assertEqual((rows[-1]["ticks"], rows[-1]["reason"]), (1, "docked"))
+            with open(inventory, encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {"items": {"bong_sung": 1}})
+
+    def test_tick_limit_preserves_existing_inventory_bytes(self):
+        with Workdir() as w:
+            inv = w.path("inventory.json")
+            original = b'{ "items": {"ca_loc": 1} }\n'
+            with open(inv, "wb") as f:
+                f.write(original)
+            output = w.path("out.jsonl")
+            code, error = run_headless("--mode", "gather", "--seed", "42", "--ticks", "1",
+                                       "--inventory-out", inv, "--out", output)
+            self.assertEqual(code, 0, error)
+            self.assertEqual(read_jsonl(output)[-1]["reason"], "tick_limit")
+            with open(inv, "rb") as f:
+                self.assertEqual(f.read(), original)
+
     def test_inv_bad_schema_exit_2(self):
         with Workdir() as w:
             for bad in ({"items": {"ca_la_lung": 1}}, {"items": {"ca_loc": -1}}, {"items": {}, "x": 1}):

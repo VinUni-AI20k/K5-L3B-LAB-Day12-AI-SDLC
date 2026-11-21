@@ -1,0 +1,54 @@
+120 customer_arrived {"order_id": "C1", "customer_id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": {"ca_loc": 1}}
+210 cook_started {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui", "items": ["ca_loc"], "base_price": 60}
+570 dish_ready {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui"}
+572 dish_picked {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui"}
+690 served {"order_id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "patience_ticks_left": 3030, "base_price": 60, "tip": 12}
+1290 paid {"order_id": "C1", "table_id": "T1", "base_price": 60, "tip": 12, "amount": 72, "reason": "finished_eating"}
+1920 customer_arrived {"order_id": "C2", "customer_id": "C2", "table_id": "T1", "dish_id": "goi_bong_sung", "reserved": {"bong_sung": 2}}
+5520 customer_left {"order_id": "C2", "customer_id": "C2", "table_id": "T1", "reason": "patience", "reputation": 2.7}
+5520 customer_arrived {"order_id": "C3", "customer_id": "C3", "table_id": "T1", "dish_id": "goi_bong_sung", "reserved": {"bong_sung": 2}}
+
+# /state cuối
+{
+ "tick": 5602,
+ "state": "playing",
+ "time_left_ticks": 5198,
+ "money": 72,
+ "earned": 72,
+ "reputation": 2.7,
+ "score": 272,
+ "stock": {
+  "bong_sung": 2
+ },
+ "hand": null,
+ "stoves": [
+  {
+   "id": "B1",
+   "pos": [
+    2,
+    8
+   ],
+   "state": "idle",
+   "dish": null,
+   "cook_ticks_left": 0,
+   "ready_ticks": 0
+  }
+ ],
+ "customers": [
+  {
+   "id": "C3",
+   "table_id": "T1",
+   "dish_id": "goi_bong_sung",
+   "order_tick": 5520,
+   "state": "waiting",
+   "patience_ticks_left": 3518,
+   "eat_ticks_left": 0,
+   "order_status": "reserved",
+   "reserved": {
+    "bong_sung": 2
+   },
+   "base_price": null,
+   "tip": 0
+  }
+ ]
+}

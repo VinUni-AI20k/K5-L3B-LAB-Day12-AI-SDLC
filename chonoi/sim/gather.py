@@ -3,20 +3,12 @@
 Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` độ sâu hướng xuống, d = 0 là mặt nước).
 `move = [x, d]`: thành phần thứ hai DƯƠNG = bơi xuống. Hướng mặt là góc từ +x, dương = xuống.
 
-Đã làm sẵn để smoke test chạy được: bơi + tăng/giảm tốc, chặn mép (d không âm), đồng hồ và hết giờ,
-cập bến (`interact` trong vùng bến -> `gather_end` reason `docked`), xuất kho, snapshot đầy đủ trường gather.
+Đã có: bơi + tăng/giảm tốc, chặn mép (d không âm), oxy, ngạt, ngất và bỏ giỏ theo LIFO,
+đồng hồ và hết giờ, cập bến (`interact` trong vùng bến -> `gather_end` reason `docked`, xét TRƯỚC hái),
+hái nút ở mặt nước (gather, hold_full, mọc lại sau regrow_s), bắt đàn cá dưới nước (fish_caught,
+hold_full, hồi chiêu catch_cd_ticks), giỏ dùng chung `_add_to_hold`, xuất kho (ghi đúng một lần do runner lo),
+snapshot đầy đủ trường gather.
 
-Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gather"):
-  TODO(nhóm, lát 1): bơi + oxy + biên + giỏ
-      - oxy: dưới nước (d > surface_depth) trừ 1 tick/tick, mặt nước hồi oxygen_refill_per_tick, kẹp [0, max]
-      - ngạt: oxy = 0 và đang dưới nước -> đếm zero_oxy_ticks, đủ choke_interval_ticks thì -1 Máu (choke)
-      - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
-      - sự kiện dive / surface / oxygen_empty / choke / faint
-      - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
-  TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
-      - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
-      - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
-      - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
 Các tính năng của phase sau chưa nằm trong khung này.
 """
 
@@ -41,6 +33,7 @@ class GatherSim:
         self.ids = ids
         p = scenario.get("player", {})
         self.pos = [float(c) for c in p.get("pos", t["start_pos"])]
+        self._depth_rounding_error = 0.0
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
         self._tgt = None
         self._ramp_left = 0
@@ -107,29 +100,107 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-        # 2. bơi + chặn mép
+        # 2. bơi, chặn mép, tính oxy và ngạt theo độ sâu cuối bước
+        was_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
+        self._update_oxygen(events, was_surface)
+        if self.done:
+            return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
+            if self._at_surface():
+                self._try_gather(events)
         # 4. bắt cá
-        if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+        if inp.pressed("catch") and self.catch_cd_ticks == 0 and not self._at_surface():
+            self._try_catch(events)
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events
 
+    # --- lát 2: giỏ, hái, bắt cá --------------------------------------------------
+    def _add_to_hold(self, kinds) -> bool:
+        """Thêm đủ `kinds` theo thứ tự nhặt nếu còn chỗ; thiếu chỗ thì không thêm gì và trả False.
+        Dùng chung cho lát 1 và lát 2 (hợp đồng mục 5)."""
+        if len(self.hold) + len(kinds) > self.t["hold_capacity"]:
+            return False
+        self.hold.extend(kinds)
+        return True
+
+    def _hold_free(self) -> int:
+        return self.t["hold_capacity"] - len(self.hold)
+
+    def _nearest(self, items, radius):
+        """Thực thể gần nhất trong `radius` (đúng mép vẫn tính); bằng khoảng cách thì id nhỏ."""
+        best, best_d = None, None
+        for e in sort_by_id(items):
+            d = math.dist(self.pos, e["pos"])
+            if d <= radius and (best is None or d < best_d):
+                best, best_d = e, d
+        return best
+
+    def _try_gather(self, events):
+        ready = [n for n in self.nodes if n["regrow_ticks"] == 0]
+        n = self._nearest(ready, self.t["interact_radius"])
+        if n is None:
+            return
+        count = self.t["node_yield"]
+        if self._add_to_hold([n["kind"]] * count):
+            n["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+            events.append(("gather", {"node_id": n["id"], "kind": n["kind"], "count": count}))
+        else:
+            events.append(("hold_full", {"action": "gather", "node_id": n["id"],
+                                         "required": count, "free": self._hold_free()}))
+
+    def _try_catch(self, events):
+        f = self._nearest(self.fish, self.t["catch_radius"])
+        if f is None:
+            return
+        count = self.t["fish_yield"][f["kind"]]
+        if self._add_to_hold([f["kind"]] * count):
+            self.fish.remove(f)
+            self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+            events.append(("fish_caught", {"fish_id": f["id"], "kind": f["kind"], "count": count}))
+        else:
+            events.append(("hold_full", {"action": "catch", "fish_id": f["id"],
+                                         "required": count, "free": self._hold_free()}))
+
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
+
+    def _update_oxygen(self, events, was_surface: bool) -> None:
+        at_surface = self._at_surface()
+        if at_surface != was_surface:
+            events.append(("surface" if at_surface else "dive", {"pos": self.pos.copy()}))
+
+        if at_surface:
+            self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + self.t["oxygen_refill_per_tick"])
+            self.zero_oxy_ticks = 0
+            return
+
+        had_oxygen = self.oxygen_ticks > 0
+        self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
+        if self.oxygen_ticks > 0:
+            return
+        if had_oxygen:
+            events.append(("oxygen_empty", {"oxygen_ticks": 0}))
+
+        self.zero_oxy_ticks += 1
+        if self.zero_oxy_ticks < self.t["choke_interval_ticks"]:
+            return
+
+        self.zero_oxy_ticks = 0
+        self.hp -= 1
+        events.append(("choke", {"hp": self.hp}))
+        if self.hp == 0:
+            lost = list(reversed(self.hold))
+            self.hold.clear()
+            events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
+            self._finish("fainted", events)
 
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]
@@ -147,8 +218,18 @@ class GatherSim:
             self.heading = math.degrees(math.atan2(md, mx)) % 360
         b = self.t["bounds"]
         for i, axis in enumerate(AXES):
-            self.pos[i] += self.vel[i] / TICK
+            delta = self.vel[i] / TICK
             lo, hi = b[axis]
+            if axis == "d":
+                # Cộng bù sai số để đi tới đúng ngưỡng mặt nước sau nhiều bước.
+                delta -= self._depth_rounding_error
+                depth = self.pos[i] + delta
+                self._depth_rounding_error = (
+                    (depth - self.pos[i]) - delta if lo < depth < hi else 0.0
+                )
+                self.pos[i] = depth
+            else:
+                self.pos[i] += delta
             if self.pos[i] <= lo:
                 self.pos[i] = lo
                 self.vel[i] = max(0.0, self.vel[i])

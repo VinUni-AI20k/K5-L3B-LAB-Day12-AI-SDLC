@@ -15,13 +15,26 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 
 ## Bắt đầu nhanh
 
+Trên macOS hoặc Linux, dùng Git và Python 3 (CI dùng Python 3.12). Game dùng thư viện chuẩn. Chạy ba lệnh sau rồi mở địa chỉ in ra để chơi buổi sáng.
+
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone https://github.com/HoangHongNgo/K5-L3B-LAB-Day12-AI-SDLC-ChoNoi.git
+cd K5-L3B-LAB-Day12-AI-SDLC-ChoNoi
+python3 -m chonoi.live --mode gather --inventory-out kho.json
 ```
 
-Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
+Khi đã cập bến hoặc buổi sáng kết thúc, nhấn `Ctrl+C`, rồi chạy `python3 -m chonoi.live --mode quan --inventory kho.json` để dùng kho vừa thu được. Muốn chơi riêng buổi tối, dùng `--inventory docs/contracts/inventory.sample.json` với lệnh `quan`.
+
+- **Điều khiển** — `WASD` hoặc phím mũi tên để bơi và đi, `E` để hái, cập bến hoặc tương tác với bếp và bàn, `Space` để bắt cá dưới nước, `R` để chơi lại.
+- **Tính điểm** — `điểm = earned + 100 × floor(uy tín)`, với `earned` là tổng thu trong lượt. Tiền tính bằng nghìn đồng.
+
+Chạy toàn bộ test bằng một lệnh.
+
+```bash
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+```
+
+Chấm tự động qua chế độ **headless** của Test Contract. Chi tiết lệnh và starter xem trong [hướng dẫn kỹ thuật](docs/STARTER.md).
 
 ## Tự do sáng tạo
 

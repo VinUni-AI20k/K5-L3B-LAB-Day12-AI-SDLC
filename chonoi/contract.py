@@ -109,9 +109,56 @@ def _validate_gather(g):
             raise BadInput(f"tuning.gather.fish_initial.{f['id']}: đàn cá phải ở dưới nước")
 
 
+def _validate_quan_layout(q):
+    """Bếp/bàn: id duy nhất (không trùng giữa bếp và bàn), vị trí trong bounds; start_pos trong bounds."""
+    b = q["bounds"]
+    _pos_in("quan.start_pos", q.get("start_pos"), b, ("x", "z"))
+    seen = set()
+    for key in ("stoves", "tables"):
+        items = q.get(key)
+        if not isinstance(items, list) or not items:
+            raise BadInput(f"tuning.quan.{key} phải là mảng không rỗng")
+        for it in items:
+            if not isinstance(it, dict) or not isinstance(it.get("id"), str) or not it["id"] or it["id"] in seen:
+                raise BadInput(f"tuning.quan.{key}: mỗi phần tử cần id chuỗi duy nhất")
+            seen.add(it["id"])
+            _pos_in(f"quan.{key}.{it['id']}.pos", it.get("pos"), b, ("x", "z"))
+
+
+def _validate_reputation(q):
+    lo, hi, init = q.get("reputation_min"), q.get("reputation_max"), q.get("reputation_initial")
+    if not (_num(lo) and _num(hi) and _num(init) and lo < hi and lo <= init <= hi):
+        raise BadInput("tuning.quan: cần reputation_min < reputation_max và reputation_initial nằm giữa hai mức")
+
+
+def _validate_menu(menu, gather):
+    if not menu:
+        raise BadInput("tuning.menu không được rỗng")
+    kinds = {n["kind"] for n in gather["nodes"]} | set(gather["fish_yield"])
+    for dish_id, d in menu.items():
+        if not isinstance(d, dict):
+            raise BadInput(f"menu.{dish_id} phải là object")
+        price, cook = d.get("price"), d.get("cook_s")
+        if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
+            raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+        recipe = d.get("recipe")
+        if not isinstance(recipe, dict) or not recipe:
+            raise BadInput(f"menu.{dish_id}.recipe phải là object không rỗng")
+        for k, n in recipe.items():
+            if k not in kinds:
+                raise BadInput(f"menu.{dish_id}.recipe: nguyên liệu {k!r} không thu được ở gather")
+            if isinstance(n, bool) or not isinstance(n, int) or n <= 0:
+                raise BadInput(f"menu.{dish_id}.recipe.{k} phải là số nguyên > 0")
+
+
 def validate_tuning(t):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
+    if t.get("tick_hz") != 60 or isinstance(t.get("tick_hz"), bool):
+        raise BadInput(f"tuning.tick_hz phải là 60, đang là {t.get('tick_hz')!r}")
+    score = t.get("score")
+    if not isinstance(score, dict) or not _num(score.get("reputation_multiplier")) or score["reputation_multiplier"] < 0:
+        raise BadInput("tuning.score.reputation_multiplier phải là số ≥ 0")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
@@ -136,8 +183,7 @@ def validate_tuning(t):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
         raise BadInput("burn_s phải là null ở Phase 1")
-    # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
-    for dish_id, d in menu.items():
-        price, cook = d.get("price"), d.get("cook_s")
-        if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
-            raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+    _validate_quan_layout(q)
+    _validate_reputation(q)
+    _int_between("quan.carry_limit", q.get("carry_limit"), 1, 10)
+    _validate_menu(menu, g)
