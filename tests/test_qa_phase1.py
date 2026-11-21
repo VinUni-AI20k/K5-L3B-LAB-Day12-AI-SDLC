@@ -1,6 +1,6 @@
 import json
 import unittest
-
+from pathlib import Path
 from helpers import Workdir, read_jsonl, run_headless, write_json
 
 
@@ -47,3 +47,27 @@ class GatherBoundaries(unittest.TestCase):
                 exported_inventory = json.load(file)
             self.assertEqual(exported_inventory, {"items": {}})
             self.assertEqual(tick_one[2]["data"]["inventory"], exported_inventory)
+
+class HeadlessValidation(unittest.TestCase):
+    def test_invalid_gather_fixture_preserves_existing_outputs(self):
+        with Workdir() as work:
+            scenario = write_json(
+                work.path("invalid.json"),
+                {"gather": {"player": {"hp": 0}}},
+            )
+            output = Path(work.path("gather.jsonl"))
+            inventory = Path(work.path("inventory.json"))
+            original_output = b'{"type":"previous_run"}\n'
+            original_inventory = b'{"items":{"ca_loc":1}}\n'
+            output.write_bytes(original_output)
+            inventory.write_bytes(original_inventory)
+
+            code, stderr = run_headless(
+                "--mode", "gather", "--seed", "42", "--ticks", "1",
+                "--scenario", scenario, "--out", str(output),
+                "--inventory-out", str(inventory),
+            )
+
+            self.assertEqual(code, 2, stderr)
+            self.assertEqual(output.read_bytes(), original_output)
+            self.assertEqual(inventory.read_bytes(), original_inventory)
