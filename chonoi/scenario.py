@@ -6,6 +6,7 @@ phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 m
 """
 
 import json
+import math
 
 from .errors import BadInput
 from .inventory import KINDS_P1, validate_items
@@ -14,7 +15,6 @@ GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_tick
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "catch_cd_ticks"}
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
-FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
 QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
              "reputation", "time_left_ticks"}
@@ -130,14 +130,28 @@ def _validate_gather(b, tuning):
             raise BadInput(f"nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
         if "regrow_ticks" in n:
             _nonneg_int(f"nodes.{n['id']}.regrow_ticks", n["regrow_ticks"])
+    v11 = isinstance(g["fish_initial"], int)
     for f in b.get("fish", []):
-        if f.get("kind") not in FISH_KINDS:
-            raise BadInput(f"fish.{f['id']}: kind phải là một trong {FISH_KINDS}")
-        _pos(f"fish.{f['id']}.pos", f.get("pos"), bounds)
+        name = f"fish.{f['id']}"
+        allowed = {"id", "kind", "pos", "heading_deg"}
+        if v11:
+            allowed.add("age_ticks")
+        if set(f) - allowed:
+            raise BadInput(f"{name}: trường lạ {sorted(set(f) - allowed)}")
+        kind = f.get("kind")
+        if not isinstance(kind, str) or kind not in g["fish_yield"]:
+            raise BadInput(f"{name}: kind phải thuộc fish_yield")
+        fish_bounds = bounds
+        if v11 and b.get("random_fish", True):
+            fish_bounds = {"x": g["fish_x"], "d": g["fish_depths"][kind]}
+        _pos(f"{name}.pos", f.get("pos"), fish_bounds)
         if f["pos"][1] <= g["surface_depth"]:
-            raise BadInput(f"fish.{f['id']}: đàn cá phải ở dưới nước")
-        if "heading_deg" in f and not _num(f["heading_deg"]):
-            raise BadInput(f"fish.{f['id']}.heading_deg phải là số")
+            raise BadInput(f"{name}: đàn cá phải ở dưới nước")
+        heading = f.get("heading_deg", 0)
+        if not _num(heading) or not math.isfinite(heading):
+            raise BadInput(f"{name}.heading_deg phải là số hữu hạn")
+        if "age_ticks" in f:
+            _nonneg_int(f"{name}.age_ticks", f["age_ticks"])
 
 
 def _validate_quan(b, tuning):

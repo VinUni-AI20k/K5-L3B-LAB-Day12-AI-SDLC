@@ -11,6 +11,7 @@ import math
 
 from ..ids import sort_by_id
 from ..inventory import hold_to_items
+from .fish import FishDynamics
 from .ramp import ramp_velocity
 
 AXES = ("x", "d")
@@ -39,25 +40,26 @@ class GatherSim:
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
         self.time_left_ticks = scenario.get("time_left_ticks", round(t["duration_s"] * self.tick_hz))
+        self.phase_tick = 0
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
-        if "fish" in scenario:
-            src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
-            # v1.0: fish_initial là danh sách đàn đứng yên. v1.1: là SỐ đàn đầu ca, do P2-03 (A) sinh theo seed;
-            # đến lúc đó mặc định chưa có đàn cá (scenario khai fish thì vẫn dùng như cũ).
-            fi = t["fish_initial"]
-            src_fish = fi if isinstance(fi, list) else []
-        else:
-            src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
+        initial = t["fish_initial"]
+        v11 = isinstance(initial, int)
+        random_fish = scenario.get("random_fish", True)
+        src_fish = scenario.get("fish", initial if random_fish and not v11 else [])
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
                       "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+        if v11:
+            for fish, source in zip(self.fish, src_fish):
+                fish["age_ticks"] = source.get("age_ticks", 0)
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
+        self._fish_dynamics = FishDynamics(t, self.tick_hz, streams, ids) if v11 and random_fish else None
+        if self._fish_dynamics is not None and "fish" not in scenario:
+            self._fish_dynamics.populate(self.fish)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -80,14 +82,14 @@ class GatherSim:
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
-                     for f in sort_by_id(self.fish)],
+            "fish": [{**f, "pos": f["pos"].copy()} for f in sort_by_id(self.fish)],
         }
 
     # --- một bước ---------------------------------------------------------------
     def step(self, inp):
         events = []
         # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
+        self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
         for n in sort_by_id(self.nodes):
@@ -118,6 +120,8 @@ class GatherSim:
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
+        elif self._fish_dynamics is not None:
+            self._fish_dynamics.step(self.fish, self.phase_tick, events)
         return events
 
     def _update_oxygen(self, at_surface, events):

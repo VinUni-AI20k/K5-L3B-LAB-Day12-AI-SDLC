@@ -65,7 +65,8 @@ class GatherPRD(unittest.TestCase):
         free = count - 1
         fish = [{"id": "F10", "kind": "ca_loc", "pos": [20 - radius, 5]},
                 {"id": "F2", "kind": "ca_linh", "pos": [20 + radius, 5]}]
-        scenario = {"player": {"pos": [20, 5]}, "fish": fish, "time_left_ticks": 1}
+        # Giữ điểm bắt cá Phase 1, kể cả fixture ngoài độ sâu bơi riêng của loài.
+        scenario = {"player": {"pos": [20, 5]}, "fish": fish, "time_left_ticks": 1, "random_fish": False}
         rows, inv = self.run_gather(scenario, catch=True)
         self.assertEqual([(e["name"], e["data"]) for e in events(rows)], [
             ("fish_caught", {"fish_id": "F2", "kind": "ca_linh", "yield": count}),

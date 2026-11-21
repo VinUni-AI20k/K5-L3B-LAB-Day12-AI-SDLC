@@ -21,7 +21,8 @@ FAR = 20  # x xa bến (bến ở [2, 0], bán kính 3) và xa các nút/đàn m
 
 def run(scenario, frames=(), ticks=1):
     """Chạy `ticks` bước (dừng sớm nếu kết thúc). Trả (session, danh sách dòng sự kiện)."""
-    sess = Session("gather", T, scenario, 1)
+    # Các ca Phase 1 giữ cá fixture đứng yên để cô lập luật bắt cá.
+    sess = Session("gather", T, {"random_fish": False, **scenario}, 1)
     player = InputPlayer(list(frames))
     rows = []
     while sess.tick < ticks and not sess.done:
