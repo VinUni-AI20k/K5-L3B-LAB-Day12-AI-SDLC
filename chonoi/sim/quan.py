@@ -234,6 +234,8 @@ class QuanSim:
             if need <= 0:
                 continue
             recipe = self.menu[dish]["recipe"]
+            if not all(self.stock.get(k, 0) >= n for k, n in recipe.items()):
+                continue
             holder = next((w for w in waiting if w["dish_id"] == dish and w.get("reserved")
                            and all(w["reserved"].get(k, 0) >= n for k, n in recipe.items())), None)
             if holder is not None or all(free.get(k, 0) >= n for k, n in recipe.items()):
