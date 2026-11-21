@@ -26,4 +26,7 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+1. `verify-phase` (`.agents/skills/verify-phase/`): Tự động chạy toàn bộ bộ test suites, kiểm tra tính tất định byte-by-byte (SHA-256) và xuất log bằng chứng vào `docs/proof/phase-<N>/smoke_test.txt`. Dùng trước khi đóng phase và gắn Git tag.
+   - Chạy: `python .agents/skills/verify-phase/run_verification.py --phase 1`
+2. `inventory-validator` (`.agents/skills/inventory-validator/`): Kiểm định tính hợp lệ của file kho theo hợp đồng Contract G và phân tích khả năng nấu các món trong menu. Dùng để kiểm tra file xuất ra từ `gather` trước khi nạp vào `quan`.
+   - Chạy: `python .agents/skills/inventory-validator/validate_inventory.py <path_to_inventory.json>`

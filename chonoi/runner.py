@@ -22,7 +22,7 @@ def build_sim(mode, tuning, scenario, seed, inventory):
     streams, ids = Streams(seed), IdAllocator()
     if mode == "gather":
         return GatherSim(tuning, scenario, streams, ids)
-    return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
+    return QuanSim(tuning, scenario, streams, ids, inventory=inventory, mode=mode)
 
 
 def _common(sim, tick, sim_tick, phase_tick, tuning, state):
