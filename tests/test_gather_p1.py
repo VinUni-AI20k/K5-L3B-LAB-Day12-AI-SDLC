@@ -204,14 +204,22 @@ class Lat2HaiBatBenKho(unittest.TestCase):
             self.assertTrue(close(snapshots(rows)[-1]["player"]["pos"][1], 3))
 
     def test_ac_p1_18_full_default_run_catches_with_preset(self):
-        """Lặn thẳng tới đàn F1 [15,5] của preset và bắt: dùng đúng 6 đàn mặc định đứng yên."""
-        with Workdir() as w:
-            rows = run_gather(w, {}, [{"tick": 0, "move": [1, 0.4]}, {"tick": 200, "move": [0, 0]},
-                                      {"tick": 210, "catch": True}], ticks=220, every=50)
-            caught = events(rows, "fish_caught")
-            self.assertEqual(len(caught), 1, [s["player"]["pos"] for s in snapshots(rows)][-1])
-            self.assertEqual(caught[0]["data"]["fish_id"], "F1")
+        """Bắt được đàn của bố trí mặc định (không scenario cá).
 
+        Cập nhật Phase 2 (v1.1 §1.1): preset không còn là 6 đàn đứng yên F1 [15,5]...; đầu ca sinh 8 đàn
+        theo seed và đàn bơi, nên không lặn theo đường cố định tới F1 nữa. Thay bằng: đọc vị trí đàn ở
+        tick 0 của lượt mặc định, rồi đặt người chơi đúng chỗ đàn đó (cùng seed) và bắt ở bước đầu —
+        bắt xét vị trí cá TRƯỚC khi bơi nên vẫn trúng."""
+        with Workdir() as w:
+            fish0 = snap_at(run_gather(w, {}, ticks=0), 0)["fish"]
+        self.assertEqual(len(fish0), 8)
+        # tránh Cá Sấu M1 tuần tra [60,24]–[64,24]
+        target = next(f for f in fish0 if min(abs(f["pos"][0] - 62), 99) > 14)
+        with Workdir() as w:
+            rows = run_gather(w, {"player": {"pos": target["pos"]}}, [{"tick": 0, "catch": True}], ticks=1)
+            caught = events(rows, "fish_caught")
+            self.assertEqual(len(caught), 1)
+            self.assertEqual(caught[0]["data"]["fish_id"], target["id"])
 
 if __name__ == "__main__":
     unittest.main()
