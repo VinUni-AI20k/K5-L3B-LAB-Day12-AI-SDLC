@@ -1,7 +1,5 @@
 # Retro nhóm
 
-> Bản nháp dựa trên sự kiện có trong repo. Nhóm xác nhận hoặc sửa trước khi nộp.
-
 ## Phase 2 (nhanh)
 - Điều tốt: test luật và smoke tích hợp chạy được sớm; bằng chứng tất định (cùng seed, cùng từng byte).
 - Điều tệ: phần luật và phần giao diện không được chốt thứ tự sớm, nên `index.html` có nhiều lần conflict khi merge.
