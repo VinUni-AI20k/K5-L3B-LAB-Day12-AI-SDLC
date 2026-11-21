@@ -28,13 +28,17 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, mode=None):
+        self.mode = mode or scenario.get("mode", "quan")
+        self.phase = "quan"
+        self.tuning = tuning
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
         self.rng = streams
         self.ids = ids
         self.phase_tick = scenario.get("phase_tick", 0)
+        self.day = scenario.get("day", 1)
         p = scenario.get("player", {})
         self.pos = list(p.get("pos", t["start_pos"]))
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
@@ -51,6 +55,14 @@ class QuanSim:
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
         self.random_customers = scenario.get("random_customers", True)
+
+        # Kế hoạch ngày (day_plan) cho mode day
+        day_plans = scenario.get("day_plan") or tuning.get("day_plan", [])
+        self.day_plan = next((dp for dp in day_plans if dp.get("day") == self.day), None)
+        if self.day_plan:
+            self.planned_dishes = dict(self.day_plan.get("dishes", {}))
+        else:
+            self.planned_dishes = None
 
         for s in self.stoves:
             ids.reserve(s["id"])
@@ -373,17 +385,27 @@ class QuanSim:
 
         avail = {k: max(0, self.stock.get(k, 0) - reserved_totals.get(k, 0)) for k in self.stock}
 
-        candidates = []
-        for dish_id in sorted(self.menu.keys()):
-            recipe = self.menu[dish_id]["recipe"]
-            if all(avail.get(k, 0) >= qty for k, qty in recipe.items()):
-                candidates.append(dish_id)
+        def can_cook(dish_key):
+            recipe = self.menu[dish_key]["recipe"]
+            return all(avail.get(k, 0) >= qty for k, qty in recipe.items())
+
+        # Mode day: bám sát theo Kế hoạch ngày (D1–D5) và tồn khả dụng
+        if self.mode == "day" and self.day_plan:
+            candidates = [d for d in sorted(self.planned_dishes.keys())
+                          if self.planned_dishes.get(d, 0) > 0 and can_cook(d)]
+            if not candidates:
+                candidates = [d for d in sorted(self.day_plan.get("dishes", {}).keys())
+                              if can_cook(d)]
+        else:
+            candidates = [d for d in sorted(self.menu.keys()) if can_cook(d)]
 
         if not candidates:
             events.append(("no_dish", {}))
             return
 
-        dish_id = self.rng.get("customer_dish").choice(candidates)
+        dish_id = self.rng.get("customer").choice(candidates)
+        if self.mode == "day" and self.planned_dishes and self.planned_dishes.get(dish_id, 0) > 0:
+            self.planned_dishes[dish_id] -= 1
         recipe = self.menu[dish_id]["recipe"]
         c_id = self.ids.new("C")
         new_customer = {
