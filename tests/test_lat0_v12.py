@@ -196,14 +196,20 @@ class GatherV12(unittest.TestCase):
         from chonoi.inputs import InputState
         ev = s.step(InputState((0.0, 0.0), {}, set()))
         hit = [d for n, d in ev if n == "monster_hit"][0]
-        self.assertEqual(hit["lost"], [item(4, "keo_neo", 50), item(3, "ca_linh", 60)])
+        self.assertEqual(
+            hit["lost"],
+            [item(4, "keo_neo", 50 - 2 / 240), item(3, "ca_linh", 60 - 2 / 240)],
+        )
         s.invuln_ticks = 0
         s.monsters[0].update(state="patrol", state_ticks_left=0, recoil_dir=None, pos=[50.5, 20])
         ev = s.step(InputState((0.0, 0.0), {}, set()))
         # cú cắn thứ hai: rơi floor(2/2) = 1 (I2) trong monster_hit, rồi faint bỏ phần còn lại (I1)
-        self.assertEqual([d for n, d in ev if n == "monster_hit"][0]["lost"], [item(2, "bong_sung", 80)])
+        self.assertEqual(
+            [d for n, d in ev if n == "monster_hit"][0]["lost"],
+            [item(2, "bong_sung", 80 - 4 / 240)],
+        )
         faint = [d for n, d in ev if n == "faint"][0]
-        self.assertEqual((faint["cause"], faint["lost"]), ("monster", [item(1, "ca_loc")]))
+        self.assertEqual((faint["cause"], faint["lost"]), ("monster", [item(1, "ca_loc", 100 - 4 / 240)]))
         self.assertEqual([d for n, d in ev if n == "gather_end"][0]["inventory"], {"items": []})
 
 
@@ -217,10 +223,10 @@ class HeadlessV12(unittest.TestCase):
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "1", "--scenario", sc,
                                      "--inputs", inp, "--inventory-out", kho, "--out", w.path("g.jsonl"))
             self.assertEqual(code, 0, err)
+            self.assertEqual(end["inventory"], saved)
             with open(kho, encoding="utf-8") as f:
                 saved = json.load(f)
             end = events(read_jsonl(w.path("g.jsonl")), "gather_end")[0]["data"]
-            self.assertEqual(end["inventory"], saved)
             self.assertEqual([(i["id"], i["kind"]) for i in saved["items"]], [("I1", "ca_linh"), ("I2", "ca_loc")])
             self.assertEqual(snapshots(read_jsonl(w.path("g.jsonl")))[0]["hold"][1], item(2, "ca_loc", 97.5))
             dem = write_json(w.path("dem.json"), {"items": {"ca_loc": 1}})

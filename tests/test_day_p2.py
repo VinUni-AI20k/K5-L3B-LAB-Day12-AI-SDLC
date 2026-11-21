@@ -10,7 +10,7 @@ import time
 import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
-from qa_helpers import press, run_case, snap_at
+from qa_helpers import mk_hold, mk_stock, press, run_case, snap_at, stock_counts
 
 with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json"),
           encoding="utf-8") as _f:
@@ -64,20 +64,20 @@ class DayFlow(unittest.TestCase):
         self.assertEqual(s["day_plan"], plan["data"])
 
     def test_ac_p2_06_cap_ben_mo_quan_cung_tick_voi_kho_ban_giao(self):
-        sc = {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"], "random_fish": False}}
+        sc = {"gather": {"hold": mk_hold(["ca_loc", "bong_sung", "bong_sung"]), "random_fish": False}}
         rows = run_day(self, scenario=sc, inputs=press(0, "interact"), ticks=2)
         self.assertEqual(names_at(rows, 1), [("gather", "gather_end"), ("quan", "phase_start")])
         s = snap_at(rows, 1)
-        self.assertEqual((s["phase"], s["phase_tick"], s["stock"]), ("quan", 0, {"bong_sung": 2, "ca_loc": 1}))
+        self.assertEqual((s["phase"], s["phase_tick"], stock_counts(s["stock"])), ("quan", 0, {"bong_sung": 2, "ca_loc": 1}))
         self.assertEqual(snap_at(rows, 2)["phase_tick"], 1)
 
     def test_ac_p2_06_ngat_van_mo_quan_voi_kho_rong(self):
         player = {"pos": [20, 10], "oxygen_ticks": 0, "hp": 1, "zero_oxy_ticks": 59}
-        sc = {"gather": {"player": player, "hold": ["ca_loc"], "random_fish": False}}
+        sc = {"gather": {"player": player, "hold": mk_hold(["ca_loc"]), "random_fish": False}}
         rows = run_day(self, scenario=sc, ticks=2)
         self.assertEqual(names_at(rows, 1)[-2:], [("gather", "gather_end"), ("quan", "phase_start")])
         self.assertEqual(events(rows, "gather_end")[0]["data"]["reason"], "fainted")
-        self.assertEqual(snap_at(rows, 1)["stock"], {})
+        self.assertEqual(stock_counts(snap_at(rows, 1)["stock"]), {})
 
     def test_ac_p2_06_shop_tu_dong_sau_600_tick_va_ket_thuc_days_complete(self):
         rows = run_day(self, scenario=short_day(), ticks=5000, every=100)
@@ -183,7 +183,7 @@ class Pause(unittest.TestCase):
 
     def test_ac_p2_07_pause_quan_doi_lich_khach(self):
         inputs = [{"tick": 0, "pause": True}, {"tick": 1, "pause": False}, {"tick": 200, "pause": True}]
-        rows, _ = run_case(self, "quan", scenario={"stock": {"ca_loc": 1}}, inputs=inputs, ticks=321, every=10)
+        rows, _ = run_case(self, "quan", scenario={"stock": mk_stock({"ca_loc": 1})}, inputs=inputs, ticks=321, every=10)
         self.assertEqual([e["tick"] for e in events(rows, "customer_arrived")], [320])
 
     def test_ac_p2_07_pause_trong_shop_bo_qua_buy_va_mang_day(self):
@@ -222,7 +222,7 @@ class Validation(unittest.TestCase):
     def test_ac_p2_06_scenario_day_hop_le(self):
         ok = {"day": {"money": 200, "earned": 200, "reputation": 4.0, "upgrades": {"hp": 1},
                       "day_plan": [{"day": 1, "dishes": {"goi_bong_sung": 1}, "ingredients": {"bong_sung": 2}}]},
-              "gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"], "random_fish": False}}
+              "gather": {"hold": mk_hold(["ca_loc", "bong_sung", "bong_sung"]), "random_fish": False}}
         self.assertEqual(self._exit("--mode", "day", scenario=ok), (0, True))
 
 
