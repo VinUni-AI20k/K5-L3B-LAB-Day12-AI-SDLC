@@ -1,0 +1,20 @@
+test_burn_mechanic_and_discard (tests.test_p2_quan_lat3b.QuanLat3bPhase2Tests.test_burn_mechanic_and_discard)
+Cơ chế mở rộng burn: khi bật burn_s = 20s, ready quá 1200 ticks chuyển sang burned. ... ok
+test_nearest_interaction_priority (tests.test_p2_quan_lat3b.QuanLat3bPhase2Tests.test_nearest_interaction_priority)
+Tương tác ưu tiên đối tượng gần nhất; nếu khoảng cách bằng nhau ưu tiên Bếp trước Bàn. ... ok
+test_oldest_order_served_first (tests.test_p2_quan_lat3b.QuanLat3bPhase2Tests.test_oldest_order_served_first)
+Bếp trống tự động chọn đơn của khách có order_tick cũ nhất. ... ok
+test_same_order_tick_prioritizes_lower_table_id (tests.test_p2_quan_lat3b.QuanLat3bPhase2Tests.test_same_order_tick_prioritizes_lower_table_id)
+Nếu order_tick bằng nhau, ưu tiên khách ở bàn có id nhỏ hơn (T1 < T2). ... ok
+test_shift_ends_cleans_stoves_and_hand (tests.test_p2_quan_lat3b.QuanLat3bPhase2Tests.test_shift_ends_cleans_stoves_and_hand)
+Đóng ca dọn món: khi hết giờ ca, tự động dọn sạch các món trên bếp và trên tay. ... ok
+test_six_dishes_cooking_and_serving (tests.test_p2_quan_lat3b.QuanLat3bPhase2Tests.test_six_dishes_cooking_and_serving)
+Thực đơn 6 món (đặc biệt các món phức tạp như lau_mam) nấu và phục vụ thành công. ... ok
+test_two_stoves_cooking_simultaneously (tests.test_p2_quan_lat3b.QuanLat3bPhase2Tests.test_two_stoves_cooking_simultaneously)
+2 bếp B1 và B2 có thể nấu song song độc lập và phát sự kiện dish_ready đúng thời điểm. ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.006s
+
+OK
+
