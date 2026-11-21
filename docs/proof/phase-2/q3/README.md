@@ -1,5 +1,16 @@
 # Bằng chứng Phase 2 Q3
 
+## Tích hợp Day mới nhất
+
+Main `813b0b7`, branch kiểm tra `p2/q3-day-integration`, latest test commit `053867b`:
+
+- [Day integration](day-integration-053867b.txt): 15 test, 10 đạt, 5 expected failures cho filter rỗng, reputation qua ngày và `sim_tick` khi pause.
+- [Headless Day](day-headless-053867b.txt): Day 1 và Day 3 kết thúc đúng; Day 3 replay cùng seed/input cho cùng SHA-256.
+- [Regression](day-regression-053867b.txt): Day 6/6, Q3/Q4 19/19, Phase 3 4/4, tổng 138 test (5 expected failures), Phase 1 verification 9/9.
+- [Findings và bàn giao](day-findings.md): T07 PARTIAL; T08–T10 còn phụ thuộc policy, Integrator, QA và xác nhận cá nhân.
+
+Không có sửa logic runtime trong commit này; test ghi lại hai lỗi DaySim và một lỗi Runner thuộc chủ module Bào. Q4-F1 tiếp tục tái hiện, chưa có quyết định xử lý.
+
 ## Kiểm chứng sau merge
 
 Main `63f850e`, manifest v1.1: [log baseline](postmerge-baseline-63f850e.txt) và [log sau cập nhật](postmerge-final-63f850e.txt). Q3 P1 23, Q3 P2 12, Q4 7, regression 108 và 9/9 bước đạt; Day trả 2; Q4-F1 vẫn tái hiện. Q3/Q4 đã ghép; hợp đồng PR #10 chờ Integrator duyệt.

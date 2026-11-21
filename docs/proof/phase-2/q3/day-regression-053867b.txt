@@ -1,0 +1,35 @@
+Q3 Day integration regression summary
+Verified runtime source: origin/main 813b0b7; integration tests: 84f9546, 053867b
+Branch: p2/q3-day-integration
+Runtime: Python 3.11.9, Windows / Python 3.11.9
+
+Commands and results after adding tests/test_p2_q3_day_integration.py:
+
+  python -m unittest tests.test_p2_day -v
+  6 tests, passed, exit 0.
+
+  python -m unittest tests.test_p2_q3 tests.test_p2_quoc tests.test_p2_quan_lat3b -v
+  19 tests, passed, exit 0. Includes Q4-F1 reproduction, 2-stove order selection,
+  order_tick/table_id priority, all six dishes, reservation and burn regression.
+
+  python -m unittest tests.test_p2_q3_day_integration -v
+  15 tests; 10 passed, 5 expected failures; exit 0. The failures represent unresolved
+  DaySim/Runner behavior and are not marked as accepted.
+
+  python -m unittest tests.test_p3_quan_price -v
+  4 tests, passed, exit 0. PR #12's itemized stock/freshness pricing remains intact.
+
+  python -m unittest discover -s tests -v
+  138 tests; OK (expected failures=5); exit 0.
+
+  python .agents/skills/phase-1-verification/scripts/verify_phase1.py --no-proof
+  9/9 verification steps; 138 tests; headless gather and quan byte-deterministic;
+  sample inventory accepted; invalid inputs return 2 without output; exit 0.
+
+  python .agents/skills/python-fact-grounded-coding/scripts/check_rules.py
+  5 files scanned, 0 rule errors; literal review advisories only.
+
+  git diff --check
+  exit 0.
+
+The expected failures and policy/contract limitations are itemized in day-findings.md.
