@@ -18,7 +18,7 @@ Quy ước sim (QuanSim) mà file này đọc/ghi:
 
 from ..errors import BadInput
 from ..ids import id_key, sort_by_id
-from ..inventory import validate_items
+from .. import inventory as inv
 
 HZ = 60
 CUSTOMER_PREFIX = "C"
@@ -83,6 +83,7 @@ def build_fixture_customers(raw, tuning, stock=None, stoves=(), hand=None):
     Trả danh sách khách đã đủ trường, sắp theo id.
     """
     t, menu = tuning["quan"], tuning["menu"]
+    _CTX.update(menu=menu, spoiled_below=tuning["freshness"]["spoiled_below"])
     if not isinstance(raw, list):
         raise BadInput("customers phải là mảng")
     out = []
@@ -134,18 +135,14 @@ def build_fixture_customers(raw, tuning, stock=None, stoves=(), hand=None):
             if key in c:
                 cust[key] = _nonneg_int(f"customers.{cid}.{key}", c[key])
 
-        # giữ chỗ: đơn reserved giữ đúng công thức (thiếu thì cấp); các đơn khác giữ rỗng
-        recipe = _recipe(menu, dish_id)
-        if "reserved" in c:
-            reserved = validate_items(c["reserved"])
-        else:
-            reserved = dict(recipe) if status == "reserved" else {}
-        if status == "reserved":
-            if reserved != recipe:
-                raise BadInput(f"customers.{cid}: reserved phải đúng công thức của {dish_id}")
-        elif reserved:
-            raise BadInput(f"customers.{cid}: đơn {status} phải có giữ chỗ rỗng")
-        cust["reserved"] = reserved
+        # v1.2: giữ chỗ là mảng id cá thể; đơn khác reserved giữ rỗng
+        reserved = c.get("reserved")
+        if reserved is not None:
+            if not isinstance(reserved, list) or not all(isinstance(x, str) for x in reserved):
+                raise BadInput(f"customers.{cid}: reserved phải là mảng id cá thể")
+            if status != "reserved" and reserved:
+                raise BadInput(f"customers.{cid}: đơn {status} phải có giữ chỗ rỗng")
+        cust["reserved"] = list(reserved) if reserved is not None else None
         out.append(cust)
 
     out = sort_by_id(out)
@@ -155,15 +152,77 @@ def build_fixture_customers(raw, tuning, stock=None, stoves=(), hand=None):
 
 
 def _check_stock(customers, stock):
+    """Phần giữ trỏ tới cá thể chưa ươn trong kho, đủ đúng công thức, không dùng chung.
+    Đơn reserved bỏ trống reserved thì cấp theo order_tick rồi id bàn (tươi nhất, id nhỏ). Sai -> BadInput."""
     if stock is None:
+        for c in customers:
+            c["reserved"] = c["reserved"] or []
         return
-    total = {}
+    menu, spoil = _CTX["menu"], _CTX["spoiled_below"]
+    by = {it["id"]: it for it in stock}
+    used = set()
     for c in customers:
-        for k, n in c["reserved"].items():
-            total[k] = total.get(k, 0) + n
-    for k, n in total.items():
-        if n > stock.get(k, 0):
-            raise BadInput(f"giữ chỗ {k} ({n}) vượt tồn kho ({stock.get(k, 0)})")
+        if c["reserved"] is None:
+            continue
+        kinds = {}
+        for iid in c["reserved"]:
+            it = by.get(iid)
+            if it is None:
+                raise BadInput(f"customers.{c['id']}: reserved trỏ tới cá thể không có trong kho ({iid})")
+            if iid in used:
+                raise BadInput(f"customers.{c['id']}: cá thể {iid} đã giữ cho đơn khác")
+            if inv.is_spoiled(it, spoil):
+                raise BadInput(f"customers.{c['id']}: không giữ cá thể đã ươn ({iid})")
+            used.add(iid)
+            kinds[it["kind"]] = kinds.get(it["kind"], 0) + 1
+        if c["order_status"] == "reserved" and kinds != _recipe(menu, c["dish_id"]):
+            raise BadInput(f"customers.{c['id']}: reserved phải đúng công thức của {c['dish_id']}")
+    todo = [c for c in customers if c["reserved"] is None]
+    for c in sorted(todo, key=lambda c: (c["order_tick"], id_key(c["table_id"]))):
+        if c["order_status"] != "reserved":
+            c["reserved"] = []
+            continue
+        got = _pick(stock, used, spoil, _recipe(menu, c["dish_id"]))
+        if got is None:
+            raise BadInput(f"customers.{c['id']}: kho không đủ cá thể chưa ươn để giữ {c['dish_id']}")
+        c["reserved"] = got
+        used.update(got)
+
+
+_CTX = {}
+
+
+def _pick(stock, used, spoil, recipe):
+    """Mỗi loại lấy các cá thể khả dụng tươi nhất, hòa theo id. Thiếu -> None."""
+    got = []
+    for kind in sorted(recipe):
+        cand = [it for it in stock if it["kind"] == kind and it["id"] not in used and not inv.is_spoiled(it, spoil)]
+        cand.sort(key=lambda it: (-it["units"], id_key(it["id"])))
+        if len(cand) < recipe[kind]:
+            return None
+        got += [it["id"] for it in cand[:recipe[kind]]]
+    return got
+
+
+def _reserved_ids(sim, skip=None):
+    return {iid for c in sim.customers if c is not skip for iid in c["reserved"]}
+
+
+def reserve_for(sim, dish_id, skip=None):
+    return _pick(sim.stock, _reserved_ids(sim, skip), sim.fresh_cfg["spoiled_below"], _recipe(sim.menu, dish_id))
+
+
+def rereserve_spoiled(sim, spoiled_ids):
+    """Đơn có phần giữ vừa ươn: nhả toàn bộ, thử giữ lại đúng một lần (theo order_tick rồi id bàn).
+    Không đủ -> unfulfillable, khách chờ tới hạn."""
+    hit = [c for c in sim.customers if c["order_status"] == "reserved" and spoiled_ids & set(c["reserved"])]
+    for c in sorted(hit, key=lambda c: (c["order_tick"], id_key(c["table_id"]))):
+        c["reserved"] = []
+        got = reserve_for(sim, c["dish_id"], skip=c)
+        if got is None:
+            c["order_status"] = "unfulfillable"
+        else:
+            c["reserved"] = got
 
 
 def _check_food_links(customers, stoves, hand):
@@ -254,14 +313,6 @@ def tick_customers(sim, events, phase="all"):
         customers_leave(sim, events)
 
 
-def _available_stock(sim):
-    avail = {k: n for k, n in sim.stock.items()}
-    for c in sim.customers:
-        for k, n in c["reserved"].items():
-            avail[k] = avail.get(k, 0) - n
-    return avail
-
-
 def spawn_customers(sim, events):
     """Khách mới theo lịch (first_customer_tick, rồi mỗi customer_interval_s). Gọi CUỐI bước.
 
@@ -281,15 +332,13 @@ def spawn_customers(sim, events):
     if not free:
         return
     table = min(free, key=lambda tb: id_key(tb["id"]))
-    avail = _available_stock(sim)
-    feasible = [d for d in sorted(sim.menu)
-                if all(avail.get(k, 0) >= n for k, n in _recipe(sim.menu, d).items())]
+    feasible = [d for d in sorted(sim.menu) if reserve_for(sim, d) is not None]
     if not feasible:
         events.append(("no_dish", {}))
         return
     dish_id = sim.rng.get(RNG_STREAM).choice(feasible)
     cust = {"id": sim.ids.new(CUSTOMER_PREFIX), "table_id": table["id"], "dish_id": dish_id,
             "order_tick": pt, "state": "waiting", "patience_ticks_left": _patience_full(t),
-            "eat_ticks_left": 0, "order_status": "reserved", "reserved": _recipe(sim.menu, dish_id)}
+            "eat_ticks_left": 0, "order_status": "reserved", "reserved": reserve_for(sim, dish_id)}
     sim.customers.append(cust)
     events.append(("customer_arrived", {"order_id": cust["id"], "table_id": table["id"], "dish_id": dish_id}))

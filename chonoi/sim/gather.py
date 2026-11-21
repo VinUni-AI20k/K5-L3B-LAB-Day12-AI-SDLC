@@ -17,7 +17,7 @@ Các tính năng của phase sau chưa nằm trong khung này.
 import math
 
 from ..ids import sort_by_id
-from ..inventory import hold_to_items
+from .. import inventory as inv
 from . import gather_fish as fish
 from . import gather_harvest as harvest
 from . import gather_monsters as monsters
@@ -31,7 +31,7 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids, day=1):
+    def __init__(self, tuning, scenario, streams, ids, day=1, item_ids=None, hold=None):
         t = tuning["gather"]
         self.t = t
         self.rng = streams
@@ -48,7 +48,16 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        # v1.2: giỏ là mảng cá thể {id, kind, units}, thứ tự vào giỏ (cuối = mới nhất, LIFO)
+        self.item_ids = item_ids if item_ids is not None else ids
+        self.fresh_cfg = tuning["freshness"]
+        self.decay_units = inv.units_per_tick(self.fresh_cfg["gather_decay_per_s"])
+        if hold is not None:  # day dựng sẵn (id mới cho các Ngày kế)
+            self.hold = hold
+        else:
+            self.hold = inv.validate_item_list(scenario.get("hold", []), "gather.hold")
+        for it in self.hold:
+            self.item_ids.reserve(it["id"])
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
@@ -76,7 +85,7 @@ class GatherSim:
 
     # --- giao diện cho runner -------------------------------------------------
     def inventory_items(self) -> dict:
-        return hold_to_items(self.hold)
+        return [inv.item_out(it) for it in inv.by_id(self.hold)]
 
     def snapshot(self) -> dict:
         return {
@@ -85,7 +94,7 @@ class GatherSim:
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": self.hold, "hold_count": len(self.hold),
+            "hold": [inv.item_out(it) for it in self.hold], "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
@@ -107,6 +116,8 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        # độ tươi hàng có sẵn trong giỏ (hàng mới nhặt bắt đầu hao từ bước sau)
+        inv.decay(self.hold, self.decay_units, self.fresh_cfg["spoiled_below"], "hold", events)
         # 2. bơi + oxy + ngạt (ngất -> dừng bước)
         was_surface = self._at_surface()
         self._move(inp)
@@ -170,7 +181,8 @@ class GatherSim:
 
     def _faint(self, events, cause):
         """Máu về 0: mất toàn bộ giỏ, faint rồi gather_end(fainted). cause: "choke" hoặc "monster"."""
-        events.append(("faint", {"cause": cause, "hp": 0, "lost": list(reversed(self.hold))}))  # lost theo LIFO
+        lost = [inv.item_out(it) for it in reversed(self.hold)]  # bỏ phần còn lại theo LIFO
+        events.append(("faint", {"cause": cause, "hp": 0, "lost": lost}))
         self.hold = []
         self._finish("fainted", events)
 
@@ -182,7 +194,8 @@ class GatherSim:
         if len(self.hold) + n > cap:
             events.append(("hold_full", {**(source or {}), "required": n, "free": cap - len(self.hold)}))
             return False
-        self.hold.extend([kind] * n)
+        for _ in range(n):  # fresh = initial lúc bắt/hái, id I1, I2... theo thứ tự vào giỏ
+            self.hold.append(inv.new_item(self.item_ids, kind, self.fresh_cfg["initial"]))
         return True
 
     # --- tiện ích ---------------------------------------------------------------

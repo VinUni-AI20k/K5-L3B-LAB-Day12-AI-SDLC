@@ -10,6 +10,7 @@ Số liệu: sim.t["monsters"] {species, spawns, invuln_ticks, loss_ratio}. Ngà
 
 import math
 
+from .. import inventory as inv
 from ..ids import id_key, sort_by_id
 
 TICK = 60.0
@@ -104,7 +105,7 @@ def update(sim, events) -> bool:
     cfg = sim.t["monsters"]
     sim.hp = max(0, sim.hp - 1)
     n = math.floor(len(sim.hold) * cfg["loss_ratio"])
-    lost = [sim.hold.pop() for _ in range(n)]  # LIFO: nhặt sau mất trước
+    lost = [inv.item_out(sim.hold.pop()) for _ in range(n)]  # LIFO: nhặt sau mất trước
     sim.invuln_ticks = int(cfg["invuln_ticks"])
     events.append(("monster_hit", {"monster_id": m["id"], "hp": sim.hp, "lost": lost, "pos": list(sim.pos)}))
     dx, dd = m["pos"][0] - sim.pos[0], m["pos"][1] - sim.pos[1]
