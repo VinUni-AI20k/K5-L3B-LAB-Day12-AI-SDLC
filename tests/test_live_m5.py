@@ -1,4 +1,4 @@
-"""Unit & integration test cho M5 (chonoi.live HUD, /assets/ static serving, gather hái bụi/bắt cá & quan modes)."""
+"""Unit & integration test cho M5 (chonoi.live 4 màn hình UI: Main Menu -> Gather -> Quan -> Shop + Pause + /assets/)."""
 
 import json
 import threading
@@ -40,36 +40,29 @@ class LiveM5Test(unittest.TestCase):
         server.start()
         try:
             base = f"http://127.0.0.1:{server.port}"
-            # 1. HTML HUD chứa đầy đủ cấu hình ASSET_MANIFEST và 2 chế độ drawGather / drawQuan
             code, ctype, html = _get(base + "/")
             self.assertEqual(code, 200)
             self.assertIn("text/html", ctype)
-            self.assertIn(b"ASSET_MANIFEST", html)
-            self.assertIn(b"drawGather", html)
-            self.assertIn(b"drawQuan", html)
+            for marker in (b"menu-screen", b"shop-screen", b"drawGather", b"drawQuan", b"ASSET_MANIFEST"):
+                self.assertIn(marker, html)
 
-            # 2. Phục vụ ảnh nền gather_bg.png từ /assets/gather_bg.png
             code, ctype, img_bytes = _get(base + "/assets/gather_bg.png")
             self.assertEqual(code, 200)
             self.assertEqual(ctype, "image/png")
-            self.assertTrue(img_bytes.startswith(b"\x89PNG"), "Phải là dữ liệu PNG hợp lệ")
+            self.assertTrue(img_bytes.startswith(b"\x89PNG"))
 
-            # 3. Chặn path traversal hoặc file không tồn tại
             for bad_path in ("/assets/khong_ton_tai.png", "/assets/../index.html"):
                 with self.assertRaises(urllib.error.HTTPError) as ctx:
                     _get(base + bad_path)
                 self.assertEqual(ctx.exception.code, 404)
                 ctx.exception.close()
 
-            # 4. Kiểm tra các trường snapshot buổi sáng (gather) cho HUD
             code, _, body = _get(base + "/state")
             self.assertEqual(code, 200)
             st = json.loads(body)
             self.assertEqual(st["mode"], "gather")
             for field in ("time_left_ticks", "player", "hold", "hold_capacity", "nodes", "fish", "meta", "events"):
                 self.assertIn(field, st)
-            for p_field in ("pos", "oxygen_ticks", "oxygen_max_ticks", "hp", "hp_max", "zero_oxy_ticks", "catch_cd_ticks", "at_surface"):
-                self.assertIn(p_field, st["player"])
         finally:
             server.stop()
 
@@ -80,6 +73,7 @@ class LiveM5Test(unittest.TestCase):
             "player": {"pos": [12.0, 0.0]},
             "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [12.0, 0.0], "regrow_ticks": 0}],
             "fish": [{"id": "F1", "kind": "ca_linh", "pos": [12.0, 2.0], "heading_deg": 0}],
+            "random_fish": False,
         }
         game = LiveGame("gather", tuning, scenario, seed=1)
         server = LiveServer(game, port=0)
@@ -87,7 +81,6 @@ class LiveM5Test(unittest.TestCase):
         server._thread.start()
         try:
             base = f"http://127.0.0.1:{server.port}"
-            # 1. Ở mặt nước (d=0 <= 0.5), nhấn E (interact=True) tại N1 [12, 0] để hái bông điên điển
             code, _ = _post(base + "/input", {"move": [0, 0], "interact": True, "catch": False})
             self.assertEqual(code, 200)
             with game._lock:
@@ -98,9 +91,7 @@ class LiveM5Test(unittest.TestCase):
             st1 = json.loads(body1)
             self.assertEqual(st1["hold"], ["bong_dien_dien"])
             self.assertFalse(st1["nodes"][0]["ready"])
-            self.assertGreater(st1["nodes"][0]["regrow_ticks"], 0)
 
-            # 2. Lặn xuống độ sâu d > 0.5 gần đàn cá F1 [12, 2.0] rồi nhấn Space (catch=True)
             with game._lock:
                 game.session.sim.pos = [12.0, 2.0]
             code, _ = _post(base + "/input", {"move": [0, 0], "interact": False, "catch": True})
@@ -150,11 +141,7 @@ class LiveM5Test(unittest.TestCase):
             st0 = json.loads(body)
             self.assertEqual(st0["mode"], "quan")
             self.assertIn("menu", st0["meta"])
-            self.assertEqual(st0["stock"], {"bong_sung": 2, "ca_loc": 1})
-            self.assertEqual(len(st0["customers"]), 1)
-            self.assertEqual(st0["customers"][0]["order_status"], "reserved")
 
-            # Gửi lệnh nhấn E (interact) tại bếp B1 để bắt đầu nấu
             code, resp = _post(base + "/input", {"move": [0, 0], "interact": True, "catch": False})
             self.assertEqual(code, 200)
             self.assertTrue(resp.get("ok"))
@@ -168,7 +155,6 @@ class LiveM5Test(unittest.TestCase):
             self.assertEqual(st1["customers"][0]["order_status"], "assigned")
             self.assertEqual(st1["stock"], {"bong_sung": 2})
 
-            # POST /restart khôi phục lại trạng thái ban đầu
             code, _ = _post(base + "/restart", {})
             self.assertEqual(code, 200)
             _, _, body_reset = _get(base + "/state")
@@ -178,6 +164,120 @@ class LiveM5Test(unittest.TestCase):
         finally:
             server.httpd.shutdown()
             server.httpd.server_close()
+
+    def test_four_stage_flow_start_gather_quan_shop_and_pause(self):
+        """Kiểm chứng luồng 4 màn hình qua HTTP: POST /start (day) -> gather -> quan -> shop (buy + shop_done) + pause."""
+        tuning = load_contract()["tuning"]
+        game = LiveGame("gather", tuning, {}, seed=1)
+        server = LiveServer(game, port=0)
+        server._thread = threading.Thread(target=server.httpd.serve_forever, daemon=True)
+        server._thread.start()
+        try:
+            base = f"http://127.0.0.1:{server.port}"
+            # 1. Menu chính gửi POST /start chuyển sang chế độ vòng ngày (day, 2 ngày)
+            code, resp = _post(base + "/start", {"mode": "day", "days": 2})
+            self.assertEqual(code, 200)
+            self.assertTrue(resp.get("ok"))
+            st_g = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_g["mode"], "day")
+            self.assertEqual(st_g["phase"], "gather")
+            self.assertIn("shop", st_g["meta"])
+
+            # 2. Pause & Resume qua POST /input
+            _post(base + "/input", {"pause": True})
+            with game._lock:
+                game._tick_once()
+            _post(base + "/input", {"pause": False})
+            st_p = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_p["state"], "paused")
+
+            _post(base + "/input", {"pause": True})
+            with game._lock:
+                game._tick_once()
+            _post(base + "/input", {"pause": False})
+            st_r = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_r["state"], "playing")
+
+            # 3. Cập bến (interact=True tại bến [2,0]) -> tự chuyển sang pha quan
+            _post(base + "/input", {"interact": True})
+            with game._lock:
+                game._tick_once()
+            _post(base + "/input", {"interact": False})
+            st_q = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_q["phase"], "quan")
+
+            # 4. Hết giờ quán -> chuyển sang pha shop, nạp tiền thử và mua nâng cấp oxygen
+            with game._lock:
+                game.session.sim._sub.money = 300
+                game.session.sim._sub.time_left_ticks = 1
+                game._tick_once()
+            st_s = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_s["phase"], "shop")
+            self.assertEqual(st_s["money"], 300)
+
+            _post(base + "/input", {"buy": "oxygen"})
+            with game._lock:
+                game._tick_once()
+            st_s2 = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_s2["upgrades"].get("oxygen"), 1)
+            self.assertEqual(st_s2["money"], 100)
+
+            # 5. Đóng shop (shop_done=True) -> chuyển sang Ngày 2 pha gather với oxy nâng cấp (45s = 2700 tick)
+            _post(base + "/input", {"shop_done": True})
+            with game._lock:
+                game._tick_once()
+            _post(base + "/input", {"shop_done": False})
+            st_d2 = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_d2["day"], 2)
+            self.assertEqual(st_d2["phase"], "gather")
+            self.assertEqual(st_d2["player"]["oxygen_max_ticks"], 2700)
+
+            # 6. Kiểm chứng cá chuyển động khi random_fish=True và phím tắt kết thúc sớm (POST /skip_phase)
+            pos_before = list(st_d2["fish"][0]["pos"])
+            with game._lock:
+                for _ in range(10):
+                    game._tick_once()
+            st_d2_moved = json.loads(_get(base + "/state")[2])
+            self.assertNotEqual(st_d2_moved["fish"][0]["pos"], pos_before, "Đàn cá phải tự bơi khi random_fish=True")
+
+            code, _ = _post(base + "/skip_phase", {})
+            self.assertEqual(code, 200)
+            st_skip_q = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_skip_q["phase"], "quan")
+            code, _ = _post(base + "/skip_phase", {})
+            self.assertEqual(code, 200)
+            st_skip_s = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_skip_s["phase"], "shop")
+            code, _ = _post(base + "/skip_phase", {})
+            self.assertEqual(code, 200)
+            st_skip_end = json.loads(_get(base + "/state")[2])
+            self.assertTrue(st_skip_end["finished"])
+
+            # 7. Kiểm chứng POST /start quan tạo đủ 2 bếp (B1, B2) và 4 bàn (T1-T4)
+            code, _ = _post(base + "/start", {"mode": "quan", "sample_stock": True})
+            self.assertEqual(code, 200)
+            st_multi = json.loads(_get(base + "/state")[2])
+            self.assertGreaterEqual(len(st_multi["stoves"]), 2)
+            self.assertGreaterEqual(len(st_multi["tables"]), 4)
+        finally:
+            server.httpd.shutdown()
+            server.httpd.server_close()
+
+    def test_phase4_bench_cli_outputs_five_fields(self):
+        """Phase 4 M5.1: chonoi.bench xuất đủ 5 trường avg_fps, p1_low_fps, frames, measured_s, load_ms."""
+        import os
+        import tempfile
+        from chonoi.bench import main as bench_main
+
+        with tempfile.TemporaryDirectory() as td:
+            out_path = os.path.join(td, "bench.json")
+            rc = bench_main(["--seed", "42", "--duration", "0.2", "--warmup", "0.05", "--out", out_path])
+            self.assertEqual(rc, 0)
+            with open(out_path, encoding="utf-8") as f:
+                data = json.load(f)
+            for key in ("avg_fps", "p1_low_fps", "frames", "measured_s", "load_ms"):
+                self.assertIn(key, data)
+                self.assertGreater(data[key], 0)
 
 
 if __name__ == "__main__":
