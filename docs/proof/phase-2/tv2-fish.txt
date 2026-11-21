@@ -1,0 +1,72 @@
+test_fish_reflection_x_d_and_corner (tests.test_gather_fish_p2.GatherFishPhase2Tests.test_fish_reflection_x_d_and_corner)
+Cá phản xạ mép x, mép d và góc: giữ phần quãng đường dư và đảo thành phần hướng vuông góc. ... ok
+test_fish_spawn_at_360_and_cap_12_and_random_false (tests.test_gather_fish_p2.GatherFishPhase2Tests.test_fish_spawn_at_360_and_cap_12_and_random_false)
+Sinh cá ở phase_tick=360, tôn trọng trần 12 đàn; random_fish=false tắt bơi và sinh. ... ok
+test_fish_turn_at_tick_120_and_catch_before_swim (tests.test_gather_fish_p2.GatherFishPhase2Tests.test_fish_turn_at_tick_120_and_catch_before_swim)
+Đổi hướng ở bước bơi thứ 120; bắt cá theo vị trí đầu bước trước khi cá bơi. ... ok
+test_initial_8_fish_distinct_positions_and_valid_grid (tests.test_gather_fish_p2.GatherFishPhase2Tests.test_initial_8_fish_distinct_positions_and_valid_grid)
+Đầu ca có 8 đàn cá ở 8 vị trí hình học khác nhau trên lưới sinh chuẩn. ... ok
+test_keo_neo_and_ca_keo_integration_to_quan (tests.test_gather_fish_p2.GatherFishPhase2Tests.test_keo_neo_and_ca_keo_integration_to_quan)
+Hái keo_neo (N5) + mang ca_keo -> cập bến xuất kho -> quán đọc đủ 6 loại nguyên liệu. ... ok
+test_catch_fish_underwater_cooldown_and_tie_break (tests.test_gather_harvest.GatherHarvestTests.test_catch_fish_underwater_cooldown_and_tie_break)
+Bắt cá dưới nước đúng mép, hòa theo ID (F2 trước F10), đặt cooldown dùng lại ở t+L. ... ok
+test_catch_hold_full_keeps_fish_and_cooldown_and_no_fallback (tests.test_gather_harvest.GatherHarvestTests.test_catch_hold_full_keeps_fish_and_cooldown_and_no_fallback)
+Giỏ thiếu chỗ giữ nguyên đàn cá, giữ cooldown=0, không thử đàn khác. ... ok
+test_catch_no_fish_in_range_and_not_at_surface (tests.test_gather_harvest.GatherHarvestTests.test_catch_no_fish_in_range_and_not_at_surface)
+Không có cá trong tầm -> không event, không cooldown; ở mặt nước -> không bắt được. ... ok
+test_dock_priority_over_harvest (tests.test_gather_harvest.GatherHarvestTests.test_dock_priority_over_harvest)
+Ở trong vùng bến và gần nút: interact ưu tiên cập bến (docked), không hái nút. ... ok
+test_harvest_hold_full_keeps_node_ready (tests.test_gather_harvest.GatherHarvestTests.test_harvest_hold_full_keeps_node_ready)
+Giỏ đầy khi hái phát hold_full và giữ nguyên nút ready. ... ok
+test_harvest_node_at_surface_and_edge_radius (tests.test_gather_harvest.GatherHarvestTests.test_harvest_node_at_surface_and_edge_radius)
+Hái nút ở mặt nước đúng mép interact_radius -> vào giỏ, đặt regrow_ticks, phát gather. ... ok
+test_harvest_requires_surface (tests.test_gather_harvest.GatherHarvestTests.test_harvest_requires_surface)
+Đang dưới nước (d > surface_depth) không hái được nút dù trong interact_radius. ... ok
+test_harvest_tie_break_by_id_and_regrow_immediate (tests.test_gather_harvest.GatherHarvestTests.test_harvest_tie_break_by_id_and_regrow_immediate)
+Hòa khoảng cách chọn N2 trước N10; nút vừa regrow từ 1 -> 0 hái được ngay trong bước. ... ok
+test_last_tick_harvest_and_dock_edge_and_tick_limit_inventory (tests.test_gather_harvest.GatherHarvestTests.test_last_tick_harvest_and_dock_edge_and_tick_limit_inventory)
+Hái ở bước cuối vẫn vào kho; cập bến đúng mép ở bước cuối cho docked; tick_limit giữ nguyên file kho. ... ok
+test_diving_to_zero_oxygen_counts_as_first_choke_tick (tests.test_gather_survival.GatherSurvival.test_diving_to_zero_oxygen_counts_as_first_choke_tick) ... ok
+test_fainting_preempts_docking_and_timeout_and_exports_empty_inventory (tests.test_gather_survival.GatherSurvival.test_fainting_preempts_docking_and_timeout_and_exports_empty_inventory) ... ok
+test_surfacing_on_choke_tick_refills_and_clears_counter (tests.test_gather_survival.GatherSurvival.test_surfacing_on_choke_tick_refills_and_clears_counter) ... ok
+test_gather_catch_fish (tests.test_phase1_gameplay.Phase1GameplayTests.test_gather_catch_fish) ... ok
+test_gather_choke_and_faint (tests.test_phase1_gameplay.Phase1GameplayTests.test_gather_choke_and_faint) ... ok
+test_gather_dive_surface_and_oxygen (tests.test_phase1_gameplay.Phase1GameplayTests.test_gather_dive_surface_and_oxygen) ... ok
+test_gather_interact_flower (tests.test_phase1_gameplay.Phase1GameplayTests.test_gather_interact_flower) ... ok
+test_quan_cook_serve_and_pay (tests.test_phase1_gameplay.Phase1GameplayTests.test_quan_cook_serve_and_pay) ... ok
+test_con_01_ticks_zero_and_end_line (tests.test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (tests.test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (tests.test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (tests.test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (tests.test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (tests.test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (tests.test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (tests.test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (tests.test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (tests.test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (tests.test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (tests.test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (tests.test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (tests.test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (tests.test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (tests.test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (tests.test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (tests.test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (tests.test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (tests.test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_bad_frames_raise (tests.test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (tests.test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (tests.test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (tests.test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (tests.test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (tests.test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (tests.test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+
+----------------------------------------------------------------------
+Ran 49 tests in 3.838s
+
+OK
