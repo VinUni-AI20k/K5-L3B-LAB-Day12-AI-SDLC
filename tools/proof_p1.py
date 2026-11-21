@@ -66,6 +66,10 @@ def main():
     commit = sh(["git", "rev-parse", "--short", "HEAD"])[1].strip()
     # chỉ coi là "bẩn" nếu code game/test/contract khác commit (file proof và script này không tính)
     dirty = sh(["git", "status", "--porcelain", "--", "chonoi", "tests", "game.contract.json"])[1].strip()
+    # so code game/test/contract với tag phase-1 (nếu có): giống thì bằng chứng áp dụng cho commit gắn tag
+    tag_code, _, _ = sh(["git", "diff", "--quiet", "phase-1", "--", "chonoi", "tests", "game.contract.json"])
+    tag_note = {0: " Code game, test và contract **giống hệt tag `phase-1`**.",
+                1: " Code **khác** tag `phase-1`."}.get(tag_code, "")
     lines = []
 
     # 1. toàn bộ test
@@ -127,7 +131,7 @@ def main():
     now = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
     write(p("README.md"),
           "# Bằng chứng Phase 1\n\n"
-          f"Sinh bằng `python3 tools/proof_p1.py` ở commit **`{commit}`**{' (code có thay đổi chưa commit!)' if dirty else ''}, lúc {now}.\n\n"
+          f"Sinh bằng `python3 tools/proof_p1.py` ở commit **`{commit}`**{' (code có thay đổi chưa commit!)' if dirty else ''}, lúc {now}.{tag_note}\n\n"
           "| Kiểm chứng | File | Kết quả |\n|---|---|---|\n" + "\n".join(lines) + "\n" + notes)
     print(read(p("README.md")))
 

@@ -1,10 +1,10 @@
 # Bằng chứng Phase 1
 
-Sinh bằng `python3 tools/proof_p1.py` ở commit **`47a673f`**, lúc 2026-11-21 11:43.
+Sinh bằng `python3 tools/proof_p1.py` ở commit **`7b1c895`**, lúc 2026-11-21 11:52. Code game, test và contract **giống hệt tag `phase-1`**.
 
 | Kiểm chứng | File | Kết quả |
 |---|---|---|
-| Toàn bộ test (`unittest discover -s tests -v`) | [`tests.txt`](tests.txt) | Ran 88 tests in 7.711s · OK |
+| Toàn bộ test (`unittest discover -s tests -v`) | [`tests-full.txt`](tests-full.txt) | Ran 88 tests in 7.763s · OK |
 | Smoke dock → quán (PRD-0 G) | [`smoke/`](smoke/) | kho `{"bong_sung": 2, "ca_loc": 1}`, quán tick 0 `stock` `{"bong_sung": 2, "ca_loc": 1}` → ĐẠT |
 | Chơi thật sáng (preset mặc định) | [`play/gather.jsonl.txt`](play/gather.jsonl.txt) | t148 gather, t161 dive, t239 fish_caught, t422 surface, t439 gather_end; end `docked`; kho `{"bong_dien_dien": 1, "ca_linh": 3}` |
 | Quán đọc kho thật, trọn ca, không điều khiển (không ai nấu nên earned = 0, khách bỏ về) | [`play/quan.jsonl.txt`](play/quan.jsonl.txt) | end `time`, earned 0, uy tín 2.0, điểm 200 |
