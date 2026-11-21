@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quán Ăn Chợ Nổi — bench</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #070b1a; overflow: hidden; }
+  body { display: flex; align-items: center; justify-content: center; font-family: "Trebuchet MS", system-ui, sans-serif; }
+  #stage { position: relative; width: 100vw; height: 100vh; }
+  canvas { position: absolute; image-rendering: pixelated; image-rendering: crisp-edges; }
+  #px { z-index: 1; background: #070b1a; }
+  #ui { z-index: 2; pointer-events: none; }
+  #loading { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #ffd23f; font-weight: 900; font-size: 20px; letter-spacing: 1px; z-index: 5; text-shadow: 0 2px 6px #000; }
+  #loading small { display: block; color: #9fb3c0; font-size: 11px; font-weight: 600; margin-top: 8px; text-align: center; }
+</style>
+</head>
+<body>
+<div id="stage">
+  <canvas id="px"></canvas>
+  <canvas id="ui"></canvas>
+  <div id="loading">QUÁN ĂN CHỢ NỔI<small>Đang tải… · nhấn phím bất kỳ để bật âm thanh</small></div>
+</div>
+<script type="module" src="src/bench.js"></script>
+<script type="module" src="src/main.js"></script>
+</body>
+</html>

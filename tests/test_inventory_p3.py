@@ -14,7 +14,7 @@ from helpers import Workdir, events, frames, read_jsonl, run_headless, write_jso
 class FileKhoP3(unittest.TestCase):
     def test_ac_p3_20_contract_v12_freshness(self):
         c = load_contract()
-        self.assertEqual(c["contract_version"], "1.2")
+        self.assertIn(c["contract_version"], ("1.2", "1.3"))
         self.assertEqual(c["tuning"]["freshness"],
                          {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30})
         t = c["tuning"]

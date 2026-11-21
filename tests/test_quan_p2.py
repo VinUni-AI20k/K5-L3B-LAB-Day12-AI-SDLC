@@ -22,7 +22,7 @@ def contract():
 class QuanV11(unittest.TestCase):
     def test_ac_p2_30_two_stoves_four_tables_six_dishes_from_contract(self):
         c = contract()
-        self.assertEqual(c["contract_version"], "1.2")  # v1.2 (TICKET-03) thay 1.1; dữ liệu 2 bếp/4 bàn/6 món giữ
+        self.assertIn(c["contract_version"], ("1.2", "1.3"))  # v1.2 (TICKET-03) thay 1.1; dữ liệu 2 bếp/4 bàn/6 món giữ
         self.assertEqual(len(c["tuning"]["menu"]), 6)
         with Workdir() as w:
             s = snapshots(run_quan(w, None, ticks=0))[0]

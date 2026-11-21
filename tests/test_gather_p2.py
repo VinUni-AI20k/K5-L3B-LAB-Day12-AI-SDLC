@@ -78,7 +78,7 @@ class SoLieuChuan(unittest.TestCase):
     def test_ac_p2_01_contract_v11_standard_data(self):
         """v1.2 (TICKET-03): contract_version đổi thành "1.2"; số liệu v1.1 còn lại giữ nguyên."""
         c = load_contract()
-        self.assertEqual(c["contract_version"], "1.2")
+        self.assertIn(c["contract_version"], ("1.2", "1.3"))
         self.assertEqual((c["team"], c["team_size"]), ("Nhom001", 3))
         self.assertEqual(G["fish_yield"], {"ca_linh": 3, "ca_loc": 1, "ca_keo": 2})
         self.assertEqual(G["fish_initial"], 8)

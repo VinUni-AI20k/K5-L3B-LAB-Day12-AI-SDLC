@@ -25,7 +25,24 @@ def load_contract(path=DEFAULT_PATH) -> dict:
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
     validate_tuning(c.get("tuning"))
+    validate_root(c)
     return c
+
+
+def _version(v):
+    try:
+        return tuple(int(x) for x in str(v).split(".")[:2])
+    except ValueError:
+        raise BadInput(f"contract_version lạ: {v!r}")
+
+
+def validate_root(c):
+    """v1.3 (TICKET-04): từ 1.3 phải khai báo bench_cmd và soak_cmd (chuỗi lệnh khác rỗng)."""
+    if _version(c.get("contract_version")) >= (1, 3):
+        for k in ("bench_cmd", "soak_cmd"):
+            v = c.get(k)
+            if not isinstance(v, str) or not v.strip():
+                raise BadInput(f"contract v1.3 phải có {k} là chuỗi lệnh khác rỗng")
 
 
 def _int_between(name, v, lo, hi):

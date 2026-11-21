@@ -80,8 +80,15 @@ class DaySim:
     def time_left_ticks(self):
         return self.cur.time_left_ticks
 
+    def plan_for(self, day):
+        """v1.3 (soak): Ngày > 5 lặp kế hoạch D1–D5 theo chỉ số ((day-1) % 5) + 1 nếu không có kế hoạch riêng."""
+        if day in self.plans:
+            return self.plans[day]
+        n = len(self.plans)
+        return self.plans[((day - 1) % n) + 1]
+
     def plan(self):
-        p = self.plans[self.day]
+        p = self.plan_for(self.day)
         return {"dishes": {k: p["dishes"][k] for k in sorted(p["dishes"])}, "ingredients": dict(p["ingredients"])}
 
     def snapshot(self) -> dict:
@@ -156,7 +163,7 @@ class DaySim:
         stock = [dict(it) for it in self.cur.inventory_items()]
         try:
             q = QuanSim(self.tuning, copy.deepcopy(self.tpl_quan), self.streams, self.ids, inventory=stock,
-                        menu_filter=list(self.plans[self.day]["dishes"]), reputation=self.reputation,
+                        menu_filter=list(self.plan_for(self.day)["dishes"]), reputation=self.reputation,
                         money=self.money, earned=self.earned)
         except BadInput as e:
             raise BadInput(f"Ngày {self.day}, mở quán với kho thực {stock}: {e}")
