@@ -27,6 +27,5 @@
 - 0:55: gắn tag `phase-1` (chỗ chưa xong ghi trung thực).
 
 ## Rủi ro
-- `nganhduong123` chưa chấp nhận lời mời vào repo nên chưa push được. Cần chấp nhận ngay.
 - Sửa chung `gather.py`/`quan.py` gây xung đột: chỉ viết trong hàm của mình, rebase lên `main` trước khi mở PR.
 - Đề cho 4–6 người, nhóm có 7 người (xem `docs/clarify.md` #1).
