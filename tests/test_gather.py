@@ -15,9 +15,9 @@ import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
-_RUN_PENDING = bool(os.environ.get("CHONOI_PENDING"))
-lat1 = unittest.skipUnless(_RUN_PENDING, "TODO(nhóm, lát 1): oxy / ngạt / Máu / dive-surface")
-lat2 = unittest.skipUnless(_RUN_PENDING, "TODO(nhóm, lát 2): hái / bắt cá / giỏ đầy")
+# Lát 1 & Lát 2 đã hoàn thành: không bỏ qua test
+lat1 = lambda f: f
+lat2 = lambda f: f
 
 
 def tuning():
