@@ -1,3 +1,4 @@
+import json
 import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
@@ -91,3 +92,55 @@ class PauseBoundaries(unittest.TestCase):
             self.assertEqual(resumed["time_left_ticks"], initial["time_left_ticks"] - 1)
             self.assertEqual([row["tick"] for row in events(rows, "paused")], [1])
             self.assertEqual([row["tick"] for row in events(rows, "resumed")], [3])
+
+class MonsterBoundaries(unittest.TestCase):
+    def test_lethal_crocodile_hit_drops_items_in_two_stages(self):
+        with Workdir() as work:
+            scenario = write_json(
+                work.path("monster.json"),
+                {
+                    "gather": {
+                        "player": {"pos": [60, 24], "hp": 1},
+                        "hold": ["ca_loc", "bong_sung", "bong_dien_dien"],
+                        "random_fish": False,
+                        "monsters": [
+                            {
+                                "id": "M1",
+                                "kind": "ca_sau",
+                                "pos": [60, 24],
+                                "waypoints": [[60, 24], [64, 24]],
+                            }
+                        ],
+                    }
+                },
+            )
+            output = work.path("gather.jsonl")
+            inventory = work.path("inventory.json")
+            code, stderr = run_headless(
+                "--mode", "gather", "--seed", "42", "--ticks", "1",
+                "--scenario", scenario, "--out", output,
+                "--inventory-out", inventory,
+            )
+            self.assertEqual(code, 0, stderr)
+            rows = read_jsonl(output)
+
+            terminal_events = [
+                row for row in events(rows)
+                if row["name"] in ("monster_hit", "faint", "gather_end")
+            ]
+            self.assertEqual(
+                [(row["tick"], row["name"]) for row in terminal_events],
+                [(1, "monster_hit"), (1, "faint"), (1, "gather_end")],
+            )
+            hit, faint, gather_end = (row["data"] for row in terminal_events)
+            self.assertEqual(hit["monster_id"], "M1")
+            self.assertEqual(hit["hp"], 0)
+            self.assertEqual(hit["lost"], ["bong_dien_dien"])
+            self.assertEqual(
+                faint, {"cause": "monster", "lost": ["bong_sung", "ca_loc"], "hp": 0},
+            )
+            self.assertEqual(gather_end["reason"], "fainted")
+            self.assertEqual(gather_end["inventory"], {"items": {}})
+
+            with open(inventory, encoding="utf-8") as exported:
+                self.assertEqual(json.load(exported), gather_end["inventory"])

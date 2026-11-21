@@ -8,3 +8,4 @@
 | Pause | Kiểm tra đồng hồ và bộ đếm đứng yên khi pause; gameplay tiếp tục ngay ở bước resume | [Test pause](../../tests/test_qa_phase2.py) | Baseline tại `cb04f1e`: CLI trả mã 2 vì frame 0 có trường `pause` chưa được hỗ trợ. Chưa kiểm chứng hành vi pause/resume. |
 | Số liệu chuẩn, cá, Cá Sấu và quán mở rộng | Đối chiếu manifest và chạy fixture biên cho cá, Cá Sấu, 2 bếp và 4 bàn | — | Chưa chạy trên v1.1. |
 | Regression Phase 1 | Chạy lại suite, ghi lý do cho từng assertion cần đổi theo v1.1 | — | Chưa chạy trên bản tích hợp v1.1. |
+| Cá Sấu — Chạm làm ngất ở 1 Máu | Kiểm tra `monster_hit → faint → gather_end` trong cùng tick, hai lượt rơi đồ theo LIFO và kho rỗng | [Test Cá Sấu](../../tests/test_qa_phase2.py) | Baseline tại `093237e` trả mã 2 vì chưa hỗ trợ `gather.monsters`. Chưa kiểm chứng luật va chạm và ngất. |
