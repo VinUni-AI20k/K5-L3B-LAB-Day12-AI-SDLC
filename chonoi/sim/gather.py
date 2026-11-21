@@ -5,6 +5,8 @@ move = [x, d]: thành phần thứ hai DƯƠNG = bơi xuống.
 
 Lát 1: bơi, oxy, dive/surface, ngạt (choke), faint, giỏ LIFO.
 Lát 2: hái nút mặt nước, bắt cá dưới nước, cập bến, ghi kho.
+v1.1 (P2): cá bơi fish_speed trong dải sâu loài, đổi hướng mỗi fish_turn_ticks bước bơi,
+phản xạ mép; sinh đàn theo lịch fish_spawn_ticks·k (trần fish_max, clearance, trọng số loài).
 
 Thứ tự xử lý mỗi bước (PRD-0 mục F):
   1. Giảm đồng hồ, timer, nút mọc lại.
@@ -17,7 +19,7 @@ Thứ tự xử lý mỗi bước (PRD-0 mục F):
 
 import math
 
-from ..ids import sort_by_id
+from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
@@ -58,9 +60,12 @@ class GatherSim:
             src_fish = t["fish_initial"]
         else:
             src_fish = []
-        # Đàn cá đứng yên ở phase này.
+        # v1.1: random_fish bật -> cá bơi và sinh đàn; false -> tắt cả hai, cá fixture đứng yên.
+        self.fish_active = scenario.get("random_fish", True)
+        self.phase_tick = 0  # lịch sinh cá dùng phase_tick SAU tăng (PRD mục F)
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                      "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)}
+                     for f in src_fish]
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
@@ -95,6 +100,7 @@ class GatherSim:
         events = []
 
         # ── 1. Đồng hồ, timer, nút mọc lại ─────────────────────────────────────
+        self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
@@ -205,6 +211,11 @@ class GatherSim:
         # ── 6. Hết giờ ──────────────────────────────────────────────────────────
         if self.time_left_ticks <= 0:
             self._finish("time", events)
+            return events
+        # ── 7. v1.1: còn giờ thì cá bơi, rồi sinh thêm theo lịch (mục 4.5) ──────
+        if self.fish_active:
+            self._swim_fish()
+            self._spawn_fish(events)
         return events
 
     # --- tiện ích ---------------------------------------------------------------
@@ -239,6 +250,78 @@ class GatherSim:
             if best is None or d < best_dist or (d == best_dist and f["id"] < best_id):
                 best, best_dist, best_id = f, d, f["id"]
         return best
+
+    # --- v1.1: cá bơi và sinh đàn (lát 1 P2) --------------------------------------
+    def _swim_fish(self):
+        """Mỗi đàn bơi fish_speed m/s trong fish_x và dải sâu của loài; đổi hướng theo seed
+        ở bước bơi thứ fish_turn_ticks, 2×… TRƯỚC khi di chuyển; tới mép phản xạ phần quãng
+        đường còn lại và đảo thành phần vuông góc với mép, chạm góc đảo cả hai (v1.1 mục 1.1)."""
+        t = self.t
+        speed = t["fish_speed"]
+        turn = int(t["fish_turn_ticks"])
+        xlo, xhi = t["fish_x"]
+        rng = self.rng.get("fish")
+        for f in sort_by_id(self.fish):
+            flo, fhi = t["fish_depths"][f["kind"]]
+            if (f["age_ticks"] + 1) % turn == 0:
+                f["heading_deg"] = rng.uniform(0.0, 360.0)
+            rad = math.radians(f["heading_deg"])
+            vx, vd = speed * math.cos(rad), speed * math.sin(rad)
+            x, d = f["pos"]
+            x += vx / TICK
+            d += vd / TICK
+            if x > xhi:
+                x, vx = 2 * xhi - x, -vx
+            elif x < xlo:
+                x, vx = 2 * xlo - x, -vx
+            if d > fhi:
+                d, vd = 2 * fhi - d, -vd
+            elif d < flo:
+                d, vd = 2 * flo - d, -vd
+            f["pos"] = [min(max(x, xlo), xhi), min(max(d, flo), fhi)]
+            f["heading_deg"] = math.degrees(math.atan2(vd, vx)) % 360
+            f["age_ticks"] += 1
+
+    def _spawn_fish(self, events):
+        """Tại phase_tick = fish_spawn_ticks·k, sau khi cá bơi: sinh tối đa một đàn nếu còn
+        dưới trần fish_max và có điểm cách mọi đàn đang sống > fish_spawn_clearance.
+        Loài theo trọng số chuẩn hóa lại theo loài còn điểm hợp lệ, chọn đều một điểm của
+        loài, hướng ban đầu theo seed; bỏ lượt nếu hết điểm (v1.1 mục 1.1)."""
+        t = self.t
+        if self.phase_tick % int(t["fish_spawn_ticks"]) != 0:
+            return
+        if len(self.fish) >= int(t["fish_max"]):
+            return
+        clearance = t["fish_spawn_clearance"]
+        weights = t["fish_weights"]
+        valid = {}
+        for kind in sorted(weights):
+            pts = []
+            for sx in t["fish_spawn_x"]:
+                for sd in t["fish_spawn_depths"][kind]:
+                    if all(math.dist([sx, sd], f["pos"]) > clearance for f in self.fish):
+                        pts.append([float(sx), float(sd)])
+            if pts:
+                valid[kind] = pts
+        if not valid:
+            return  # bỏ lượt nếu hết điểm
+        rng = self.rng.get("fish_spawn")
+        pick = rng.random() * sum(weights[k] for k in valid)
+        kind = None
+        for k in sorted(valid):  # duyệt loài theo mã Unicode để tất định
+            pick -= weights[k]
+            if pick <= 0:
+                kind = k
+                break
+        if kind is None:
+            kind = sorted(valid)[-1]
+        pts = valid[kind]
+        pos = pts[rng.randrange(len(pts))]
+        heading = rng.uniform(0.0, 360.0)
+        prefix = id_key(sort_by_id(self.fish)[-1]["id"])[0]  # nối họ id của đàn đã nạp
+        fid = self.ids.new(prefix)
+        self.fish.append({"id": fid, "kind": kind, "pos": pos, "heading_deg": heading, "age_ticks": 0})
+        events.append(("fish_spawned", {"id": fid, "kind": kind, "pos": pos}))
 
     def _finish(self, reason, events):
         self.done = True
