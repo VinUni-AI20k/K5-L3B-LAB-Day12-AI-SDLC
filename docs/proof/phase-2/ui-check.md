@@ -1,31 +1,28 @@
 # UI check Phase 2 (client/ui TV6)
 
-- Thời điểm: 2026-11-21T10:57:22+07:00
-- Không có headless browser để chụp ảnh → curl + kiểm chuỗi HTML.
+- Thời điểm: 2026-11-21T10:59:00+07:00 (cập nhật sau fix chữ ≥ 18 px)
+- Không có headless browser → curl + grep size.
 
 ## Lệnh
 ```
-python3 -m chonoi.live --mode gather --port 8781
-curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8781/
-curl -s "http://127.0.0.1:8781/?demo=shop"
-curl -s http://127.0.0.1:8781/state
-python3 -m chonoi.live --mode quan --port 8782
-curl -s http://127.0.0.1:8782/state
+rg -n 'size:\s*(1[0-7]|[0-9])\b' chonoi/web/index.html   # kỳ vọng: không khớp
 node --check (script tách từ index.html)
 PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+python3 -m chonoi.live --mode gather --port 8791
+curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8791/
+curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:8791/?demo=shop"
+python3 -m chonoi.live --mode quan --port 8792
+curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8792/
 ```
 
 ## Kết quả
-- gather `/`: HTTP 200 ; `/?demo=shop`: HTTP 200 ; `/state`: HTTP 200
-- quan `/state`: HTTP 200
-- gather tick=117 mode=gather oxygen=1800
-- quan tick=121 mode=quan money=0 shift_earned=—(chưa có)
+- `size < 18`: **không còn** (text/textLoose sàn `HUD_MIN=18`, bỏ `allowSmall`).
+- Layout: HUD gather `top=118`, quan `top=130`; nhãn bản đồ rút (Bến, giây mọc, `!` quái, shortDish); bảng T1–T4 rộng theo viewport.
 - Unittest: **32/32 OK**; JS `node --check` OK.
-- HTML (~37KB) có menu / DayIntro / EveningIntro / DayResult / Shop / Summary, pause Esc/P, HUD Thủy quái / Hết hơi, 6 món + ca_keo/keo_neo, `?demo=…`.
+- live gather `/` + `/?demo=shop` + quan `/`: **HTTP 200**.
 
-## Demo URL (màn day chưa có trong live mode gather|quan)
-- `/?demo=menu` · `dayIntro` · `eveningIntro` · `dayResult` · `shop` · `summary` · `pause`
+## Demo URL
+- `/?demo=menu|dayIntro|eveningIntro|dayResult|shop|summary|pause`
 
-## Đề xuất (không sửa khung trong task này)
-- `POST /input` nhận `pause: true` và snapshot có `paused` / phase day (`day_intro`, `shop`, …), `day_plan`, `monsters[]`, `shift_earned`.
-- Hiện UI gửi `pause` nhưng `live.py` bỏ qua field lạ; overlay pause hiện đề xuất khi chưa có `snap.paused`.
+## Đề xuất
+- Live nhận `pause` + snapshot `paused` / `day_plan` / `monsters[]` / `shift_earned`.
