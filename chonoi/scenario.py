@@ -6,6 +6,7 @@ phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 m
 """
 
 import json
+import math
 
 from .errors import BadInput
 from .inventory import KINDS_P1, validate_items
@@ -15,6 +16,8 @@ GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_o
                       "invuln_ticks", "catch_cd_ticks"}
 NODE_KINDS = ("bong_dien_dien", "bong_sung")
 FISH_KINDS = ("ca_linh", "ca_loc")
+NODE_KEYS = {"id", "kind", "pos", "regrow_ticks"}
+FISH_KEYS = {"id", "kind", "pos", "heading_deg"}
 QUAN_PLAYER_KEYS = {"pos", "vel"}
 QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
              "reputation", "time_left_ticks"}
@@ -64,7 +67,8 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
 
 
 def _num(v):
-    return isinstance(v, (int, float)) and not isinstance(v, bool)
+    """Kiểm v là số hữu hạn (loại bool, NaN, ±Infinity)."""
+    return isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v)
 
 
 def _nonneg_int(name, v):
@@ -115,6 +119,9 @@ def _validate_gather(b, tuning):
         raise BadInput("player.oxygen_ticks vượt oxy tối đa")
     if "hp" in p and not (1 <= p["hp"] <= g["hp_max"]):
         raise BadInput("player.hp phải trong [1, hp_max]")
+    cd_max = int(round(g["catch_cooldown_s"] * 60))
+    if "catch_cd_ticks" in p and p["catch_cd_ticks"] > cd_max:
+        raise BadInput(f"player.catch_cd_ticks phải trong [0, {cd_max}]")
     if "zero_oxy_ticks" in p:
         pos = p.get("pos", g["start_pos"])
         oxy = p.get("oxygen_ticks", omax)
@@ -122,7 +129,11 @@ def _validate_gather(b, tuning):
             raise BadInput("player.zero_oxy_ticks phải trong [0, 59]")
         if p["zero_oxy_ticks"] > 0 and not (oxy == 0 and pos[1] > g["surface_depth"]):
             raise BadInput("player.zero_oxy_ticks > 0 chỉ khi oxy = 0 và đang dưới nước")
+    regrow_max = int(round(g["regrow_s"] * 60))
     for n in b.get("nodes", []):
+        extra = set(n) - NODE_KEYS
+        if extra:
+            raise BadInput(f"nodes.{n['id']}: trường lạ/chưa hỗ trợ {sorted(extra)}")
         if n.get("kind") not in NODE_KINDS:
             raise BadInput(f"nodes.{n['id']}: kind phải là một trong {NODE_KINDS}")
         _pos(f"nodes.{n['id']}.pos", n.get("pos"), bounds)
@@ -130,7 +141,12 @@ def _validate_gather(b, tuning):
             raise BadInput(f"nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
         if "regrow_ticks" in n:
             _nonneg_int(f"nodes.{n['id']}.regrow_ticks", n["regrow_ticks"])
+            if n["regrow_ticks"] > regrow_max:
+                raise BadInput(f"nodes.{n['id']}.regrow_ticks phải trong [0, {regrow_max}]")
     for f in b.get("fish", []):
+        extra = set(f) - FISH_KEYS
+        if extra:
+            raise BadInput(f"fish.{f['id']}: trường lạ/chưa hỗ trợ {sorted(extra)}")
         if f.get("kind") not in FISH_KINDS:
             raise BadInput(f"fish.{f['id']}: kind phải là một trong {FISH_KINDS}")
         _pos(f"fish.{f['id']}.pos", f.get("pos"), bounds)
