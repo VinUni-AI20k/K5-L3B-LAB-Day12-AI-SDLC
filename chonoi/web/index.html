@@ -80,15 +80,21 @@ addEventListener("keyup", (e) => {
 addEventListener("blur", () => { down.clear(); pushInput(); });
 
 // ---------- ra: poll snapshot ----------
-async function poll() {
+// Poll song song (tối đa 4 yêu cầu đang chờ, mỗi 33 ms một yêu cầu): qua mạng chậm/tunnel thì độ trễ
+// không còn giới hạn tốc độ cập nhật. Chỉ nhận snapshot mới hơn cái đang hiện (theo tick).
+let inflightPolls = 0, failStreak = 0;
+async function pollOnce() {
+  inflightPolls++;
   try {
     const r = await fetch("/state", { cache: "no-store" });
-    snap = await r.json();
-    offline = false;
-  } catch (e) { offline = true; }
-  setTimeout(poll, 16);
+    const s = await r.json();
+    if (!snap || s.tick >= snap.tick || s.tick < 5) snap = s;  // tick nhỏ: vừa chơi lại (R)
+    offline = false; failStreak = 0;
+  } catch (e) { if (++failStreak > 6) offline = true; }
+  inflightPolls--;
 }
-poll();
+setInterval(() => { if (inflightPolls < 4) pollOnce(); }, 33);
+pollOnce();
 
 // ---------- vẽ ----------
 const KIND_COLOR = { ca_loc: "#7c9a52", ca_linh: "#d6e6f2", ca_keo: "#d9a066", bong_dien_dien: "#f2c230", bong_sung: "#e8799c", keo_neo: "#8fcf6b" };
