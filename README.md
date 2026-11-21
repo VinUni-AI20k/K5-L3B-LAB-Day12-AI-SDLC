@@ -27,6 +27,14 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
 
+### Sáng tạo của nhóm (Nhóm Hallucination)
+Nhóm đã tích hợp 3 tính năng mở rộng đặc sắc mang đậm bản sắc sông nước miền Tây trên client trực tiếp (`chonoi/web/index.html`):
+1. **Hệ thống âm thanh tương tác (Web Audio API)**: Tổng hợp âm thanh tự động (không phụ thuộc file ngoài): tiếng tủm khi lặn (`dive`), tiếng nhô lên thở (`surface`), tiếng ting vui tai khi bắt cá / hái hoa, tiếng xèo xèo khi nấu bếp, tiếng leng keng khi nhận tiền & boa, và cảnh báo âm thanh khi oxy dưới 25%.
+2. **Hệ thống Lời thoại Nam Bộ & Hộp thoại nhân vật**: Nhân vật có lời thoại tương tác theo thời gian thực: Má Tư dặn dò con gái, Út Sen cảm thán khi lặn/bắt cá/hụt hơi, và thực khách khen ngợi *"Món ngon bá cháy bọ chét luôn cô chủ nhỏ ơi! Thối tiền khỏi thối nghen!"*.
+3. **Hiệu ứng đồ họa môi trường trên Canvas**: Sóng nước nhấp nhô trên mặt sông Chín Khúc, bọt khí nước (`bubbles`) nổi lên khi bơi lặn, khói bếp bốc lên từ bếp B1 và ánh đèn vàng lung linh trên sàn gỗ nhà bè Má Tư.
+
+> **Bằng chứng lõi vẫn đúng**: Các hiệu ứng sáng tạo được đóng gói hoàn toàn trong client web (`index.html`), không tác động đến logic tick hay sự kiện của mô phỏng headless. Test contract và smoke test chạy độc lập đạt 100% (xem `docs/verification/phase-1.md`).
+
 ## Lịch 3 giờ
 
 | Mốc | Phase | Hạn tag |

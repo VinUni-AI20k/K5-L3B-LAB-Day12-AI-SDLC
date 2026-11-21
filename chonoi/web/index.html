@@ -71,15 +71,210 @@ addEventListener("keyup", (e) => {
 addEventListener("blur", () => { down.clear(); pushInput(); });
 
 // ---------- ra: poll snapshot ----------
+let lastProcessedTick = -1;
 async function poll() {
   try {
     const r = await fetch("/state", { cache: "no-store" });
     snap = await r.json();
     offline = false;
+    processNewEvents();
   } catch (e) { offline = true; }
   setTimeout(poll, 16);
 }
 poll();
+
+// ---------- SÁNG TẠO 1: ÂM THANH WEB AUDIO API ----------
+let audioCtx = null;
+function getAudio() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === "suspended") audioCtx.resume();
+  return audioCtx;
+}
+function playSfx(type) {
+  try {
+    const ac = getAudio();
+    const t = ac.currentTime;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.connect(gain);
+    gain.connect(ac.destination);
+    if (type === "dive") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(320, t);
+      osc.frequency.exponentialRampToValueAtTime(70, t + 0.3);
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.3);
+      osc.start(t); osc.stop(t + 0.3);
+    } else if (type === "surface") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(200, t);
+      osc.frequency.exponentialRampToValueAtTime(450, t + 0.2);
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.2);
+      osc.start(t); osc.stop(t + 0.2);
+    } else if (type === "ting") {
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(587.33, t);
+      osc.frequency.setValueAtTime(880, t + 0.08);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.35);
+      osc.start(t); osc.stop(t + 0.35);
+    } else if (type === "cook") {
+      osc.type = "sawtooth";
+      osc.frequency.setValueAtTime(120, t);
+      osc.frequency.linearRampToValueAtTime(260, t + 0.25);
+      gain.gain.setValueAtTime(0.18, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.25);
+      osc.start(t); osc.stop(t + 0.25);
+    } else if (type === "coin") {
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(987.77, t);
+      osc.frequency.setValueAtTime(1318.51, t + 0.09);
+      gain.gain.setValueAtTime(0.35, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.4);
+      osc.start(t); osc.stop(t + 0.4);
+    } else if (type === "alert") {
+      osc.type = "square";
+      osc.frequency.setValueAtTime(440, t);
+      gain.gain.setValueAtTime(0.12, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.15);
+      osc.start(t); osc.stop(t + 0.15);
+    }
+  } catch (e) {}
+}
+
+// ---------- SÁNG TẠO 2: LỜI THOẠI NAM BỘ ----------
+let speech = { speaker: "Má Tư", text: "Ráng nghen Út Sen, chiều má nấu lẩu nghen con!", timer: 300 };
+function say(speaker, text) {
+  speech = { speaker, text, timer: 260 };
+}
+let lastWarnedOxy = 0;
+
+function processNewEvents() {
+  if (!snap || !snap.events) return;
+  const currentTick = snap.tick || 0;
+  if (currentTick <= lastProcessedTick) return;
+  
+  snap.events.forEach(e => {
+    if (e.tick > lastProcessedTick) {
+      if (e.name === "dive") {
+        playSfx("dive");
+        say("Út Sen", "Nước mát rượi, lặn kiếm mớ cá lóc mập mạp nè!");
+        addBubbles(5);
+      } else if (e.name === "surface") {
+        playSfx("surface");
+        say("Út Sen", "Hít một hơi thật sâu, khỏe re liền hà!");
+      } else if (e.name === "gather") {
+        playSfx("ting");
+        say("Út Sen", "Hái được bông ngon rồi, giỏ thêm đầy đặn!");
+      } else if (e.name === "fish_caught") {
+        playSfx("ting");
+        say("Út Sen", "Dính chấu rồi nghen! Cá tươi roi rói luôn!");
+      } else if (e.name === "choke") {
+        playSfx("alert");
+        say("Út Sen", "Ặc... tức ngực quá, mau ngoi lên gấp!");
+      } else if (e.name === "cook_started") {
+        playSfx("cook");
+        say("Út Sen", "Bếp đỏ lửa, cá nướng thơm lừng cả khúc sông!");
+      } else if (e.name === "served") {
+        say("Út Sen", "Dạ, món ngon nóng hổi của cô bác đây ạ!");
+      } else if (e.name === "paid") {
+        playSfx("coin");
+        const tipText = (e.data && e.data.tip > 0) ? " Có tiền boa nữa nè!" : "";
+        say("Khách", "Món ngon bá cháy bọ chét luôn cô chủ nhỏ ơi!" + tipText);
+      }
+    }
+  });
+
+  // Cảnh báo oxy thấp
+  if (snap.mode === "gather" && snap.player && snap.player.oxygen_ticks !== undefined && snap.player.oxygen_max_ticks) {
+    if (snap.player.oxygen_ticks < snap.player.oxygen_max_ticks * 0.25 && snap.player.oxygen_ticks > 0) {
+      if (currentTick - lastWarnedOxy > 60) {
+        lastWarnedOxy = currentTick;
+        playSfx("alert");
+        say("Út Sen", "Hụt hơi rồi, phải mau ngoi lên mặt nước!");
+      }
+    }
+  }
+
+  lastProcessedTick = currentTick;
+}
+
+// ---------- SÁNG TẠO 3: HỆ THỐNG HẠT (PARTICLES) & HIỆU ỨNG ----------
+const bubbles = [];
+const smokes = [];
+let animTick = 0;
+
+function addBubbles(count) {
+  if (!snap || !snap.player || !snap.player.pos) return;
+  for (let i = 0; i < count; i++) {
+    bubbles.push({
+      x: snap.player.pos[0] + (Math.random() - 0.5) * 1.5,
+      d: snap.player.pos[1] + (Math.random() - 0.5) * 0.8,
+      r: 2 + Math.random() * 3.5,
+      vy: 0.03 + Math.random() * 0.04,
+      life: 1.0
+    });
+  }
+}
+
+function updateParticles() {
+  animTick++;
+  // Bọt nước
+  if (snap && snap.mode === "gather" && snap.player && snap.player.pos && snap.player.pos[1] > 0.5) {
+    if (Math.random() < 0.25) addBubbles(1);
+  }
+  for (let i = bubbles.length - 1; i >= 0; i--) {
+    const b = bubbles[i];
+    b.d -= b.vy;
+    b.life -= 0.01;
+    if (b.d <= 0.5 || b.life <= 0) bubbles.splice(i, 1);
+  }
+  // Khói bếp
+  if (snap && snap.mode === "quan" && snap.stoves) {
+    snap.stoves.forEach(st => {
+      if (st.state === "cooking" && Math.random() < 0.3) {
+        smokes.push({
+          x: st.pos[0] + (Math.random() - 0.5) * 0.8,
+          z: st.pos[1] + (Math.random() - 0.5) * 0.4,
+          r: 3 + Math.random() * 5,
+          vz: 0.02 + Math.random() * 0.03,
+          alpha: 0.6
+        });
+      }
+    });
+  }
+  for (let i = smokes.length - 1; i >= 0; i--) {
+    const sm = smokes[i];
+    sm.z += sm.vz;
+    sm.r += 0.08;
+    sm.alpha -= 0.008;
+    if (sm.alpha <= 0) smokes.splice(i, 1);
+  }
+}
+
+function drawDialogueBubble(w, h) {
+  if (!speech || speech.timer <= 0) return;
+  speech.timer--;
+  const bw = Math.min(500, w - 40);
+  const bx = (w - bw) / 2;
+  const by = 48;
+  ctx.save();
+  ctx.fillStyle = "rgba(16, 26, 38, 0.92)";
+  ctx.strokeStyle = "#ffd54f";
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.roundRect(bx, by, bw, 42, 8);
+  ctx.fill();
+  ctx.stroke();
+  
+  // Icon + Speaker
+  const isUtSen = speech.speaker === "Út Sen";
+  const icon = isUtSen ? "👧" : speech.speaker === "Má Tư" ? "👵" : "👨‍🌾";
+  text(`${icon} ${speech.speaker}:`, bx + 12, by + 26, { size: 13, color: "#ffd54f" });
+  text(`"${speech.text}"`, bx + 90, by + 26, { size: 13, color: "#ffffff" });
+  ctx.restore();
+}
 
 // ---------- vẽ ----------
 const KIND_COLOR = { ca_loc: "#7c9a52", ca_linh: "#d6e6f2", ca_keo: "#d9a066", bong_dien_dien: "#f2c230", bong_sung: "#e8799c", keo_neo: "#8fcf6b" };
@@ -141,7 +336,22 @@ function drawGather(w, h) {
   const g = ctx.createLinearGradient(0, oy, 0, sy(D));
   g.addColorStop(0, "#49b0dc"); g.addColorStop(1, "#08243f");
   ctx.fillStyle = g; ctx.fillRect(sx(0), oy, X * s, D * s);
-  ctx.strokeStyle = "#e9f7ff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(0), oy); ctx.lineTo(sx(X), oy); ctx.stroke();
+  
+  // Sóng nước nhấp nhô
+  ctx.strokeStyle = "#e9f7ff"; ctx.lineWidth = 2.5; ctx.beginPath();
+  for (let x = 0; x <= X; x += 0.5) {
+    const wy = oy + Math.sin(animTick * 0.05 + x * 0.5) * 2;
+    if (x === 0) ctx.moveTo(sx(x), wy); else ctx.lineTo(sx(x), wy);
+  }
+  ctx.stroke();
+
+  // Vẽ bọt nước lăn tăn
+  bubbles.forEach(b => {
+    ctx.fillStyle = `rgba(220, 245, 255, ${Math.max(0, b.life * 0.7)})`;
+    ctx.beginPath();
+    ctx.arc(sx(b.x), sy(b.d), b.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
   // vạch độ sâu
   for (let d = 5; d <= D; d += 5) {
     ctx.strokeStyle = "rgba(255,255,255,.08)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx(0), sy(d)); ctx.lineTo(sx(X), sy(d)); ctx.stroke();
@@ -219,8 +429,20 @@ function drawQuan(w, h) {
   const s = Math.max(1, Math.min((w - 40) / X, (h - top - bottom) / Z));
   const ox = (w - s * X) / 2, oy = top;
   const sx = (x) => ox + x * s, sy = (z) => oy + (Z - z) * s;
-  ctx.fillStyle = "#c9a36b"; ctx.fillRect(sx(0), sy(Z), X * s, Z * s);
-  ctx.strokeStyle = "#6b4a2b"; ctx.lineWidth = 4; ctx.strokeRect(sx(0), sy(Z), X * s, Z * s);
+  // Ánh đèn vàng lung linh trên nhà bè
+  const glow = ctx.createRadialGradient(sx(8), sy(5), 10, sx(8), sy(5), X * s * 0.7);
+  glow.addColorStop(0, "rgba(255, 230, 150, 0.22)");
+  glow.addColorStop(1, "rgba(255, 200, 100, 0)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(sx(0), sy(Z), X * s, Z * s);
+
+  // Vẽ khói bếp bốc lên
+  smokes.forEach(sm => {
+    ctx.fillStyle = `rgba(235, 235, 235, ${Math.max(0, sm.alpha * 0.6)})`;
+    ctx.beginPath();
+    ctx.arc(sx(sm.x), sy(sm.z), sm.r, 0, Math.PI * 2);
+    ctx.fill();
+  });
   // bếp
   (snap.stoves || []).forEach((st) => {
     const col = st.state === "cooking" ? "#e8892b" : st.state === "ready" ? "#6fbf5a" : "#6d6d72";
@@ -267,8 +489,10 @@ function frame() {
   requestAnimationFrame(frame);  // đặt trước để lỗi vẽ không làm dừng vòng lặp
   const [w, h] = fit();
   ctx.fillStyle = "#10161c"; ctx.fillRect(0, 0, w, h);
+  updateParticles();
   if (snap) {
     if (snap.mode === "quan") drawQuan(w, h); else drawGather(w, h);
+    drawDialogueBubble(w, h);
     eventLog(w, h);
     overlay(w, h);
   } else {
