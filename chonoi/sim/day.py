@@ -80,11 +80,15 @@ class DaySim:
     def _get_plan(self, day_num: int) -> dict:
         if day_num in self._plans:
             p = self._plans[day_num]
-            return {
-                "dishes": {k: p["dishes"][k] for k in sorted(p["dishes"])},
-                "ingredients": {k: p["ingredients"][k] for k in sorted(p["ingredients"])},
-            }
-        return {"dishes": {}, "ingredients": {}}
+        elif self._plans:
+            ordered = sorted(self._plans)
+            p = self._plans[ordered[(day_num - 1) % len(ordered)]]
+        else:
+            return {"dishes": {}, "ingredients": {}}
+        return {
+            "dishes": {k: p["dishes"][k] for k in sorted(p["dishes"])},
+            "ingredients": {k: p["ingredients"][k] for k in sorted(p["ingredients"])},
+        }
 
     @property
     def time_left_ticks(self) -> int:

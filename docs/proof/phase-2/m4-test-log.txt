@@ -1,6 +1,6 @@
 ﻿python : test_cli_day_1_and_byte_determinism 
 (tests.test_day_shop_pause_m4.DayShopPauseCLIBlackBox.test_cli_day_1_and_byte_determinism)
-At line:1 char:382
+At line:1 char:307
 + ...  "tests;."; python -m unittest tests.test_day_shop_pause_m4 tests.tes ...
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (test_cli_day_1_...te_determinism):String) [], RemoteException
@@ -10,6 +10,9 @@ CLI `--mode day --days 1`: chạy đủ gather -> quan -> shop -> days_complete 
 test_cli_day_2_upgrades_effective_on_day_2 
 (tests.test_day_shop_pause_m4.DayShopPauseCLIBlackBox.test_cli_day_2_upgrades_effective_on_day_2)
 CLI `--mode day --days 2`: mua oxygen & hp ở Shop Ngày 1 -> có hiệu lực ở Ngày 2 (2700 oxy, 4 HP). ... ok
+test_cli_day_3_spawns_second_crocodile_and_faint_opens_empty_quan (tests.test_day_shop_pause_m4.DayShopPauseCLIBlackBox
+.test_cli_day_3_spawns_second_crocodile_and_faint_opens_empty_quan)
+Ghép M1 ↔ M4: Ngày 1–2 có 1 Cá Sấu (M1), Ngày 3 có 2 Cá Sấu (M1, M2); ngất vẫn mở quán kho rỗng. ... ok
 test_cli_day_quan_stock_conflict_exit_2 
 (tests.test_day_shop_pause_m4.DayShopPauseCLIBlackBox.test_cli_day_quan_stock_conflict_exit_2)
 CLI `--mode day`: đơn reserved trong scenario.quan vượt kho thực lúc mở quán -> mã thoát 2. ... ok
@@ -75,7 +78,7 @@ test_too_few_members (tests.test_team_check.TeamCheck.test_too_few_members) ... 
 test_wrong_size_duplicate_and_outsider (tests.test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 26 tests in 6.910s
+Ran 27 tests in 8.701s
 
 OK
 OK: 6 thành viên: huyvu-03, QuangNEU, ththanh8888, NhMinh-2610, thanhvu101, K0heii
