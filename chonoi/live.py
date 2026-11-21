@@ -15,6 +15,7 @@ Ngẫu nhiên vẫn đi qua `Streams` (seed); chỉ nhịp chạy theo đồng h
 import argparse
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -32,6 +33,16 @@ WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 TICK_S = 1.0 / 60.0
 MAX_BODY = 4096
 RECENT_EVENTS = 40
+
+
+def read_web_art(path):
+    if not re.fullmatch(r"/art/[a-z-]+\.webp", path):
+        return None
+    try:
+        with open(os.path.join(WEB_DIR, path[1:]), "rb") as f:
+            return f.read()
+    except OSError:
+        return None
 
 
 class LiveGame:
@@ -140,7 +151,7 @@ class _Handler(BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Cache-Control", "no-store")
+        self.send_header("Cache-Control", "public, max-age=300" if ctype == "image/webp" else "no-store")
         self.end_headers()
         self.wfile.write(body)
 
@@ -154,6 +165,8 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
+        elif (art := read_web_art(path)) is not None:
+            self._send(200, art, "image/webp")
         else:
             self._send(404, b'{"error":"khong co"}')
 

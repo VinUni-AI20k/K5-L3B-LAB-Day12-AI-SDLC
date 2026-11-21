@@ -35,13 +35,21 @@ Trạng thái kiểm chứng Phase 1 hiện tại: 46/47 test đạt; test ngấ
 
 ### Hợp đồng file kho (`inventory`)
 
-Hai buổi có thể chạy bằng hai tiến trình headless: `gather --inventory-out kho.json` ghi kho khi có `gather_end`, rồi `quan --inventory kho.json` đọc cùng file. File JSON chỉ có khóa gốc `items`; mỗi khóa con là một trong `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`, giá trị là số nguyên không âm. Loại vắng mặt tính là 0; bên ghi bỏ khóa có lượng 0. Ví dụ hợp lệ:
+Hai buổi có thể chạy bằng hai tiến trình headless: `gather --inventory-out kho.json` ghi kho khi có `gather_end`, rồi `quan --inventory kho.json` đọc cùng file. File JSON chỉ có khóa gốc `items`; mỗi khóa con là một trong `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`, `ca_keo`, `keo_neo` (6 loại theo v1.1), giá trị là số nguyên không âm. Loại vắng mặt tính là 0; bên ghi bỏ khóa có lượng 0. Ví dụ hợp lệ:
 
 ```json
 {"items":{"bong_sung":2,"ca_loc":1}}
 ```
 
 Kho rỗng là `{"items":{}}`. Nếu Gather kết thúc do ngất thì ghi kho rỗng. Nếu chỉ dừng vì giới hạn `--ticks` trước khi kết thúc buổi sáng thì không tạo hoặc ghi đè file kho. Khi có `gather_end`, nội dung file phải khớp `gather_end.inventory` và được ghi bằng cách thay thế nguyên tử. Quán từ chối file sai schema hoặc nguyên liệu lạ (mã thoát 2).
+
+## P2-04 — Quán mở rộng
+
+Quán độc lập có 2 bếp B1/B2, 4 bàn T1–T4 và 6 món theo TICKET-02. Chơi bằng `python3 -m chonoi.live --mode quan --inventory kho.json`; WASD di chuyển, E nấu/bưng/phục vụ. Mọi công thức, giá và thời gian nằm trong `game.contract.json`.
+
+Chạy kiểm chứng bằng `python3 tools/verify_p2_04.py --integration-ref origin/lehuyanh`. Verifier chạy toàn suite, ca 4 khách có thao tác thực, so JSONL/file kho từng byte và ghép thử với Day Loop của người 3 trong thư mục tạm. Bằng chứng tại `docs/proof/phase-2/`, chi tiết tại [`docs/notes/P2-04.md`](docs/notes/P2-04.md).
+
+**Trạng thái sau merge `origin/main@c8430b1`:** đã tích hợp Day Loop/Shop/Gather/Monster. 37 test Quán/Day/tích hợp pass; `--mode day --days 1` chạy trực tiếp đủ 22200 tick. Bằng chứng: `docs/proof/phase-2/restaurant-main-merge.txt`. Không chạy lại toàn suite trong lượt merge này.
 
 ## Tự do sáng tạo
 
