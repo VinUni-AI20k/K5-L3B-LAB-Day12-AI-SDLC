@@ -1,8 +1,8 @@
-"""Unit & session tests cho Phase 3 Gather (TV2 — T310, T311, T312, TICKET-03 v1.2).
+"""Unit & integration tests cho Phase 3 Gather (TV2 — T310, T311, T312, TICKET-03 v1.2).
 
-Kiểm độc lập trên `chonoi/sim/freshness.py` + `GatherSim` + `Session` với bản sao tuning có
-`tuning.freshness` (không sửa `game.contract.json`, `inventory.py`, `scenario.py`, `runner.py`
-khi TV1/TV6 chưa hoàn tất T301–T306), đồng thời bảo đảm không làm vỡ hành vi v1.0/v1.1.
+Tích hợp trực tiếp với `game.contract.json` (`tuning.freshness`) và adapter v1.2 thật của TV1
+(`chonoi.inventory.write_inventory`, `read_inventory`, `uses_individuals`, `FRESH_SCALE`),
+đồng thời kiểm chứng tương thích ngược v1.1 khi `contract_version == "1.1"`.
 """
 
 import copy
@@ -12,29 +12,25 @@ import unittest
 from chonoi.contract import load_contract
 from chonoi.ids import IdAllocator
 from chonoi.inputs import BUTTONS_V11, InputPlayer, STRINGS_V11
+from chonoi.inventory import FRESH_SCALE, read_inventory, write_inventory
 from chonoi.jsonl import dumps
 from chonoi.rng import Streams
 from chonoi.runner import Session
 from chonoi.sim.freshness import UNITS_PER_FRESH, fresh_to_units, units_to_fresh
 from chonoi.sim.gather import GatherSim
 
-FRESHNESS_V12 = {
-    "initial": 100,
-    "gather_decay_per_s": 0.5,
-    "quan_decay_per_s": 0.25,
-    "spoiled_below": 30,
-}
+from helpers import Workdir
 
 
 def make_v12_tuning():
     tuning = copy.deepcopy(load_contract()["tuning"])
-    tuning["freshness"] = dict(FRESHNESS_V12)
+    assert "freshness" in tuning, "game.contract.json phải có tuning.freshness (TV1 T303)"
     return tuning
 
 
-def run_gather_session(tuning, scenario, frames, ticks, seed=1):
-    """Chạy GatherSim qua Session (dùng chung lớp pause/tick/snapshot với headless)."""
-    sess = Session("gather", tuning, scenario, seed)
+def run_gather_session(tuning, scenario, frames, ticks, seed=1, contract_version="1.2"):
+    """Chạy GatherSim qua Session (dùng chung lớp pause/tick/snapshot và write_inventory_if_done)."""
+    sess = Session("gather", tuning, scenario, seed, contract_version=contract_version)
     player = InputPlayer(frames, BUTTONS_V11, STRINGS_V11)
     rows = [sess.snapshot()]
     for frame in range(ticks):
@@ -55,6 +51,7 @@ class GatherFreshnessT310Tests(unittest.TestCase):
     """T310: cá thể `{id, kind, fresh}`, cấp `I<n>` tất định, hàng mới hao từ bước sau."""
 
     def test_harvest_and_catch_allocate_ids_and_decay_from_next_tick(self):
+        self.assertEqual(UNITS_PER_FRESH, FRESH_SCALE)
         tuning = make_v12_tuning()
         scenario = {
             "player": {"pos": [12, 0]},
@@ -65,7 +62,7 @@ class GatherFreshnessT310Tests(unittest.TestCase):
             "monsters": [],
         }
         ids = IdAllocator()
-        sim = GatherSim(tuning, scenario, Streams(1), ids)
+        sim = GatherSim(tuning, scenario, Streams(1), ids, contract_version="1.2")
         player = InputPlayer([{"tick": 0, "interact": True}], BUTTONS_V11, STRINGS_V11)
 
         # Tick 1: hái N1 -> thêm I1 ở bước 3 (SAU bước hao) -> fresh vẫn là 100 cuối tick 1
@@ -118,7 +115,7 @@ class GatherFreshnessT310Tests(unittest.TestCase):
             "random_fish": False,
             "monsters": [],
         }
-        sim1 = GatherSim(tuning, sc1, Streams(2), shared_ids, day=1)
+        sim1 = GatherSim(tuning, sc1, Streams(2), shared_ids, day=1, contract_version="1.2")
         p = InputPlayer([{"tick": 0, "catch": True}], BUTTONS_V11, STRINGS_V11)
         e_full = sim1.step(p.advance(0))
         self.assertIn(("hold_full", {"action": "catch", "fish_id": "F1", "required": 3, "free": 2}), e_full)
@@ -138,7 +135,7 @@ class GatherFreshnessT310Tests(unittest.TestCase):
             "random_fish": False,
             "monsters": [],
         }
-        sim2 = GatherSim(tuning, sc2, Streams(2), shared_ids, day=2)
+        sim2 = GatherSim(tuning, sc2, Streams(2), shared_ids, day=2, contract_version="1.2")
         p_h2 = InputPlayer([{"tick": 0, "interact": True}], BUTTONS_V11, STRINGS_V11)
         sim2.step(p_h2.advance(0))
         self.assertEqual(sim2.snapshot()["hold"], [{"id": "I7", "kind": "bong_dien_dien", "fresh": 100}])
@@ -216,7 +213,7 @@ class GatherFreshnessT311Tests(unittest.TestCase):
             "random_fish": False,
             "monsters": [],
         }
-        sim = GatherSim(tuning, scenario, Streams(1), IdAllocator())
+        sim = GatherSim(tuning, scenario, Streams(1), IdAllocator(), contract_version="1.2")
         idle = InputPlayer([], BUTTONS_V11, STRINGS_V11).advance(0)
         spoiled_ticks = []
         for tick in range(1, 8402):
@@ -243,7 +240,6 @@ class GatherFreshnessT311Tests(unittest.TestCase):
             "random_fish": False,
             "monsters": [],
         }
-        # Bảo đảm fresh_to_units giữ đúng nhánh < 30 cho 29.999
         self.assertLess(fresh_to_units(29.999), 7200)
         self.assertEqual(units_to_fresh(0), 0)
 
@@ -254,7 +250,6 @@ class GatherFreshnessT311Tests(unittest.TestCase):
             {"item_id": "I10", "kind": "ca_loc", "location": "hold"},
         ])
         self.assertEqual([e["tick"] for e in spoiled], [1, 1])
-        # Snapshot hold vẫn giữ thứ tự vào giỏ [I10, I2, I1, I3] và I3 kẹp ở 0
         snaps = [r for r in rows if r["type"] == "snapshot"]
         last_hold = snaps[-1]["hold"]
         self.assertEqual([it["id"] for it in last_hold], ["I10", "I2", "I1", "I3"])
@@ -296,7 +291,6 @@ class GatherFreshnessT311Tests(unittest.TestCase):
             (6, "resumed"),
             (6, "spoiled"),
         ])
-        # Trước tick 6, I1 vẫn nguyên 30 (chưa hao khi đang pause)
         snaps_by_tick = {r["tick"]: r for r in rows if r["type"] == "snapshot"}
         for t in range(0, 6):
             self.assertEqual(snaps_by_tick[t]["hold"][0]["fresh"], 30)
@@ -304,40 +298,48 @@ class GatherFreshnessT311Tests(unittest.TestCase):
 
 
 class GatherFreshnessT312Tests(unittest.TestCase):
-    """T312: LIFO cá thể, faint monster/choke, snapshot hold, inventory_items(), tất định, không vỡ v1.1."""
+    """T312: LIFO cá thể, faint monster/choke, tích hợp adapter TV1 `write_inventory`/`read_inventory` v1.2."""
 
-    def test_ticket03_handoff_smoke_interact_frame_0_exact_inventory_precision(self):
-        """Mẫu bàn giao TICKET-03: fresh 100 + interact frame 0 -> hao 1 lần (23998/240) rồi cập bến."""
+    def test_ticket03_handoff_smoke_with_tv1_inventory_v12_file_roundtrip(self):
+        """Mẫu bàn giao TICKET-03 tích hợp thật với Session.write_inventory_if_done + inventory.py v1.2."""
         tuning = make_v12_tuning()
         scenario = {
             "hold": [
                 {"id": "I10", "kind": "ca_loc", "fresh": 100},
-                {"id": "I2", "kind": "ca_linh", "fresh": 100},
+                {"id": "I2", "kind": "ca_linh", "fresh": 30},  # ươn ngay bước 1 (7198/240 < 30)
             ],
             "random_fish": False,
             "monsters": [],
         }
-        sess, rows = run_gather_session(tuning, scenario, [{"tick": 0, "interact": True}], ticks=5)
-        expected_fresh = 23998 / UNITS_PER_FRESH
+        sess, rows = run_gather_session(
+            tuning, scenario, [{"tick": 0, "interact": True}], ticks=5, contract_version="1.2"
+        )
         expected_inv = [
-            {"id": "I2", "kind": "ca_linh", "fresh": expected_fresh},
-            {"id": "I10", "kind": "ca_loc", "fresh": expected_fresh},
+            {"id": "I2", "kind": "ca_linh", "fresh": 7198 / UNITS_PER_FRESH},
+            {"id": "I10", "kind": "ca_loc", "fresh": 23998 / UNITS_PER_FRESH},
         ]
         self.assertEqual(sess.sim.inventory_items(), expected_inv)
-        # Kiểm round-trip chính xác về 23998 đơn vị
-        self.assertEqual(fresh_to_units(sess.sim.inventory_items()[0]["fresh"]), 23998)
         end_ev = evs(rows, "gather_end")
         self.assertEqual(len(end_ev), 1)
         self.assertEqual(end_ev[0]["data"], {
             "reason": "docked",
             "inventory": {"items": expected_inv},
         })
+        # Ghi & đọc lại bằng adapter v1.2 thật của TV1 (T301–T302)
+        with Workdir() as w:
+            inv_path = w.path("handoff-v12.json")
+            sess.write_inventory_if_done(inv_path)
+            loaded = read_inventory(inv_path, version="1.2")
+            self.assertEqual(loaded, expected_inv)
+            self.assertLess(loaded[0]["fresh"], 30)
+            self.assertEqual(fresh_to_units(loaded[0]["fresh"]), 7198)
+            self.assertEqual(fresh_to_units(loaded[1]["fresh"]), 23998)
         # Snapshot cuối vẫn giữ thứ tự vào giỏ [I10, I2] (khác với inventory sắp theo id)
         snaps = [r for r in rows if r["type"] == "snapshot"]
         self.assertEqual([it["id"] for it in snaps[-1]["hold"]], ["I10", "I2"])
 
-    def test_monster_hit_and_faint_lifo_individual_items_and_empty_inventory(self):
-        """Hit rơi floor(n/2) cá thể theo LIFO với fresh sau hao; ngất bỏ phần còn lại theo LIFO, kho []."""
+    def test_monster_hit_and_faint_lifo_individual_items_and_empty_v12_file(self):
+        """Hit rơi floor(n/2) cá thể theo LIFO; ngất bỏ phần còn lại LIFO, ghi file kho v1.2 `{"items":[]}`."""
         tuning = make_v12_tuning()
         monster = {
             "id": "M1", "kind": "ca_sau", "pos": [60, 20],
@@ -377,7 +379,7 @@ class GatherFreshnessT312Tests(unittest.TestCase):
             "random_fish": False,
             "monsters": [monster],
         }
-        sess2, rows2 = run_gather_session(tuning, sc_faint, [], ticks=1)
+        sess2, rows2 = run_gather_session(tuning, sc_faint, [], ticks=1, contract_version="1.2")
         self.assertEqual([e["name"] for e in evs(rows2)], ["monster_hit", "faint", "gather_end"])
         self.assertEqual(evs(rows2, "monster_hit")[0]["data"]["lost"], [
             {"id": "I3", "kind": "ca_keo", "fresh": 11998 / UNITS_PER_FRESH},
@@ -394,7 +396,10 @@ class GatherFreshnessT312Tests(unittest.TestCase):
             "reason": "fainted",
             "inventory": {"items": []},
         })
-        self.assertEqual(sess2.sim.inventory_items(), [])
+        with Workdir() as w:
+            inv_path = w.path("faint-v12.json")
+            sess2.write_inventory_if_done(inv_path)
+            self.assertEqual(read_inventory(inv_path, version="1.2"), [])
 
     def test_choke_faint_drops_all_hold_lifo_and_writes_empty_inventory(self):
         """Ngất do ngạt ở v1.2 bỏ toàn bộ giỏ theo LIFO (cá thể) rồi faint -> gather_end(fainted, [])."""
@@ -408,7 +413,7 @@ class GatherFreshnessT312Tests(unittest.TestCase):
             "random_fish": False,
             "monsters": [],
         }
-        sess, rows = run_gather_session(tuning, sc, [], ticks=1)
+        sess, rows = run_gather_session(tuning, sc, [], ticks=1, contract_version="1.2")
         self.assertEqual([e["name"] for e in evs(rows)], ["choke", "faint", "gather_end"])
         self.assertEqual(evs(rows, "faint")[0]["data"], {
             "hp": 0,
@@ -423,9 +428,9 @@ class GatherFreshnessT312Tests(unittest.TestCase):
         })
         self.assertEqual(sess.sim.inventory_items(), [])
 
-    def test_v12_session_is_byte_deterministic_and_v11_without_freshness_unchanged(self):
-        """Tất định từng byte JSONL ở v1.2; không có tuning.freshness giữ nguyên kho đếm v1.1."""
-        tuning_v12 = make_v12_tuning()
+    def test_v12_determinism_and_v11_contract_compatibility_even_with_tuning_freshness(self):
+        """Tất định từng byte ở v1.2; với contract_version 1.1 (dù có tuning.freshness) giữ nguyên kho đếm."""
+        tuning = make_v12_tuning()
         sc_v12 = {
             "player": {"pos": [12, 0]},
             "hold": [{"id": "I1", "kind": "ca_linh", "fresh": 30}],
@@ -434,28 +439,31 @@ class GatherFreshnessT312Tests(unittest.TestCase):
             "monsters": [],
         }
         frames = [{"tick": 0, "interact": True}]
-        _, r1 = run_gather_session(tuning_v12, sc_v12, frames, ticks=10, seed=7)
-        _, r2 = run_gather_session(tuning_v12, sc_v12, frames, ticks=10, seed=7)
-        self.assertEqual("\n".join(dumps(x) for x in r1), "\n".join(dumps(x) for x in r2))
+        _, r1 = run_gather_session(tuning, sc_v12, frames, ticks=10, seed=7)
+        _, r2 = run_gather_session(tuning, sc_v12, frames, ticks=10, seed=7)
+        serialized = "\n".join(dumps(x) for x in r1)
+        self.assertEqual(serialized, "\n".join(dumps(x) for x in r2))
+        self.assertNotIn('"u":', serialized)
+        for line in serialized.splitlines():
+            json.loads(line)
 
-        # Không có tuning.freshness -> hành vi v1.1 không đổi
-        tuning_v11 = copy.deepcopy(load_contract()["tuning"])
-        self.assertNotIn("freshness", tuning_v11)
+        # Contract v1.1 hiện tại trên main CÓ tuning.freshness nhưng vẫn chạy kho đếm
         sc_v11 = {
             "player": {"pos": [2, 0]},
             "hold": ["ca_loc", "ca_linh"],
             "random_fish": False,
             "monsters": [],
         }
-        sess_v11, rows_v11 = run_gather_session(tuning_v11, sc_v11, [{"tick": 0, "interact": True}], ticks=2)
+        sess_v11, rows_v11 = run_gather_session(
+            tuning, sc_v11, [{"tick": 0, "interact": True}], ticks=2, contract_version="1.1"
+        )
         self.assertEqual(evs(rows_v11, "spoiled"), [])
         self.assertEqual(sess_v11.sim.inventory_items(), {"ca_linh": 1, "ca_loc": 1})
         self.assertEqual(sess_v11.sim.snapshot()["hold"], ["ca_loc", "ca_linh"])
-        # Không lộ trường nội bộ `u` trong JSONL v1.2
-        self.assertNotIn('"u":', "\n".join(dumps(x) for x in r1))
-        # Kiểm JSON hợp lệ
-        for line in (dumps(x) for x in r1):
-            json.loads(line)
+        with Workdir() as w:
+            inv_v11 = w.path("inv-v11.json")
+            write_inventory(inv_v11, sess_v11.sim.inventory_items(), version="1.1")
+            self.assertEqual(read_inventory(inv_v11, version="1.1"), {"ca_linh": 1, "ca_loc": 1})
 
 
 if __name__ == "__main__":

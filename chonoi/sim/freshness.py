@@ -1,18 +1,22 @@
 """Độ tươi & kho cá thể cho buổi Lặn (Phase 3 / TICKET-03 v1.2 — TV2, T310–T312).
 
-Theo ADR-0001 (`docs/adr/0001-kho-ca-the-v1-2.md`) và `specs/003-freshness/data-model.md`:
+Dùng chung hằng và hàm quy đổi của TV1 từ `chonoi.inventory` (`FRESH_SCALE = 240`,
+`decay_units_per_tick`, `uses_individuals`) theo ADR-0001:
 - Lưu độ tươi nội bộ bằng số nguyên 240 đơn vị / 1 điểm (`u ∈ [0, 24000]`).
-- Giỏ hao `gather_decay_per_s × 240 / tick_hz` đơn vị mỗi tick gameplay (chuẩn: 0.5/s → −2/tick), kẹp đáy 0.
+- Giỏ hao `decay_units_per_tick(gather_decay_per_s, tick_hz)` (chuẩn: 0.5/s → −2/tick), kẹp đáy 0.
 - Ươn khi `u < spoiled_below × 240` (chuẩn: `< 7200`); phát `spoiled` đúng một lần khi đi từ `>= 7200`
   xuống `< 7200`, sắp theo `id_key` nếu nhiều cá thể cùng vượt ngưỡng trong một tick.
-- Chỉ kích hoạt khi `tuning["freshness"]` tồn tại; v1.0/v1.1 giữ nguyên kho chuỗi/đếm.
+- Kích hoạt theo `uses_individuals(contract_version)` (hoặc khi có `item_ids` / `hold` cá thể ở v1.2),
+  giữ nguyên hành vi kho đếm cho `contract_version < 1.2` dù `game.contract.json` v1.1 đã có sẵn
+  khóa `tuning.freshness`.
 """
 
 from dataclasses import dataclass
 
 from ..ids import id_key, sort_by_id
+from ..inventory import FRESH_SCALE, decay_units_per_tick, uses_individuals
 
-UNITS_PER_FRESH = 240
+UNITS_PER_FRESH = FRESH_SCALE
 MAX_FRESH = 100
 MAX_UNITS = MAX_FRESH * UNITS_PER_FRESH
 
@@ -26,8 +30,19 @@ class FreshnessConfig:
     spoiled_below_u: int
 
 
+def should_use_freshness(tuning: dict, raw_hold: list, contract_version=None, item_ids=None) -> bool:
+    """Quyết định bật chế độ kho cá thể + độ tươi (v1.2+) hay giữ kho đếm (v1.0/v1.1)."""
+    if not isinstance(tuning.get("freshness"), dict):
+        return False
+    if contract_version is not None:
+        return uses_individuals(contract_version)
+    if item_ids is not None:
+        return True
+    return any(isinstance(entry, dict) for entry in raw_hold)
+
+
 def parse_freshness_config(tuning: dict):
-    """Đọc `tuning.freshness` nếu có; trả None ở contract v1.0/v1.1."""
+    """Đọc `tuning.freshness` (dùng `decay_units_per_tick` của TV1); trả None nếu thiếu."""
     raw = tuning.get("freshness")
     if not isinstance(raw, dict):
         return None
@@ -37,7 +52,7 @@ def parse_freshness_config(tuning: dict):
     spoiled_below_u = int(round(spoiled_below * UNITS_PER_FRESH))
     initial_u = fresh_to_units(initial, spoiled_below, spoiled_below_u)
     decay_per_s = float(raw.get("gather_decay_per_s", 0.5))
-    gather_decay_u = max(0, int(round(decay_per_s * UNITS_PER_FRESH / tick_hz)))
+    gather_decay_u = max(0, decay_units_per_tick(decay_per_s, tick_hz))
     return FreshnessConfig(
         initial=initial,
         initial_u=initial_u,

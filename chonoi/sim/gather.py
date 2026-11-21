@@ -31,6 +31,7 @@ from .freshness import (
     parse_freshness_config,
     serialize_hold,
     serialize_inventory_items,
+    should_use_freshness,
 )
 from .monsters import build_monsters, serialize_monsters, step_monsters
 from .fish import initial_schools, spawn_if_due, swim
@@ -45,14 +46,17 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids, day: int = 1, active_upgrades=None, item_ids=None):
+    def __init__(self, tuning, scenario, streams, ids, day: int = 1, active_upgrades=None,
+                 item_ids=None, contract_version=None):
         t = self._apply_active_upgrades(tuning["gather"], tuning.get("shop"), active_upgrades)
         self.t = t
         self.day = max(1, int(day))
         self.active_upgrades = dict(active_upgrades or {})
         self.rng = streams
         self.ids = ids
-        self._freshness = parse_freshness_config(tuning)
+        raw_hold = scenario.get("hold", [])
+        use_v12 = should_use_freshness(tuning, raw_hold, contract_version=contract_version, item_ids=item_ids)
+        self._freshness = parse_freshness_config(tuning) if use_v12 else None
         self._item_ids = item_ids if item_ids is not None else ids
         p = scenario.get("player", {})
         self.pos = [float(c) for c in p.get("pos", t["start_pos"])]
@@ -66,7 +70,6 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        raw_hold = scenario.get("hold", [])
         # thứ tự nhặt, cuối mảng là mới nhất; v1.2 lưu cá thể {id, kind, u}
         self.hold = (build_hold_items(raw_hold, self._freshness, self._item_ids)
                      if self._freshness is not None else list(raw_hold))
