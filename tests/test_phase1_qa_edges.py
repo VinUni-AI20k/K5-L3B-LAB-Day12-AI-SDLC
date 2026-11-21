@@ -38,7 +38,10 @@ class Phase1GatherEdges(unittest.TestCase):
         events = sim.step(pressed("interact"))
 
         self.assertIn("hold_full", [name for name, _ in events])
-        self.assertEqual(sim.hold, hold)
+        self.assertEqual(
+            [i["kind"] for i in sim.hold], hold
+        )
+        self.assertEqual(len(sim.hold), len(hold))
         self.assertEqual(sim.nodes[0]["regrow_ticks"], 0)
 
     def test_choke_damages_only_after_full_60_tick_interval(self):

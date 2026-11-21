@@ -157,8 +157,11 @@ class CrocodilePhase2Tests(unittest.TestCase):
         hit = [data for name, data in emitted if name == "monster_hit"]
         self.assertEqual(len(hit), 1)
         self.assertEqual(hit[0]["hp"], 2)
-        self.assertEqual(hit[0]["lost"], ["keo_neo", "ca_loc"])
-        self.assertEqual(sim.hold, ["ca_linh", "bong_sung"])
+        self.assertEqual(
+            [i["kind"] for i in hit[0]["lost"]],
+            ["keo_neo", "ca_loc"]
+        )
+        self.assertEqual([item["kind"] for item in sim.hold], ["ca_linh", "bong_sung"])
 
     def test_crocodile_is_invulnerable_90_ticks_then_recoils_60_ticks(self):
         sim = make_gather([], player={"pos": [60, 24]}, monsters=[self.MONSTER])

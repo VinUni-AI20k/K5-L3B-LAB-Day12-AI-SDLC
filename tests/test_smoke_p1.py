@@ -216,7 +216,12 @@ class Movement(unittest.TestCase):
             self.assertEqual(end_ev[0]["data"]["reason"], "time")
             self.assertEqual(rows[-1]["reason"], "time")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"ca_loc": 1}})
+                payload = json.load(f)
+                self.assertEqual(
+                    [i["kind"] for i in payload["items"]], ["ca_loc"]
+                )
+                self.assertEqual(payload["items"][0]["id"], "I1")
+                self.assertTrue(0 <= payload["items"][0]["fresh"] <= 100)
 
 
 class Integration(unittest.TestCase):

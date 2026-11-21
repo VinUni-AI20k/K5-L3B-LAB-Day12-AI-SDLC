@@ -23,7 +23,6 @@ Các tính năng của phase sau chưa nằm trong khung này.
 import math
 
 from ..ids import sort_by_id
-from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -51,9 +50,39 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        # Phase 3: every collected item has its own ID and freshness.
+        self.hold = []
+        for raw in scenario.get("hold", []):
+            if isinstance(raw, dict):
+                item = {
+                    "id": str(raw["id"]),
+                    "kind": raw["kind"],
+                    "fresh": float(raw["fresh"]),
+                }
+                ids.reserve(item["id"])
+            else:
+                # Compatibility with direct Phase 1/2 test fixtures.
+                item = {
+                    "id": ids.new("I"),
+                    "kind": raw,
+                    "fresh": 100.0,
+                }
+            self.hold.append(item)
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         self.tick = int(scenario.get("tick", 0))
+        self.paused = bool(scenario.get("paused", False))
+        # Phase 3: deterministic flood-current state.
+        self.current_direction = 0
+        current_cfg = t["current"]
+        interval = int(current_cfg["interval_ticks"])
+        duration = int(current_cfg["duration_ticks"])
+        if interval <= 0 or duration <= 0 or duration >= interval:
+            raise ValueError("Invalid current timing configuration")
+        current_rng = self.rng.get("current")
+        for _ in range(self.tick // interval):
+            self.current_direction = current_rng.choice((-1, 1))
+        if self.tick < interval or self.tick % interval >= duration:
+            self.current_direction = 0
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
@@ -144,8 +173,9 @@ class GatherSim:
             ids.reserve(monster["id"])
 
     # --- giao diện cho runner -------------------------------------------------
-    def inventory_items(self) -> dict:
-        return hold_to_items(self.hold)
+    def inventory_items(self) -> list:
+        """Contract v1.2: preserve individual item IDs and freshness."""
+        return [dict(item) for item in sort_by_id(self.hold)]
 
     def snapshot(self) -> dict:
         return {
@@ -170,6 +200,15 @@ class GatherSim:
     # --- một bước ---------------------------------------------------------------
     def step(self, inp):
         events = []
+
+        # Phase 3: pause freezes all simulation timers and freshness.
+        if inp.pressed("pause"):
+            self.paused = not self.paused
+            events.append(("paused" if self.paused else "resumed", {}))
+            return events
+
+        if self.paused or self.done:
+            return events
         # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
@@ -181,6 +220,8 @@ class GatherSim:
                     events.append(("node_regrown", {"node_id": n["id"]}))
         # Phase 2: update fish before player interaction
         self.tick += 1
+        self._update_current(events)
+        self._update_freshness(events)
         self._update_fish(events)
 
         # 2. Movement, oxygen and drowning
@@ -259,7 +300,7 @@ class GatherSim:
                             "free": free,
                         }))
                     else:
-                        self.hold.extend([node["kind"]] * quantity)
+                        self.hold.extend(self._new_items(node["kind"], quantity))
                         node["regrow_ticks"] = int(
                             round(self.t["regrow_s"] * TICK)
                         )
@@ -299,7 +340,7 @@ class GatherSim:
                         "free": free,
                     }))
                 else:
-                    self.hold.extend([fish["kind"]] * quantity)
+                    self.hold.extend(self._new_items(fish["kind"], quantity))
                     self.fish.remove(fish)
                     self.catch_cd_ticks = int(
                         round(self.t["catch_cooldown_s"] * TICK)
@@ -318,6 +359,58 @@ class GatherSim:
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events
+
+    # --- Phase 3: individual items and freshness -------------------------------
+    def _new_items(self, kind, quantity):
+        return [
+            {
+                "id": self.ids.new("I"),
+                "kind": kind,
+                "fresh": 100.0,
+            }
+            for _ in range(quantity)
+        ]
+
+    def _update_current(self, events):
+        """Scheduled current warning/start/end at exact simulation ticks."""
+        cfg = self.t["current"]
+        interval = int(cfg["interval_ticks"])
+        duration = int(cfg["duration_ticks"])
+        warning = int(cfg["warning_ticks"])
+        phase = self.tick % interval
+
+        if self.tick >= interval and phase == 0:
+            self.current_direction = self.rng.get("current").choice((-1, 1))
+            events.append(("current_start", {
+                "direction": self.current_direction,
+            }))
+
+        elif self.tick >= interval and phase == duration:
+            old_direction = self.current_direction
+            self.current_direction = 0
+            events.append(("current_end", {
+                "direction": old_direction,
+            }))
+
+        elif phase == interval - warning:
+            events.append(("current_warning", {
+                "start_tick": self.tick + warning,
+            }))
+
+    def _update_freshness(self, events):
+        decay = 0.5 / TICK
+        for item in self.hold:
+            before = float(item["fresh"])
+            after = max(0.0, before - decay)
+            item["fresh"] = after
+
+            # Compare raw floating-point values, before display rounding.
+            if before >= 30.0 and after < 30.0:
+                events.append(("spoiled", {
+                    "item_id": item["id"],
+                    "kind": item["kind"],
+                    "location": "hold",
+                }))
 
     # --- Phase 2: fish simulation ----------------------------------------------
     def _update_fish(self, events):
@@ -537,7 +630,13 @@ class GatherSim:
             self.heading = math.degrees(math.atan2(md, mx)) % 360
         b = self.t["bounds"]
         for i, axis in enumerate(AXES):
-            self.pos[i] += self.vel[i] / TICK
+            # Current adds to horizontal displacement, not swimming velocity.
+            displacement_speed = self.vel[i]
+            if i == 0 and self.pos[1] >= float(self.t["current"]["min_depth"]):
+                displacement_speed += (
+                    self.current_direction * float(self.t["current"]["speed"])
+                )
+            self.pos[i] += displacement_speed / TICK
             lo, hi = b[axis]
             if self.pos[i] <= lo:
                 self.pos[i] = lo

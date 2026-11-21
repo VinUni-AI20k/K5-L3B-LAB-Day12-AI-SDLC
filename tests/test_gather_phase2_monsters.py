@@ -57,8 +57,11 @@ class Phase2MonsterTests(unittest.TestCase):
         ev = s.step(Idle())
         hits = [payload for name, payload in ev if name == 'monster_hit']
         self.assertEqual(len(hits), 1)
-        self.assertEqual(hits[0]['lost'], ['f','e','d'])
-        self.assertEqual(s.hold, ['a','b','c'])
+        self.assertEqual(
+            [i["kind"] for i in hits[0]["lost"]],
+            ["f", "e", "d"]
+        )
+        self.assertEqual([item["kind"] for item in s.hold], ["a", "b", "c"])
         self.assertEqual(s.hp,2)
         self.assertEqual(s.invuln_ticks,90)
         s.step(Idle())
