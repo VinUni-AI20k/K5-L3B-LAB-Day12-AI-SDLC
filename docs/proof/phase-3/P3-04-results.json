@@ -1,0 +1,206 @@
+{
+  "status": "PARTIAL: P3-04 kitchen ready; P3-02/P3-03 migration not integrated",
+  "runs": [
+    {
+      "label": "P3-04-tests",
+      "command": [
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\.venv\\Scripts\\python3.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "log": "P3-04-tests.txt"
+    },
+    {
+      "label": "P3-04-legacy-quan",
+      "command": [
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\.venv\\Scripts\\python3.exe",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "quan",
+        "--seed",
+        "42",
+        "--ticks",
+        "10800",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-3\\P3-04-legacy-quan.jsonl",
+        "--scenario",
+        "tests/fixtures/p2_04_quan.json",
+        "--inputs",
+        "tests/fixtures/p2_04_inputs.json"
+      ],
+      "exit_code": 0,
+      "log": "P3-04-legacy-quan.txt",
+      "end": {
+        "type": "end",
+        "ticks": 10800,
+        "sim_tick": 10800,
+        "mode": "quan",
+        "state": "finished",
+        "reason": "time",
+        "money": 480,
+        "earned": 480,
+        "reputation": 3.8,
+        "score": 780
+      }
+    },
+    {
+      "label": "P3-04-legacy-day",
+      "command": [
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\.venv\\Scripts\\python3.exe",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "day",
+        "--seed",
+        "42",
+        "--ticks",
+        "22200",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-3\\P3-04-legacy-day.jsonl",
+        "--days",
+        "1"
+      ],
+      "exit_code": 0,
+      "log": "P3-04-legacy-day.txt",
+      "end": {
+        "type": "end",
+        "ticks": 22200,
+        "sim_tick": 22200,
+        "mode": "day",
+        "state": "finished",
+        "reason": "days_complete",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300,
+        "days_completed": 1
+      }
+    },
+    {
+      "label": "P3-04-itemized-cli-dependency",
+      "command": [
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\.venv\\Scripts\\python3.exe",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "quan",
+        "--seed",
+        "42",
+        "--ticks",
+        "0",
+        "--scenario",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-3\\P3-04-itemized-probe.json",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-3\\P3-04-itemized-probe.jsonl"
+      ],
+      "exit_code": 2,
+      "log": "P3-04-itemized-cli-dependency.txt"
+    }
+  ],
+  "base_commit": "6349bc69cdc05f184eaae0e0bfd7da4e662c4904",
+  "python": "3.14.10 (tags/v3.14.10:b703b2c, Oct 25 2026, 17:36:52) [MSC v.1944 64 bit (AMD64)]",
+  "source_sha256": {
+    "chonoi/sim/freshness_pricing.py": "bd53dd782dd6e4ad44bc3054830a0421bc87c7d44eabcee585dbdf5931d3fe7f",
+    "chonoi/sim/kitchen.py": "3f005d6dff2495477703c0647493aaf7d6610846f44ec015cc7d8d0324b024de",
+    "tests/test_freshness_pricing.py": "c825c3085e1021b17218df78fd2f16e12cd3ed638b4e21a131213cc538f3f235",
+    "tests/p3_04_boundary_fixture.py": "234b3193e712d26cce7b9a8b70f865817f8456cecb2e6588adfb7c4875a7c736",
+    "tests/fixtures/p3_04_freshness.json": "782b90abc7832cca60e6a40a658a3965010d2a462abfa4d41a8c58fadc6434da",
+    "game.contract.json": "5252e2aad7fb2e067d8bec04205bd3c4c9e42816caf886cf53a3a3527244c977"
+  },
+  "mock_boundary": {
+    "deterministic": true,
+    "sha256": "d11a82fb5e0765770eff1a77cdd43da9b505409d6d57be1cd2228802d964bb05",
+    "fixture_type": "MOCK P3-03 boundary + real Session/Kitchen",
+    "events": [
+      {
+        "type": "event",
+        "tick": 1,
+        "phase": "quan",
+        "name": "cook_started",
+        "data": {
+          "stove_id": "B1",
+          "order_id": "C1",
+          "dish_id": "ca_loc_nuong_trui",
+          "base_price": 59,
+          "items": [
+            {
+              "id": "I1",
+              "kind": "ca_loc",
+              "fresh": 99.99583333333334
+            }
+          ]
+        }
+      },
+      {
+        "type": "event",
+        "tick": 361,
+        "phase": "quan",
+        "name": "dish_ready",
+        "data": {
+          "stove_id": "B1",
+          "order_id": "C1",
+          "dish_id": "ca_loc_nuong_trui"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 361,
+        "phase": "quan",
+        "name": "dish_picked",
+        "data": {
+          "stove_id": "B1",
+          "order_id": "C1",
+          "dish_id": "ca_loc_nuong_trui"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 362,
+        "phase": "quan",
+        "name": "served",
+        "data": {
+          "order_id": "C1",
+          "dish_id": "ca_loc_nuong_trui",
+          "base_price": 59,
+          "table_id": "T1",
+          "patience_ticks_left": 3238,
+          "tip": 11
+        }
+      },
+      {
+        "type": "event",
+        "tick": 962,
+        "phase": "quan",
+        "name": "paid",
+        "data": {
+          "order_id": "C1",
+          "table_id": "T1",
+          "base_price": 59,
+          "tip": 11,
+          "amount": 70,
+          "reason": "finished_eating"
+        }
+      }
+    ],
+    "end": {
+      "type": "end",
+      "ticks": 962,
+      "sim_tick": 962,
+      "mode": "quan",
+      "state": "playing",
+      "reason": "tick_limit",
+      "money": 70,
+      "earned": 70,
+      "reputation": 3.2,
+      "score": 370
+    },
+    "stock": []
+  },
+  "itemized_cli": "NOT INTEGRATED: v1.1 manifest/validator reject item arrays; exit 2 is a dependency, not v1.2 PASS"
+}

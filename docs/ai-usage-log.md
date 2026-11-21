@@ -1,5 +1,7 @@
 # Nhật ký dùng AI (theo phase và theo người)
 
+2026-11-21 — P3-04, người 4 (chưa cung cấp handle), Codex: đọc TICKET-03 → TICKET-02 → PRD-0, spec/interface/ADR và source thực; thêm helper tiêu IDs/giá theo fresh, nối vào Kitchen, giữ v1.1 trong khi chờ migration người 2/3. Viết 17 test mới và fixture/mock P3-03 có nhãn; 182 test pass, CLI v1.1 quan/day pass. Không triển khai stock decay/re-reserve production hoặc đổi Day/Shop; ghi rõ PARTIAL và probe stock cá thể exit 2. Prompt chính: thực hiện P3-04 và kiểm giá tick 1 =59, không chiếm P3-03. Không đo token/chi phí; chưa có xác nhận người dùng đã tự đọc lại diff. Proof: `docs/proof/phase-3/P3-04-results.json`.
+
 | Phase | Người | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|---|
 | 1 | Thành viên 4 — Kitchen & Serving (chưa cung cấp handle) | Codex | P1-04: helper bếp/phục vụ/thanh toán, fixture, unit/headless/HTTP test, đối chiếu PRD-0 | Không đo | 68 test pass; đã sửa giả định order_id/items theo PRD bổ sung và lỗi số thực tại mép bán kính. Bằng chứng: docs/proof/phase-1/P1-04-results.json; dependency P1-03 ghi trong docs/notes/P1-04.md. |

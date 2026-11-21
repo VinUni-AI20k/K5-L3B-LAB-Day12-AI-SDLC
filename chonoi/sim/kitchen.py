@@ -12,6 +12,7 @@ from math import dist, isfinite, ulp
 
 from ..errors import BadInput
 from ..ids import sort_by_id
+from .freshness_pricing import consume_fresh_order
 
 
 class KitchenServingMixin:
@@ -202,18 +203,30 @@ class KitchenServingMixin:
                 return
             c = min(orders, key=lambda c: c["order_tick"])
             recipe = self.menu[c["dish_id"]]["recipe"]
-            # Atomic check: never borrow another order's reservation or go negative.
-            if c["reserved"] != recipe or not self._reservations_fit_stock():
-                return
-            for kind, qty in recipe.items():
-                self.stock[kind] -= qty
-            c["reserved"] = {}
+            if isinstance(self.stock, list):
+                # P3-03 supplies itemized stock/claims and manifest freshness,
+                # after stock decay and re-reservation. Do not repeat them here.
+                result = consume_fresh_order(self.stock, self.customers, c,
+                                             self.menu[c["dish_id"]], getattr(self, "freshness", None))
+                if result is None:
+                    return
+                base_price, items = result
+                c["reserved"] = []
+            else:
+                # Legacy v1.1 path stays until the shared v1.2 migration lands.
+                if c["reserved"] != recipe or not self._reservations_fit_stock():
+                    return
+                for kind, qty in recipe.items():
+                    self.stock[kind] -= qty
+                c["reserved"] = {}
+                base_price = self.menu[c["dish_id"]]["price"]
+                items = [k for k in sorted(recipe) for _ in range(recipe[k])]
             c["order_status"] = "assigned"
-            c["base_price"] = self.menu[c["dish_id"]]["price"]
+            c["base_price"] = base_price
             stove.update(state="cooking", dish=self._dish_for(c), ready_ticks=0,
                          cook_ticks_left=self._ticks(self.menu[c["dish_id"]]["cook_s"]))
             events.append(("cook_started", {"stove_id": stove["id"], **stove["dish"],
-                                            "items": [k for k in sorted(recipe) for _ in range(recipe[k])]}))
+                                            "items": items}))
 
     @staticmethod
     def _dish_for(customer):
@@ -287,7 +300,7 @@ class KitchenServingMixin:
 
     def _remove_order(self, c):
         """Shared cancellation hook: release claims; never refund consumed stock."""
-        c["reserved"] = {}
+        c["reserved"] = [] if isinstance(self.stock, list) else {}
         for stove in self.stoves:
             if stove["dish"] is not None and stove["dish"]["order_id"] == c["id"]:
                 self._reset_stove(stove)

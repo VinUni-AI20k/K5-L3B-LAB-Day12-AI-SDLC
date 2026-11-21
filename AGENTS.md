@@ -3,6 +3,7 @@
 > Cập nhật file này qua các phase (lịch sử git phải cho thấy điều đó). Ngắn gọn, có lệnh chạy thật.
 
 ## Lệnh
+- P3-04: `python3 tools/verify_p3_04.py` — regression/CLI v1.1 thật + fixture/mock P3-03 được ghi nhãn; chưa phải smoke v1.2 tích hợp.
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
 - Smoke vòng ngày: `python3 -m chonoi.headless --mode day --days 1 --seed 17 --ticks 22200 --out day.jsonl`
@@ -11,6 +12,7 @@
 - Kiểm chứng P2-04: `python3 tools/verify_p2_04.py --integration-ref origin/lehuyanh` (xuất ref vào thư mục tạm, không đổi nhánh). Windows: thêm `.venv/Scripts` vào PATH, đặt `PYTHONPATH=tests;.` và `PYTHONUTF8=1`.
 
 ## Cấu trúc & quy ước
+- P3-04: `chonoi/sim/freshness_pricing.py` chỉ tiêu IDs và chốt giá sau decay. Người 3 cấp `sim.freshness` từ manifest root, stock items và reserved IDs; sở hữu validation/decay/re-reserve và wiring tick. Không gọi decay trong helper bếp. Xem `docs/notes/P3-04.md`.
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
 - Luật chơi của nhóm: `chonoi/sim/gather.py`, `chonoi/sim/quan.py` (tìm `TODO(nhóm)`).
 - **Số liệu chỉ đọc từ `game.contract.json` / dữ liệu**, không hard-code trong luật.
