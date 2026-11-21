@@ -36,6 +36,14 @@ class LiveServerTest(unittest.TestCase):
         self.assertIn("frac < 0.25", html)
         self.assertIn("patienceBarColor(patienceFrac)", html)
 
+    def test_freshness_hud_labels_spoiled_stock(self):
+        html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "chonoi", "web", "index.html")
+        with open(html_path, "r", encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn("function freshnessLabel(item)", html)
+        self.assertIn('fresh < 30 ? "ƯƠN"', html)
+        self.assertIn("inventoryDetails(snap.stock)", html)
+
     def test_state_input_and_clean_stop(self):
         tuning = load_contract()["tuning"]
         server = LiveServer(LiveGame("gather", tuning, {}, 1), port=0)  # cổng ngẫu nhiên
