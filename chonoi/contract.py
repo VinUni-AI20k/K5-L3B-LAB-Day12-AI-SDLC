@@ -42,7 +42,19 @@ def load_contract(path=DEFAULT_PATH) -> dict:
     if not isinstance(ext, list) or any(e not in EXTENSION_CODES for e in ext) or len(set(ext)) != len(ext):
         raise BadInput(f"extensions phải là mảng mã không trùng trong {list(EXTENSION_CODES)}")
     validate_tuning(c.get("tuning"))
+    validate_extensions(ext, c["tuning"])
     return c
+
+
+def validate_extensions(ext, t):
+    """Dữ liệu mở rộng phải khớp mã khai ở `extensions` (Ticket-02 mục 4.1)."""
+    m = t["gather"]["monsters"]
+    has_snake = "ran" in m["species"] or any(s["kind"] == "ran" for s in m["spawns"])
+    if ("snake" in ext) != has_snake:
+        raise BadInput("mở rộng snake: khai 'snake' trong extensions khi và chỉ khi có monsters.species.ran và M3")
+    if "snake" in ext:
+        if not any(s["kind"] == "ran" for s in m["spawns"]):
+            raise BadInput("mở rộng snake cần spawn M3 loài ran trong monsters.spawns")
 
 
 def extensions(contract) -> set:
