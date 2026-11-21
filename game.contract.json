@@ -122,6 +122,7 @@
       }
     },
     "shop": {
+      "max_ticks": 600,
       "upgrades": {
         "oxygen": [
           {"level": 1, "price": 200, "oxygen_max_s": 45},
