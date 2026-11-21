@@ -15,3 +15,16 @@ Các mã L3/L4 dưới đây là nhóm kiểm chứng nội bộ theo mục TICK
 | Mở rộng burn | Biên 1200/1201, thiếu hàng, giữ lại và nấu lại cùng tick | Quan11 | [tests.txt](../proof/phase-2/chur04/tests.txt) | Logic/test đạt; chưa bật manifest |
 | Regression sau merge | 70 test gốc + 34 test mới | [tests.txt](../proof/phase-2/chur04/tests.txt) | 104/104 đạt, launcher Python cục bộ trên Windows |
 | DoD toàn nhóm: manifest chung 1.1, cá/quái, 6 loại file kho, UI/FPS, tag | Chờ các lát tương ứng và kiểm lại trên main | [Giới hạn bàn giao](../proof/phase-2/chur04/README.md) | Chưa xác nhận |
+
+## Bổ sung QA — Nguyễn Minh Thành
+
+| AC/P2 kiểm chứng | Cách kiểm | Bằng chứng | Kết quả |
+|---|---|---|---|
+| Regression P1 + P2 | `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` | [Log đầy đủ](../proof/phase-2/chur04/tests.txt) | Đạt: 111/111 |
+| Contract determinism gather/quan | `python3 .agents/skills/check-contract/check_contract.py` | Kết quả công cụ Contract command | Đạt: gather và quan byte-giống-byte |
+| `day`, Shop, pause, nhiều Ngày, fixture/inventory | `python3 tools/verify_chur04_phase2.py` | [summary.json](../proof/phase-2/chur04/summary.json) | Đạt cho backend/fixture |
+| Hai tiến trình `day` cùng seed/input | CLI trong verify script | [summary.json](../proof/phase-2/chur04/summary.json) | Đạt; SHA-256 `56b42d48b76d961fd6b2b526300ef3840e082c16fd87ea73f630e880db9cae4f` |
+| 22.200 tick không pause | CLI trong verify script | [summary.json](../proof/phase-2/chur04/summary.json) | Đạt: `0.422347 s`, dùng `random_fish=false` |
+| Tích hợp gather → inventory → quan | Hai CLI thật | [inventory.json](../proof/phase-2/chur04/inventory.json), [quan](../proof/phase-2/chur04/integration-quan.txt) | Đạt |
+
+**Giới hạn:** chưa xác nhận manifest chung v1.1, engine cá/quái, UI/menu/pause trình duyệt, FPS hoặc tag `phase-2`.

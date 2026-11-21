@@ -1,4 +1,4 @@
-Windows launcher replacement for legacy tests: True
+Windows launcher replacement for legacy tests: False
 test_actions_on_previous_phase_do_not_run_new_phase_same_tick (test_chur04_phase2.DayAndShop.test_actions_on_previous_phase_do_not_run_new_phase_same_tick) ... ok
 test_buy_before_done_even_at_shop_deadline (test_chur04_phase2.DayAndShop.test_buy_before_done_even_at_shop_deadline) ... ok
 test_buy_exact_funds_and_active_upgrade_only_next_day (test_chur04_phase2.DayAndShop.test_buy_exact_funds_and_active_upgrade_only_next_day) ... ok
@@ -33,11 +33,14 @@ test_burn_exact_1200_is_still_pickable (test_chur04_phase2.Quan11.test_burn_exac
 test_burn_reserves_again_then_same_tick_can_start_cooking (test_chur04_phase2.Quan11.test_burn_reserves_again_then_same_tick_can_start_cooking) ... ok
 test_four_tables_choose_smallest_free_id_and_reserve_correctly (test_chur04_phase2.Quan11.test_four_tables_choose_smallest_free_id_and_reserve_correctly) ... ok
 test_independent_quan_uses_six_recipes_and_day_does_not_limit_servings (test_chur04_phase2.Quan11.test_independent_quan_uses_six_recipes_and_day_does_not_limit_servings) ... ok
+test_v11_fish_spawn_schedule_cap_and_new_school_swims_next_tick (test_gather.GatherPhase2FishTest.test_v11_fish_spawn_schedule_cap_and_new_school_swims_next_tick) ... ok
+test_v11_fish_swim_speed_reflection_corner_and_turn_at_120 (test_gather.GatherPhase2FishTest.test_v11_fish_swim_speed_reflection_corner_and_turn_at_120) ... ok
+test_v11_initial_8_schools_distinct_points_and_deterministic (test_gather.GatherPhase2FishTest.test_v11_initial_8_schools_distinct_points_and_deterministic) ... ok
 test_dive_and_surface_events (test_gather.GatherSlice1Test.test_dive_and_surface_events) ... ok
-test_faint_clears_hold_and_writes_empty_inventory (test_gather.GatherSlice1Test.test_faint_clears_hold_and_writes_empty_inventory) ... ok
+test_faint_clears_hold_lifo_and_writes_empty_inventory (test_gather.GatherSlice1Test.test_faint_clears_hold_lifo_and_writes_empty_inventory) ... ok
 test_oxygen_drain_and_refill_clamped (test_gather.GatherSlice1Test.test_oxygen_drain_and_refill_clamped) ... ok
-test_oxygen_empty_choke_and_surface_resets_zero_oxy (test_gather.GatherSlice1Test.test_oxygen_empty_choke_and_surface_resets_zero_oxy) ... ok
-test_catch_fish_yield_cooldown_surface_and_hold_full (test_gather.GatherSlice2Test.test_catch_fish_yield_cooldown_surface_and_hold_full) ... ok
+test_oxygen_empty_choke_counts_zero_tick_and_surface_resets (test_gather.GatherSlice1Test.test_oxygen_empty_choke_counts_zero_tick_and_surface_resets) ... ok
+test_catch_fish_requires_full_yield_and_cooldown_only_on_success (test_gather.GatherSlice2Test.test_catch_fish_requires_full_yield_and_cooldown_only_on_success) ... ok
 test_dock_has_priority_over_gather (test_gather.GatherSlice2Test.test_dock_has_priority_over_gather) ... ok
 test_gather_node_hold_full_keeps_node_ready (test_gather.GatherSlice2Test.test_gather_node_hold_full_keeps_node_ready) ... ok
 test_gather_node_tiebreak_regrow_and_surface_only (test_gather.GatherSlice2Test.test_gather_node_tiebreak_regrow_and_surface_only) ... ok
@@ -107,8 +110,12 @@ test_good (test_team_check.TeamCheck.test_good) ... ok
 test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
 test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+test_index_html_covers_core_and_extra_content_ids (test_ui_live.LiveUiContractTest.test_index_html_covers_core_and_extra_content_ids) ... ok
+test_index_html_endpoints_and_canvas (test_ui_live.LiveUiContractTest.test_index_html_endpoints_and_canvas) ... ok
+test_live_game_extra_content_snapshot (test_ui_live.LiveUiContractTest.test_live_game_extra_content_snapshot) ... ok
+test_live_game_gather_and_quan_snapshot_and_input (test_ui_live.LiveUiContractTest.test_live_game_gather_and_quan_snapshot_and_input) ... ok
 
 ----------------------------------------------------------------------
-Ran 104 tests in 21.729s
+Ran 111 tests in 8.862s
 
 OK

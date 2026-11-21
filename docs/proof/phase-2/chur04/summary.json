@@ -1,7 +1,7 @@
 {
-  "tests_run": 104,
+  "tests_run": 111,
   "tests_passed": true,
-  "legacy_tests_local_python": true,
+  "legacy_tests_local_python": false,
   "scope": "chur04 backend; random_fish=false, no monster validation",
   "day_deterministic": true,
   "day_sha256": "56b42d48b76d961fd6b2b526300ef3840e082c16fd87ea73f630e880db9cae4f",
@@ -18,7 +18,7 @@
     "score": 500,
     "days_completed": 2
   },
-  "full_day_seconds": 0.40249,
+  "full_day_seconds": 0.422347,
   "full_day_end": {
     "type": "end",
     "ticks": 22200,
