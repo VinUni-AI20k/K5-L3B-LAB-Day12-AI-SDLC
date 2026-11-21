@@ -11,6 +11,9 @@
 | 4 | 21/11 … | `paid.data.amount` có đúng bằng `base_price + tip` không? Trả lúc đóng ca (`closing`) thì boa tính thế nào? | Anh Năm: `not_granted`. Giả định: `amount = base_price + tip`. Boa là giá trị đã chốt lúc `served`, không tính lại khi trả lúc `closing`. | Nhóm (PO nglngnguyen-gh chốt) |
 | 5 | 21/11 … | "Tỷ lệ kiên nhẫn còn lại sau bước 1" để tính boa tính thế nào, đúng bằng ngưỡng có được boa không? | Anh Năm: `not_granted`. Giả định: tỷ lệ = `patience_ticks_left / (patience_s × 60)` lấy sau bước 1 (sau khi giảm kiên nhẫn); `≥ tip_min_patience_ratio` thì boa, nên đúng 0.5 vẫn được boa (PRD dùng chữ "đạt"). | Nhóm (PO nglngnguyen-gh chốt) |
 | 6 | 21/11 … | HUD hình khối của `chonoi.live` có đủ cho DoD "HUD đọc được trong lúc chơi" không? | Anh Năm: `not_granted`. Giả định: chưa đủ chắc chắn. Bổ sung nhãn chữ + số cho đủ các mục HUD ở PRD-0 mục 2. Sáng: thời gian, oxy, Máu, giỏ. Tối: kho khả dụng, món gọi, kiên nhẫn, trạng thái bếp, món trên tay, tiền, uy tín. Long (lát 2) làm sau khi xong luật. | Nhóm (PO nglngnguyen-gh chốt) |
+| 7 | 21/11 … | Thứ tự xử lý khách trong một bước quán (kiên nhẫn / khách mới)? | Giả định (lát 3): đồng hồ → giảm kiên nhẫn, khách hết kiên nhẫn rời → [lát 4: nấu/ăn] → đi lại → [lát 4: interact] → khách mới theo lịch → hết ca. Khách rời và khách mới cùng tick thì bàn vừa trống được dùng ngay. | minhtriet061203 (chờ PO) |
+| 8 | 21/11 … | Lịch khách tính theo gì khi scenario đặt `time_left_ticks`? | Giả định (lát 3): theo `phase_tick` của lượt chạy (0 ở đầu lượt, khớp `phase_tick` trong snapshot), không suy từ `time_left_ticks`. | minhtriet061203 (chờ PO) |
+| 9 | 21/11 … | Khách đang ăn có giảm kiên nhẫn không? Uy tín cộng số thực có sai số? | Giả định (lát 3): chỉ khách `waiting` giảm kiên nhẫn. Uy tín làm tròn 6 chữ số sau mỗi lần đổi để `floor` không lệch (vd 2.8 + 0.2). | minhtriet061203 (chờ PO) |
 
 ## Giả định nhóm đã chốt (không cần hỏi, có căn cứ trong PRD)
 
