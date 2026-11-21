@@ -289,7 +289,7 @@ export class QuanScene {
     if (!tb && anyDish && this.queue().length >= this.queueMax) return false; // gangway full: the sampan rows on by
     this.nextType = null;
     const cu = this.newGuest(type), ty = CUST_TYPES[type];
-    this.customers.push(cu); sfx("ding");
+    this.customers.push(cu); sfx("ding", undefined, "[chuông — khách mới tới]");
     if (tb) { this.seat(cu, tb, true); return true; }
     if (!anyDish) { // no_dish and no free table: steps onto the gangway, reads the board, goes home (missed)
       cu.state = "nodish"; cu.nd = 2; return true;
@@ -549,7 +549,7 @@ export class QuanScene {
   leave(cu) {
     const delta = this.t.left_reputation_delta * CUST_TYPES[cu.type || "quen"].leaveMul;
     this.release(cu); cu.state = "gone"; this.left++; this.rep = clamp(this.rep + delta, this.t.reputation_min, this.t.reputation_max);
-    this.repFlash = 0.5; sfx("hurt"); fx.shake(cu.type === "sop" ? 5 : 3, 0.3);
+    this.repFlash = 0.5; sfx("hurt", undefined, "[khách giận dỗi bỏ đi]"); fx.shake(cu.type === "sop" ? 5 : 3, 0.3);
     this.toast(cu.x, cu.z + 1, "Bỏ đi 😠 " + delta + " uy tín", "#ff6b6b");
     this.callMeta("trackChore", "missed", 1); // a guest walked out hungry (same rule as meta.quanFallback)
     this.depart(cu, true);
@@ -650,7 +650,12 @@ export class QuanScene {
       if (cu.enter < 1) cu.enter = Math.min(1, cu.enter + dt * 2);
       if (cu.premLine && cu.state === "waiting" && !cu.talk && cu.vis && cu.vis.phase === "seat") { cu.talk = { lines: [cu.premLine], i: 0, t: 0 }; cu.premLine = null; this.say(cu); this.toast(cu.x, cu.z + 2, "Gọi món đặc sản!", "#ffd23a"); }
       if (cu.talk) this.updateTalk(cu, dt);
-      if (cu.state === "waiting") { cu.patience -= dt; if (cu.patience <= 0) this.leave(cu); }
+      if (cu.state === "waiting") {
+        cu.patience -= dt;
+        // SFX captions: one grumble + caption when this guest drops under ANGRY_AT (same threshold as the red ring)
+        if (!cu.angryCue && cu.patience > 0 && cu.patience / (cu.patienceMax || this.t.patience_s) < ANGRY_AT) { cu.angryCue = true; sfx("blip", undefined, "[khách " + (cu.table || "") + " càu nhàu — sắp giận]"); }
+        if (cu.patience <= 0) this.leave(cu);
+      }
       else if (cu.state === "queue") { cu.qPat -= dt; if (cu.qPat <= 0) this.leaveQueue(cu); }
       else if (cu.state === "nodish") { if (!cu.vis || cu.vis.phase === "seat" || cu.vis.phase === "stand") { cu.nd -= dt; if (cu.nd <= 0) { cu.state = "gone"; this.missed++; this.callMeta("trackChore", "missed", 1); this.toast(cu.x, cu.z + 1, "Khách về vì hết món", "#ffb36b"); this.depart(cu, false); } } }
       else if (cu.state === "eating") { cu.eat -= dt; if (cu.eat <= 0) { cu.state = "done"; this.toast(cu.x, cu.z + 1, "Ngon! 😋", "#79c75a"); this.depart(cu, false); } }

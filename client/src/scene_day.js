@@ -78,7 +78,7 @@ export class DayIntro extends Base {
   }
   update(dt) {
     this.tick(dt);
-    if (this.t >= this.autoS || (this.t > 0.35 && input.anyKey() && !input.hit("pause") && !input.hit("mute"))) this.finish();
+    if (this.t >= this.autoS || (this.t > 0.35 && input.anyKey() && !input.hit("pause") && !input.hit("mute") && !input.hit("captions"))) this.finish();
   }
   draw() {
     this.bg(); const u = screen.ui, t = this.t, k = clamp(t / 0.4, 0, 1);

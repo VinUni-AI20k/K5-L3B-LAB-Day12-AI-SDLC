@@ -33,6 +33,7 @@ let A11Y = {}; import("./a11y.js").then((m) => { A11Y = m; }).catch(() => {});
 // GUI-only pacing (the headless sim keeps the contract's fish_spawn_ticks / regrow_s)
 const GUI_SPAWN_MUL = 0.5, GUI_REGROW_MUL = 0.5;
 const hcOn = () => !!(A11Y.isHC ? A11Y.isHC() : A11Y.highContrast ?? false);
+const HURT_CAP = { croc: "[Cá Sấu cắn]", choke: "[ngạt nước]", fish: "[bị cá húc]", snake: "[rắn cắn]" }; // SFX captions per cause
 const hcCol = (k, d) => A11Y.HC?.[k] ?? d; // a11y.HC palette: warn / danger / outline / light
 
 const VS = 10; // vertical px per metre (camera scrolls with depth)
@@ -237,7 +238,7 @@ export class GatherScene {
     if (kind !== "choke" && this.invuln > 0) return;
     this.hp--; this.flashHurt = 0.4;
     if (kind === "croc") this.invuln = (this.mon?.invuln_ticks ?? 90) / this.hz; else if (kind === "snake" || kind === "fish") this.invuln = 1.2;
-    fx.shake(5, 0.4); fx.flash("rgba(220,60,60,.5)", 0.2); sfx("hurt");
+    fx.shake(5, 0.4); fx.flash("rgba(220,60,60,.5)", 0.2); sfx("hurt", undefined, HURT_CAP[kind]);
     this.toast("-1 ♥", "#ff6b6b");
     if (this.hp <= 0) this.endRun("fainted");
   }
@@ -356,7 +357,9 @@ export class GatherScene {
       if (Math.random() < 0.3) this.ps.add({ x: this._sx(p.x), y: this._sy(p.d) - 2, vy: -14, g: 0, wobble: 6, seed: Math.random() * 6, size: 1, life: 1.1, color: "rgba(220,245,255,.7)" });
     } else { this.oxy = clamp(this.oxy + t.oxygen_refill_per_tick * dt, 0, this.oxyMax); this.zeroOxy = 0; }
     this.danger = this.oxy < this.oxyMax * 0.25 && underwater ? clamp(this.danger + dt * 2, 0, 1) : clamp(this.danger - dt * 3, 0, 1);
-    if (this.danger > 0.5 && Math.floor(this.t_prev || 0) !== Math.floor(this.time)) {}
+    // SFX captions: one heartbeat + caption each time oxygen drops below 25 % underwater (re-arms once refilled)
+    if (this.oxy < this.oxyMax * 0.25 && underwater && this.oxy > 0) { if (!this.lowOCue) { this.lowOCue = true; sfx("heartbeat", undefined, "[tim đập nhanh — oxy sắp hết]"); } }
+    else if (this.oxy >= this.oxyMax * 0.25) this.lowOCue = false;
 
     if (this.invuln > 0) this.invuln -= dt;
     if (this.catchCd > 0) this.catchCd -= dt;
@@ -366,6 +369,7 @@ export class GatherScene {
     if (this.crocs.some((m) => m.gone)) this.crocs = this.crocs.filter((m) => !m.gone); // defeated: gone for this dive
     if (p.d >= 10 && this.invuln <= 0) { const m = crocHit(this.crocs, p.x, p.d); if (m) { this.crocBite(m); if (this.ended) return; } }
     { const n = crocNear(this.crocs, p.x, p.d); this.crocWarn = n && n.dist <= n.m.sp.detect_radius ? Math.min(1, this.crocWarn + dt * 4) : Math.max(0, this.crocWarn - dt * 3); }
+    if (this.crocWarn > 0.5 && !this.crocCue) { this.crocCue = true; sfx("boom", 0, "[Cá Sấu gầm — đang đến gần]"); } else if (this.crocWarn <= 0) this.crocCue = false;
     // --- fish schools swim + scheduled spawns (v1.1) ---
     this.swimFish(dt); if (this.started) this.riverFullHint(dt);
     { const e = this.deepEnv; e.px = p.x; e.pd = p.d; updateDeepFish(this.deep.filter((f) => !f.hooked), dt, this.maxD, e); if (this.ended) return; }
