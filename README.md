@@ -21,6 +21,20 @@ PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
 python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
 ```
 
+### Chơi nối buổi sáng sang quán
+
+```powershell
+python -m chonoi.live --mode day --seed 1 --inventory-out inventory.json
+```
+
+Mode `day` tự thu thập cá/rau ở buổi sáng, chuyển kho sang buổi tối và cho Út Sen nấu/bán món trong cùng cửa sổ trình duyệt. Sau buổi tối, kho dùng cho quán là kho khả dụng sau phần nguyên liệu khách đang giữ chỗ.
+
+Chạy headless một Ngày:
+
+```powershell
+python -m chonoi.headless --mode day --seed 1 --ticks 21600 --inventory-out inventory.json --out day.jsonl
+```
+
 ### Lưu kho khi hái/bắt cá
 
 Chạy giao diện Gather và ghi kho tức thì vào `inventory.json`:

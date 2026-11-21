@@ -10,6 +10,8 @@ import urllib.request
 
 from chonoi.contract import load_contract
 from chonoi.live import LiveGame, LiveServer
+from chonoi.runner import Session
+from chonoi.inputs import InputState
 
 
 def _get(url):
@@ -83,6 +85,49 @@ class LiveInventoryPersistenceTest(unittest.TestCase):
             game._tick_once()
             with open(inventory_path, encoding="utf-8") as f:
                 self.assertEqual(json.load(f), {"items": {"bong_sung": 2, "ca_loc": 2}})
+
+
+class DayFlowTest(unittest.TestCase):
+    def test_gather_handoff_to_quan_preserves_caught_items(self):
+        tuning = load_contract()["tuning"]
+        session = Session(
+            "day",
+            tuning,
+            {
+                "gather": {
+                    "player": {"pos": [12, 0]},
+                    "hold": ["ca_loc"],
+                    "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [12, 0]}],
+                    "random_fish": False,
+                    "time_left_ticks": 1,
+                },
+                "quan": {
+                    "customers": [{
+                        "id": "C1",
+                        "table_id": "T1",
+                        "dish_id": "ca_loc_nuong_trui",
+                        "state": "waiting",
+                        "patience_ticks_left": 3600,
+                        "reserved": {"ca_loc": 1},
+                    }],
+                },
+            },
+            1,
+        )
+
+        events = session.step(InputState((0, 0), {}, set()))
+        names = [row["name"] for row in events]
+
+        self.assertIn("gather_end", names)
+        self.assertIn("phase_start", names)
+        snapshot = session.snapshot()
+        self.assertEqual(snapshot["mode"], "day")
+        self.assertEqual(snapshot["phase"], "quan")
+        self.assertEqual(session.sim.inventory, {"ca_loc": 1})
+
+        session.sim.quan.pos = [2, 8]
+        cook_events = session.step(InputState((0, 0), {"interact": True}, {"interact"}))
+        self.assertIn("cook_started", [row["name"] for row in cook_events])
 
 
 if __name__ == "__main__":

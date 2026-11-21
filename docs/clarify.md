@@ -8,6 +8,7 @@
 | 4 | 2026-11-21 (P2) | HUD quán "kho khả dụng": `stock` trong snapshot đã trừ phần khách đang giữ (`reserved`) chưa? | Giả định: `stock` là kho khả dụng (đã trừ phần giữ). Lát 3 xác nhận khi chốt hợp đồng. | PO + Quoosc |
 | 5 | 2026-11-21 | Lát G2 yêu cầu N5 [76,0], N6 [90,0] và cá kèo yield 2. Nhóm có đồng ý mở khóa dữ liệu Gather và mở rộng các loại nguyên liệu hợp lệ không? Nếu cá kèo xuất hiện mặc định thì đàn nào, ở đâu? | Chờ PO chốt. | PO (nganhduong123) |
 | 6 | 2026-11-21 (P2) | Ticket-02 quy định tốc độ, độ sâu tối thiểu, chu kỳ và góc đổi hướng, lịch sinh đàn và sự kiện sinh cá thế nào? | Mô phỏng đã đọc tuning tùy chọn. Chờ đối chiếu Ticket-02 đầy đủ và chốt tên khóa, quy tắc và giá trị trước khi đưa vào contract chung. | PO + Integrator (invzble-z) |
+| 7 | 2026-11-21 | Khi nào bàn giao kho từ buổi sáng sang quán? | Hợp nhất mode `day`: khi buổi Gather kết thúc bằng cập bến, hết giờ hoặc ngất, kho được bàn giao sang Quan ngay trong cùng tiến trình. | PO |
 
 ## Draft for PO — Q3 D-01..D-09 (2026-11-21)
 

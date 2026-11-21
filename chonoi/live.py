@@ -80,7 +80,7 @@ class LiveGame:
 
     def _reset(self):
         self.inventory_base = (read_inventory_or_empty(self.inventory_out)
-                               if self.mode == "gather" and self.inventory_out else {})
+                               if self.mode in ("gather", "day") and self.inventory_out else {})
         self.session = Session(*self._args)
         self.inputs = _LiveInputsV11()
         self.events = []
@@ -122,7 +122,7 @@ class LiveGame:
         for row in s.step(self.inputs.advance()):
             self.events.append(row)
         del self.events[:-RECENT_EVENTS]
-        if self.mode == "gather" and self.inventory_out:
+        if self.mode in ("gather", "day") and self.inventory_out:
             inventory_events = {"gather", "fish_caught", "faint", "gather_end"}
             if any(row["name"] in inventory_events for row in self.events[-RECENT_EVENTS:]
                    if row["tick"] == s.tick):
@@ -273,24 +273,27 @@ class LiveServer:
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="chonoi.live", description="Chơi trực tiếp trên trình duyệt (starter).")
-    p.add_argument("--mode", required=True, choices=["gather", "quan"])
+    p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--port", type=int, default=8000, help="0 = cổng ngẫu nhiên")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--scenario")
-    p.add_argument("--inventory", help="chỉ với quan: nạp kho từ file")
+    p.add_argument("--inventory", help="nạp kho cho quan hoặc day")
     p.add_argument("--inventory-out", dest="inventory_out",
                    help="chỉ với gather: ghi kho ngay khi khởi động, hái/bắt và kết thúc buổi")
     a = p.parse_args(argv)
     try:
-        if a.inventory and a.mode != "quan":
-            raise BadInput("--inventory chỉ dùng với quan")
-        if a.inventory_out and a.mode != "gather":
-            raise BadInput("--inventory-out chỉ dùng với gather")
+        if a.inventory and a.mode not in ("quan", "day"):
+            raise BadInput("--inventory chỉ dùng với quan hoặc day")
+        if a.inventory_out and a.mode not in ("gather", "day"):
+            raise BadInput("--inventory-out chỉ dùng với gather hoặc day")
         tuning = load_contract()["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
         inventory = read_inventory(a.inventory) if a.inventory else None
-        if inventory is not None and "stock" in scenario:
+        if inventory is not None and (
+            "stock" in scenario
+            or (a.mode == "day" and "stock" in scenario.get("quan", {}))
+        ):
             raise BadInput("vừa có quan.stock vừa có --inventory")
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
         server = LiveServer(game, a.host, a.port)

@@ -16,13 +16,18 @@ from .jsonl import JsonlWriter
 from .rng import Streams
 from .sim.gather import GatherSim
 from .sim.quan import QuanSim
+from .sim.day import DaySim
 
 
 def build_sim(mode, tuning, scenario, seed, inventory):
     streams, ids = Streams(seed), IdAllocator()
     if mode == "gather":
         return GatherSim(tuning, scenario, streams, ids)
-    return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
+    if mode == "quan":
+        return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
+    if mode == "day":
+        return DaySim(tuning, scenario, streams, ids, inventory=inventory)
+    raise ValueError(f"mode không hỗ trợ: {mode}")
 
 
 def _common(sim, tick, sim_tick, phase_tick, tuning, state):
@@ -57,8 +62,17 @@ class Session:
         """Chạy một bước với `inp` (chonoi.inputs.InputState); trả các dòng event (tick = k + 1)."""
         events = self.sim.step(inp)
         self.tick += 1
-        return [{"type": "event", "tick": self.tick, "phase": self.sim.phase, "name": name, "data": data}
-                for name, data in events]
+        rows = []
+        for name, data in events:
+            event_phase = self.sim.phase
+            if self.mode == "day":
+                if name == "gather_end":
+                    event_phase = "gather"
+                elif name == "phase_start":
+                    event_phase = "quan"
+            rows.append({"type": "event", "tick": self.tick, "phase": event_phase,
+                         "name": name, "data": data})
+        return rows
 
     def end_row(self) -> dict:
         sim = self.sim
@@ -70,13 +84,13 @@ class Session:
 
     def write_inventory_if_done(self, inventory_out, inventory_base=None):
         """Persist the run's held items on top of the inventory present at run start."""
-        if self.mode == "gather" and self.sim.done and inventory_out:
+        if self.mode in ("gather", "day") and self.sim.done and inventory_out:
             write_inventory(inventory_out, merge_items(inventory_base or {}, self.sim.inventory_items()))
 
 
 def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None):
     sess = Session(mode, tuning, scenario, seed, inventory)
-    inventory_base = read_inventory_or_empty(inventory_out) if mode == "gather" and inventory_out else {}
+    inventory_base = read_inventory_or_empty(inventory_out) if mode in ("gather", "day") and inventory_out else {}
     player = InputPlayer(frames)
     w = JsonlWriter(out_path)
     try:
@@ -85,7 +99,7 @@ def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, i
         while sess.tick < ticks and not sess.done:
             inp = player.advance(sess.tick)  # bước k đọc input có tick == k
             rows = sess.step(inp)
-            if mode == "gather" and inventory_out:
+            if mode in ("gather", "day") and inventory_out:
                 if any(row["name"] in {"gather", "fish_caught", "faint", "gather_end"} for row in rows):
                     write_inventory(inventory_out,
                                     merge_items(inventory_base, sess.sim.inventory_items()))
