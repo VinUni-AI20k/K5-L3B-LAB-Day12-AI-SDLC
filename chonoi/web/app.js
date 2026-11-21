@@ -1,16 +1,20 @@
 import { liveAdapter } from "./adapter.js";
 import { createRenderer, findAction } from "./scenes.js";
 import { CampaignInput, createCampaignView, hasRecipe, plannedDishes, upgradeName } from "./campaign.js";
+import { availableCounts, countKinds, freshnessTone, groupedInventory, inventoryHasItems,
+  itemKind, receivedInventory, reservedIdSet, uiConfig } from "./inventory-view.js";
 
 const $ = (id) => document.getElementById(id);
 const previewVersion = new URLSearchParams(location.search).get("preview");
 const preview = previewVersion === "1";
-const phaseTwoPreview = previewVersion === "2";
+const previewCampaign = ["2", "3"].includes(previewVersion);
+const mockVersion = previewVersion === "2" ? "2" : "3";
 const baseAdapter = preview ? new (await import("./preview.js")).PreviewAdapter() : liveAdapter;
 let adapter = baseAdapter;
 const controls = [...document.querySelectorAll("button")];
 const number = new Intl.NumberFormat("vi-VN");
 const decimal = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 1 });
+const freshnessNumber = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2, roundingMode: "trunc" });
 const ingredients = {
   ca_loc: ["Cá lóc", "#a4be7a"],
   ca_linh: ["Cá linh", "#c6e6de"],
@@ -26,6 +30,9 @@ const dishNames = {
   ca_keo_kho_to: "Cá kèo kho tộ",
   canh_chua_ca_keo: "Canh chua cá kèo",
   keo_neo_xao_ca_linh: "Kèo nèo xào cá linh",
+  canh_chua_ca_loc: "Canh chua cá lóc",
+  ca_keo_nuong: "Cá kèo nướng",
+  lau_mam: "Lẩu mắm",
 };
 const movement = {
   KeyW: "north", ArrowUp: "north", KeyS: "south", ArrowDown: "south",
@@ -42,6 +49,7 @@ const percent = (part, total) => Math.min(100, Math.max(0, (100 * part / total) 
 let tuning;
 let baseTuning;
 let liveCampaign = false;
+let liveV12 = false;
 let campaign = false;
 let mockAdapter;
 let mockTuning;
@@ -58,14 +66,19 @@ let damageTimer;
 let input = Promise.resolve();
 const renderer = createRenderer($("cover"), $("world"));
 const phaseInput = new CampaignInput(send);
-const campaignView = createCampaignView({ $, write, update, element, itemList, money, decimal, dishName, time,
+const campaignView = createCampaignView({ $, write, update, element, inventoryList, money, decimal, dishName, time,
   proceed, action: campaignCommand });
 
 async function loadMock() {
   if (mockTuning) return;
-  const { MockSimV11Adapter } = await import("./phase2-preview.js");
-  mockAdapter = new MockSimV11Adapter();
-  mockTuning = (await mockAdapter.config()).tuning;
+  if (mockVersion === "2") {
+    const { MockSimV11Adapter } = await import("./phase2-preview.js");
+    mockAdapter = new MockSimV11Adapter();
+  } else {
+    const { MockSimV12Adapter } = await import("./phase3-preview.js");
+    mockAdapter = new MockSimV12Adapter();
+  }
+  mockTuning = uiConfig(await mockAdapter.config());
 }
 
 function tell(message = "") {
@@ -120,7 +133,8 @@ function itemMark(kind) {
 }
 
 function itemList(id, counts) {
-  update(id, counts, (list) => {
+  update(id, ["counts", counts], (list) => {
+    list.classList.remove("fresh-inventory");
     const rows = Object.entries(counts).map(([kind, count]) => {
       const title = element("dt");
       title.append(itemMark(kind), ingredient(kind));
@@ -130,6 +144,47 @@ function itemList(id, counts) {
     });
     list.replaceChildren(...rows);
   });
+}
+
+function inventoryList(id, stock, { reserved, allKinds = false, average = false } = {}) {
+  if (!Array.isArray(stock)) {
+    itemList(id, stock ?? {});
+    return;
+  }
+  const groups = groupedInventory(stock, reserved ?? new Set(), tuning.freshness);
+  const rows = Object.entries(allKinds ? { ...emptyCounts(), ...groups } : groups);
+  update(id, ["items", rows, Boolean(reserved), average], (list) => {
+    list.classList.add("fresh-inventory");
+    list.dataset.held = Boolean(reserved);
+    const guide = element("div", "", "fresh-guide");
+    const labels = element("dd");
+    labels.append(element("span", "Tươi"));
+    if (reserved) labels.append(element("span", "Giữ"));
+    labels.append(element("span", average ? "TB tươi" : "Thấp nhất"), element("span", "Ươn"));
+    guide.append(element("dt", "Nguyên liệu"), labels);
+    list.replaceChildren(guide, ...rows.map(([kind, group]) => {
+      const row = element("div", "", "fresh-row");
+      const title = element("dt");
+      title.append(itemMark(kind), ingredient(kind));
+      const values = element("dd");
+      const fresh = (average ? group.average : group.min) ?? null;
+      values.append(element("span", String(group.count ?? 0), "fresh-qty"));
+      if (reserved) values.append(element("span", String(group.held ?? 0), "held-qty"));
+      const value = element("span", fresh === null ? "—" : freshnessNumber.format(fresh) + "%",
+        "fresh-value " + (fresh === null ? "" : freshnessTone({ fresh }, tuning.freshness)));
+      if (fresh !== null) value.title = (average ? "Trung bình hàng còn tươi" : "Thấp nhất trong hàng còn tươi") + " · " + fresh + "%";
+      const spoiled = element("span", group.spoiled ? "Ươn ×" + group.spoiled : "—", group.spoiled ? "spoiled-badge" : "");
+      spoiled.title = group.spoiled ? "Hàng ươn vẫn chiếm ô và không dùng để nấu" : "Không có hàng ươn";
+      values.append(value, spoiled);
+      row.append(title, values);
+      return row;
+    }));
+  });
+}
+
+function listedDish(dish) {
+  const name = dishName(dish.dish_id);
+  return typeof dish.base_price === "number" ? name + " · " + money(dish.base_price) : name;
 }
 
 function show(next) {
@@ -172,26 +227,36 @@ function drawGather(state) {
     write("oxygen-alert", (campaign ? "Hết hơi!" : "Cạn oxy!") + " Ngoi lên thở cái Út ơi! Còn " + decimal.format(countdown) + " giây trước lần mất máu kế.");
   }
 
-  const hold = state.hold;
+  const hold = state.hold ?? [];
   const capacity = state.hold_capacity;
+  const itemized = typeof hold[0] === "object" || (hold.length === 0 && Boolean(tuning.freshness));
   write("bag-capacity", state.hold_count + " / " + capacity);
+  $("bag-freshness-note").hidden = !itemized;
   update("slots", [hold, capacity], (slots) => {
     slots.replaceChildren(...Array.from({ length: capacity }, (_, i) => {
-      const kind = hold[i];
+      const item = hold[i];
+      const kind = itemKind(item);
       const cell = element("li", "", kind ? "filled" : "");
       cell.setAttribute("aria-label", kind ? ingredient(kind) : "Ô trống");
       if (kind) {
         cell.title = ingredient(kind);
+        if (itemized) {
+          const tone = freshnessTone(item, tuning.freshness);
+          cell.dataset.freshness = tone;
+          cell.style.setProperty("--fresh-fill", Math.max(0, Math.min(100, item.fresh)) + "%");
+          cell.title += " · " + freshnessNumber.format(item.fresh) + "%" + (tone === "spoiled" ? " · Ươn" : "");
+          cell.setAttribute("aria-label", cell.title);
+        }
         cell.append(itemMark(kind));
       }
       return cell;
     }));
   });
-  const counts = emptyCounts();
-  for (const kind of hold) counts[kind] = (counts[kind] ?? 0) + 1;
-  itemList("bag-items", counts);
+  const counts = itemized ? availableCounts({ stock: hold }, tuning.freshness) : countKinds(hold);
+  inventoryList("bag-items", itemized ? hold : { ...emptyCounts(), ...counts }, { allKinds: true });
   const goal = campaign && snapshot.mode === "day" ? snapshot.day_plan?.ingredients : null;
   $("harvest-plan").hidden = !goal;
+  write("harvest-progress-label", itemized ? "Tươi / cần" : "Đã lấy / cần");
   if (goal) itemList("goal-items", Object.fromEntries(Object.entries(goal).map(([kind, amount]) => [kind, (counts[kind] ?? 0) + " / " + amount])));
   const alertRadius = config.monster_alert_radius;
   const danger = campaign && (state.monsters ?? []).some((monster) => monster.state === "chase" ||
@@ -204,12 +269,14 @@ function drawGather(state) {
   write("catch-status", p.catch_cd_ticks > 0 ? "Hồi " + decimal.format(p.catch_cd_ticks / tuning.tick_hz) + " giây" : "Sẵn sàng");
 }
 
-function stationCard(title, status, dishId, timer, ready = false) {
-  const card = element("article", "", ready ? "station ready" : "station");
+function stationCard(title, status, dishId, timer, { ready = false, price, shortage = false } = {}) {
+  const card = element("article", "", "station");
+  card.classList.toggle("ready", ready);
+  card.classList.toggle("fresh-shortage", shortage);
   const heading = element("div", "", "station-title");
   heading.append(element("strong", title), element("span", status));
   card.append(heading);
-  if (dishId) card.append(element("p", dishName(dishId)));
+  if (dishId) card.append(element("p", listedDish({ dish_id: dishId, base_price: price })));
   if (timer) {
     const caption = element("p", "", "station-timer");
     caption.append(element("b", timer.label), document.createTextNode(" · " + seconds(timer.left) + " giây"));
@@ -229,21 +296,20 @@ function stationCard(title, status, dishId, timer, ready = false) {
 }
 
 function drawQuan(state) {
+  const itemized = Array.isArray(state.stock);
   $("stage").classList.remove("monster-near");
   write("money", money(state.money));
   $("shift-stat").hidden = !campaign;
   if (campaign) write("shift-money", money(state.shift_earned ?? 0));
   write("reputation", decimal.format(state.reputation) + " / " + state.meta.reputation_max.toFixed(1));
   write("score", number.format(state.score));
-  write("hand", state.hand ? dishName(state.hand.dish_id) : "Tay trống");
+  write("hand", state.hand ? (itemized ? listedDish(state.hand) : dishName(state.hand.dish_id)) : "Tay trống");
 
-  const counts = { ...emptyCounts(), ...state.stock };
-  for (const customer of state.customers) {
-    for (const [kind, amount] of Object.entries(customer.reserved ?? {})) counts[kind] -= amount;
-  }
-  itemList("stock", counts);
+  const counts = { ...emptyCounts(), ...availableCounts(state, tuning.freshness) };
+  if (itemized) inventoryList("stock", state.stock, { reserved: reservedIdSet(state), allKinds: true });
+  else itemList("stock", counts);
   const dishes = plannedDishes(campaign ? snapshot : state, tuning);
-  update("dishes", [counts, dishes, campaign], (list) => {
+  update("dishes", [counts, dishes, campaign, itemized], (list) => {
     list.replaceChildren(...dishes.map((id) => {
       const recipe = tuning.menu[id];
       const available = hasRecipe(counts, recipe.recipe);
@@ -251,13 +317,13 @@ function drawQuan(state) {
       const desc = element("div");
       const requires = Object.entries(recipe.recipe).map(([kind, amount]) => amount + " " + ingredient(kind).toLowerCase()).join(" + ");
       desc.append(element("strong", dishName(id)));
-      if (!campaign) desc.append(element("small", requires + " · " + money(recipe.price)));
+      if (!campaign && !itemized) desc.append(element("small", requires + " · " + money(recipe.price)));
       row.append(desc, element("span", available ? "Đủ kho" : "Thiếu kho", "eligibility"));
       return row;
     }));
   });
 
-  update("stations", [state.stoves, state.tables, state.customers, campaign], (strip) => {
+  update("stations", [state.stoves, state.tables, state.customers, campaign, itemized], (strip) => {
     const stoveLabels = { idle: "Bếp trống", cooking: "Đang nấu", ready: "Món sẵn sàng" };
     const stoves = state.stoves.map((stove) => {
       const dishId = stove.dish?.dish_id;
@@ -266,7 +332,9 @@ function drawQuan(state) {
         label: "Còn nấu", left: stove.cook_ticks_left,
         fill: 100 - percent(stove.cook_ticks_left, ticks(recipe.cook_s)),
       } : null;
-      return stationCard("Bếp " + stove.id, stoveLabels[stove.state], dishId, timer, campaign && stove.state === "ready");
+      return stationCard("Bếp " + stove.id, stoveLabels[stove.state], dishId, timer, {
+        ready: campaign && stove.state === "ready", price: itemized ? stove.dish?.base_price : undefined,
+      });
     });
     const tables = state.tables.map((table) => {
       const c = state.customers.find((customer) => customer.id === table.customer_id);
@@ -279,7 +347,10 @@ function drawQuan(state) {
         threshold: state.meta.tip_min_patience_ratio,
         alert: campaign && c.patience_ticks_left < ticks(state.meta.patience_s) / 4,
       };
-      return stationCard("Bàn " + table.id, eating ? "Đã lên món" : "Đang đợi món", c.dish_id, timer);
+      const shortage = itemized && c.order_status === "unfulfillable";
+      return stationCard("Bàn " + table.id, shortage ? "Hết hàng tươi!" : eating ? "Đã lên món" : "Đang đợi món", c.dish_id, timer, {
+        shortage, price: itemized && eating ? c.base_price : undefined,
+      });
     });
     strip.replaceChildren(...stoves, ...tables);
   });
@@ -301,9 +372,9 @@ function endScreen(state) {
   $("continue").hidden = !morning || choice !== "day";
   if (morning) {
     const end = state.events.findLast((event) => event.name === "gather_end");
-    const items = end?.data.inventory?.items ?? {};
-    write("inventory-title", Object.keys(items).length ? "Nguyên liệu bàn giao" : "Kho rỗng");
-    itemList("transfer-items", items);
+    const items = receivedInventory(end?.data) ?? {};
+    write("inventory-title", inventoryHasItems(items) ? "Nguyên liệu bàn giao" : "Kho rỗng");
+    inventoryList("transfer-items", items, { average: true });
     const saved = state.inventory_saved;
     let status = "Chưa ghi được kho.";
     if (preview) status = "Đã chốt kho mẫu cho ca tối.";
@@ -329,17 +400,29 @@ function eventMessage(event) {
     case "hold_full": return ["Giỏ đầy nhóc rồi! Cần " + d.required + " ô, còn " + d.free + ".", "danger"];
     case "oxygen_empty": return ["Ngoi lên thở cái Út ơi!", "danger"];
     case "choke": return ["Ngạt nước! Còn " + d.hp + " máu.", "danger"];
-    case "cook_started": return ["Bắc bếp nấu " + dishName(d.dish_id).toLowerCase() + " rồi!"];
+    case "cook_started": {
+      const used = Object.entries(countKinds(d.items ?? [])).map(([kind, count]) => count + " " + ingredient(kind).toLowerCase());
+      return ["Bắc bếp nấu " + dishName(d.dish_id).toLowerCase() + (used.length ? " · " + used.join(", ") : " rồi!")];
+    }
     case "dish_ready": return ["Bếp chín rồi, bưng lẹ kẻo nguội!"];
     case "served": return ["Đã dọn " + dishName(d.dish_id).toLowerCase() + " cho bàn " + d.table_id + "."];
     case "paid": return ["Tiền món +" + money(d.base_price) + " · Boa +" + money(d.tip), d.tip > 0 ? "tip" : ""];
     case "customer_left": return [d.reason === "closing" ? "Khách rời bàn vì quán đóng cửa." : "Khách đợi lâu quá, về mất rồi!", "danger"];
     case "no_dish": return ["Kho chưa đủ nguyên liệu để lên món.", "danger"];
     case "monster_hit": {
-      const lost = (d.lost ?? []).map(ingredient);
+      const lost = (d.lost ?? []).map(itemKind).filter(Boolean).map(ingredient);
       return ["Cá sấu quẫy mạnh!" + (lost.length ? " Rơi lần lượt " + lost.join(" → ") + "." : ""), "danger"];
     }
-    case "faint": return [["choke", "oxygen"].includes(d.cause) ? "Út ngất vì hết hơi, giỏ rơi hết rồi." : "Út bị cá sấu đánh ngất, giỏ rơi hết rồi.", "danger"];
+    case "faint": {
+      const lost = (d.lost ?? []).map(itemKind).filter(Boolean).map(ingredient);
+      const reason = ["choke", "oxygen"].includes(d.cause) ? "Út ngất vì hết hơi." : "Út bị cá sấu đánh ngất.";
+      return [reason + (lost.length ? " Rơi lần lượt " + lost.join(" → ") + "." : ""), "danger"];
+    }
+    case "spoiled": {
+      const kind = d.kind ?? itemKind(d.item);
+      const place = d.location === "hold" ? "giỏ" : "kho quán";
+      return ["Ôi không! " + (kind ? ingredient(kind) : "Nguyên liệu") + " trong " + place + " bị ươn rồi!", "danger"];
+    }
     case "fish_spawned": return ["Kìa, có đàn " + ingredient(d.kind).toLowerCase() + " mới!"];
     case "bought": return ["Mua " + upgradeName(d.upgrade) + " cấp " + d.level + " rồi. Mai dùng nghen!", "tip"];
     case "buy_failed": return [d.reason === "funds" ? "Chưa đủ tiền mua món này." : "Món này đã đạt cấp tối đa.", "danger"];
@@ -363,6 +446,12 @@ function consumeEvents(state) {
     if (event.tick <= lastTick) continue;
     const message = eventMessage(event);
     if (message) toasts.push({ message, expires: now + 2900 });
+    if (event.name === "spoiled" && event.data.location === "hold") {
+      const bag = $("bag-panel");
+      bag.classList.remove("spoil-alert");
+      void bag.offsetWidth;
+      bag.classList.add("spoil-alert");
+    }
     if (event.name === "choke" || event.name === "monster_hit") {
       clearTimeout(damageTimer);
       $("stage").classList.remove("damage");
@@ -382,6 +471,12 @@ function display(state) {
     tell("Mô phỏng gặp lỗi. Nhấn R để thử lại.");
     return;
   }
+  const itemized = Boolean(tuning.freshness) || Array.isArray(state.stock) || typeof state.hold?.[0] === "object";
+  document.body.classList.toggle("phase-three", itemized);
+  document.body.classList.toggle("phase-two", campaign || itemized);
+  const frozen = snapshot.state === "paused";
+  document.body.classList.toggle("campaign-paused", frozen);
+  renderer.freeze(frozen);
   consumeEvents(snapshot);
   if (campaign) {
     const gate = [snapshot.session_id, snapshot.day, snapshot.phase, snapshot.awaiting, snapshot.state].join("/");
@@ -390,9 +485,6 @@ function display(state) {
       phaseGate = gate;
     }
     phaseInput.enabled = !snapshot.awaiting && !snapshot.finished && snapshot.state !== "finished";
-    const frozen = snapshot.state === "paused";
-    document.body.classList.toggle("campaign-paused", frozen);
-    renderer.freeze(frozen);
     if (campaignView.render(snapshot, tuning)) {
       show("journey");
       return;
@@ -405,6 +497,7 @@ function display(state) {
   }
   const morning = state.mode === "gather";
   $("game").dataset.mode = state.mode;
+  $("game").dataset.standalone = String(snapshot.mode !== "day");
   write("scene-title", morning ? "Sông Chín Khúc" : "Nhà bè Má Tư");
   const day = campaign && snapshot.mode === "day" ? "Ngày " + snapshot.day + " / " + tuning.day_plan.length + " · " : "";
   write("phase-name", day + (morning ? "Buổi sáng · Lặn và hái" : "Buổi tối · Mở quán"));
@@ -468,8 +561,8 @@ async function transition(next, command) {
 }
 
 const begin = (mode) => transition("game", async () => {
-  const nextCampaign = mode === "campaign" || phaseTwoPreview || liveCampaign;
-  const useMock = nextCampaign && !liveCampaign;
+  const nextCampaign = mode === "campaign" || previewCampaign || liveCampaign;
+  const useMock = previewCampaign || (mode === "campaign" && !liveV12);
   if (useMock) await loadMock();
   const target = useMock ? mockAdapter : baseAdapter;
   await target.play(mode === "campaign" ? "day" : mode);
@@ -488,9 +581,9 @@ const begin = (mode) => transition("game", async () => {
     campaignView.reset();
     phaseInput.start(tuning.tick_hz);
   }
-  document.body.classList.toggle("phase-two", campaign);
+  document.body.classList.toggle("phase-two", campaign || Boolean(tuning.freshness));
   $("preview-label").hidden = !preview && !useMock;
-  write("preview-label", useMock ? "Phase 2 · Snapshot mẫu" : "Đang xem snapshot mẫu");
+  write("preview-label", useMock ? "Phase " + mockVersion + " · Snapshot mẫu" : "Đang xem snapshot mẫu");
   $("preview-help").hidden = !preview || campaign;
   $("campaign-help").hidden = !useMock;
 });
@@ -502,9 +595,9 @@ function leave(next) {
     campaignView.reset();
     campaign = false;
     renderer.freeze(false);
-    document.body.classList.remove("campaign-paused");
+    document.body.classList.remove("campaign-paused", "phase-three");
     document.body.classList.add("phase-two");
-    $("preview-label").hidden = !preview && !phaseTwoPreview;
+    $("preview-label").hidden = !preview && !previewCampaign;
   });
 }
 const menu = () => leave("menu");
@@ -537,6 +630,9 @@ $("pause-menu").addEventListener("click", menu);
 for (const id of ["pause", "resume"]) $(id).addEventListener("click", () => campaignCommand({ pause: true }));
 $("exit").addEventListener("click", () => leave("exit-screen"));
 $("exit-back").addEventListener("click", () => show("menu"));
+$("bag-panel").addEventListener("animationend", (event) => {
+  if (event.animationName === "spoil-flash") $("bag-panel").classList.remove("spoil-alert");
+});
 document.addEventListener("click", (event) => {
   if (screen === "journey" && snapshot?.awaiting === "day_intro" && !event.target.closest("button, a")) proceed("day_intro");
 });
@@ -606,20 +702,23 @@ async function poll() {
 }
 
 try {
-  if (phaseTwoPreview) {
+  if (previewCampaign) {
     await loadMock();
     baseTuning = mockTuning;
     adapter = mockAdapter;
   } else {
     const config = await baseAdapter.config();
-    baseTuning = config.tuning ?? config;
-    liveCampaign = config.contract_version === "1.1" && config.capabilities?.campaign_v11 === true;
+    baseTuning = uiConfig(config);
+    liveCampaign = ["1.1", "1.2"].includes(config.contract_version) &&
+      (config.capabilities?.campaign_v12 === true || config.capabilities?.campaign_v11 === true);
+    liveV12 = liveCampaign && config.contract_version === "1.2";
   }
   tuning = baseTuning;
-  write("campaign-note", liveCampaign ? "Năm ngày ở chợ nổi" : "Bản xem trước · Năm ngày ở chợ nổi");
-  $("phase-one-day").hidden = phaseTwoPreview || liveCampaign;
-  $("preview-label").hidden = !preview && !phaseTwoPreview;
-  if (phaseTwoPreview) write("preview-label", "Phase 2 · Snapshot mẫu");
+  const campaignTitle = mockVersion === "3" ? "Mùa nước nổi · Năm ngày" : "Năm ngày ở chợ nổi";
+  write("campaign-note", liveV12 ? campaignTitle : "Bản xem trước · " + campaignTitle);
+  $("phase-one-day").hidden = previewCampaign || liveV12;
+  $("preview-label").hidden = !preview && !previewCampaign;
+  if (previewCampaign) write("preview-label", "Phase " + mockVersion + " · Snapshot mẫu");
   document.body.classList.add("phase-two");
   renderer.configure(tuning);
   for (const control of controls) control.disabled = false;

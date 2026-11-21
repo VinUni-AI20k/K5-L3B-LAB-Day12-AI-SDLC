@@ -117,7 +117,7 @@ export function shore(ctx, w, h, horizon, drift = 0) {
   }
 }
 
-export function river(ctx, w, h, horizon, floor, drift = 0, t = 0, tiers) {
+export function river(ctx, w, h, horizon, floor, drift = 0, t = 0, tiers, floodSeason = false) {
   if (tiers) {
     const [middle, deep] = tiers;
     for (const [top, bottom, light, dark] of [
@@ -146,6 +146,15 @@ export function river(ctx, w, h, horizon, floor, drift = 0, t = 0, tiers) {
     const y = horizon + (floor - horizon) * depth;
     const length = 5 + sample(i + 80) * (depth > .15 ? 33 : 74);
     stroke(ctx, depth < .2 ? "#f8e9b652" : "#b2d6ba24", depth < .1 ? 1.5 : 1, [x, y], [x + length, y]);
+  }
+  if (floodSeason) {
+    const band = (tiers?.[0] ?? (horizon + (floor - horizon) / 3)) - horizon;
+    for (let i = 0; i < 16; i++) {
+      const x = (sample(i + 12) * w + t * (5 + sample(i) * 9)) % (w + 20);
+      const y = horizon + sample(i + 61) * band;
+      const leaf = i % 5 === 0;
+      oval(ctx, x, y + Math.sin(t * .9 + i) * 2, leaf ? 5 : 1.6, leaf ? 1.6 : 1.2, leaf ? "#d7b46d80" : "#f6df9f6e");
+    }
   }
   for (let i = -1; i < 14; i++) {
     const gap = w / 10 + 17;

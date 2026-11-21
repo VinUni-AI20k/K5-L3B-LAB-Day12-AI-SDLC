@@ -1,3 +1,5 @@
+import { availableCounts, inventoryHasItems, receivedInventory } from "./inventory-view.js";
+
 const noticeNames = {
   oxygen: ["Bình oxy", "oxygen_max_s", "giây"],
   hp: ["Áo phao", "hp_max", "máu"],
@@ -6,9 +8,9 @@ const noticeNames = {
 export const upgradeName = (id) => noticeNames[id]?.[0] ?? id;
 
 export function plannedDishes(snapshot, tuning) {
-  return snapshot.mode === "day"
-    ? (snapshot.day_plan?.dishes ?? []).filter((id) => Object.hasOwn(tuning.menu, id))
-    : Object.keys(tuning.menu);
+  if (snapshot.mode !== "day") return Object.keys(tuning.menu);
+  const plan = snapshot.day_plan?.dishes ?? [];
+  return (Array.isArray(plan) ? plan : Object.keys(plan)).filter((id) => Object.hasOwn(tuning.menu, id));
 }
 
 export function hasRecipe(stock, recipe) {
@@ -111,7 +113,7 @@ class ShiftLog {
   }
 }
 
-export function createCampaignView({ $, write, update, element, itemList, money, decimal, dishName, time, proceed, action }) {
+export function createCampaignView({ $, write, update, element, inventoryList, money, decimal, dishName, time, proceed, action }) {
   let book = new ShiftLog();
   let introTimer;
   let screenKey;
@@ -145,9 +147,9 @@ export function createCampaignView({ $, write, update, element, itemList, money,
     update(id, lines, (container) => container.replaceChildren(...lines.map((line) => element("li", line))));
   }
 
-  function inventory(items) {
-    itemList("journey-items", items);
-    $("journey-empty").hidden = Object.values(items).some((amount) => amount > 0);
+  function inventory(items, average = false) {
+    inventoryList("journey-items", items, { average });
+    $("journey-empty").hidden = inventoryHasItems(items);
   }
 
   function stats(values) {
@@ -200,6 +202,9 @@ export function createCampaignView({ $, write, update, element, itemList, money,
     write("journey-day", hasCampaign ? "Ngày " + snapshot.day + " / " + totalDays : snapshot.phase === "gather" ? "Buổi sáng" : "Buổi tối");
     $("journey-stock-panel").hidden = !["day_intro", "evening_intro", "shop"].includes(current);
     $("journey-menu-panel").hidden = !["day_intro", "evening_intro"].includes(current);
+    const stock = snapshot.stock ?? receivedInventory(day.gather) ?? {};
+    const itemized = Array.isArray(stock);
+    $("shop-freshness-note").hidden = current !== "shop" || !itemized;
     $("shop-upgrades").hidden = current !== "shop";
     $("journey-stats").hidden = !["day_result", "summary", "shop"].includes(current);
     $("journey-end").hidden = current !== "summary";
@@ -212,16 +217,17 @@ export function createCampaignView({ $, write, update, element, itemList, money,
       write("journey-stock-title", "Nguyên liệu cần tìm");
       write("journey-menu-title", "Món dự kiến");
       inventory(plan?.ingredients ?? {});
-      list("journey-menu", (plan?.dishes ?? []).map(dishName));
+      list("journey-menu", plannedDishes(snapshot, tuning).map((id) =>
+        dishName(id) + (plan?.dishes?.[id] ? " ×" + plan.dishes[id] : "")));
       nextButton(current, "Ra sông");
     } else if (current === "evening_intro") {
-      const stock = day.gather?.inventory?.items ?? snapshot.stock ?? {};
-      const dishes = plannedDishes(snapshot, tuning).filter((id) => hasRecipe(stock, tuning.menu[id].recipe));
+      const usable = availableCounts({ stock }, tuning.freshness);
+      const dishes = plannedDishes(snapshot, tuning).filter((id) => hasRecipe(usable, tuning.menu[id].recipe));
       write("journey-title", "Nhóm bếp trên nhà bè");
-      write("journey-copy", Object.keys(stock).length ? "Mẻ thu hoạch đã nhập kho. Mình coi bữa nay nấu được món gì." : "Kho rỗng." + (day.gather?.reason === "fainted" ? " Út Sen bị ngất, giỏ đã rơi hết." : ""));
+      write("journey-copy", inventoryHasItems(stock) ? "Mẻ thu hoạch đã nhập kho. Mình coi bữa nay nấu được món gì." : "Kho rỗng." + (day.gather?.reason === "fainted" ? " Út Sen bị ngất, giỏ đã rơi hết." : ""));
       write("journey-stock-title", "Nguyên liệu nhập kho");
-      write("journey-menu-title", "Món đủ nguyên liệu");
-      inventory(stock);
+      write("journey-menu-title", itemized ? "Món đủ nguyên liệu tươi" : "Món đủ nguyên liệu");
+      inventory(stock, true);
       list("journey-menu", dishes.length ? dishes.map(dishName) : ["Chưa đủ nguyên liệu"]);
       nextButton(current, "Mở quán");
     } else if (current === "day_result") {
