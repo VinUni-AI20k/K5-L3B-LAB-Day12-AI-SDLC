@@ -45,7 +45,8 @@ class Contract(unittest.TestCase):
             self.assertEqual(s["hold_capacity"], tuning_gather()["hold_capacity"])
             # Lý do đổi test (v1.1, TICKET-02 mục 1.1/4.1): fish_initial tăng 6 -> 8 đàn,
             # thêm loài ca_keo và nút keo_neo N5/N6 theo số chuẩn Phase 2.
-            self.assertEqual(len(s["fish"]), 8)
+            # Số đàn đọc từ preset (không hard-code); test_p2_contract.py kiểm riêng "đúng 8 đàn".
+            self.assertEqual(len(s["fish"]), len(tuning_gather()["fish_initial"]))
             self.assertTrue(all(n["pos"][1] == 0 for n in s["nodes"]))
 
     def test_con_02_deterministic_bytes(self):
@@ -223,7 +224,8 @@ class Integration(unittest.TestCase):
             code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], {"bong_sung": 2, "ca_loc": 1})
+            stock = snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"]  # v1.2: quán giữ kho cá thể
+            self.assertEqual(counts({"items": stock}), {"items": {"bong_sung": 2, "ca_loc": 1}})
 
     def test_inv_01_not_written_when_tick_limit_first(self):
         with Workdir() as w:

@@ -77,7 +77,8 @@ def items_out(items) -> list:
     return [item_out(it) for it in sort_by_id(items)]
 
 
-def read_inventory(path: str, kinds=KINDS_ALL) -> list:
+def read_inventory(path: str, kinds=KINDS_ALL, version="1.2") -> list:
+    """`version` giữ cho bên gọi (headless); chỉ còn hỗ trợ v1.2 — kho đếm trả mã 2."""
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)

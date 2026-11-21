@@ -15,6 +15,36 @@ def contract_tuning(mode):
         return json.load(f)["tuning"][mode]
 
 
+def contract_version():
+    with open("game.contract.json", encoding="utf-8") as f:
+        return json.load(f)["contract_version"]
+
+
+def contract_all():
+    with open("game.contract.json", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# Test Phase 2 chỉ chạy khi game.contract.json đã chuyển sang v1.1 (Integrator đổi khi tích hợp xong),
+# để nhánh chính không đỏ trong lúc các lát Phase 2 đang làm. Khi đổi sang 1.1, các test này tự bật.
+import unittest  # noqa: E402
+
+requires_v11 = unittest.skipUnless(contract_version() == "1.1", "chờ contract_version 1.1 (Phase 2)")
+
+
+def run_day(w, scenario=None, inp=None, days=1, ticks=10, every=1, seed=1):
+    """Chạy `--mode day` với scenario nhiều khối ({day, gather, quan}); trả danh sách dòng JSONL."""
+    args = ["--mode", "day", "--days", str(days), "--seed", str(seed), "--ticks", str(ticks),
+            "--snapshot-every", str(every), "--out", w.path("o.jsonl")]
+    if scenario is not None:
+        args += ["--scenario", write_json(w.path("sc.json"), scenario)]
+    if inp is not None:
+        args += ["--inputs", write_json(w.path("in.json"), inp)]
+    code, err = run_headless(*args)
+    assert code == 0, f"headless thoát mã {code}: {err}"
+    return read_jsonl(w.path("o.jsonl"))
+
+
 def run_mode(w, mode, block, inp=None, ticks=10, every=1, inv_out=None, seed=1):
     """Chạy headless với scenario `{mode: block}` và inputs tùy chọn; trả danh sách dòng JSONL.
 

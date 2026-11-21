@@ -3,7 +3,7 @@
 import math
 
 from ..ids import id_key, sort_by_id
-from ..inventory import hold_to_items
+from ..inventory import hold_to_items, items_out
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -24,10 +24,10 @@ class QuanSim:
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
         self._tgt = None
         self._ramp_left = 0
-        # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        # shortcut: kho cá thể v1.2 từ --inventory được gộp về kho đếm (mất id/fresh) — lát 3 thay
-        # bằng kho cá thể + giữ theo id + giá theo fresh.
-        self.stock = dict(hold_to_items(inventory) if inventory is not None else scenario.get("stock", {}))
+        # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2).
+        # v1.2: --inventory là mảng cá thể {id, kind, fresh}; scenario.stock vẫn là kho đếm.
+        raw_stock = inventory if inventory is not None else scenario.get("stock", {})
+        self.stock = [dict(it) for it in raw_stock] if isinstance(raw_stock, list) else dict(raw_stock)
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
@@ -76,9 +76,13 @@ class QuanSim:
 
     def snapshot(self) -> dict:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
+        if isinstance(self.stock, list):
+            stock_snap = items_out(self.stock)
+        else:
+            stock_snap = {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}
         return {
             "player": {"pos": self.pos},
-            "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
+            "stock": stock_snap,
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
@@ -182,7 +186,7 @@ class QuanSim:
             dish = self.menu[customer["dish_id"]]
             # Reserved stock is consumed only when cooking starts.
             for kind, amount in recipe.items():
-                self.stock[kind] -= amount
+                self._consume(kind, amount)
             customer["reserved"] = {}
             customer["order_status"] = "assigned"
             payload = {"order_id": customer["id"], "dish_id": customer["dish_id"],
@@ -261,9 +265,24 @@ class QuanSim:
                     totals[kind] = totals.get(kind, 0) + amount
         return totals
 
+    def _stock_counts(self):
+        return hold_to_items(self.stock) if isinstance(self.stock, list) else self.stock
+
+    def _consume(self, kind, amount):
+        """Tiêu kho lúc bắt đầu nấu.
+        shortcut: giữ chỗ còn theo lượng, nên kho cá thể tiêu `amount` cá thể tươi nhất (hòa id) của
+        loại; lát 3 thay bằng giữ theo id, hao 0.25/s, bỏ hàng ươn và giá theo fresh."""
+        if not isinstance(self.stock, list):
+            self.stock[kind] -= amount
+            return
+        pick = sorted((it for it in self.stock if it["kind"] == kind),
+                      key=lambda it: (-it["fresh"], id_key(it["id"])))[:amount]
+        for it in pick:
+            self.stock.remove(it)
+
     def _available_stock(self):
         reserved = self._reserved_totals()
-        return {kind: amount - reserved.get(kind, 0) for kind, amount in self.stock.items()}
+        return {kind: amount - reserved.get(kind, 0) for kind, amount in self._stock_counts().items()}
 
     def _customer_left(self, customer, reason, events):
         if reason == "patience":
