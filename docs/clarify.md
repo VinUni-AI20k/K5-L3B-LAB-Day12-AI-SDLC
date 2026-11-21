@@ -9,6 +9,8 @@
 | 5 | 2026-11-21 | Lát G2 yêu cầu N5 [76,0], N6 [90,0] và cá kèo yield 2. Nhóm có đồng ý mở khóa dữ liệu Gather và mở rộng các loại nguyên liệu hợp lệ không? Nếu cá kèo xuất hiện mặc định thì đàn nào, ở đâu? | Chờ PO chốt. | PO (nganhduong123) |
 | 6 | 2026-11-21 (P2) | Ticket-02 quy định tốc độ, độ sâu tối thiểu, chu kỳ và góc đổi hướng, lịch sinh đàn và sự kiện sinh cá thế nào? | Mô phỏng đã đọc tuning tùy chọn. Chờ đối chiếu Ticket-02 đầy đủ và chốt tên khóa, quy tắc và giá trị trước khi đưa vào contract chung. | PO + Integrator (invzble-z) |
 | 7 | 2026-11-21 | Khi nào bàn giao kho từ buổi sáng sang quán? | Hợp nhất mode `day`: khi buổi Gather kết thúc bằng cập bến, hết giờ hoặc ngất, kho được bàn giao sang Quan ngay trong cùng tiến trình. | PO |
+| 8 | 2026-11-21 (P2) | Xác nhận các giá trị chính thức của `fish_x`, `fish_depths`, `fish_spawn_x`, `fish_spawn_depths` và phạm vi áp dụng khoảng cách sinh cá. Khi nào đổi `fish_initial` từ mảng sang số và cập nhật validator? | Lát cá đã kiểm thử với tuning riêng. Tạm hiểu x và độ sâu là danh sách tọa độ, chọn điểm sinh cách các đàn hiện có hơn ngưỡng và bỏ lượt nếu hết điểm hợp lệ. Chờ chốt contract cùng validator. | PO + Integrator (invzble-z) |
+| 9 | 2026-11-21 (P3) | Adapter sẽ truyền `contract_version` vào tuning của Gather và dùng API nào để bàn giao mảng cá thể cho `--inventory-out`? JSONL hiện làm tròn float đến 3 chữ số. `fresh` trong sự kiện có cần khớp nguyên giá trị ghi file kho không? | Gather hiện dùng kiểu tạm, tính bằng Fraction và trả mảng cá thể khi tuning có `contract_version: "1.2"`. Chờ API kho chung và quy tắc serialize trước khi kiểm chứng xuất file đầu cuối. | PO + Integrator |
 
 ## Draft for PO — Q3 D-01..D-09 (2026-11-21)
 
