@@ -7,12 +7,12 @@
 
 | Sự kiện | `data` | Lát | Trạng thái |
 |---|---|---|---|
-| `dive` | `{pos}` | Lát 1 | xong |
-| `surface` | `{pos}` | Lát 1 | xong |
-| `oxygen_empty` | `{pos}` | Lát 1 | xong |
+| `dive` | `{pos}` (chưa đối chiếu PRD-0) | Lát 1 | xong |
+| `surface` | `{pos}` (chưa đối chiếu PRD-0) | Lát 1 | xong |
+| `oxygen_empty` | `{oxygen_ticks: 0}` | Lát 1 | xong |
 | `choke` | `{hp}` | Lát 1 | xong |
-| `faint` | `{pos, hp: 0, lost, cause?}` — `lost`: mảng kind theo LIFO; `cause: "monster"` nếu do Cá Sấu (v1.1) | Lát 1 | xong |
-| `hold_full` | `{kind, count, hold_count, hold_capacity}` | Lát 1 — phát trong `_add_to_hold` | xong |
+| `faint` | `{cause, hp: 0, lost}` — cause: choke/monster; `lost`: mảng kind theo LIFO | Lát 1 | xong |
+| `hold_full` | `{action, fish_id \| node_id, required, free}` | Lát 1 — phát trong `_add_to_hold`, lát 2 truyền `source` | xong |
 | `node_regrown` | `{node_id}` | khung | có sẵn |
 | `gather_end` | `{reason, inventory: {items}}` | khung | có sẵn |
 | `gather` | … | Lát 2 | |

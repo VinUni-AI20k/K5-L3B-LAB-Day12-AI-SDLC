@@ -152,7 +152,7 @@ class GatherSim:
         before = self.oxygen_ticks
         self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
         if before > 0 and self.oxygen_ticks == 0:
-            events.append(("oxygen_empty", {"pos": list(self.pos)}))
+            events.append(("oxygen_empty", {"oxygen_ticks": self.oxygen_ticks}))
         if self.oxygen_ticks > 0:
             self.zero_oxy_ticks = 0
             return False
@@ -165,25 +165,22 @@ class GatherSim:
         events.append(("choke", {"hp": self.hp}))
         if self.hp > 0:
             return False
-        self._faint(events)
+        self._faint(events, "choke")
         return True
 
-    def _faint(self, events, cause=None):
-        """Máu về 0: mất toàn bộ giỏ, faint rồi gather_end(fainted). Cá Sấu gọi với cause="monster"."""
-        data = {"pos": list(self.pos), "hp": 0, "lost": list(reversed(self.hold))}  # lost theo LIFO
-        if cause:
-            data["cause"] = cause
+    def _faint(self, events, cause):
+        """Máu về 0: mất toàn bộ giỏ, faint rồi gather_end(fainted). cause: "choke" hoặc "monster"."""
+        events.append(("faint", {"cause": cause, "hp": 0, "lost": list(reversed(self.hold))}))  # lost theo LIFO
         self.hold = []
-        events.append(("faint", data))
         self._finish("fainted", events)
 
-    def _add_to_hold(self, kind, n, events) -> bool:
+    def _add_to_hold(self, kind, n, events, source=None) -> bool:
         """Thêm n món `kind` vào giỏ (cuối mảng = mới nhất, LIFO).
-        Không đủ chỗ cho cả n -> không thêm gì, phát hold_full, trả False (giả định, xem docs/clarify.md)."""
+        Không đủ chỗ cho cả n -> không thêm gì, phát hold_full {**source, required, free}, trả False.
+        source: {"action": "catch", "fish_id": ...} hoặc {"action": "gather", "node_id": ...}."""
         cap = int(self.t["hold_capacity"])
         if len(self.hold) + n > cap:
-            events.append(("hold_full", {"kind": kind, "count": n, "hold_count": len(self.hold),
-                                         "hold_capacity": cap}))
+            events.append(("hold_full", {**(source or {}), "required": n, "free": cap - len(self.hold)}))
             return False
         self.hold.extend([kind] * n)
         return True
