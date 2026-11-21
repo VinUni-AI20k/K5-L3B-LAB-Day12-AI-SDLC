@@ -1,6 +1,6 @@
 # Ma trận truy vết Phase 1
 
-Kiểm chứng mới nhất chạy trên `Quoosc` tại `f67767b`; proof script báo 189 test OK (5 expected failures thuộc các regression DaySim/Runner về sau) và headless 9/9 bước đạt. Xem [verify-run.txt](../proof/phase-1/verify-run.txt).
+Kiểm chứng mới nhất chạy trên `Quoosc` tại `e9a9c12`; proof script báo 201 test OK (5 expected failures thuộc DaySim/Runner) và headless 9/9 bước đạt. Xem [verify-run.txt](../proof/phase-1/verify-run.txt).
 
 | AC | Cách kiểm chứng | Bằng chứng | Kết quả |
 |---|---|---|---|
@@ -16,6 +16,6 @@ Kiểm chứng mới nhất chạy trên `Quoosc` tại `f67767b`; proof script 
 ## Đánh giá ngắn
 
 - Các hành vi luật P1 Gather, Q3 customer/reservation/patience, Q4 cook/serve và kho có unit/integration coverage; full suite đang pass.
-- `verify_phase1.py` chạy thật trên commit `f67767b`, Python 3.11.9 Windows; shim xử lý alias `python3` của Microsoft Store, không sửa contract.
+- `verify_phase1.py` chạy thật trên commit `e9a9c12`, Python 3.11.9 Windows; shim xử lý alias `python3` của Microsoft Store, không sửa contract.
 - Ticket gốc PRD-0/Test Contract không có đầy đủ trong checkout. Q3 decisions đang được đối chiếu theo PO clarify; không tuyên bố giảng viên đã nghiệm thu.
 - Năm expected failures trong full suite là regressions DaySim/Runner của Phase 2, không phải expected pass cho AC Phase 1.

@@ -10,8 +10,8 @@
 | AC-P3-06 | Test `faint`/`monster_hit` lost LIFO dạng Item | — | Chưa xác nhận bằng proof của chủ lát/QA |
 | AC-P3-07 | smoke hai tiến trình gather→inventory→quan | — | Chưa có proof mới ở nhánh này |
 | AC-P3-08 | `tests.test_p3_inventory` day handoff | [`inventory-day-test.txt`](../proof/phase-3/inventory-day-test.txt) | Đạt theo proof Bào: giữ ID/kind/fresh và allocator xuyên ngày |
-| AC-P3-09 | live HUD screenshot | — | Chưa có proof mới ở nhánh này |
-| AC-P3-10 | full unittest regression | [`phase-1/verify-run.txt`](../proof/phase-1/verify-run.txt) | 189 tests OK, 5 expected failures còn thuộc DaySim/Runner; exit code thật được ghi trong proof |
+| AC-P3-09 | live HUD screenshot + `tests.test_p3_hud_fresh` | [`hud-fresh/README.md`](../proof/phase-3/hud-fresh/README.md), [`hud-fresh/run.txt`](../proof/phase-3/hud-fresh/run.txt) | Đạt phía client: mock v1.1/v1.2 và live v1.2 hiển thị kho/độ tươi; không console error. Không xác nhận hợp đồng v1.2 mặc định đầu-cuối |
+| AC-P3-10 | full unittest regression | [`phase-1/verify-run.txt`](../proof/phase-1/verify-run.txt) | 201 tests OK, 5 expected failures còn thuộc DaySim/Runner; exit code thật được ghi trong proof |
 
 ## Q3 implementation notes
 
@@ -20,3 +20,4 @@
 - Khi item được giữ vượt ngưỡng ươn, phát `spoiled`, nhả toàn bộ reservation và thử lại một lần. Nếu thiếu item, order giữ trạng thái customer waiting, bỏ reservation, ghi `order_status: unfulfillable` và phát event payload đang đề xuất.
 - Event `unfulfillable` chưa có trong shared contract; xem [clarify #16](../clarify.md) và [Q3 handoff](../../specs/002-p3-q3-freshness/handoff.md). Không báo AC-P3-04 là nghiệm thu nhóm.
 - `game.contract.json` vẫn ở 1.1; adapter v1.2 có test riêng, nhưng kích hoạt manifest và validation scenario/headless do Integrator/QA phối hợp.
+- AC-P3-07 smoke hai tiến trình gather→inventory→quan và AC-P3-06 lost LIFO dạng Item chưa có proof mới trong bộ này; không suy diễn pass từ test handoff trong tiến trình DaySim.

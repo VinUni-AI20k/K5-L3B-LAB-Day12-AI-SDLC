@@ -1,11 +1,11 @@
 Kiểm chứng Phase 1 (verify_phase1.py)
-Thời điểm (UTC): 2026-11-21 08:26
-Commit: f67767b trên nhánh Quoosc
+Thời điểm (UTC): 2026-11-21 08:29
+Commit: e9a9c12 trên nhánh Quoosc
 Python: 3.11.9 (win32)
 python3: python3 trên Windows là lối tắt Store; dùng shim venv (python3.exe) trong thư mục tạm
 
 $ PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
-[ĐẠT] unittest — chạy 189 test, OK (expected failures=5)
+[ĐẠT] unittest — chạy 201 test, OK (expected failures=5)
 $ python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out gather.jsonl --inventory-out inv.json
 $ python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out gather.jsonl --inventory-out inv.json   (lần 2)
 [ĐẠT] headless gather chạy được — mã thoát 0, sự kiện {'snapshot': 61, 'end': 1}
