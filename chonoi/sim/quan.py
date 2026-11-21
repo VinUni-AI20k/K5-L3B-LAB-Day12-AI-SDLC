@@ -2,18 +2,18 @@
 
 Nhóm viết tiếp (PRD-0 mục F, Quán):
   Lát 3 (minhtriet061203) — ĐÃ LÀM: khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu,
-                     kiên nhẫn, bỏ đi (customer_left), no_dish, vòng đời khách, khách dựng từ scenario.
+                     kiên nhẫn, bỏ đi (customer_left patience/closing), no_dish, khách dựng từ scenario.
   TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
-                     ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
+                     ăn xong trả tiền (paid finished_eating/closing), boa, uy tín.
 
-Cấu trúc khách: theo docs/contracts/README.md mục 4 (order_id = id khách):
+Cấu trúc khách: PRD-0 mục D + docs/contracts/README.md mục 4 (order_id = id khách):
   {"id","table_id","dish_id","order_tick","state","patience_ticks_left","eat_ticks_left",
    "order_status","reserved","base_price","tip"}
   state: waiting -> eating; order_status: reserved (lát 3) -> assigned -> served (lát 4); unfulfillable (fixture).
 Kho khả dụng = tồn (`stock`) − tổng `reserved` của mọi khách (xem `available()`).
 """
 
-from ..ids import sort_by_id
+from ..ids import id_key, sort_by_id
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -160,30 +160,45 @@ class QuanSim:
         }
 
     def step(self, inp):
+        """Thứ tự theo PRD-0 mục F (Quán), đánh số 1–5 như PRD."""
         events = []
+        # 1. đồng hồ, timer ca, nấu, ăn, kiên nhẫn
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        self._tick_patience(events)
-        # TODO(nhóm, lát 4): nấu / ăn; bếp chín -> ready.
+        # TODO(nhóm, lát 4): giảm cook_ticks_left / eat_ticks_left; tăng ready_ticks cho món ready từ đầu bước.
+        self._tick_patience()
+        # 2. TODO(nhóm, lát 4): xét bếp theo id, món nấu xong -> ready (ready_ticks = 0), dish_ready.
+        # 3. di chuyển rồi tối đa MỘT interact
         self._move(inp)
-        # TODO(nhóm, lát 4): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
-        if self.time_left_ticks > 0:
-            self._spawn_customer(events)
+        # TODO(nhóm, lát 4): interact chọn theo (khoảng cách, bếp trước bàn, id).
+        # 4. theo id bàn: ăn xong trả tiền / hết kiên nhẫn / hết ca; dọn xong -> quan_end
+        self._settle_tables(events)
         if self.time_left_ticks <= 0:
-            # TODO(nhóm, lát 4): khách đang ăn trả ngay (closing), khách chờ rời không trừ uy tín.
             self.done = True
             self.reason = "time"
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
+            return events
+        # 5. còn giờ: lượt khách mới
+        self._spawn_customer(events)
         return events
 
-    def _tick_patience(self, events):
-        """Khách đang chờ mất 1 tick kiên nhẫn; về 0 -> customer_left patience, uy tín giảm."""
-        for c in sort_by_id(self.customers):
-            if c["state"] != "waiting":  # khách đang ăn không giảm kiên nhẫn (clarify #9)
+    def _tick_patience(self):
+        """Bước 1: khách đang chờ mất 1 tick kiên nhẫn (không âm). Rời bàn xét ở bước 4."""
+        for c in self.customers:
+            if c["state"] == "waiting":  # khách đang ăn không giảm kiên nhẫn (clarify #9)
+                c["patience_ticks_left"] = max(0, c["patience_ticks_left"] - 1)
+
+    def _settle_tables(self, events):
+        """Bước 4, theo id bàn. Phục vụ đúng tick kiên nhẫn về 0 (bước 3) thì khách đã eating, không rời."""
+        closing = self.time_left_ticks <= 0
+        for c in sorted(self.customers, key=lambda x: id_key(x["table_id"])):
+            if c["state"] == "eating":
+                # TODO(nhóm, lát 4): eat_ticks_left == 0 -> paid finished_eating; hết ca -> paid closing; rời bàn.
                 continue
-            c["patience_ticks_left"] = max(0, c["patience_ticks_left"] - 1)
-            if c["patience_ticks_left"] == 0:
+            if closing:
+                self._customer_left(c, "closing", events)  # không trừ uy tín
+            elif c["patience_ticks_left"] == 0:
                 self._customer_left(c, "patience", events, rep_delta=self.t["left_reputation_delta"])
 
     def _is_arrival_tick(self) -> bool:

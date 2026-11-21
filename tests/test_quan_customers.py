@@ -22,6 +22,7 @@ FIRST = Q["first_customer_tick"]
 INTERVAL = int(round(Q["customer_interval_s"] * 60))
 PATIENCE = int(round(Q["patience_s"] * 60))
 IDLE = InputState((0.0, 0.0), set(), set())
+PAY = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": TUNING["menu"]["ca_loc_nuong_trui"]["price"]}
 
 
 def make(scenario=None, seed=1, inventory=None, tuning=None):
@@ -202,6 +203,62 @@ class Patience(unittest.TestCase):
         self.assertEqual(sim.customers[0]["patience_ticks_left"], 1)
 
 
+class StepOrder(unittest.TestCase):
+    """PRD-0 mục F (Quán): kiên nhẫn giảm ở bước 1, rời bàn ở bước 4 (sau interact), khách mới ở bước 5."""
+
+    def _one(self, **kw):
+        c = dict({"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "patience_ticks_left": 1}, **kw)
+        return {"stock": {"ca_loc": 1}, "random_customers": False, "customers": [c]}
+
+    def test_served_on_the_tick_patience_hits_zero_does_not_leave(self):
+        class ServeInStep3(QuanSim):  # giả lập lát 4: phục vụ ở bước 3 (interact)
+            def _move(self, inp):
+                super()._move(inp)
+                for c in self.customers:
+                    c.update(state="eating", order_status="served", eat_ticks_left=600, reserved={})
+
+        sim = ServeInStep3(TUNING, self._one(), Streams(1), IdAllocator())
+        ev = sim.step(IDLE)
+        self.assertEqual(ev, [])
+        self.assertEqual(sim.customers[0]["patience_ticks_left"], 0, "bước 1 đã giảm về 0 trước khi phục vụ")
+
+    def test_leave_then_new_customer_same_tick(self):
+        sim = make({"stock": {"ca_loc": 2},
+                    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                                   "patience_ticks_left": FIRST}]})
+        ev = run_until(sim, FIRST)
+        self.assertEqual([(tk, n, d["order_id"]) for tk, n, d in ev],
+                         [(FIRST, "customer_left", "C1"), (FIRST, "customer_arrived", "C2")])
+
+    def test_closing_waiting_customer_leaves_without_penalty(self):
+        sc = self._one(patience_ticks_left=100)
+        sc["time_left_ticks"] = 1
+        sim = make(sc)
+        ev = sim.step(IDLE)
+        self.assertEqual([n for n, _ in ev], ["customer_left", "quan_end"])
+        self.assertEqual(ev[0][1]["reason"], "closing")
+        self.assertEqual(sim.reputation, Q["reputation_initial"])
+        self.assertEqual(sim.snapshot()["customers"], [])
+
+    def test_patience_zero_at_closing_is_closing_not_patience(self):
+        sc = self._one(patience_ticks_left=1)
+        sc["time_left_ticks"] = 1
+        sim = make(sc)
+        ev = sim.step(IDLE)
+        self.assertEqual(ev[0][1]["reason"], "closing")
+        self.assertEqual(sim.reputation, Q["reputation_initial"])
+
+    def test_no_new_customer_when_shift_ends(self):
+        sim = make({"stock": {"ca_loc": 1}, "time_left_ticks": FIRST})
+        ev = run_until(sim, FIRST)
+        self.assertEqual([n for _, n, _ in ev], ["quan_end"])
+
+    def test_schedule_uses_phase_tick_even_when_shift_shortened(self):
+        sim = make({"stock": {"ca_loc": 1}, "time_left_ticks": FIRST + 1})
+        ev = run_until(sim, FIRST)
+        self.assertEqual([(tk, n) for tk, n, _ in ev], [(FIRST, "customer_arrived")])
+
+
 class Fixture(unittest.TestCase):
     """AC-P1-34: fixture quan.customers + mâu thuẫn -> mã 2 (trước khi ghi output)."""
 
@@ -234,7 +291,7 @@ class Fixture(unittest.TestCase):
             {"stock": {}, "customers": [base]},                                              # giữ chỗ quá kho
             {"stock": {"ca_loc": 1}, "customers": [dict(base, dish_id="pho")]},              # món lạ
             {"stock": {"ca_loc": 1}, "customers": [dict(base, state="angry")]},              # state lạ
-            {"stock": {"ca_loc": 1}, "customers": [dict(base, patience_ticks_left=0)]},      # đã hết kiên nhẫn
+            {"stock": {"ca_loc": 1}, "customers": [dict(base, patience_ticks_left=-1)]},     # bộ đếm âm
             {"stock": {"ca_loc": 1}, "customers": [dict(base, patience_ticks_left=PATIENCE + 1)]},
             {"stock": {"ca_loc": 1}, "customers": [dict(base, reserved={"ca_loc": 2})]},     # giữ sai công thức
             {"stock": {"ca_loc": 1}, "customers": [dict(base, mood=1)]},                     # trường lạ
@@ -247,10 +304,34 @@ class Fixture(unittest.TestCase):
              "hand": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}},  # unfulfillable có món
             {"stock": {"ca_loc": 1}, "customers": [dict(base, order_id="C1")]},              # trường cũ
             {"random_customers": "yes"},
+            # liên kết payload món <-> đơn (PRD-0 mục D)
+            {"hand": dict(PAY, order_id="C9")},                                              # liên kết thiếu
+            {"customers": [dict(base, order_status="assigned")],
+             "hand": dict(PAY, dish_id="goi_bong_sung")},                                    # món không khớp đơn
+            {"customers": [dict(base, order_status="assigned")], "hand": dict(PAY, base_price=1)},
+            {"customers": [dict(base, order_status="assigned")], "hand": PAY,
+             "stoves": [{"id": "B1", "state": "ready", "dish": PAY}]},                       # bếp và tay cùng đơn
+            {"customers": [dict(base, order_status="assigned")],
+             "stoves": [{"id": "B1", "state": "cooking", "dish": PAY, "cook_ticks_left": 0}]},  # cooking timer 0
+            {"stoves": [{"id": "B1", "state": "idle", "cook_ticks_left": 5}]},               # idle có timer
+            {"stoves": [{"id": "B1", "state": "burnt"}]},
         ]
         for block in bad:
             with self.subTest(block=block):
                 self.assertEqual(self._code(block), 2)
+
+    def test_valid_links_exit_0(self):
+        base = {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+        ok = [
+            {"stock": {"ca_loc": 1}, "customers": [dict(base, patience_ticks_left=0)]},      # timer không âm
+            {"customers": [dict(base, order_status="assigned")], "hand": PAY},
+            {"customers": [dict(base, order_status="assigned")],
+             "stoves": [{"id": "B1", "state": "cooking", "dish": PAY, "cook_ticks_left": 30}]},
+            {"customers": [dict(base, order_status="unfulfillable")]},
+        ]
+        for block in ok:
+            with self.subTest(block=block):
+                self.assertEqual(self._code(block), 0)
 
     def test_reserved_over_inventory_file_exit_2(self):
         with Workdir() as w:

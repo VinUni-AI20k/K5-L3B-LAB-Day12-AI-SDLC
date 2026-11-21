@@ -1,10 +1,11 @@
 """Nạp và kiểm scenario (Contract D). Trả về dict của đúng khối theo mode.
 
 KHUNG: kiểm cú pháp, id trùng, bộ đếm âm, khoang vượt sức chứa, trường lạ.
-Lát 3 (quan.customers, trường theo docs/contracts/README.md mục 4): trường lạ, bàn có thật / không trùng,
-món có trong menu, state/order_status hợp lệ, kiên nhẫn trong [1, patience] khi chờ, giữ chỗ đúng công thức,
-đơn assigned có đúng một món (bếp/tay), unfulfillable không có món và không giữ chỗ (clarify #2),
-khách eating đủ eat_ticks_left/base_price/tip, khách giữ chỗ quá kho -> mã 2.
+Lát 3 (quan.customers, PRD-0 mục D): trường lạ, bàn có thật / không trùng, món có trong menu,
+state/order_status hợp lệ, kiên nhẫn trong [0, patience] khi chờ, giữ chỗ đúng công thức / không quá tồn,
+đơn assigned có đúng một món (bếp/tay), unfulfillable không có món và không giữ chỗ,
+khách eating đủ eat_ticks_left/base_price/tip; payload món trỏ tới khách có thật và khớp đơn,
+bếp cooking có timer dương, bếp idle không có món -> mã 2.
 (Kho từ --inventory thì QuanSim kiểm giữ chỗ quá kho, vẫn trước khi ghi output.)
 """
 
@@ -171,6 +172,7 @@ def _validate_quan(b, tuning):
     if "random_customers" in b and not isinstance(b["random_customers"], bool):
         raise BadInput("random_customers phải là boolean")
     _validate_customers(b, tuning)
+    _validate_dish_links(b, tuning)
 
 
 def _dishes_for(order_id, b):
@@ -214,8 +216,8 @@ def _validate_customers(b, tuning):
                 raise BadInput(f"{cid}: khách đang chờ có order_status trong {ORDER_STATUS_WAITING}")
             if "patience_ticks_left" in c:
                 pt = c["patience_ticks_left"]
-                if isinstance(pt, bool) or not isinstance(pt, int) or not (1 <= pt <= patience):
-                    raise BadInput(f"{cid}: patience_ticks_left phải là số nguyên trong [1, {patience}]")
+                if isinstance(pt, bool) or not isinstance(pt, int) or not (0 <= pt <= patience):
+                    raise BadInput(f"{cid}: patience_ticks_left phải là số nguyên trong [0, {patience}]")
             for k in ("eat_ticks_left", "base_price", "tip"):
                 if c.get(k, 0) != 0:
                     raise BadInput(f"{cid}: khách đang chờ có {k} = 0")
@@ -254,3 +256,53 @@ def _validate_customers(b, tuning):
         for k in sorted(reserved_total):
             if reserved_total[k] > b["stock"].get(k, 0):
                 raise BadInput(f"khách giữ chỗ {reserved_total[k]} {k} nhưng stock chỉ có {b['stock'].get(k, 0)}")
+
+
+PAYLOAD_KEYS = {"order_id", "dish_id", "base_price"}
+STOVE_KEYS = {"id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks"}
+STOVE_STATES = ("idle", "cooking", "ready")
+
+
+def _validate_payload(name, p, customers, menu):
+    """Payload món {order_id, dish_id, base_price}: order_id = id khách có thật, món khớp đơn, giá đã chốt."""
+    if not isinstance(p, dict) or set(p) != PAYLOAD_KEYS:
+        raise BadInput(f"{name}: payload món phải có đúng {sorted(PAYLOAD_KEYS)}")
+    c = customers.get(p["order_id"])
+    if c is None:
+        raise BadInput(f"{name}: order_id {p['order_id']!r} không trỏ tới khách nào (liên kết thiếu)")
+    if p["dish_id"] != c.get("dish_id"):
+        raise BadInput(f"{name}: món {p['dish_id']!r} không khớp đơn {p['order_id']}")
+    if isinstance(p["base_price"], bool) or p["base_price"] != menu[c["dish_id"]]["price"]:
+        raise BadInput(f"{name}: base_price phải bằng giá món {menu[c['dish_id']]['price']}")
+
+
+def _validate_dish_links(b, tuning):
+    """PRD-0 mục D: món trên bếp/tay phải khớp đơn; bếp cooking có timer dương; bếp idle không có món."""
+    menu = tuning["menu"]
+    customers = {c["id"]: c for c in b.get("customers", [])}
+    if b.get("hand") is not None:
+        _validate_payload("hand", b["hand"], customers, menu)
+    qb = tuning["quan"]["bounds"]
+    for st in b.get("stoves", []):
+        sid = f"stoves.{st['id']}"
+        extra = set(st) - STOVE_KEYS
+        if extra:
+            raise BadInput(f"{sid}: trường lạ/chưa hỗ trợ {sorted(extra)}")
+        if "pos" in st:
+            _pos(f"{sid}.pos", st["pos"], qb, axes=("x", "z"))
+        state = st.get("state", "idle")
+        if state not in STOVE_STATES:
+            raise BadInput(f"{sid}: state phải là một trong {STOVE_STATES}")
+        for k in ("cook_ticks_left", "ready_ticks"):
+            if k in st:
+                _nonneg_int(f"{sid}.{k}", st[k])
+        dish = st.get("dish")
+        if state == "idle":
+            if dish is not None or st.get("cook_ticks_left", 0) or st.get("ready_ticks", 0):
+                raise BadInput(f"{sid}: bếp idle không có món và bộ đếm bằng 0")
+            continue
+        _validate_payload(f"{sid}.dish", dish, customers, menu)
+        if state == "cooking" and st.get("cook_ticks_left", 0) <= 0:
+            raise BadInput(f"{sid}: bếp cooking phải có cook_ticks_left dương")
+        if state == "ready" and st.get("cook_ticks_left", 0) != 0:
+            raise BadInput(f"{sid}: bếp ready có cook_ticks_left = 0")
