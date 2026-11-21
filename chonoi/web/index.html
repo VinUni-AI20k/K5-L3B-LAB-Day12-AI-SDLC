@@ -402,51 +402,104 @@ function drawGather(w, h) {
     ctx.restore();
   });
 
-  // 6. VẼ ĐÀN CÁ (CÁ LINH & CÁ LÓC UỐN LƯỢN SINH ĐỘNG)
-  (snap.fish || []).forEach((f) => {
-    const fx = sx(f.pos[0]);
-    const fy = sy(f.pos[1]);
-    const swimCycle = Math.sin(time * 6 + f.pos[0] * 3);
-    
+  // 6. VẼ ĐÀN CÁ (CÁ LINH & CÁ LÓC BƠI LƯỢN TUẦN TRA & PHẢN ỨNG TỰ NHIÊN)
+  (snap.fish || []).forEach((f, idx) => {
+    // Thuật toán bơi tuần tra (Ambient Roaming) quanh tọa độ gốc
+    const seed = (f.id.charCodeAt(0) * 17 + (f.id.charCodeAt(1) || 0) * 31 + idx * 13) % 100;
+    const roamSpeed = f.kind === "ca_linh" ? 1.4 + (seed % 10) * 0.08 : 0.8 + (seed % 10) * 0.05;
+    const roamRadiusX = f.kind === "ca_linh" ? 0.85 : 0.55;
+    const roamRadiusD = f.kind === "ca_linh" ? 0.28 : 0.16;
+    const phase = seed * 0.628;
+
+    // Vị trí tuần tra thời gian thực
+    let offX = Math.sin(time * roamSpeed + phase) * roamRadiusX;
+    let offD = Math.cos(time * roamSpeed * 0.7 + phase) * roamRadiusD;
+
+    // Vận tốc tức thời để xác định hướng nhìn (facing)
+    const velX = Math.cos(time * roamSpeed + phase);
+    let facing = velX >= 0 ? 1 : -1;
+
+    // Phản ứng né nhẹ khi Út Sen bơi sát vào
+    const curFishWorldX = f.pos[0] + offX;
+    const curFishWorldD = f.pos[1] + offD;
+    const distToPlayer = Math.hypot(curFishWorldX - p.pos[0], curFishWorldD - p.pos[1]);
+    let fleeFactor = 1.0;
+    if (distToPlayer < 2.0) {
+      // Út Sen lại gần: cá quẫy nhanh hơn, hơi lách nhẹ ra xa
+      fleeFactor = 2.2;
+      const repelX = (curFishWorldX - p.pos[0]) / (distToPlayer + 0.1);
+      offX += repelX * 0.25;
+    }
+
+    const fx = sx(f.pos[0] + offX);
+    const fy = sy(f.pos[1] + offD);
+    const swimCycle = Math.sin(time * 8 * fleeFactor + phase);
+
     ctx.save();
     ctx.translate(fx, fy);
-    ctx.rotate(((f.heading_deg || 0) * Math.PI) / 180);
+    // Quay đầu theo hướng bơi trái / phải
+    ctx.scale(facing, 1);
 
     if (f.kind === "ca_linh") {
-      // Cá Linh: Mình bạc ánh xanh, đuôi đỏ quẫy
-      ctx.fillStyle = "#b0bec5";
-      ctx.beginPath();
-      ctx.ellipse(0, 0, S * 0.5, S * 0.22, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Bụng bạc
-      ctx.fillStyle = "#eceff1";
-      ctx.beginPath();
-      ctx.ellipse(0, S * 0.06, S * 0.4, S * 0.12, 0, 0, Math.PI * 2);
-      ctx.fill();
-      // Đuôi đỏ quẫy
-      ctx.fillStyle = "#e53935";
-      ctx.beginPath();
-      ctx.moveTo(-S * 0.45, 0);
-      ctx.lineTo(-S * 0.8, -S * 0.2 + swimCycle * 3);
-      ctx.lineTo(-S * 0.7, 0);
-      ctx.lineTo(-S * 0.8, S * 0.2 + swimCycle * 3);
-      ctx.closePath();
-      ctx.fill();
-      // Mắt cá
-      ctx.fillStyle = "#263238";
-      ctx.beginPath(); ctx.arc(S * 0.35, -S * 0.05, 2.5, 0, Math.PI * 2); ctx.fill();
-      // Tên loài
+      // ĐÀN CÁ LINH (Vẽ thêm 2 con cá phụ tạo hiệu ứng bơi theo đàn)
+      const members = [
+        { ox: 0, oy: 0, s: 1.0, ph: 0 },
+        { ox: -14, oy: -8, s: 0.75, ph: 0.8 },
+        { ox: -20, oy: 10, s: 0.8, ph: 1.5 }
+      ];
+
+      members.forEach((m) => {
+        ctx.save();
+        ctx.translate(m.ox, m.oy);
+        ctx.scale(m.s, m.s);
+        const subCycle = Math.sin(time * 8 * fleeFactor + phase + m.ph);
+
+        // Mình bạc ánh xanh
+        ctx.fillStyle = "#b0bec5";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, S * 0.48, S * 0.20, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Bụng bạc
+        ctx.fillStyle = "#eceff1";
+        ctx.beginPath();
+        ctx.ellipse(0, S * 0.05, S * 0.38, S * 0.11, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // Vây lưng cam
+        ctx.fillStyle = "#ff7043";
+        ctx.beginPath();
+        ctx.moveTo(-S * 0.1, -S * 0.18);
+        ctx.lineTo(S * 0.1, -S * 0.26);
+        ctx.lineTo(S * 0.15, -S * 0.18);
+        ctx.closePath();
+        ctx.fill();
+        // Đuôi quẫy
+        ctx.fillStyle = "#e53935";
+        ctx.beginPath();
+        ctx.moveTo(-S * 0.42, 0);
+        ctx.lineTo(-S * 0.75, -S * 0.18 + subCycle * 3);
+        ctx.lineTo(-S * 0.65, 0);
+        ctx.lineTo(-S * 0.75, S * 0.18 + subCycle * 3);
+        ctx.closePath();
+        ctx.fill();
+        // Mắt cá
+        ctx.fillStyle = "#263238";
+        ctx.beginPath(); ctx.arc(S * 0.32, -S * 0.05, 2.2, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      });
+
+      // Tên loài & số lượng
       ctx.fillStyle = "#cfd8dc";
-      ctx.font = "11px system-ui";
+      ctx.font = "bold 11px system-ui";
       ctx.textAlign = "center";
-      ctx.fillText("Cá Linh (+3)", 0, -S * 0.35);
+      ctx.fillText("Đàn Cá Linh (+3)", 0, -S * 0.45);
     } else {
-      // Cá Lóc: Mình thuôn dài vằn xanh đen, săn mồi dữ dội
+      // CÁ LÓC: Cá săn mồi uy nghi, rằn ri, vây dài
+      // Thân cá
       ctx.fillStyle = "#4e6b3e";
       ctx.beginPath();
       ctx.ellipse(0, 0, S * 0.75, S * 0.28, 0, 0, Math.PI * 2);
       ctx.fill();
-      // Vệt rằn ri
+      // Vệt rằn ri hoa văn
       ctx.fillStyle = "#2e4224";
       for (let j = -2; j <= 2; j++) {
         ctx.fillRect(j * (S * 0.2), -S * 0.22, 4, S * 0.44);
@@ -470,7 +523,7 @@ function drawGather(w, h) {
       ctx.fillStyle = "#aed581";
       ctx.font = "bold 12px system-ui";
       ctx.textAlign = "center";
-      ctx.fillText("Cá Lóc (+1)", 0, -S * 0.42);
+      ctx.fillText("Cá Lóc (+1)", 0, -S * 0.45);
     }
     ctx.restore();
   });
