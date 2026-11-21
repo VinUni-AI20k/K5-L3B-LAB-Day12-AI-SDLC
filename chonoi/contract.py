@@ -148,7 +148,16 @@ def validate_tuning(t):
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
-        raise BadInput("burn_s phải là null ở Phase 1")
+        _between("quan.burn_s", q.get("burn_s"), 0.1, 600)
+    rc = q.get("reservations")
+    if (not isinstance(rc, dict) or set(rc) != {"count", "table_hold_s", "price_multiplier",
+                                                "failed_reputation_delta"}):
+        raise BadInput("quan.reservations phải có đúng count, table_hold_s, price_multiplier, failed_reputation_delta")
+    _int_between("quan.reservations.count", rc["count"], 0, len(q.get("tables", [])))
+    _between("quan.reservations.table_hold_s", rc["table_hold_s"], 0, 600)
+    _between("quan.reservations.price_multiplier", rc["price_multiplier"], 1, 10)
+    if not _num(rc["failed_reputation_delta"]) or rc["failed_reputation_delta"] >= 0:
+        raise BadInput("quan.reservations.failed_reputation_delta phải là số âm")
     # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")

@@ -21,3 +21,7 @@
 - **Bàn giao kho cá thể**:
   - Cập bến xuất file kho cá thể với độ tươi thực tế sau các bước lặn.
   - Ngất (`fainted`) ghi file kho rỗng `{"items": []}`.
+- **Quán và đơn đặt trước**:
+  - Kho cá thể trong Quán hao tươi 0.25/s; cá thể dưới 30 bị loại và phát `spoiled`.
+  - Đơn giữ nguyên liệu bằng ID cá thể, chốt giá theo độ tươi; Phase 3 thêm hai đơn đặt trước có giữ bàn, kiểm kho, thời hạn và uy tín.
+  - Snapshot/event Quán và HUD hiển thị cá thể, độ tươi và trạng thái đơn đặt trước.

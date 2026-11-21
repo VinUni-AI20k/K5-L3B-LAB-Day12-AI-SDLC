@@ -71,12 +71,14 @@ class Contract(unittest.TestCase):
                 self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", unk, "--out", out)[0], 2, button)
             self.assertFalse(os.path.exists(out))
 
-    def test_con_03_old_and_future_modes_rejected(self):
+    def test_con_03_old_mode_rejected_and_day_mode_supported(self):
         with Workdir() as w:
             out = w.path("o.jsonl")
-            for mode in ("river", "day"):
+            # Phase 2 introduces day mode; Phase 1's former future-mode assertion is obsolete.
+            for mode in ("river",):
                 self.assertEqual(run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out)[0], 2, mode)
             self.assertFalse(os.path.exists(out))
+            self.assertEqual(run_headless("--mode", "day", "--days", "1", "--seed", "1", "--ticks", "0", "--out", out)[0], 0)
             old = write_json(w.path("old.json"), {"river": {"hold": []}})
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "0", "--scenario", old, "--out", out)[0], 2)
 
