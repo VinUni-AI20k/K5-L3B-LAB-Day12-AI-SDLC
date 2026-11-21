@@ -37,3 +37,9 @@
 | 31 | P2 (research P2-Q7) | Cá Sấu hit cần người chơi ở đâu? | `ĐÃ TRẢ LỜI (TICKET-02 §1.2)`: sau khi cả hai di chuyển, khoảng cách ≤ 1.5 m, người chơi ở **d ≥ 10** và hết bất tử. | TICKET-02 |
 | 32 | P2 (research P2-Q8) | `extensions` ở gốc manifest là mảng mã hay object? | `CHỜ HỎI`. `GIẢ ĐỊNH`: mảng chuỗi mã, vd. `["burn","snake"]`. | PO |
 | 33 | P2 (research P2-Q9) | Đàn cá bị bắt có biến mất không? | `CHỜ HỎI`. `GIẢ ĐỊNH`: biến mất (đề có trần 12 đàn và sinh lại theo lịch → ngầm hiểu bị loại). | PO |
+| 34 | P3 (research) | Khóa `freshness` đặt ở `tuning.freshness` hay gốc manifest? | `CHỜ HỎI`. `GIẢ ĐỊNH`: `tuning.freshness` (cùng chỗ các khóa luật khác); TV1 chốt. | PO + TV1 |
+| 35 | P3 (research) | `cook_started` có kèm `base_price` không? | `GIẢ ĐỊNH` theo đề ("Payload món giữ cấu trúc, `base_price` là giá đã chốt theo fresh"): payload món có `base_price` đã chốt lúc bắt đầu nấu; `cook_started.data.items` là mảng cá thể sắp theo kind rồi id. | PO |
+| 36 | P3 (research) | Cùng tick thì `node_regrown` hay `spoiled` trước? | `ĐÃ TRẢ LỜI (TICKET-03, thứ tự gather)`: "đồng hồ, cooldown, hồi nút **và** độ tươi của hàng có sẵn ở đầu bước" → hồi nút trước, rồi độ tươi. | TICKET-03 |
+| 37 | P3 (research) | Snapshot có cờ `spoiled` cho cá thể không? | `CHỜ HỎI`. `GIẢ ĐỊNH`: không; ươn suy ra từ `fresh < 30` (đề chỉ nêu schema `{id,kind,fresh}`). | PO |
+| 38 | P3 (research) | Regression P1–P2 có phải chuyển hết fixture sang kho cá thể? | `ĐÃ TRẢ LỜI một phần`: ở v1.2 kho đếm trả mã 2 nên fixture kho phải đổi; ghi cách cập nhật fixture vào `CHANGELOG.md` (đề §3). | TICKET-03 |
+| 39 | P3 (research, quyết định kỹ thuật) | Độ tươi tính bằng float hay số nguyên? | Research chạy thử: trừ float làm hàng 100 trong giỏ ươn ở bước **8400** thay vì **8401** (sớm 1 tick); số nguyên 240 đơn vị/điểm (−2/tick, ươn khi < 7200) đúng → dùng số nguyên (ADR-0001). | PO + TV1 |
