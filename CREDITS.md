@@ -5,3 +5,4 @@ Liệt kê asset ngoài (nguồn, giấy phép CC0/CC-BY/MIT) và công cụ AI 
 - Hướng mỹ thuật tham khảo không khí ấm áp của Stardew Valley. Sprite, cảnh và giao diện được vẽ riêng cho Quán Ăn Chợ Nổi.
 - Phase 2 dùng ảnh do nhóm cung cấp trong thư mục Ảnh lab. Hai cảnh dùng `BackGroundGather.png` và `BackgroundQuans.png`. Sprite lấy từ `BaUT.png`, `CaSau.png`, `Khachnam.png`, `Khachnu.png`, `Ca1.png` và `Ca2.png`. Sáu ảnh món dùng cho thực đơn, đơn hàng và bếp. Các bản WebP nằm trong `chonoi/web/art/`, tên món theo `dish_id`.
 - Tư thế bơi của Bà Út dùng `ảnh bơi.png` từ cùng thư mục, xuất thành `ba-ut-boi.webp`.
+- Phase 3 tách sáu sprite WebP trong suốt từ `BackgroundQuans.png`. Nền `quan-nen.webp` dùng ImageGen để bỏ hai bếp và bốn bàn, lấp lại sàn gỗ và vách tre theo ảnh gốc.

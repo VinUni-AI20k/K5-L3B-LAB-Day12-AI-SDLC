@@ -37,3 +37,4 @@
 
 ## Skills / hooks của nhóm
 - (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- Kiểm chứng HUD kho P3-05 trên Windows: `py -3.14 tools/verify_p3_05_browser.py docs/proof/phase-3` với Playwright và Google Chrome. Xem `docs/verification/phase-3-p3-05.md`.
