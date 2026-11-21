@@ -15,6 +15,7 @@
         <span>Quán Ăn Chợ Nổi</span>
       </a>
       <div class="top-actions">
+        <button type="button" class="button quiet" id="contrast-toggle" aria-pressed="false">Tương phản cao</button>
         <span id="preview-label" class="preview-label" hidden>Đang xem snapshot mẫu</span>
         <button type="button" class="button quiet" id="pause" hidden>Tạm dừng <kbd>Esc</kbd></button>
         <button type="button" class="button plain" id="to-menu" hidden>Về menu</button>
@@ -81,11 +82,11 @@
             <div id="stage" class="stage">
               <canvas id="world" tabindex="-1" aria-label="Cảnh chơi"></canvas>
               <div id="world-label" class="world-label" aria-hidden="true"></div>
-              <strong id="monster-alert" class="monster-alert morning" role="status" hidden>Thủy quái!</strong>
+              <strong id="monster-alert" class="monster-alert morning" role="status" hidden><span class="warning-icon" aria-hidden="true">!</span> Thủy quái!</strong>
               <div class="toasts" id="toasts" role="status" aria-live="polite" aria-atomic="true"></div>
               <div class="prompt" id="prompt" hidden><kbd id="prompt-key"></kbd><strong id="prompt-text"></strong></div>
             </div>
-            <div id="oxygen-alert" class="oxygen-alert morning" hidden></div>
+            <div id="oxygen-alert" class="oxygen-alert morning" hidden><span class="warning-icon" aria-hidden="true">↓</span> <span id="oxygen-alert-text"></span></div>
             <div class="station-strip evening" id="stations"></div>
           </div>
 
@@ -203,6 +204,7 @@
       <h1 id="pause-title">Đang tạm dừng</h1>
       <div class="result-actions">
         <button type="button" class="button primary" id="resume">Tiếp tục <kbd>Esc</kbd></button>
+        <button type="button" class="button quiet" id="pause-contrast" aria-pressed="false">Tương phản cao</button>
         <button type="button" class="button quiet" id="pause-menu">Về menu</button>
       </div>
     </div>

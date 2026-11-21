@@ -34,6 +34,8 @@ Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Ch�
 
 Trong Phase 2, **Esc** hoặc **P** tạm dừng hoặc tiếp tục, kể cả khi ở cửa hàng. Bấm **Mua cấp** để mua nâng cấp và **Qua ngày mới** để đóng cửa hàng. Cấp đã mua bắt đầu áp dụng từ sáng hôm sau.
 
+Nút **Tương phản cao** nằm trên thanh trên cùng và trong màn tạm dừng. Trình duyệt lưu lựa chọn. Cảnh báo oxy thấp, thủy quái và khách sắp bỏ đi có cả chữ và biểu tượng.
+
 Buổi sáng ghi `inventory.json` khi kết thúc. Trong **Chơi trọn ngày**, màn chuyển ca hiện kho đã chốt. Chọn **Mở quán** để dùng kho đó cho ca tối. Khi chỉ chơi buổi tối, game dùng `inventory.json` nếu có hoặc [kho mẫu](docs/contracts/inventory.sample.json). Có thể chỉ định kho khác bằng `python3 -m chonoi.live --mode quan --inventory kho.json`, hoặc đổi tên file bàn giao bằng `--inventory-out kho.json` khi chạy `--mode gather`.
 
 Điểm cuối ca bằng doanh thu cộng `reputation_multiplier × floor(uy tín)`, với hệ số trong [contract](game.contract.json) là 100. Tiền và boa hiển thị theo nghìn đồng.
@@ -53,6 +55,16 @@ Khi cần kiểm tra UI riêng, chạy `python3 -m http.server 8000 --bind 127.0
 Để xem UI Phase 2 độc lập, đổi URL thành `http://127.0.0.1:8000/chonoi/web/?preview=2`. Chọn **Chơi**, nhấn **E** hoặc **Space** để duyệt cảnh sông và nhấn **E** để duyệt ca tối. Phiên này dùng tình huống đã dựng sẵn. Trên PowerShell có thể chạy máy chủ bằng `python -m chonoi.live --mode gather`.
 
 Đổi thành `http://127.0.0.1:8000/chonoi/web/?preview=3` để xem UI Phase 3 độc lập. Trong Ngày 1, nhấn **E**, **Space**, rồi **E** để xem hàng ươn trong giỏ và bàn giao kho. Mở quán rồi nhấn **E** để xem một nguyên liệu đang giữ chỗ tụt dưới 30% và bàn báo **Hết hàng tươi!**. [Checklist UI Phase 3](docs/verification/phase-3.md)
+
+## Benchmark render
+
+Chạy ở gốc repo với Python và Chrome hoặc Chromium đã cài. Trên Windows có thể dùng `python`.
+
+```bash
+python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json
+```
+
+Lệnh tự mở Chromium ở 1280×720, dùng Gather thật của checkout với Út Sen đứng ở bến, làm nóng 3 giây rồi ghi `bench.json`. Có thể đặt `CHONOI_BROWSER` nếu Chrome nằm ngoài `PATH` hoặc vị trí cài phổ biến. [Phương pháp và bằng chứng Phase 4](docs/proof/phase-4/client-ui.md)
 
 ## Sáng tạo của nhóm
 
