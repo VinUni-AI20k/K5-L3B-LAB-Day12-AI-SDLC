@@ -72,10 +72,8 @@ class Contract(unittest.TestCase):
     def test_con_03_old_and_future_modes_rejected(self):
         with Workdir() as w:
             out = w.path("o.jsonl")
-            # v1.1 (TICKET-02 mục 4.1) đưa `day` thành mode hợp lệ: chỉ còn từ chối mode lạ/cũ.
-            with open("game.contract.json", encoding="utf-8") as f:
-                v10 = json.load(f).get("contract_version", "1.0") == "1.0"
-            for mode in ("river", "day") if v10 else ("river", "night"):
+            # v1.1 đã hỗ trợ --mode day; chỉ còn mode cũ 'river' phải trả mã 2
+            for mode in ("river",):
                 self.assertEqual(run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out)[0], 2, mode)
             self.assertFalse(os.path.exists(out))
             old = write_json(w.path("old.json"), {"river": {"hold": []}})
