@@ -52,13 +52,14 @@ class Lat3(unittest.TestCase):
             self.assertEqual(events(rs, "customer_arrived") + events(rs, "no_dish"), [])
 
     def test_het_ban_trong_thi_bo_luot(self):
-        # P1 chỉ có bàn T1; C1 dựng sẵn đang ngồi -> tick 120 bỏ lượt, không customer_arrived, không no_dish.
+        # v1.1 có 4 bàn T1-T4 (Ticket-02 mục 1.3); cả 4 đã có khách dựng sẵn -> tick 120 bỏ lượt,
+        # không customer_arrived, không no_dish (kho vẫn còn bong_sung đủ gọi gỏi nếu có bàn trống).
         with Workdir() as w:
-            block = {"stock": {"ca_loc": 1, "bong_sung": 2},
-                     "tables": [{"id": "T1", "pos": [9, 2]}],
-                     "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]}
+            block = {"stock": {"ca_loc": 4, "bong_sung": 2},
+                     "customers": [{"id": f"C{i}", "table_id": f"T{i}", "dish_id": "ca_loc_nuong_trui"}
+                                   for i in range(1, 5)]}
             rs = self.quan(w, block, 120)
-            self.assertEqual(events(rs, "customer_arrived"), [])  # chỉ có 1 bàn, đang có khách -> bỏ lượt
+            self.assertEqual(events(rs, "customer_arrived"), [])  # hết bàn trống -> bỏ lượt
             self.assertEqual(events(rs, "no_dish"), [])
 
     def test_khach_het_kien_nhan_bo_di_tru_uy_tin(self):
