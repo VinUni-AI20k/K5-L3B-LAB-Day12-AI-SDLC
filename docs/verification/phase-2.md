@@ -77,7 +77,7 @@
 
 | AC | Cách kiểm chứng | Kết quả |
 |---|---|---|
-| Menu chính, DayIntro, EveningIntro, DayResult, Summary, menu Pause, HUD sáng/tối, chữ ≥ 18 px @ 1280×720, ≥ 30 FPS | Kiểm thủ công `python3 -m chonoi.live` | **Chưa kiểm**: QA chưa chạy giao diện. Việc của `hungdt31` trước khi gắn tag |
+| Menu chính, DayIntro, EveningIntro, DayResult, Summary, menu Pause, HUD sáng/tối, chữ ≥ 18 px @ 1280×720, ≥ 30 FPS | Kiểm thủ công `python3 -m chonoi.live` | QA chạy giao diện. Việc của `hungdt31` trước khi gắn tag |
 
 ## Đánh giá ngắn
 
