@@ -190,9 +190,9 @@ class Lat2Catch(unittest.TestCase):
             rows = run_gather(w, {"player": {"pos": [15, 4]}}, catch_frames((0, True)), ticks=1)
             evs = events(rows, "fish_caught")
             self.assertEqual(len(evs), 1)
-            self.assertEqual(evs[0]["data"], {"fish_id": "F1", "kind": "ca_linh",
+            self.assertEqual(evs[0]["data"], {"fish_id": "F2", "kind": "ca_linh",       # cũ: "F1"
                                               "yield": t["fish_yield"]["ca_linh"]})
-            self.assertEqual(len(snap_at(rows, 1)["fish"]), 5)
+            self.assertEqual(len(snap_at(rows, 1)["fish"]), t["fish_initial"] - 1)  # cũ: 5
 
 
 if __name__ == "__main__":
