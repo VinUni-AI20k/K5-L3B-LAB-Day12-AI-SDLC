@@ -1,29 +1,34 @@
-# AGENTS.md — hướng dẫn chung cho mọi agent AI của nhóm
+# AGENTS.md
 
-> Cập nhật file này qua các phase (lịch sử git phải cho thấy điều đó). Ngắn gọn, có lệnh chạy thật.
+Lab Day 12 — Quán Ăn Chợ Nổi. Python thuần (stdlib), contract **v1.1**, `phase-1` đã tag.
+
+## Trước khi viết
+
+- Đọc spec của phase (`docs/specs/phase-<n>.md`) và ticket của lát mình (`docs/tickets/phase-<n>/`).
+- Số liệu đọc từ `game.contract.json`. Ngẫu nhiên qua `Streams`. Danh sách thực thể sắp bằng `sort_by_id`.
+- Sửa file của mình; file chia sẻ (`chonoi/contract.py`, `chonoi/scenario.py`, `chonoi/runner.py`) thì báo Integrator trước.
+
+## Trước khi commit
+
+- `python3 tools/run_checks.py` phải PASS: unittest, smoke hai tiến trình, tất định byte, bằng chứng.
+- Test đổi vì luật đổi thì ghi lý do trong commit.
+- Kết quả chạy ghi vào mô tả commit hoặc `docs/proof/phase-<n>/`.
+
+## Khi cần tra
+
+- Hợp đồng kho, tên event, giao diện sim↔UI: `docs/contracts/README.md`.
+- PRD chỗ mơ hồ: `docs/clarify.md` trước, hỏi PO sau.
+- Luật chơi: `chonoi/sim/` (gather, quan, quan_customers, quan_service, monsters, day, fish, shop).
+- Trạng thái từng AC: `docs/verification/phase-<n>.md`. Claim "đạt" phải có file thật trong `docs/proof/`.
 
 ## Lệnh
-- Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
-- Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
-- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 
-## Cấu trúc & quy ước
-- (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
-- Luật chơi của nhóm: `chonoi/sim/gather.py`, `chonoi/sim/quan.py` (tìm `TODO(nhóm)`).
-- **Số liệu chỉ đọc từ `game.contract.json` / dữ liệu**, không hard-code trong luật.
-- Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
-- Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.
+- Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests`
+- Chơi: `python3 -m chonoi.live --mode gather|quan|day` (WASD, E, Space, R, C tương phản, `?fx=0` tắt hiệu ứng)
+- Headless: `python3 -m chonoi.headless --mode day --days 2 --seed 7 --out day.jsonl`
+- Cổng kiểm: `python3 tools/run_checks.py` · Tiến độ nhánh: `python3 tools/team_progress.py`
+- Bench: `python3 tools/bench.py --seed 42 --duration 30 --out bench.json` (cần Playwright hoặc obscura)
 
-## Nên tránh
-- Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).
-- Không làm hỏng nhánh chính: trước khi đẩy, chạy test.
-- Không bịa yêu cầu: chỗ mơ hồ thì ghi `docs/clarify.md` và hỏi PO.
-- Không sửa test cho xanh khi luật sai; phải sửa luật hoặc ghi lý do đổi test trong commit.
+## Skill
 
-## Quy tắc làm việc với agent
-- Mỗi agent một việc rõ ràng (một lát). Cho agent đọc PRD/ticket đúng phase và hợp đồng kho trước.
-- Agent làm xong phải chạy test và ghi kết quả vào mô tả commit hoặc `docs/proof/`; người đọc lại thay đổi trước khi đẩy.
-- Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
-
-## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+`.agents/skills/gate/` (cổng kiểm + tag) · `.agents/skills/probe/` (dựng ca kiểm headless hoặc live UI).

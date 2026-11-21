@@ -1,0 +1,8 @@
+Proposed current schema/metadata patches applied ONLY in temporary v1.1 dependency checkout.
+{'current_direction': -1}: expected exit 0, passed
+{'current_direction': 1}: expected exit 0, passed
+{'current_direction': 0}: expected exit 2, passed
+{'current_direction': True}: expected exit 2, passed
+{'random_current': 'false'}: expected exit 2, passed
+{'random_current': False, 'current_direction': 1}: expected exit 0, passed
+No P3 inventory migration claimed.

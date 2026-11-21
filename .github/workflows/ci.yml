@@ -23,5 +23,7 @@ jobs:
       # Nhóm đổi ngôn ngữ: sửa `build_cmd` trong game.contract.json và cài runtime ở bước riêng (xem README).
       - name: Build (build_cmd trong game.contract.json)
         run: bash -c "$(python3 -c 'import json;print(json.load(open("game.contract.json"))["build_cmd"])')"
+      - name: Bằng chứng dẫn đúng (phải có file thật)
+        run: python3 tools/check_evidence.py
       - name: Test (hộp đen qua headless_cmd + unit của nhóm)
         run: PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
