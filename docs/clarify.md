@@ -21,6 +21,8 @@
 | 14 | 21/11 … | (P2) RNG trong `--mode day`: mọi Ngày dùng chung một chuỗi hay tách? | Giả định: mỗi Ngày `Streams("<seed>:day<n>")`, gather và quán của Ngày đó dùng chung bộ luồng (tên luồng riêng). Cùng seed → giống từng byte; Ngày khác nhau có cá/khách khác nhau. | Integrator (nglngnguyen-gh) |
 | 15 | 21/11 … | (P2) `scenario.gather` / `scenario.quan` trong `day` áp cho Ngày 1 hay mọi Ngày? | Giả định: **mọi Ngày** (TICKET-02 mục 4.3 "làm mẫu khởi tạo mỗi Ngày"). Tick đổi pha luôn có một snapshot pha mới với `phase_tick: 0`. | Integrator (nglngnguyen-gh) |
 | 16 | 21/11 … | P2 · Trong `day`, khách/bếp/tay dựng sẵn (scenario `quan`) có món **ngoài** kế hoạch Ngày thì sao? (TICKET-02 mục 4.3: "Kho, khách, bếp và món thuộc kế hoạch được kiểm trên kho thực lúc mở quán") | Giả định (lát 3): là mâu thuẫn → mã 2, kiểm lúc dựng `QuanSim(menu_filter=…)`. Quán độc lập (`menu_filter=None`) vẫn nhận cả 6 món. | minhtriet061203 (chờ PO) |
+| 17 | 21/11 … | P3 · Nhiều đơn cùng có phần giữ vừa ươn trong một tick: nhả hết rồi mới giữ lại, hay xử lý từng đơn (nhả + giữ lại) theo (order_tick, id bàn)? | Giả định (lát 3): **từng đơn** theo (order_tick, id bàn) — đơn trước nhả + giữ lại xong mới tới đơn sau; phần giữ còn tươi của đơn chưa xử lý vẫn bị loại trừ. Phát hết `spoiled` theo id trước khi xử lý đơn nào. | minhtriet061203 (chờ PO) |
+| 18 | 21/11 … | P3 · Scenario v1.2: khách `eating` và payload món trên bếp/tay khai `base_price` thế nào khi giá chốt theo fresh? | Giả định (lát 3): số nguyên trong [0, giá niêm yết] (giá đã chốt = floor(giá × trung bình fresh / 100) ≤ giá niêm yết); v1.1 vẫn phải bằng giá niêm yết. | minhtriet061203 (chờ PO) |
 
 ## Giả định nhóm đã chốt (không cần hỏi, có căn cứ trong PRD)
 
