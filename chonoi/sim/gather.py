@@ -36,7 +36,6 @@ class GatherSim:
         self.oxygen_ticks = p.get("oxygen_ticks", self.oxygen_max)
         self.hp = p.get("hp", t["hp_max"])
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
-        self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
         self.time_left_ticks = scenario.get("time_left_ticks", round(t["duration_s"] * self.tick_hz))
@@ -71,7 +70,7 @@ class GatherSim:
             "player": {"pos": self.pos.copy(), "vel": self.vel.copy(), "heading_deg": self.heading,
                        "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
-                       "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
+                       "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
             "hold": self.hold.copy(), "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
@@ -87,7 +86,6 @@ class GatherSim:
         events = []
         # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        self.invuln_ticks = max(0, self.invuln_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
         for n in sort_by_id(self.nodes):
             if n["regrow_ticks"] > 0:
@@ -128,7 +126,7 @@ class GatherSim:
         if self.oxygen_ticks > 0:
             self.oxygen_ticks -= 1
             if self.oxygen_ticks == 0:
-                events.append(("oxygen_empty", {}))
+                events.append(("oxygen_empty", {"oxygen_ticks": 0}))
         if self.oxygen_ticks > 0:
             return
 
@@ -138,8 +136,9 @@ class GatherSim:
             self.hp -= 1
             events.append(("choke", {"hp": self.hp}))
             if self.hp == 0:
+                lost = self.hold[::-1]
                 self.hold.clear()
-                events.append(("faint", {}))
+                events.append(("faint", {"cause": "choke", "lost": lost, "hp": self.hp}))
                 self._finish("fainted", events)
 
     def _harvest(self, events):
@@ -147,24 +146,24 @@ class GatherSim:
         node = self._nearest_in_range(ready, self.t["interact_radius"])
         if node is None:
             return
-        kind = node["kind"]
-        if not self._store_in_hold(kind, self.t["node_yield"]):
-            events.append(("hold_full", {"source": "node"}))
+        node_id, kind = node["id"], node["kind"]
+        amount = self.t["node_yield"]
+        if not self._store_in_hold(kind, amount, events, {"action": "gather", "node_id": node_id}):
             return
         node["regrow_ticks"] = round(self.t["regrow_s"] * self.tick_hz)
-        events.append(("gather", {"node_id": node["id"], "kind": kind}))
+        events.append(("gather", {"node_id": node_id, "kind": kind, "amount": amount}))
 
     def _catch(self, events):
         fish = self._nearest_in_range(self.fish, self.t["catch_radius"])
         if fish is None:
             return
-        kind = fish["kind"]
-        if not self._store_in_hold(kind, self.t["fish_yield"][kind]):
-            events.append(("hold_full", {"source": "fish"}))
+        fish_id, kind = fish["id"], fish["kind"]
+        count = self.t["fish_yield"][kind]
+        if not self._store_in_hold(kind, count, events, {"action": "catch", "fish_id": fish_id}):
             return
         self.fish.remove(fish)
         self.catch_cd_ticks = round(self.t["catch_cooldown_s"] * self.tick_hz)
-        events.append(("fish_caught", {"fish_id": fish["id"], "kind": kind}))
+        events.append(("fish_caught", {"fish_id": fish_id, "kind": kind, "yield": count}))
 
     def _nearest_in_range(self, entities, radius):
         # Sắp theo id trước để khoảng cách bằng nhau luôn chọn id nhỏ hơn.
@@ -177,8 +176,10 @@ class GatherSim:
                 nearest_distance = distance
         return selected
 
-    def _store_in_hold(self, kind, count):
-        if len(self.hold) + count > self.t["hold_capacity"]:
+    def _store_in_hold(self, kind, count, events, pickup):
+        free = self.t["hold_capacity"] - len(self.hold)
+        if count > free:
+            events.append(("hold_full", {**pickup, "required": count, "free": free}))
             return False
         self.hold.extend([kind] * count)
         return True

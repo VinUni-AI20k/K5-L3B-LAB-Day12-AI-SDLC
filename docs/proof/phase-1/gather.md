@@ -39,4 +39,12 @@ $python = '.\.venv\Scripts\python.exe'
 & $python -m chonoi.headless --mode quan --seed 1 --ticks 0 --inventory "$work/kho.json" --out "$work/quan.jsonl"
 ```
 
-Các giả định chờ PO xác nhận được ghi ở [clarify.md](../../clarify.md).
+Các giả định ban đầu đã được đối chiếu với yêu cầu khách hàng trong [clarify.md](../../clarify.md).
+
+## Đối chiếu lại với PRD-0
+
+Trước khi sửa, `67f7559` đạt **45/45** test của repo nhưng lệch payload ở `oxygen_empty`, `faint`, `gather`, `fish_caught` và hai nhánh `hold_full`. Fixture v1.0 có `player.invuln_ticks` cũng trả mã 0 thay vì 2 theo mục D. Một ca hái hòa khoảng cách phát hiện `ids.py` coi chữ số Unicode là hậu tố số, trong khi PRD-0 chỉ dùng chữ số ASCII.
+
+Sau khi sửa, chạy lại lệnh test ở trên và đạt **49/49**. Cả bốn ca mới trong `tests/test_gather_prd.py` đã tái hiện sai lệch trước sửa và đều đạt sau sửa. Lượt bàn giao ở trên chạy lại hai lần và cho cùng byte JSONL, cùng byte file kho. `gather` cập bến ở tick 126, event khớp file kho và `quan` nhận đúng 1 bông điên điển, 3 cá linh.
+
+Hai chỉnh sửa trong khung phục vụ mục D của PRD-0. `scenario.py` từ chối `invuln_ticks` trước khi ghi đầu ra. `ids.py` phân biệt hậu tố số ASCII khi sắp và cấp ID. Giao diện live đọc dữ liệu event theo khóa có sẵn. Bảng event nội bộ ở `docs/contracts/README.md` là bản đề xuất trước khi có PRD-0.
