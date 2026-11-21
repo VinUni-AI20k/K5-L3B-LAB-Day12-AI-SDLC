@@ -26,7 +26,7 @@ Code: `chonoi/sim/quan_customers.py` (+ tham số `allowed_dishes` của `QuanSi
 | AC-P2-C6 | Quán chạy riêng (không `day`) dùng cả 6 món; có bàn trống mà không món nào đủ nguyên liệu thì `no_dish` |
 | AC-P2-C7 | Hồi quy Phase 1: `allowed_dishes=None` cho kết quả y hệt trước; cùng seed → output giống từng byte; test Phase 1 chỉ đổi vì luật mới và có ghi lý do |
 
-**Giao diện cho M4 (`day`):** `QuanSim(tuning, scenario, streams, ids, inventory=None, allowed_dishes=None)`. `allowed_dishes` là tập id món của kế hoạch ngày (set/list/tuple), `None` = cả menu, id ngoài menu → `BadInput` (mã 2). Khách dựng sẵn từ `scenario.customers` không bị lọc.
+**Giao diện cho M4 (`day`)** — thực tế `day.py` lọc bằng `tuning.menu` đã lọc (cùng kết quả); tham số dưới đây là phương án thay thế, hiện chưa dùng: `QuanSim(tuning, scenario, streams, ids, inventory=None, allowed_dishes=None)`. `allowed_dishes` là tập id món của kế hoạch ngày (set/list/tuple), `None` = cả menu, id ngoài menu → `BadInput` (mã 2). Khách dựng sẵn từ `scenario.customers` không bị lọc.
 
 ### Test Phase 1 đổi vì luật v1.1 (hồi quy P1, M3.2b)
 
