@@ -41,3 +41,11 @@ Clone nhánh `huydn8816` vào thư mục mới (không dùng bản làm việc),
 3. `python3 -m chonoi.bench --seed 42 --duration 3 --out bench.json`: thoát mã 0, trả về 5 trường (`avg_fps` 59,99; `p1_low_fps` 58,48).
 
 Giới hạn: chỉ chạy trên Windows (Git Bash, Python 3.14, Chrome). Chưa chạy trên macOS hoặc Linux, nên AC-P4-07 chỉ đạt một phần.
+
+## Soak 10 Ngày (AC-P4-08, đã chạy)
+
+Lệnh: `python3 -m chonoi.soak --seed 7 --days 10 --out docs/proof/phase-4/soak.json` (7 giây, thoát 0).
+
+Kết quả: `days` 10, `days_completed` 10, `crashes` 0. Đạt tiêu chí của đề.
+
+Giới hạn: bot của soak hiện không điều khiển người chơi (không bơi, hái, phục vụ), nên `earned` = 0 ở mọi Ngày. Soak chứng minh vòng 10 Ngày chạy không lỗi và trạng thái được giữ qua các Ngày, nhưng chưa chứng minh gameplay. Nên thay bot bằng input có chủ đích nếu muốn kiểm gameplay xuyên ngày.
