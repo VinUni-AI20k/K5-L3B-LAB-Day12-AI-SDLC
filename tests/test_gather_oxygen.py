@@ -96,11 +96,13 @@ class GatherOxygen(unittest.TestCase):
         self.assertEqual(saved, {"items": {}})
 
     def test_invulnerability_is_not_a_v10_fixture_field(self):
-        # Validate trước khi runner mở đầu ra, kể cả khi chỉ dựng tick 0.
+        # Validate trước khi runner mở đầu ra; từ v1.1 invuln_ticks hợp lệ (>= 0) và < 0 bị từ chối.
+        with open("game.contract.json", encoding="utf-8") as f:
+            ver = json.load(f).get("contract_version", "1.0")
         with Workdir() as w:
             output = Path(w.path("gather.jsonl"))
             scenario = write_json(
-                w.path("scenario.json"), {"gather": {"player": {"invuln_ticks": 0}}}
+                w.path("scenario.json"), {"gather": {"player": {"invuln_ticks": 0 if ver == "1.0" else -1}}}
             )
             code, _ = run_headless(
                 "--mode", "gather", "--seed", "1", "--ticks", "0",
