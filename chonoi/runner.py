@@ -1,7 +1,12 @@
-"""Vòng tick (Contract B, mô hình tick). KHUNG — thường không cần sửa.
+"""Vòng tick (Contract B, mô hình tick; Test Contract v1.1). KHUNG — Integrator giữ.
 
 Thứ tự ghi: snapshot tick 0 -> với mỗi bước: sự kiện (theo thứ tự xử lý) rồi snapshot (nếu tới lượt
 hoặc buổi kết thúc) -> dòng 'end'. Mỗi tick tối đa một snapshot.
+
+v1.1:
+- `tick` là số bước ngoài; `sim_tick` là số bước gameplay (đứng yên khi pause). `phase_tick` lấy từ sim.
+- Pause (Ticket-02 mục 4.2) xử lý ở đây bằng `PauseGate`, dùng chung cho gather, quan và day.
+- `--mode day` chạy `chonoi.day.DaySession` (C viết), cùng giao diện với `Session`.
 
 `Session` là API bước tick gọn dùng chung cho headless (`run`) và cửa sổ chơi trực tiếp (`chonoi.live`):
 cả hai chạy CÙNG một lớp sim, không nhân đôi logic.
@@ -18,55 +23,90 @@ from .sim.gather import GatherSim
 from .sim.quan import QuanSim
 
 
-def build_sim(mode, tuning, scenario, seed, inventory):
+def build_sim(mode, tuning, scenario, seed, inventory, day=1, active_upgrades=None):
     streams, ids = Streams(seed), IdAllocator()
     if mode == "gather":
-        return GatherSim(tuning, scenario, streams, ids)
+        return GatherSim(tuning, scenario, streams, ids, day=day, active_upgrades=active_upgrades)
     return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
 
 
-def _common(sim, tick, sim_tick, phase_tick, tuning, state):
-    mult = tuning["score"]["reputation_multiplier"]
-    return {
-        "type": "snapshot", "tick": tick, "sim_tick": sim_tick, "mode": sim.mode, "phase": sim.phase,
-        "phase_tick": phase_tick, "state": state, "time_left_ticks": sim.time_left_ticks,
-        "money": sim.money, "earned": sim.earned, "reputation": sim.reputation,
-        "score": sim.earned + mult * math.floor(sim.reputation),
-    }
+def score_of(tuning, earned, reputation):
+    """Điểm = earned + reputation_multiplier × floor(reputation) (PRD-0 mục E)."""
+    return earned + tuning["score"]["reputation_multiplier"] * math.floor(reputation)
+
+
+class PauseGate:
+    """Pause theo Ticket-02 mục 4.2.
+
+    Xét cạnh `pause` trước mọi thứ. Bước vào pause chỉ tăng tick ngoài và phát `paused`. Khi còn pause, bỏ qua
+    cạnh hành động và `buy`; sim_tick, phase_tick, lịch, timer đứng yên. Cạnh `pause` kế tiếp phát `resumed`
+    và chạy gameplay ngay trong bước đó.
+    """
+
+    def __init__(self, paused=False):
+        self.paused = paused
+
+    def check(self, inp):
+        """Trả (chạy_gameplay_bước_này, [event (name, data)])."""
+        if inp.pressed("pause"):
+            if not self.paused:
+                self.paused = True
+                return False, [("paused", {})]
+            self.paused = False
+            return True, [("resumed", {})]
+        return not self.paused, []
 
 
 class Session:
-    """Một lượt chơi: dựng sim, bước từng tick, lấy snapshot / dòng end."""
+    """Một lượt chơi gather hoặc quan độc lập: dựng sim, bước từng tick, lấy snapshot / dòng end."""
 
     def __init__(self, mode, tuning, scenario, seed, inventory=None):
         self.mode = mode
         self.tuning = tuning
         self.sim = build_sim(mode, tuning, scenario, seed, inventory)
         self.tick = 0
+        self.sim_tick = 0
+        self.gate = PauseGate()
 
     @property
     def done(self) -> bool:
         return self.sim.done
 
+    def _state(self):
+        if self.sim.done:
+            return "finished"
+        return "paused" if self.gate.paused else "playing"
+
+    def _common(self, state):
+        sim = self.sim
+        return {
+            "type": "snapshot", "tick": self.tick, "sim_tick": self.sim_tick, "mode": self.mode,
+            "phase": sim.phase, "phase_tick": getattr(sim, "phase_tick", self.sim_tick), "state": state,
+            "time_left_ticks": sim.time_left_ticks, "money": sim.money, "earned": sim.earned,
+            "reputation": sim.reputation, "score": score_of(self.tuning, sim.earned, sim.reputation),
+        }
+
     def snapshot(self) -> dict:
-        s = _common(self.sim, self.tick, self.tick, self.tick, self.tuning, "finished" if self.sim.done else "playing")
+        s = self._common(self._state())
         s.update(self.sim.snapshot())
         return s
 
     def step(self, inp) -> list:
         """Chạy một bước với `inp` (chonoi.inputs.InputState); trả các dòng event (tick = k + 1)."""
-        events = self.sim.step(inp)
         self.tick += 1
+        run, events = self.gate.check(inp)
+        if run:
+            events += self.sim.step(inp)
+            self.sim_tick += 1
         return [{"type": "event", "tick": self.tick, "phase": self.sim.phase, "name": name, "data": data}
                 for name, data in events]
 
     def end_row(self) -> dict:
         sim = self.sim
-        score = _common(sim, self.tick, self.tick, self.tick, self.tuning, "")["score"]
-        return {"type": "end", "ticks": self.tick, "sim_tick": self.tick, "mode": sim.mode,
-                "state": "finished" if sim.done else "playing",
-                "reason": sim.reason if sim.done else "tick_limit",
-                "money": sim.money, "earned": sim.earned, "reputation": sim.reputation, "score": score}
+        return {"type": "end", "ticks": self.tick, "sim_tick": self.sim_tick, "mode": self.mode,
+                "state": self._state(), "reason": sim.reason if sim.done else "tick_limit",
+                "money": sim.money, "earned": sim.earned, "reputation": sim.reputation,
+                "score": score_of(self.tuning, sim.earned, sim.reputation)}
 
     def write_inventory_if_done(self, inventory_out):
         """File kho: ghi MỘT lần khi có gather_end; chưa kết thúc thì giữ nguyên file đích."""
@@ -74,8 +114,17 @@ class Session:
             write_inventory(inventory_out, self.sim.inventory_items())
 
 
-def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None):
-    sess = Session(mode, tuning, scenario, seed, inventory)
+def make_session(mode, tuning, scenario, seed, inventory=None, days=1, contract=None):
+    """Dựng phiên chơi theo mode. day dùng DaySession (chonoi/day.py), cùng giao diện với Session."""
+    if mode == "day":
+        from .day import DaySession
+        return DaySession(tuning, scenario, seed, days, contract=contract)
+    return Session(mode, tuning, scenario, seed, inventory)
+
+
+def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None,
+        days=1, contract=None):
+    sess = make_session(mode, tuning, scenario, seed, inventory, days, contract)  # lỗi dựng -> mã 2, chưa ghi gì
     player = InputPlayer(frames)
     w = JsonlWriter(out_path)
     try:
@@ -94,4 +143,4 @@ def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, i
     finally:
         w.close()
     sess.write_inventory_if_done(inventory_out)
-    return sess.sim
+    return sess

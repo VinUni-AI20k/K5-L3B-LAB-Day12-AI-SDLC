@@ -23,8 +23,12 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, plan_dishes=None, carry=None):
+        """v1.1 (khung, dùng cho day): `plan_dishes` là danh sách id món của kế hoạch Ngày (None = cả 6 món,
+        quán độc lập); `carry` = {money, earned, reputation} mang qua Ngày (None = đầu lượt độc lập).
+        TODO(C): lọc menu theo `self.plan_dishes` trong `_spawn_customer` trước khi lọc nguyên liệu khả dụng."""
         t = tuning["quan"]
+        self.plan_dishes = None if plan_dishes is None else sorted(plan_dishes)
         self.t = t
         self.menu = tuning["menu"]
         self.rng = streams
@@ -51,6 +55,10 @@ class QuanSim:
         self._check_reserved_fits_stock()
         self.money = 0
         self.earned = 0
+        if carry is not None:
+            self.money = carry["money"]
+            self.earned = carry["earned"]
+            self.reputation = carry["reputation"]
         self.shift_earned = 0
         self.done = False
         self.reason = None
