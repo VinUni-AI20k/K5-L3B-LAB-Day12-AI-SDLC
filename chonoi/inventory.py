@@ -13,6 +13,18 @@ from .errors import BadInput
 KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
 
 
+def menu_kinds(menu) -> tuple:
+    """Các loại nguyên liệu suy ra từ công thức menu: v1.0 = KINDS_P1; v1.1 thêm ca_keo, keo_neo.
+
+    Dùng cho validate_items / read_inventory thay vì hard-code, để contract nào cũng đúng dải của nó
+    (TV3, TICKET-02 Phase 2).
+    """
+    kinds = set()
+    for info in menu.values():
+        kinds.update((info.get("recipe") or {}).keys())
+    return tuple(sorted(kinds))
+
+
 def validate_items(items, kinds=KINDS_P1):
     if not isinstance(items, dict):
         raise BadInput("items phải là object")

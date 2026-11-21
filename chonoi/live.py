@@ -29,7 +29,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from .contract import DEFAULT_PATH, load_contract
 from .errors import BadInput
 from .inputs import BUTTONS_V10, LiveInputs, buttons_for
-from .inventory import read_inventory
+from .inventory import menu_kinds, read_inventory
 from .runner import Session
 from .scenario import load_scenario
 from .sim.day import missing_day_keys
@@ -267,7 +267,7 @@ def main(argv=None) -> int:
         if a.mode == "day" and missing_day_keys(tuning):
             raise BadInput(f"--mode day: contract chưa có khóa {', '.join(missing_day_keys(tuning))} (chờ TV1)")
         scenario = load_scenario(a.scenario, a.mode, tuning)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        inventory = read_inventory(a.inventory, kinds=menu_kinds(tuning["menu"])) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, days=days, contract=contract)

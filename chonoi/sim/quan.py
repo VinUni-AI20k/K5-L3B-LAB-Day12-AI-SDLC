@@ -2,6 +2,8 @@
 
 TV3 (PRD-0 mục E + F, lát 3): vòng đời khách — đến theo lịch, chọn món nấu được từ nguyên liệu
 còn khả dụng, giữ chỗ nguyên liệu, kiên nhẫn, bỏ đi (customer_left), no_dish, đóng cửa (quan_end).
+Phase 2 (TICKET-02, T230): `plan_dishes` lọc món khách được gọi theo kế hoạch Ngày (DaySim truyền
+qua `_kwargs_for`); None = không hạn chế (chạy quan độc lập giữ nguyên hành vi Phase 1).
 TODO(TV4, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
                   ăn xong trả tiền (paid), boa, uy tín theo sự kiện phục vụ.
 """
@@ -16,11 +18,12 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, plan_dishes=None):
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
         self.freshness = tuning.get("freshness")
+        self.plan_dishes = set(plan_dishes) if plan_dishes is not None else None
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -241,8 +244,10 @@ class QuanSim:
         if not free:
             return
         avail = self._available()
-        dishes = sorted(d for d, info in self.menu.items()
-                        if all(avail.get(k, 0) >= n for k, n in info.get("recipe", {}).items()))
+        dishes = sorted(
+            d for d, info in self.menu.items()
+            if (self.plan_dishes is None or d in self.plan_dishes)
+            and all(avail.get(k, 0) >= n for k, n in info.get("recipe", {}).items()))
         if not dishes:
             events.append(("no_dish", {}))
             return

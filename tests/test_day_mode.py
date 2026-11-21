@@ -15,6 +15,12 @@ from helpers import ROOT, Workdir, events, frames, headless_cmd, read_jsonl, sna
 FIXTURE = os.path.join(ROOT, "tests", "fixtures", "contract-v1.1-day.json")
 REAL = os.path.join(ROOT, "game.contract.json")
 
+# Lịch khách của ca quan trong fixture v1.1: first_customer_tick + k * customer_interval_s*60
+_Q = json.load(open(FIXTURE, encoding="utf-8"))["tuning"]["quan"]
+Q_FIRST = _Q["first_customer_tick"]
+Q_INTERVAL = int(round(_Q["customer_interval_s"] * 60))
+Q_LAST_DUE = Q_FIRST + ((int(round(_Q["duration_s"] * 60)) - Q_FIRST) // Q_INTERVAL) * Q_INTERVAL
+
 
 def run(*args, contract=FIXTURE):
     env = dict(os.environ, CHONOI_CONTRACT=contract)
@@ -85,8 +91,12 @@ class DayLoopTest(unittest.TestCase):
                                                "ingredients": {"ca_loc": 3, "bong_sung": 6}})
             self.assertEqual(rows[3]["type"], "snapshot")
             names = [(e["name"], e["phase"]) for e in events(rows)]
+            # TV3-C2 (PRD mục E): kho rỗng -> mỗi tick lịch của quán (120 + 900k ≤ 10800: 12 lần)
+            # phát no_dish, không sinh khách. (Cập nhật kỳ vọng khi tích hợp TICKET-02.)
+            n_due = len(range(Q_FIRST, Q_LAST_DUE + 1, Q_INTERVAL))
             self.assertEqual(names, [("day_start", "gather"), ("day_plan", "gather"), ("phase_start", "gather"),
                                      ("gather_end", "gather"), ("phase_start", "quan"),
+                                     *[("no_dish", "quan")] * n_due,
                                      ("quan_end", "quan"), ("phase_start", "shop"), ("shop_end", "shop")])
             ev = {e["name"] + e["phase"]: e for e in events(rows)}
             self.assertEqual(ev["gather_endgather"]["tick"], ev["phase_startquan"]["tick"])

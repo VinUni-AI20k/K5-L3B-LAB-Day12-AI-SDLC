@@ -14,7 +14,7 @@ import sys
 from .contract import DEFAULT_PATH, load_contract
 from .errors import BadInput
 from .inputs import buttons_for, load_frames
-from .inventory import read_inventory
+from .inventory import menu_kinds, read_inventory
 from .runner import run
 from .scenario import load_scenario
 from .sim.day import missing_day_keys
@@ -79,7 +79,7 @@ def main(argv=None) -> int:
         buttons, strings = buttons_for(contract)
         scenario = load_scenario(a.scenario, a.mode, tuning)
         frames = load_frames(a.inputs, buttons, strings)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        inventory = read_inventory(a.inventory, kinds=menu_kinds(tuning["menu"])) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
     except BadInput as e:

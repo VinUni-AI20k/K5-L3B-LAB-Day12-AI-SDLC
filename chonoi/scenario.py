@@ -12,7 +12,7 @@ import json
 import math
 
 from .errors import BadInput
-from .inventory import KINDS_P1, validate_items
+from .inventory import menu_kinds, validate_items
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks", "monsters"}  # monsters: v1.1
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
@@ -181,7 +181,7 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
+        if not isinstance(h, list) or any(k not in menu_kinds(tuning["menu"]) for k in h):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
@@ -285,7 +285,7 @@ def _validate_quan(b, tuning):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate_items(b["stock"])
+        validate_items(b["stock"], kinds=menu_kinds(menu))
     if "random_customers" in b and not isinstance(b["random_customers"], bool):
         raise BadInput("random_customers phải là boolean")
     if "reputation" in b and not (_num(b["reputation"])
@@ -363,7 +363,7 @@ def _validate_quan(b, tuning):
             if not isinstance(c["reserved"], dict):
                 raise BadInput(f"customers.{cid}: reserved phải là object nguyên liệu")
             try:
-                reserved = validate_items(c["reserved"])
+                reserved = validate_items(c["reserved"], kinds=menu_kinds(menu))
             except BadInput as e:
                 raise BadInput(f"customers.{cid}: reserved không hợp lệ: {e}")
         holds = [where for where, oid in holders if oid == cid]
