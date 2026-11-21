@@ -237,9 +237,31 @@ class QuanSim:
                 c["reserved"] = ids
 
     def _decay_stock(self, events):
-        """TODO(D, Ticket-03): hao tươi kho quán (cả hàng đang giữ) bằng fresh.decay, phát spoiled{item_id, kind,
-        location: "stock"} theo id, trả danh sách id vừa ươn. Khung tạm của C để nối step(): chưa hao gì."""
-        return []
+        """v1.2 (Ticket-03): kho quán hao 0.25/s = 1 đơn vị/tick, kể cả hàng đang giữ chỗ.
+        Phát spoiled theo id cho cá thể vừa ươn, trả danh sách id đó để C giữ lại đơn dính hàng ươn."""
+        newly = fresh.decay(self.stock, fresh.cfg(self.tuning)["quan_decay_u"], self.tuning)
+        for it in newly:
+            events.append(("spoiled", {"item_id": it["id"], "kind": it["kind"], "location": "stock"}))
+        return [it["id"] for it in newly]
+
+    def _cook_by_id(self, order, dish, s, events):
+        """v1.2: nấu tiêu đúng các cá thể đã giữ (theo id). Giá chốt = floor(giá × trung bình fresh / 100),
+        tính bằng đơn vị: giá × tổng u // (số cá thể × 100 × UNITS). Món chín không hao (không nằm trong kho)."""
+        ids = set(order["reserved"])
+        taken = [it for it in self.stock if it["id"] in ids]
+        if not taken:
+            return
+        self.stock = [it for it in self.stock if it["id"] not in ids]
+        price = dish["price"] * sum(it["u"] for it in taken) // (len(taken) * 100 * fresh.UNITS)
+        items = sorted(taken, key=lambda it: (it["kind"], id_key(it["id"])))
+        order["reserved"] = []
+        order["order_status"] = "assigned"
+        order["base_price"] = price  # chốt giá khi bắt đầu nấu
+        s.update(state="cooking", cook_ticks_left=_ticks(dish["cook_s"]), ready_ticks=0,
+                 dish={"order_id": order["id"], "dish_id": order["dish_id"], "base_price": price})
+        events.append(("cook_started", {"stove_id": s["id"], "order_id": order["id"],
+                                        "dish_id": order["dish_id"], "items": fresh.public_list(items),
+                                        "base_price": price}))
 
     # ---- snapshot / step ------------------------------------------------------
 
@@ -328,6 +350,9 @@ class QuanSim:
             if order is None:
                 return
             dish = self.menu[order["dish_id"]]
+            if self.fresh_on:
+                self._cook_by_id(order, dish, s, events)
+                return
             items = sorted(k for k, n in order["reserved"].items() for _ in range(n))
             for k, n in order["reserved"].items():  # tiêu đúng phần đã giữ
                 self.stock[k] = self.stock.get(k, 0) - n

@@ -16,7 +16,7 @@ class ContractTuningRangesTest(unittest.TestCase):
     def test_contract_v10_required_fields_and_ranges(self):
         with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
             c = json.load(f)
-        self.assertEqual(c["contract_version"], "1.0")
+        self.assertEqual(c["contract_version"], "1.1")
         self.assertTrue(isinstance(c["team_size"], int) and not isinstance(c["team_size"], bool))
         self.assertTrue(4 <= c["team_size"] <= 6)
 
@@ -55,6 +55,9 @@ class ContractTuningRangesTest(unittest.TestCase):
             "ca_loc_nuong_trui": {"ca_loc": 1},
             "goi_bong_sung": {"bong_sung": 2},
             "lau_ca_linh_dien_dien": {"ca_linh": 3, "bong_dien_dien": 1},
+            "canh_chua_ca_loc": {"ca_loc": 1, "bong_dien_dien": 1},
+            "ca_keo_nuong": {"ca_keo": 2},
+            "lau_mam": {"ca_linh": 2, "ca_keo": 1, "keo_neo": 1, "bong_dien_dien": 1},
         }
         menu = t["menu"]
         self.assertEqual(set(menu.keys()), set(expected_recipes.keys()))
@@ -65,13 +68,13 @@ class ContractTuningRangesTest(unittest.TestCase):
             self.assertGreater(spec["price"], 0)
             self.assertGreater(int(round(spec["cook_s"] * 60)), 0)
 
-        self.assertEqual([s["id"] for s in q["stoves"]], ["B1"])
-        self.assertEqual([tb["id"] for tb in q["tables"]], ["T1"])
-        self.assertTrue({"bong_dien_dien", "bong_sung"}.issubset({n["kind"] for n in g["nodes"]}))
+        self.assertEqual([s["id"] for s in q["stoves"]], ["B1", "B2"])
+        self.assertEqual([tb["id"] for tb in q["tables"]], ["T1", "T2", "T3", "T4"])
+        self.assertTrue({"bong_dien_dien", "bong_sung", "keo_neo"}.issubset({n["kind"] for n in g["nodes"]}))
         self.assertTrue(all(n["pos"][1] == 0 for n in g["nodes"]))
-        self.assertEqual(len(g["fish_initial"]), 6)
-        self.assertTrue({"ca_linh", "ca_loc"}.issubset({f["kind"] for f in g["fish_initial"]}))
-        self.assertTrue(all(f["pos"][1] > 0 for f in g["fish_initial"]))
+        self.assertEqual(g["fish_initial"], 8)
+        self.assertEqual(set(g["fish_depths"].keys()), {"ca_linh", "ca_loc", "ca_keo"})
+        self.assertTrue(all(0 < lo < hi for lo, hi in g["fish_depths"].values()))
 
 
 class SmokeTwoProcessExtraTest(unittest.TestCase):

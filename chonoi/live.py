@@ -27,7 +27,7 @@ from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
 from .inventory import read_inventory
-from .runner import Session
+from .runner import make_session
 from .scenario import load_scenario
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
@@ -40,22 +40,24 @@ RECENT_EVENTS = 40
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None):
-        self._args = (mode, tuning, scenario, seed, inventory)
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, days=1, contract=None):
+        self._args = (mode, tuning, scenario, seed, inventory, days, contract)
         self.mode = mode
         self.tuning = tuning
         self.inventory_out = inventory_out
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread = None
+        self._errored = False
         self._reset()
 
     def _reset(self):
-        self.session = Session(*self._args)
+        self.session = make_session(*self._args)
         self.inputs = LiveInputs()
         self.events = []
         self._saved = False
         self.error = None
+        self._errored = False
 
     # --- luồng nền ----------------------------------------------------------------
     def start(self):
@@ -77,8 +79,10 @@ class LiveGame:
                 except Exception:  # luật của nhóm lỗi: báo ra terminal + client, dừng bước (restart để chơi lại)
                     self.error = traceback.format_exc()
                     sys.stderr.write(self.error)
-                    self.session.sim.done = True
-                    self.session.sim.reason = "error"
+                    self._errored = True
+                    if hasattr(self.session, "sim"):
+                        self.session.sim.done = True
+                        self.session.sim.reason = "error"
             delay = nxt - time.perf_counter()
             if delay > 0:
                 self._stop.wait(delay)
@@ -87,7 +91,7 @@ class LiveGame:
 
     def _tick_once(self):
         s = self.session
-        if s.done:
+        if self._errored or s.done:
             return
         for row in s.step(self.inputs.advance()):
             self.events.append(row)
@@ -104,10 +108,14 @@ class LiveGame:
     def state_json(self) -> bytes:
         with self._lock:
             snap = self.session.snapshot()
-            snap["meta"] = self.tuning[self.mode]
+            phase = snap.get("phase", self.mode)
+            snap["meta"] = self.tuning.get(phase, {})
+            snap["tuning_menu"] = self.tuning.get("menu", {})
+            snap["tuning_shop"] = self.tuning.get("shop", {})
+            snap["tuning_day_plan"] = self.tuning.get("day_plan", [])
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
-            snap["reason"] = self.session.sim.reason if self.session.done else None
+            snap["reason"] = self.session.end_row()["reason"] if self.session.done else None
             snap["error"] = self.error
             return json.dumps(snap, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
@@ -119,13 +127,18 @@ class LiveGame:
             if not ok:
                 raise ValueError("move phải là [a, b] trong [-1, 1]")
         buttons = {}
-        for b in ("interact", "catch"):
+        for b in ("interact", "catch", "pause", "shop_done"):
             if b in body:
                 if not isinstance(body[b], bool):
                     raise ValueError(f"{b} phải là boolean")
                 buttons[b] = body[b]
+        buy = None
+        if "buy" in body and body["buy"] is not None:
+            if not isinstance(body["buy"], str) or not body["buy"]:
+                raise ValueError("buy phải là chuỗi khác rỗng")
+            buy = body["buy"]
         with self._lock:
-            self.inputs.set(move, **buttons)
+            self.inputs.set(move, buy=buy, **buttons)
 
     def restart(self):
         with self._lock:
@@ -230,8 +243,9 @@ class LiveServer:
 
 
 def main(argv=None) -> int:
-    p = argparse.ArgumentParser(prog="chonoi.live", description="Chơi trực tiếp trên trình duyệt (starter).")
-    p.add_argument("--mode", required=True, choices=["gather", "quan"])
+    p = argparse.ArgumentParser(prog="chonoi.live", description="Chơi trực tiếp trên trình duyệt (v1.1).")
+    p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])
+    p.add_argument("--days", type=int, default=None, help="chỉ với day: số Ngày (1..5, mặc định 5)")
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--port", type=int, default=8000, help="0 = cổng ngẫu nhiên")
     p.add_argument("--host", default="127.0.0.1")
@@ -244,12 +258,18 @@ def main(argv=None) -> int:
             raise BadInput("--inventory chỉ dùng với quan")
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
-        tuning = load_contract()["tuning"]
+        if a.days is not None and a.mode != "day":
+            raise BadInput("--days chỉ dùng với day")
+        days = 5 if (a.mode == "day" and a.days is None) else (a.days if a.days is not None else 1)
+        if a.mode == "day" and not (1 <= days <= 5):
+            raise BadInput("--days phải trong [1, 5]")
+        contract = load_contract()
+        tuning = contract["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
         inventory = read_inventory(a.inventory) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, days=days, contract=contract)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")

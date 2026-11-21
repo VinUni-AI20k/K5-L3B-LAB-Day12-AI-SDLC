@@ -66,7 +66,8 @@ class ReserveById(unittest.TestCase):
         self.assertEqual([n for n, _ in run(sim, 120)], ["no_dish"])
 
     def test_dung_nguong_30_van_dung_duoc(self):
-        sim = quan([item("I1", f=30)], plan=["ca_loc_nuong_trui"])
+        # Kho quán hao 0.25 điểm/giây: 120 tick làm mất 0.5 điểm, nên cá thể phải bắt đầu ở 31 để còn tươi lúc khách đến.
+        sim = quan([item("I1", f=31)], plan=["ca_loc_nuong_trui"])
         run(sim, 120)
         self.assertEqual(sim.customers[0]["reserved"], ["I1"])
 
@@ -179,6 +180,37 @@ class DayHandover(unittest.TestCase):
         self.assertEqual((sess.day, sess.sim.phase), (2, "gather"))
         self.assertEqual([(it["id"], it["kind"], it["u"]) for it in sess.sim.hold],
                          [("I3", "ca_loc", 24000), ("I4", "bong_sung", 19200)])  # id mới, kind và fresh như mẫu
+
+
+class HeadlessSpoilWhileReserved(unittest.TestCase):
+    """Chạy headless thật với manifest v1.2: hao kho của D (_decay_stock) nối với giữ lại của C (_rereserve_spoiled).
+    I1 tươi đúng 30: bước 1 hao 1 đơn vị nên xuống < 30 và phát spoiled ngay tick 1."""
+
+    def run_quan(self, stock):
+        import json
+        from helpers import run_headless
+        block = {"random_customers": False, "stock": stock,
+                 "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I1"]}]}
+        with Workdir() as w:
+            sc = write_json(w.path("sc.json"), {"quan": block})
+            code, err = run_headless("--mode", "quan", "--seed", "1", "--scenario", sc, "--ticks", "3",
+                                     "--out", w.path("o.jsonl"), "--snapshot-every", "3")
+            self.assertEqual(code, 0, err)
+            with open(w.path("o.jsonl"), encoding="utf-8") as f:
+                rows = [json.loads(line) for line in f]
+        events = [(r["tick"], r["name"], r["data"]) for r in rows if r["type"] == "event"]
+        snap = [r for r in rows if r["type"] == "snapshot"][-1]
+        return events, snap["customers"][0]
+
+    def test_con_hang_tuoi_thi_giu_lai_sang_ca_the_khac(self):
+        events, c = self.run_quan([item("I1", f=30), item("I2", f=80)])
+        self.assertEqual(events, [(1, "spoiled", {"item_id": "I1", "kind": "ca_loc", "location": "stock"})])
+        self.assertEqual((c["order_status"], c["reserved"]), ("reserved", ["I2"]))
+
+    def test_het_hang_tuoi_thi_unfulfillable_va_khach_van_cho(self):
+        events, c = self.run_quan([item("I1", f=30)])
+        self.assertEqual(events, [(1, "spoiled", {"item_id": "I1", "kind": "ca_loc", "location": "stock"})])
+        self.assertEqual((c["order_status"], c["reserved"], c["state"]), ("unfulfillable", [], "waiting"))
 
 
 if __name__ == "__main__":

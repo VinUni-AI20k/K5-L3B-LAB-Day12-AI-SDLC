@@ -51,6 +51,11 @@ def grid(kind):
     return [[float(x), float(d)] for x in G["fish_spawn_x"] for d in G["fish_spawn_depths"][kind]]
 
 
+def held(sim):
+    """Giỏ theo thứ tự nhặt, chỉ lấy kind (giỏ là chuỗi ở v1.1, cá thể ở v1.2)."""
+    return [h["kind"] if isinstance(h, dict) else h for h in sim.hold]
+
+
 def fish_at(fid, kind, pos, heading=0.0, age=0):
     return {"id": fid, "kind": kind, "pos": pos, "heading_deg": heading, "age_ticks": age}
 
@@ -260,7 +265,7 @@ class ThuTuStep(unittest.TestCase):
                         "fish": [fish_at("F1", "ca_loc", [20 + G["catch_radius"], 6], heading=0)]})
         ev = sim.step(pressed("catch"))
         self.assertEqual([n for n, _ in ev], ["fish_caught"])
-        self.assertEqual(sim.hold, ["ca_loc"])
+        self.assertEqual(held(sim), ["ca_loc"])
 
     def test_ca_boi_ngay_buoc_dau_neu_khong_bi_bat(self):
         sim = make_sim({"fish": [fish_at("F1", "ca_loc", [50, 14], heading=0)]})
@@ -277,7 +282,7 @@ class LoaiMoi(unittest.TestCase):
         ev = sim.step(pressed("catch"))
         self.assertEqual([d for n, d in ev if n == "fish_caught"],
                          [{"fish_id": "F1", "kind": "ca_keo", "yield": G["fish_yield"]["ca_keo"]}])
-        self.assertEqual(sim.hold, ["ca_keo"] * G["fish_yield"]["ca_keo"])
+        self.assertEqual(held(sim), ["ca_keo"] * G["fish_yield"]["ca_keo"])
 
     def test_hai_nut_keo_neo_n5_va_n6(self):
         for nid in ("N5", "N6"):
@@ -286,7 +291,7 @@ class LoaiMoi(unittest.TestCase):
             ev = sim.step(pressed("interact"))
             self.assertEqual([d for n, d in ev if n == "gather"],
                              [{"node_id": nid, "kind": "keo_neo", "amount": G["node_yield"]}], nid)
-            self.assertEqual(sim.hold, ["keo_neo"] * G["node_yield"])
+            self.assertEqual(held(sim), ["keo_neo"] * G["node_yield"])
 
 
 class Headless(unittest.TestCase):

@@ -1,0 +1,14 @@
+# Lát 3 (C) phase 3: hàng được giữ chỗ vừa ươn, chạy headless thật trên main @ 5b713db (hao kho của D nối với giữ lại của C)
+# a.json:
+{"quan":{"random_customers":false,"stock":[{"id":"I1","kind":"ca_loc","fresh":30},{"id":"I2","kind":"ca_loc","fresh":80}],"customers":[{"id":"C1","table_id":"T1","dish_id":"ca_loc_nuong_trui","reserved":["I1"]}]}}
+# b.json:
+{"quan":{"random_customers":false,"stock":[{"id":"I1","kind":"ca_loc","fresh":30}],"customers":[{"id":"C1","table_id":"T1","dish_id":"ca_loc_nuong_trui","reserved":["I1"]}]}}
+# python3 -m chonoi.headless --mode quan --seed 1 --scenario <a|b>.json --ticks 3 --out o.jsonl --snapshot-every 3
+## a
+mã thoát 0
+event 1 spoiled {"item_id": "I1", "kind": "ca_loc", "location": "stock"}
+tick 3 khách: {"order_status": "reserved", "reserved": ["I2"]} kho: [["I1", 29.988], ["I2", 79.987]]
+## b
+mã thoát 0
+event 1 spoiled {"item_id": "I1", "kind": "ca_loc", "location": "stock"}
+tick 3 khách: {"order_status": "unfulfillable", "reserved": []} kho: [["I1", 29.988]]

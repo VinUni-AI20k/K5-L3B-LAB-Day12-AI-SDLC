@@ -1,9 +1,15 @@
-"""Phase 2, lát 3 (D): 2 bếp, 4 bàn, 6 món. Dữ liệu đọc từ game.contract.json v1.1."""
+"""Phase 2, lát 3 (D): 2 bếp, 4 bàn, 6 món. Dữ liệu đọc từ game.contract.json (v1.2 từ Ticket-03).
+
+Từ v1.2 kho là mảng cá thể. `make()` đổi số đếm {loại: số} thành cá thể tươi 100 + 1/240 điểm
+(kho hao 1 đơn vị đúng ở bước nấu, nên giá chốt vẫn đúng như niêm yết), và `reserved` công thức
+thành mảng id cá thể. Logic các test giữ nguyên.
+"""
 
 import copy
 import json
 import os
 import unittest
+from collections import Counter
 
 from helpers import ROOT
 from chonoi.ids import IdAllocator
@@ -33,9 +39,40 @@ def customer(cid, table, dish="goi_bong_sung", order_tick=0):
             "order_status": "reserved", "reserved": recipe, "base_price": 0, "tip": 0}
 
 
+def to_items(counts):
+    """{loại: số} -> cá thể public {id, kind, fresh}, id I1, I2, ... theo thứ tự loại."""
+    items = []
+    for kind in sorted(counts):
+        for _ in range(counts[kind]):
+            items.append({"id": f"I{len(items) + 1}", "kind": kind, "fresh": 100 + 1 / 240})
+    return items
+
+
+def bind(customers, items):
+    """`reserved` công thức {loại: số} -> mảng id cá thể còn trống trong kho."""
+    free = list(items)
+    for c in customers:
+        res = c["reserved"]
+        ids = []
+        if isinstance(res, dict):
+            for kind in sorted(res):
+                for _ in range(res[kind]):
+                    it = next(i for i in free if i["kind"] == kind)
+                    free.remove(it)
+                    ids.append(it["id"])
+        c["reserved"] = ids
+    return customers
+
+
+def counts(sim):
+    """Số cá thể còn trong kho theo loại."""
+    return dict(Counter(it["kind"] for it in sim.stock))
+
+
 def make(customers=(), stock=None, pos=None, tuning=None, random_customers=False):
-    sc = {"stock": dict(stock or {}), "customers": list(customers),
-          "random_customers": random_customers}
+    items = to_items(stock or {})
+    cs = bind(list(customers), items)
+    sc = {"stock": items, "customers": cs, "random_customers": random_customers}
     sim = QuanSim(tuning or TUNING, sc, Streams(1), IdAllocator())
     if pos is not None:
         sim.pos = list(pos)
@@ -63,7 +100,7 @@ class HaiBep(unittest.TestCase):
         self.assertEqual(data_of(ev, "cook_started")[0]["order_id"], "C2")
         states = {s["id"]: s["state"] for s in sim.snapshot()["stoves"]}
         self.assertEqual(states, {"B1": "cooking", "B2": "cooking"})
-        self.assertEqual(sim.stock.get("bong_sung", 0), 0)
+        self.assertEqual(counts(sim).get("bong_sung", 0), 0)
 
     def test_bep_dang_nau_van_nhan_don_o_bep_con_lai(self):
         sim = make(customers=[customer("C1", "T1", order_tick=0), customer("C2", "T2", order_tick=1)],
@@ -111,7 +148,7 @@ class TraTienTheoBan(unittest.TestCase):
         def eating(cid, table):
             return {"id": cid, "table_id": table, "dish_id": "goi_bong_sung", "order_tick": 0,
                     "state": "eating", "patience_ticks_left": 3600, "eat_ticks_left": 0,
-                    "order_status": "served", "reserved": {}, "base_price": 40, "tip": 0}
+                    "order_status": "served", "reserved": [], "base_price": 40, "tip": 0}
         sim = make(customers=[eating("C1", "T2"), eating("C2", "T1")], pos=[0, 0])
         ev = sim.step(Inp())
         paid = data_of(ev, "paid")
@@ -126,7 +163,8 @@ class MonMoi(unittest.TestCase):
         ev = sim.step(Inp(interact=True))
         cs = data_of(ev, "cook_started")[0]
         self.assertEqual(cs["base_price"], 200)
-        self.assertEqual(cs["items"], ["bong_dien_dien", "ca_keo", "ca_linh", "ca_linh", "keo_neo"])
+        self.assertEqual([it["kind"] for it in cs["items"]],
+                         ["bong_dien_dien", "ca_keo", "ca_linh", "ca_linh", "keo_neo"])
         self.assertEqual(sim.stoves[0]["cook_ticks_left"], 12 * 60)
 
     def test_du_6_mon_trong_menu(self):

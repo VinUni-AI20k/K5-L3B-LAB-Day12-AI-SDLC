@@ -2,11 +2,15 @@
 
 Test gọi thẳng QuanSim với một inp giả để dịch chuyển người chơi tới bếp/bàn; không phụ thuộc
 lát của C (khách đến, kiên nhẫn) vì khách được dựng sẵn trong fixture.
+
+Từ Ticket-03 (v1.2) kho là mảng cá thể. `make()` đổi số đếm {loại: số} thành cá thể tươi 100 điểm, và
+`reserved` công thức thành mảng id cá thể; logic các test giữ nguyên.
 """
 
 import json
 import os
 import unittest
+from collections import Counter
 
 from helpers import ROOT
 from chonoi.ids import IdAllocator
@@ -43,8 +47,41 @@ def customer(cid="C1", table="T1", dish="goi_bong_sung", order_tick=0, status="r
     return c
 
 
+def to_items(counts):
+    """{loại: số} -> cá thể public {id, kind, fresh}, id I1, I2, ... theo thứ tự loại.
+    Tươi 100 + 1/240 (24001 đơn vị): kho hao 1 đơn vị đúng ở bước nấu, nên giá chốt vẫn đúng 40 như niêm yết."""
+    items = []
+    for kind in sorted(counts):
+        for _ in range(counts[kind]):
+            items.append({"id": f"I{len(items) + 1}", "kind": kind, "fresh": 100 + 1 / 240})
+    return items
+
+
+def bind(customers, items):
+    """`reserved` công thức {loại: số} -> mảng id cá thể còn trống trong kho."""
+    free = list(items)
+    for c in customers:
+        res = c["reserved"]
+        ids = []
+        if isinstance(res, dict):
+            for kind in sorted(res):
+                for _ in range(res[kind]):
+                    it = next(i for i in free if i["kind"] == kind)
+                    free.remove(it)
+                    ids.append(it["id"])
+        c["reserved"] = ids
+    return customers
+
+
+def counts(sim):
+    """Số cá thể còn trong kho theo loại."""
+    return dict(Counter(it["kind"] for it in sim.stock))
+
+
 def make(customers=(), stock=None, hand=None, stoves=None, pos=None, time_left=None):
-    sc = {"stock": dict(stock or {}), "customers": list(customers), "random_customers": False}
+    items = to_items(stock or {})
+    cs = bind(list(customers), items)
+    sc = {"stock": items, "customers": cs, "random_customers": False}
     if hand is not None:
         sc["hand"] = hand
     if stoves is not None:
@@ -71,10 +108,10 @@ class CookServeCycle(unittest.TestCase):
 
         ev = sim.step(Inp(interact=True))
         self.assertEqual(names(ev), ["cook_started"])
-        self.assertEqual(sim.stock.get("bong_sung", 0), 0)
+        self.assertEqual(counts(sim), {})
         c = sim.customers[0]
         self.assertEqual(c["order_status"], "assigned")
-        self.assertEqual(c["reserved"], {})
+        self.assertEqual(c["reserved"], [])
         self.assertEqual(c["base_price"], 40)
         stove = sim.stoves[0]
         self.assertEqual(stove["state"], "cooking")
@@ -118,7 +155,7 @@ class Rules(unittest.TestCase):
     def test_khong_co_don_reserved_thi_bep_khong_nau(self):
         sim = make(customers=[], stock={"bong_sung": 2}, pos=STOVE_B1)
         self.assertEqual(sim.step(Inp(interact=True)), [])
-        self.assertEqual(sim.stock, {"bong_sung": 2})
+        self.assertEqual(counts(sim), {"bong_sung": 2})
         self.assertEqual(sim.stoves[0]["state"], "idle")
 
     def test_dung_mep_ban_kinh_tuong_tac(self):
@@ -171,14 +208,13 @@ class Rules(unittest.TestCase):
         ev = sim.step(Inp(interact=True))
         self.assertEqual(data_of(ev, "cook_started")[0]["order_id"], "C1")
 
-    def test_lau_ghi_items_theo_thu_tu_sap(self):
+    def test_lau_ghi_items_theo_loai_roi_id(self):
         c = customer("C1", dish="lau_ca_linh_dien_dien", table="T1")
         sim = make(customers=[c], stock={"ca_linh": 3, "bong_dien_dien": 1}, pos=STOVE_B1)
         ev = sim.step(Inp(interact=True))
-        self.assertEqual(data_of(ev, "cook_started")[0]["items"],
-                         ["bong_dien_dien", "ca_linh", "ca_linh", "ca_linh"])
-        self.assertEqual(sim.stock.get("ca_linh", 0), 0)
-        self.assertEqual(sim.stock.get("bong_dien_dien", 0), 0)
+        items = data_of(ev, "cook_started")[0]["items"]
+        self.assertEqual([it["kind"] for it in items], ["bong_dien_dien", "ca_linh", "ca_linh", "ca_linh"])
+        self.assertEqual(counts(sim), {})
 
 
 class ClosingAndDrop(unittest.TestCase):

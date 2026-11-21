@@ -8,6 +8,8 @@ Chạy: PYTHONPATH=tests:. python3 -m unittest discover -s tests -p "test_gather
 import json
 import unittest
 
+from chonoi.contract import load_contract
+
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
 
@@ -24,6 +26,38 @@ YIELD = G["fish_yield"]
 NODE_YIELD = G["node_yield"]
 R_INT = G["interact_radius"]
 R_CATCH = G["catch_radius"]
+
+
+
+# Test chạy được ở cả v1.1 (giỏ/kho đếm theo loại) và v1.2 (kho cá thể, Ticket-03): bộ chuyển nhỏ dưới đây
+# đổi fixture giỏ sang cá thể và đọc kết quả theo loại, nên luật hái/bắt vẫn được kiểm khi manifest lên 1.2.
+V12 = "freshness" in load_contract()["tuning"]
+
+
+def to_hold(kinds):
+    """Fixture giỏ theo thứ tự nhặt: v1.1 mảng kind; v1.2 mảng cá thể {id, kind, fresh} id I1, I2, ..."""
+    if not V12:
+        return list(kinds)
+    return [{"id": f"I{i + 1}", "kind": k, "fresh": 100} for i, k in enumerate(kinds)]
+
+
+def kinds(hold):
+    """Giỏ trong snapshot -> mảng kind theo thứ tự nhặt."""
+    return [h["kind"] if isinstance(h, dict) else h for h in hold]
+
+
+def counts(items):
+    """Kho (dict đếm v1.1 hoặc mảng cá thể v1.2) -> dict đếm theo loại, bỏ loại bằng 0."""
+    if isinstance(items, dict):
+        return {k: v for k, v in items.items() if v}
+    out = {}
+    for h in items:
+        out[h["kind"]] = out.get(h["kind"], 0) + 1
+    return out
+
+
+def kho(inv):
+    return {"items": counts(inv["items"])}
 
 
 def run_gather(block, ticks, inputs=None, inventory_out=False, every=1):
@@ -71,14 +105,14 @@ UNDER = [20, 5]     # dưới nước
 
 class Harvest(unittest.TestCase):
     def test_hai_nut_gan_nhat_them_vao_cuoi_gio_va_dat_hoi_phuc(self):
-        rows, _, _ = run_gather({"player": {"pos": SURF}, "hold": ["ca_loc"],
+        rows, _, _ = run_gather({"player": {"pos": SURF}, "hold": to_hold(["ca_loc"]),
                                  "nodes": [node("N1", 21, "bong_dien_dien")]}, 1, INTERACT0)
         ev = events(rows, "gather")
         self.assertEqual(len(ev), 1)
         self.assertEqual(ev[0]["tick"], 1)
         self.assertEqual(ev[0]["data"], {"node_id": "N1", "kind": "bong_dien_dien", "amount": NODE_YIELD})
         s = snap_at(rows, 1)
-        self.assertEqual(s["hold"], ["ca_loc"] + ["bong_dien_dien"] * NODE_YIELD)  # cuối mảng là mới nhất
+        self.assertEqual(kinds(s["hold"]), ["ca_loc"] + ["bong_dien_dien"] * NODE_YIELD)  # cuối mảng là mới nhất
         self.assertEqual(s["hold_count"], 1 + NODE_YIELD)
         n = s["nodes"][0]
         self.assertEqual((n["ready"], n["regrow_ticks"]), (False, REGROW))
@@ -141,16 +175,16 @@ class Harvest(unittest.TestCase):
 class HarvestFullHold(unittest.TestCase):
     def test_gio_day_hold_full_nut_giu_nguyen(self):
         hold = ["ca_loc"] * CAP
-        rows, _, _ = run_gather({"player": {"pos": SURF}, "hold": hold, "nodes": [node("N1", 20)]}, 1, INTERACT0)
+        rows, _, _ = run_gather({"player": {"pos": SURF}, "hold": to_hold(hold), "nodes": [node("N1", 20)]}, 1, INTERACT0)
         self.assertEqual([r["name"] for r in events(rows)], ["hold_full"])
         self.assertEqual(events(rows)[0]["data"], {"action": "gather", "node_id": "N1",
                                                    "required": NODE_YIELD, "free": 0})
         s = snap_at(rows, 1)
-        self.assertEqual(s["hold"], hold)
+        self.assertEqual(kinds(s["hold"]), hold)
         self.assertEqual((s["nodes"][0]["ready"], s["nodes"][0]["regrow_ticks"]), (True, 0))
 
     def test_con_dung_mot_cho_van_hai_duoc(self):
-        rows, _, _ = run_gather({"player": {"pos": SURF}, "hold": ["ca_loc"] * (CAP - NODE_YIELD),
+        rows, _, _ = run_gather({"player": {"pos": SURF}, "hold": to_hold(["ca_loc"] * (CAP - NODE_YIELD)),
                                  "nodes": [node("N1", 20)]}, 1, INTERACT0)
         self.assertEqual([r["name"] for r in events(rows)], ["gather"])
         self.assertEqual(snap_at(rows, 1)["hold_count"], CAP)
@@ -164,14 +198,14 @@ class Catch(unittest.TestCase):
         self.assertEqual(ev[0]["tick"], 1)
         self.assertEqual(ev[0]["data"], {"fish_id": "F1", "kind": "ca_linh", "yield": YIELD["ca_linh"]})
         s = snap_at(rows, 1)
-        self.assertEqual(s["hold"], ["ca_linh"] * YIELD["ca_linh"])
+        self.assertEqual(kinds(s["hold"]), ["ca_linh"] * YIELD["ca_linh"])
         self.assertEqual(s["fish"], [])
         self.assertEqual(s["player"]["catch_cd_ticks"], CATCH_CD)
 
     def test_ca_loc_cho_1(self):
         rows, _, _ = run_gather({"player": {"pos": UNDER}, "fish": [fish("F1", 20, 6, "ca_loc")]}, 1, CATCH0)
         self.assertEqual(events(rows, "fish_caught")[0]["data"]["yield"], YIELD["ca_loc"])
-        self.assertEqual(snap_at(rows, 1)["hold"], ["ca_loc"] * YIELD["ca_loc"])
+        self.assertEqual(kinds(snap_at(rows, 1)["hold"]), ["ca_loc"] * YIELD["ca_loc"])
 
     def test_o_mat_nuoc_khong_bat_duoc(self):
         rows, _, _ = run_gather({"player": {"pos": SURF}, "fish": [fish("F1", 20, 1)]}, 1, CATCH0)
@@ -222,17 +256,17 @@ class CatchFullHold(unittest.TestCase):
     def test_thieu_cho_cho_ca_linh_hold_full_giu_dan_khong_hoi_chieu(self):
         need, free = YIELD["ca_linh"], YIELD["ca_linh"] - 1
         hold = ["ca_loc"] * (CAP - free)
-        rows, _, _ = run_gather({"player": {"pos": UNDER}, "hold": hold, "fish": [fish("F1", 20, 6)]}, 1, CATCH0)
+        rows, _, _ = run_gather({"player": {"pos": UNDER}, "hold": to_hold(hold), "fish": [fish("F1", 20, 6)]}, 1, CATCH0)
         self.assertEqual([r["name"] for r in events(rows)], ["hold_full"])
         self.assertEqual(events(rows)[0]["data"], {"action": "catch", "fish_id": "F1", "required": need, "free": free})
         s = snap_at(rows, 1)
-        self.assertEqual((s["hold"], len(s["fish"]), s["player"]["catch_cd_ticks"]), (hold, 1, 0))
+        self.assertEqual((kinds(s["hold"]), len(s["fish"]), s["player"]["catch_cd_ticks"]), (hold, 1, 0))
 
     def test_khong_thu_dan_khac_khi_dan_gan_nhat_khong_vua(self):
         free = YIELD["ca_linh"] - 1  # ca_loc (cần 1) vừa nhưng không được thử
         hold = ["bong_sung"] * (CAP - free)
         rows, _, _ = run_gather({"player": {"pos": UNDER},
-                                 "hold": hold,
+                                 "hold": to_hold(hold),
                                  "fish": [fish("F1", 20, 6, "ca_linh"), fish("F2", 20, 6.8, "ca_loc")]}, 1, CATCH0)
         self.assertEqual([r["name"] for r in events(rows)], ["hold_full"])
         self.assertEqual(events(rows)[0]["data"]["fish_id"], "F1")
@@ -240,14 +274,14 @@ class CatchFullHold(unittest.TestCase):
 
     def test_con_dung_du_cho_van_bat_duoc(self):
         hold = ["ca_loc"] * (CAP - YIELD["ca_linh"])
-        rows, _, _ = run_gather({"player": {"pos": UNDER}, "hold": hold, "fish": [fish("F1", 20, 6)]}, 1, CATCH0)
+        rows, _, _ = run_gather({"player": {"pos": UNDER}, "hold": to_hold(hold), "fish": [fish("F1", 20, 6)]}, 1, CATCH0)
         self.assertEqual([r["name"] for r in events(rows)], ["fish_caught"])
         self.assertEqual(snap_at(rows, 1)["hold_count"], CAP)
 
     def test_hold_full_khong_dat_hoi_chieu_nen_bam_lai_ngay_van_thu(self):
         hold = ["ca_loc"] * CAP
         inp = frames({"tick": 0, "catch": True}, {"tick": 1, "catch": False}, {"tick": 2, "catch": True})
-        rows, _, _ = run_gather({"player": {"pos": UNDER}, "hold": hold, "fish": [fish("F1", 20, 6)]}, 3, inp)
+        rows, _, _ = run_gather({"player": {"pos": UNDER}, "hold": to_hold(hold), "fish": [fish("F1", 20, 6)]}, 3, inp)
         self.assertEqual([e["tick"] for e in events(rows, "hold_full")], [1, 3])
 
 
@@ -258,7 +292,7 @@ class HarvestAndCatch(unittest.TestCase):
                      {"tick": 40, "move": [0, 0]}, {"tick": 41, "catch": True})
         rows, _, _ = run_gather({"player": {"pos": SURF}, "nodes": [node("N1", 20, "bong_dien_dien")],
                                  "fish": [fish("F1", 20, 3, "ca_loc")]}, 45, inp)
-        self.assertEqual(snap_at(rows, 45)["hold"], ["bong_dien_dien", "ca_loc"])
+        self.assertEqual(kinds(snap_at(rows, 45)["hold"]), ["bong_dien_dien", "ca_loc"])
 
 
 class Inventory(unittest.TestCase):
@@ -267,13 +301,13 @@ class Inventory(unittest.TestCase):
                                   5, INTERACT0, inventory_out=True)
         self.assertEqual([r["name"] for r in events(rows)], ["gather", "gather_end"])
         self.assertEqual(rows[-1]["reason"], "time")
-        self.assertEqual(inv, {"items": {"bong_dien_dien": NODE_YIELD}})
+        self.assertEqual(kho(inv), {"items": {"bong_dien_dien": NODE_YIELD}})
 
     def test_bat_o_buoc_cuoi_van_vao_kho(self):
         rows, inv, _ = run_gather({"player": {"pos": UNDER}, "time_left_ticks": 1, "fish": [fish("F1", 20, 6)]},
                                   5, CATCH0, inventory_out=True)
         self.assertEqual([r["name"] for r in events(rows)], ["fish_caught", "gather_end"])
-        self.assertEqual(inv, {"items": {"ca_linh": YIELD["ca_linh"]}})
+        self.assertEqual(kho(inv), {"items": {"ca_linh": YIELD["ca_linh"]}})
 
     def test_cap_ben_ghi_dung_noi_dung_gio_va_quan_doc_duoc(self):
         """Bắt cá linh ở tick 0, bơi lên mặt nước rồi về bến, cập bến. Kho khớp gather_end và quán đọc được."""
@@ -282,16 +316,17 @@ class Inventory(unittest.TestCase):
         rows, inv, _ = run_gather({"player": {"pos": [15, 5]}, "fish": [fish("F1", 15, 5)]}, 400, inp,
                                   inventory_out=True)
         want = {"items": {"ca_linh": YIELD["ca_linh"]}}
-        self.assertEqual(inv, want)
+        self.assertEqual(kho(inv), want)
         end = events(rows, "gather_end")[0]
-        self.assertEqual(end["data"], {"reason": "docked", "inventory": want})
+        self.assertEqual((end["data"]["reason"], kho(end["data"]["inventory"])), ("docked", want))
         self.assertEqual(rows[-1]["reason"], "docked")
         with Workdir() as w:
             p = write_json(w.path("inv.json"), inv)
             code, err = run_headless("--mode", "quan", "--seed", "1", "--ticks", "0", "--inventory", p,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], want["items"])
+            stock = snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"]
+            self.assertEqual(counts(stock), want["items"])
 
     def test_tat_dinh_tung_byte_khi_hai_va_bat(self):
         inp = frames({"tick": 0, "interact": True}, {"tick": 1, "interact": False, "move": [0, 1]},
