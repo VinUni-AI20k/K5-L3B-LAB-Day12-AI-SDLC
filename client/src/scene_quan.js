@@ -7,7 +7,7 @@ import { sfx, music, voiceLine } from "./audio.js";
 import { P, R, ripple, dishIcon, icon, DISH_NAME, KIND_NAME, premiumBadge } from "./art.js";
 import { menuAll, isPremiumDish, isPremiumKind } from "./menu.js"; // contract menu + GUI-only Đặc sản dishes
 import { speedLines } from "./cutscene.js";
-import { highContrast, hc } from "./a11y.js";
+import { highContrast, hc, HC } from "./a11y.js";
 import { promptTag, drawPhoneIcon, PHONE_BTN } from "./hub.js";
 const dishName = (k) => DISH_NAME[k] || k;
 import { riverWorld } from "./story.js";
@@ -1051,7 +1051,7 @@ export class QuanScene {
     // patience ring: fraction of THIS customer's own max patience
     const fr = Math.min(1, cu.patience / (cu.patienceMax || this.t.patience_s));
     const angry = fr < ANGRY_AT; // a11y warning: "khách sắp giận" below 25% of this guest's patience — ring turns red
-    this.ring(c, bx, by, fr, angry ? hc("#ff3a3a", "#ff1a1a") : fr < 0.6 ? "#ffd23a" : "#79c75a", 11);
+    this.ring(c, bx, by, fr, angry ? hc("#ff3a3a", HC.danger) : fr < 0.6 ? hc("#ffd23a", HC.warn) : "#79c75a", 11);
     if (this.menuOpen || this.result) return; // UI-layer labels would sit above the dimmed overlay
     txt(this.payFor(cu) + "k", bx + 13, by + 3, { size: 7, color: ty.col, weight: 900, stroke: "#1a1220", sw: 2 });
     this.drawBadge(cu, bx, by - 12);
