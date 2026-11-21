@@ -113,6 +113,24 @@ class GatherSim:
         self.reputation = tuning["quan"]["reputation_initial"]
         self.done = False
         self.reason = None
+        # Phase 2 monsters. Scenario can override with [] for isolated tests.
+        self.day = int(scenario.get("day", scenario.get("day_number", 1)))
+        self.monsters = []
+        for source in scenario.get("monsters", t["monsters"]["spawns"]):
+            if self.day < int(source.get("from_day", 1)):
+                continue
+            waypoints = [[float(v) for v in pt] for pt in source["waypoints"]]
+            monster = {
+                "id": source["id"], "kind": source["kind"],
+                "pos": [float(v) for v in source["pos"]],
+                "waypoints": waypoints,
+                "target_index": int(source.get("target_index", 1)),
+                "state": source.get("state", "patrol"),
+                "recoil_ticks": int(source.get("recoil_ticks", 0)),
+                "recoil_dir": list(source.get("recoil_dir", [1.0, 0.0])),
+            }
+            self.monsters.append(monster)
+            ids.reserve(monster["id"])
 
     # --- giao diện cho runner -------------------------------------------------
     def inventory_items(self) -> dict:
@@ -132,6 +150,10 @@ class GatherSim:
                       for n in sort_by_id(self.nodes)],
             "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
                      for f in sort_by_id(self.fish)],
+             "monsters": [{"id": m["id"], "kind": m["kind"],
+                           "pos": list(m["pos"]), "state": m["state"],
+                           "recoil_ticks": m["recoil_ticks"]}
+                          for m in sort_by_id(self.monsters)],
         }
 
     # --- một bước ---------------------------------------------------------------
@@ -191,6 +213,11 @@ class GatherSim:
                         return events
             else:
                 self.zero_oxy_ticks = 0
+
+        # Phase 2: update monsters after player movement/oxygen, before actions.
+        self._update_monsters(events)
+        if self.done:
+            return events
 
         # 3. Interact: dock first, then gather
         if inp.pressed("interact"):
@@ -378,6 +405,95 @@ class GatherSim:
                 return
 
         # No valid location found: skip this spawn interval.
+
+    # --- Phase 2: monsters ------------------------------------------------------
+    @staticmethod
+    def _approach(origin, target, distance):
+        dx, dd = target[0] - origin[0], target[1] - origin[1]
+        length = math.hypot(dx, dd)
+        if length <= 1e-12:
+            return list(origin), True
+        ratio = min(1.0, distance / length)
+        return [origin[0] + dx * ratio, origin[1] + dd * ratio], ratio >= 1.0
+
+    def _update_monsters(self, events):
+        cfg = self.t["monsters"]
+        for monster in sort_by_id(self.monsters):
+            kind = monster["kind"]
+            spec = cfg["species"][kind]
+
+            if monster["recoil_ticks"] > 0:
+                step = float(spec["recoil_dist"]) / float(spec["recoil_ticks"])
+                direction = monster["recoil_dir"]
+                monster["pos"][0] += direction[0] * step
+                monster["pos"][1] += direction[1] * step
+                self._clamp_monster(monster)
+                monster["recoil_ticks"] -= 1
+                if monster["recoil_ticks"] == 0:
+                    monster["state"] = "patrol"
+                continue  # No attack during recoil.
+
+            dist = math.dist(monster["pos"], self.pos)
+            depth_lo, depth_hi = spec["depths"]
+            depth_ok = depth_lo <= self.pos[1] <= depth_hi
+            if monster["state"] == "chase":
+                if not depth_ok or dist > float(spec["exit_radius"]):
+                    monster["state"] = "patrol"
+                    events.append(("monster_patrol", {"monster_id": monster["id"]}))
+            elif depth_ok and dist <= float(spec["detect_radius"]):
+                monster["state"] = "chase"
+                events.append(("monster_chase", {"monster_id": monster["id"]}))
+
+            if monster["state"] == "chase":
+                monster["pos"], _ = self._approach(
+                    monster["pos"], self.pos, float(spec["chase_speed"]) / TICK
+                )
+            else:
+                target = monster["waypoints"][monster["target_index"]]
+                monster["pos"], arrived = self._approach(
+                    monster["pos"], target, float(spec["patrol_speed"]) / TICK
+                )
+                if arrived:
+                    monster["target_index"] = (
+                        monster["target_index"] + 1
+                    ) % len(monster["waypoints"])
+            self._clamp_monster(monster)
+
+            if (math.dist(monster["pos"], self.pos) <= float(spec["hit_radius"])
+                    and self.invuln_ticks == 0):
+                self.hp = max(0, self.hp - 1)
+                count = int(len(self.hold) * float(cfg["loss_ratio"]))
+                lost = list(reversed(self.hold[-count:])) if count else []
+                if count:
+                    del self.hold[-count:]
+                events.append(("monster_hit", {
+                    "monster_id": monster["id"], "kind": kind,
+                    "hp": self.hp, "lost": lost,
+                }))
+                self.invuln_ticks = int(cfg["invuln_ticks"])
+                monster["state"] = "recoil"
+                monster["recoil_ticks"] = int(spec["recoil_ticks"])
+                dx = monster["pos"][0] - self.pos[0]
+                dd = monster["pos"][1] - self.pos[1]
+                norm = math.hypot(dx, dd)
+                monster["recoil_dir"] = (
+                    [dx / norm, dd / norm] if norm > 1e-12 else [1.0, 0.0]
+                )
+                if self.hp == 0:
+                    rest = list(reversed(self.hold))
+                    self.hold.clear()
+                    events.append(("faint", {
+                        "cause": "monster", "monster_id": monster["id"],
+                        "hp": 0, "lost": lost + rest,
+                    }))
+                    self._finish("fainted", events)
+                    return
+
+    def _clamp_monster(self, monster):
+        bounds = self.t["bounds"]
+        for index, axis in enumerate(AXES):
+            lo, hi = bounds[axis]
+            monster["pos"][index] = max(float(lo), min(float(hi), monster["pos"][index]))
 
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:
