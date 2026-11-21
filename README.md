@@ -23,6 +23,29 @@ python3 -m chonoi.live --mode gather                                # chơi th�
 
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
+Tài liệu nhóm Math. [Kế hoạch Phase 1](docs/plan/phase-1.md) · [Ma trận kiểm chứng](docs/verification/phase-1.md) · [Câu hỏi cho PO](docs/clarify.md) · [Hướng dẫn chạy cho agent](AGENTS.md)
+
+### Điều khiển
+
+| Phím | Buổi sáng (gather) | Buổi tối (quan) |
+|---|---|---|
+| WASD / mũi tên | Bơi ngang và lặn/nổi | Đi trong nhà bè |
+| E | Cập bến (trong bán kính bến) hoặc hái nút trên mặt nước | Nấu ở bếp, bưng món, phục vụ ở bàn |
+| Space | Bắt cá khi đang lặn | — |
+| R | Chơi lại | Chơi lại |
+
+### Cách tính điểm
+
+`score = earned + 100 × floor(reputation)`: `earned` là tổng tiền thu (nghìn đồng, gồm boa), `reputation` là uy tín 0–5 (bắt đầu 3.0; khách hết kiên nhẫn −0.5, khách boa +0.2).
+
+### Sáng tạo của nhóm
+
+> Phase 1 làm lõi trước, chưa có phần sáng tạo. Mỗi ý tưởng thêm vào sẽ ghi ở đây kèm bằng chứng lõi vẫn đúng (headless tắt phần thêm, test vẫn xanh).
+
+| Ý tưởng | Phase | Tắt ở headless thế nào | Bằng chứng lõi vẫn đúng |
+|---|---|---|---|
+| (chưa có) | | | |
+
 ## Tự do sáng tạo
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.

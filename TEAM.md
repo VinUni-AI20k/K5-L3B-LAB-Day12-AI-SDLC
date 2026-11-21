@@ -9,7 +9,7 @@
 | | | `sim/quan_customers` lát 3 (khách) | Developer | |
 | | | `sim/quan_service` lát 4 (bếp, phục vụ, tiền) | Developer, Scrum/Release | |
 | Trần Xuân Lộc | Kaylez-TXL | `qa` (test hộp đen, verification) | QA lead | linkiewinkie |
-| | | `docs` + harness AI, sau là `client/ui` | PO | |
+| Nguyễn Xuân Khánh Linh | linkiewinkie | `docs` + harness AI, sau là `client/ui` | PO | |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 
