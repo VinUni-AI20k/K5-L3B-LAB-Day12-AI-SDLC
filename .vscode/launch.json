@@ -1,0 +1,69 @@
+{
+  // Chạy bằng F5 (tab Run and Debug, Ctrl+Shift+D). Cần extension "Python" của Microsoft.
+  // Trình duyệt: Ctrl+Click địa chỉ in ra trong terminal (mặc định http://127.0.0.1:8000/). Dừng: Shift+F5.
+  // PYTHONUTF8=1 tránh lỗi in tiếng Việt trên Windows.
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Chơi: buổi sáng (gather)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "chonoi.live",
+      "args": ["--mode", "gather"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PYTHONUTF8": "1" },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Chơi: buổi tối (quan)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "chonoi.live",
+      "args": ["--mode", "quan"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PYTHONUTF8": "1" },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Chơi nối ngày 1/2: sáng, ghi kho.json",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "chonoi.live",
+      "args": ["--mode", "gather", "--inventory-out", "kho.json"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PYTHONUTF8": "1" },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Chơi nối ngày 2/2: tối, đọc kho.json",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "chonoi.live",
+      "args": ["--mode", "quan", "--inventory", "kho.json"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PYTHONUTF8": "1" },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Headless: gather seed 1, 600 tick -> out.jsonl",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "chonoi.headless",
+      "args": ["--mode", "gather", "--seed", "1", "--ticks", "600", "--out", "out.jsonl"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PYTHONUTF8": "1" },
+      "console": "integratedTerminal"
+    },
+    {
+      // Test headless gọi headless_cmd ("python3 ..."): trên Windows cần tắt App execution aliases của python3.exe.
+      "name": "Test: toàn bộ",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "unittest",
+      "args": ["discover", "-s", "tests", "-v"],
+      "cwd": "${workspaceFolder}",
+      "env": { "PYTHONUTF8": "1" },
+      "console": "integratedTerminal"
+    }
+  ]
+}
