@@ -1,0 +1,15 @@
+D1 quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock {}
+   after bought: {'upgrade': 'oxygen', 'level': 1, 'price': 200, 'money': 160} upgrades {'oxygen': 1} active {}
+D2 quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock {}
+   after bought: {'upgrade': 'hp', 'level': 1, 'price': 250, 'money': 342} upgrades {'oxygen': 1, 'hp': 1} active {'oxygen': 1}
+D3 quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock {}
+   after bought: {'upgrade': 'oxygen', 'level': 2, 'price': 400, 'money': 422} upgrades {'oxygen': 2, 'hp': 1} active {'oxygen': 1, 'hp': 1}
+D4 quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock {'ca_keo': 1, 'ca_linh': 1}
+   after bought: {'upgrade': 'hp', 'level': 2, 'price': 500, 'money': 354} upgrades {'oxygen': 2, 'hp': 2} active {'oxygen': 2, 'hp': 1}
+D5 quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock {'ca_keo': 1, 'ca_linh': 1}
+orders outside day_plan: []
