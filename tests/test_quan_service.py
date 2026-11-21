@@ -1,4 +1,4 @@
-"""Unit and headless tests for Quan Lát 4 (cooking, serving, tips, score)."""
+"""Kiểm thử phục vụ Quán theo PRD-0: nấu, nhặt, gần nhất không dự phòng, ăn, trả tiền, đóng ca."""
 
 import json
 import unittest
@@ -17,14 +17,16 @@ def _inp(move=(0.0, 0.0), interact=False):
     return InputState(move, {"interact": interact, "catch": False}, edges)
 
 
-def _waiting_customer(cid="C1", table_id="T1", dish="ca_loc_nuong_trui", patience=3600, reserved=None):
+def _reserved_customer(cid="C1", table_id="T1", dish_id="ca_loc_nuong_trui", patience=3600, order_tick=0, reserved=None):
     return {
         "id": cid,
         "table_id": table_id,
-        "dish": dish,
+        "dish_id": dish_id,
+        "order_tick": order_tick,
         "state": "waiting",
-        "patience_ticks": patience,
+        "patience_ticks_left": patience,
         "eat_ticks_left": 0,
+        "order_status": "reserved",
         "reserved": reserved if reserved is not None else {"ca_loc": 1},
     }
 
@@ -33,117 +35,223 @@ class QuanServiceTests(unittest.TestCase):
     def setUp(self):
         self.tuning = load_contract()["tuning"]
 
-    def test_cook_countdown_ready_and_pickup_at_stove(self):
+    def test_cook_countdown_ready_ticks_and_pickup_at_stove(self):
         sc = {
             "player": {"pos": [2, 8]},
             "stock": {"ca_loc": 2},
-            "customers": [_waiting_customer()],
+            "random_customers": False,
+            "customers": [_reserved_customer()],
         }
         sim = QuanSim(self.tuning, sc, Streams(1), IdAllocator())
 
         ev1 = sim.step(_inp(interact=True))
-        self.assertIn(("cook_started", {"stove_id": "B1", "dish": "ca_loc_nuong_trui"}), ev1)
-        self.assertEqual(sim.stock["ca_loc"], 1)
+        self.assertIn(("cook_started", {
+            "stove_id": "B1",
+            "order_id": "C1",
+            "dish_id": "ca_loc_nuong_trui",
+            "items": ["ca_loc"],
+            "base_price": 60,
+        }), ev1)
+        self.assertEqual(sim.stock, {"ca_loc": 1})
         self.assertEqual(sim.customers[0]["reserved"], {})
+        self.assertEqual(sim.customers[0]["order_status"], "assigned")
         self.assertEqual(sim.stoves[0]["state"], "cooking")
+        self.assertEqual(sim.stoves[0]["dish"], {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60})
 
         cook_ticks = round(self.tuning["menu"]["ca_loc_nuong_trui"]["cook_s"] * self.tuning["tick_hz"])
         ready_events = []
         for _ in range(cook_ticks):
             ready_events.extend(sim.step(_inp()))
-        self.assertIn(("dish_ready", {"stove_id": "B1", "dish": "ca_loc_nuong_trui"}), ready_events)
+        self.assertIn(("dish_ready", {
+            "stove_id": "B1",
+            "order_id": "C1",
+            "dish_id": "ca_loc_nuong_trui",
+        }), ready_events)
         self.assertEqual(sim.stoves[0]["state"], "ready")
+        self.assertEqual(sim.stoves[0]["ready_ticks"], 0)
+
+        sim.step(_inp())
+        self.assertEqual(sim.stoves[0]["ready_ticks"], 1)
 
         ev_pick = sim.step(_inp(interact=True))
-        self.assertIn(("dish_picked", {"dish": "ca_loc_nuong_trui"}), ev_pick)
-        self.assertEqual(sim.hand, "ca_loc_nuong_trui")
+        self.assertIn(("dish_picked", {
+            "stove_id": "B1",
+            "order_id": "C1",
+            "dish_id": "ca_loc_nuong_trui",
+        }), ev_pick)
+        self.assertEqual(sim.hand, {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60})
         self.assertEqual(sim.stoves[0]["state"], "idle")
+        self.assertIsNone(sim.stoves[0]["dish"])
 
-    def test_interact_priority_distance_then_stove_before_table_then_id(self):
+    def test_nearest_interact_only_no_fallback_and_tie_stove_before_table(self):
+        # B1 closer (4,5) is idle while T1 (6.2,5) waits for hand -> nearest fails, no fallback
+        payload = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
         sc = {
-            "player": {"pos": [5, 5]},
+            "player": {"pos": [5.0, 5.0]},
+            "stock": {"ca_loc": 1},
+            "random_customers": False,
+            "hand": payload,
+            "stoves": [{"id": "B1", "pos": [4.1, 5.0]}],
+            "tables": [{"id": "T1", "pos": [6.2, 5.0]}],
+            "customers": [{
+                "id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                "order_status": "assigned", "reserved": {},
+            }],
+        }
+        sim = QuanSim(self.tuning, sc, Streams(1), IdAllocator())
+        self.assertEqual(sim.step(_inp(interact=True)), [])
+        self.assertEqual(sim.hand, payload)
+
+        # Equal distance: stove beats table -> picks/cooks stove instead of serving table
+        self.tuning["quan"]["tables"].append({"id": "T2", "pos": [6.0, 5.0]})
+        sc_tie = {
+            "player": {"pos": [5.0, 5.0]},
             "stock": {"ca_loc": 2},
-            "hand": "ca_loc_nuong_trui",
-            "stoves": [{"id": "B1", "pos": [4, 5], "state": "ready", "dish": "goi_bong_sung"}],
-            "tables": [{"id": "T1", "pos": [6, 5]}],
-            "customers": [_waiting_customer(dish="ca_loc_nuong_trui")],
+            "random_customers": False,
+            "hand": {"order_id": "C2", "dish_id": "goi_bong_sung", "base_price": 40},
+            "stoves": [{"id": "B1", "pos": [4.0, 5.0]}],
+            "tables": [{"id": "T1", "pos": [6.0, 5.0]}, {"id": "T2", "pos": [6.0, 5.0]}],
+            "customers": [
+                _reserved_customer("C1", "T1"),
+                {"id": "C2", "table_id": "T2", "dish_id": "goi_bong_sung", "order_status": "assigned", "reserved": {}},
+            ],
+        }
+        sim_tie = QuanSim(self.tuning, sc_tie, Streams(1), IdAllocator())
+        ev_tie = sim_tie.step(_inp(interact=True))
+        self.assertEqual([e[0] for e in ev_tie], ["cook_started"])
+
+    def test_oldest_order_by_order_tick_then_table_id(self):
+        self.tuning["quan"]["tables"].extend([{"id": "T2", "pos": [13, 2]}, {"id": "T10", "pos": [13, 6]}])
+        sc = {
+            "player": {"pos": [2, 8]},
+            "random_customers": False,
+            "stock": {"ca_loc": 3},
+            "customers": [
+                _reserved_customer("C1", "T10", order_tick=5, reserved={"ca_loc": 1}),
+                _reserved_customer("C2", "T2", order_tick=5, reserved={"ca_loc": 1}),
+                _reserved_customer("C3", "T1", order_tick=10, reserved={"ca_loc": 1}),
+            ],
         }
         sim = QuanSim(self.tuning, sc, Streams(1), IdAllocator())
         ev = sim.step(_inp(interact=True))
-        self.assertTrue(any(name == "served" for name, _ in ev))
+        self.assertEqual(ev[0][1]["order_id"], "C2")
 
-        sc2 = {
-            "player": {"pos": [5, 5]},
-            "stock": {"ca_loc": 2},
-            "stoves": [{"id": "B1", "pos": [4, 5]}],
-            "tables": [{"id": "T1", "pos": [6, 5]}],
-            "customers": [_waiting_customer()],
-        }
-        sim2 = QuanSim(self.tuning, sc2, Streams(1), IdAllocator())
-        ev2 = sim2.step(_inp(interact=True))
-        self.assertTrue(any(name == "cook_started" for name, _ in ev2))
-
-    def test_serve_eat_paid_with_tip_and_reputation_cap(self):
+    def test_serve_eat_paid_with_floor_tip_and_reputation_cap(self):
         sc = {
             "player": {"pos": [9, 2]},
-            "hand": "ca_loc_nuong_trui",
-            "stock": {"ca_loc": 1},
+            "random_customers": False,
+            "hand": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60},
             "reputation": 4.9,
-            "customers": [_waiting_customer(patience=3000, reserved={})],
+            "customers": [{
+                "id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                "patience_ticks_left": 3000, "order_status": "assigned", "reserved": {},
+            }],
         }
         sim = QuanSim(self.tuning, sc, Streams(1), IdAllocator())
 
         ev_serve = sim.step(_inp(interact=True))
-        self.assertIn(("served", {"table_id": "T1", "dish": "ca_loc_nuong_trui"}), ev_serve)
+        self.assertIn(("served", {
+            "order_id": "C1",
+            "table_id": "T1",
+            "dish_id": "ca_loc_nuong_trui",
+            "patience_ticks_left": 2999,
+            "base_price": 60,
+            "tip": 12,
+        }), ev_serve)
         self.assertIsNone(sim.hand)
         self.assertEqual(sim.customers[0]["state"], "eating")
+        self.assertEqual(sim.customers[0]["order_status"], "served")
 
         eat_ticks = round(self.tuning["quan"]["eat_s"] * self.tuning["tick_hz"])
         paid_events = []
         for _ in range(eat_ticks):
             paid_events.extend(sim.step(_inp()))
 
-        self.assertIn(("paid", {"customer_id": "C1", "money": 60, "tip": 12}), paid_events)
+        self.assertIn(("paid", {
+            "order_id": "C1",
+            "table_id": "T1",
+            "base_price": 60,
+            "tip": 12,
+            "amount": 72,
+            "reason": "finished_eating",
+        }), paid_events)
         self.assertEqual(sim.money, 72)
         self.assertEqual(sim.earned, 72)
         self.assertEqual(sim.shift_earned, 72)
         self.assertEqual(sim.reputation, 5.0)
         self.assertEqual(sim.customers, [])
 
-    def test_serve_slow_customer_gives_no_tip(self):
+    def test_serve_slow_customer_and_exact_patience_zero_still_valid(self):
         sc = {
             "player": {"pos": [9, 2]},
-            "hand": "ca_loc_nuong_trui",
+            "random_customers": False,
+            "hand": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60},
             "reputation": 3.0,
-            "customers": [_waiting_customer(patience=1000, reserved={})],
+            "customers": [{
+                "id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                "patience_ticks_left": 1, "order_status": "assigned", "reserved": {},
+            }],
         }
         sim = QuanSim(self.tuning, sc, Streams(1), IdAllocator())
-        sim.step(_inp(interact=True))
+        ev_serve = sim.step(_inp(interact=True))
+        self.assertEqual(ev_serve[0][1]["patience_ticks_left"], 0)
+        self.assertEqual(ev_serve[0][1]["tip"], 0)
 
         eat_ticks = round(self.tuning["quan"]["eat_s"] * self.tuning["tick_hz"])
         paid_events = []
         for _ in range(eat_ticks):
             paid_events.extend(sim.step(_inp()))
 
-        self.assertIn(("paid", {"customer_id": "C1", "money": 60, "tip": 0}), paid_events)
-        self.assertEqual(sim.money, 60)
+        self.assertIn(("paid", {
+            "order_id": "C1",
+            "table_id": "T1",
+            "base_price": 60,
+            "tip": 0,
+            "amount": 60,
+            "reason": "finished_eating",
+        }), paid_events)
         self.assertEqual(sim.reputation, 3.0)
+
+    def test_closing_pays_newly_served_and_drops_waiting_without_rep_loss(self):
+        self.tuning["quan"]["tables"].append({"id": "T2", "pos": [13, 2]})
+        sc = {
+            "player": {"pos": [9, 2]},
+            "random_customers": False,
+            "hand": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60},
+            "reputation": 3.0,
+            "time_left_ticks": 1,
+            "stock": {"ca_loc": 1},
+            "customers": [
+                {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                 "patience_ticks_left": 3000, "order_status": "assigned", "reserved": {}},
+                _reserved_customer("C2", "T2", patience=10),
+            ],
+        }
+        sim = QuanSim(self.tuning, sc, Streams(1), IdAllocator())
+        evs = sim.step(_inp(interact=True))
+        self.assertEqual([e[0] for e in evs], ["served", "paid", "customer_left", "quan_end"])
+        self.assertEqual(evs[1][1]["reason"], "closing")
+        self.assertEqual(evs[2][1], {"order_id": "C2", "table_id": "T2", "reason": "closing", "reputation": 3.2})
+        self.assertEqual(evs[3][1]["shift_earned"], 72)
 
     def test_shift_end_emits_quan_end_with_score_and_headless_deterministic(self):
         sc = {
             "player": {"pos": [9, 2]},
-            "hand": "ca_loc_nuong_trui",
+            "random_customers": False,
             "reputation": 3.2,
             "time_left_ticks": 5,
             "customers": [
                 {
                     "id": "C1",
                     "table_id": "T1",
-                    "dish": "ca_loc_nuong_trui",
+                    "dish_id": "ca_loc_nuong_trui",
                     "state": "eating",
-                    "patience_ticks": 2000,
+                    "patience_ticks_left": 2000,
                     "eat_ticks_left": 2,
+                    "order_status": "served",
                     "reserved": {},
+                    "base_price": 60,
+                    "tip": 12,
                 }
             ],
         }
@@ -153,8 +261,14 @@ class QuanServiceTests(unittest.TestCase):
             all_events.extend(sess.step(_inp()))
         end_evs = [e for e in all_events if e["name"] == "quan_end"]
         self.assertEqual(len(end_evs), 1)
-        self.assertEqual(end_evs[0]["data"]["score"], 72 + 100 * 3)
-        self.assertEqual(sess.end_row()["score"], 372)
+        self.assertEqual(end_evs[0]["data"], {
+            "reason": "time",
+            "money": 72,
+            "earned": 72,
+            "shift_earned": 72,
+            "reputation": 3.4,
+        })
+        self.assertEqual(sess.end_row()["score"], 72 + 300)
 
         with Workdir() as w:
             sc_path = w.path("sc.json")
@@ -170,3 +284,7 @@ class QuanServiceTests(unittest.TestCase):
                 self.assertEqual(f1.read(), f2.read())
             rows = read_jsonl(out1)
             self.assertEqual(len(events(rows, "quan_end")), 1)
+
+
+if __name__ == "__main__":
+    unittest.main()
