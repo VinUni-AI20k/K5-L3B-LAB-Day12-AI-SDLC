@@ -174,7 +174,8 @@ class Catch(unittest.TestCase):
 
     def test_hoi_chieu_dat_dung_va_chan_dung(self):
         with Workdir() as w:
-            sc = {"player": {"pos": [15, 5]}, "nodes": [],
+            # v1.1: cá fixture chỉ đứng yên khi random_fish=false (bật thì vẫn bơi, lệch khỏi tầm bắt)
+            sc = {"player": {"pos": [15, 5]}, "nodes": [], "random_fish": False,
                   "fish": [fish("F1", [15, 5], "ca_loc"), fish("F2", [15, 5], "ca_loc"),
                            fish("F3", [15, 5], "ca_loc")]}
             rows = run_gather(w, sc, CATCH_CD + 5, press(0, button="catch"))
