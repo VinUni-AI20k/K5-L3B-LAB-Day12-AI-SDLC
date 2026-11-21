@@ -17,11 +17,39 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 
 ```bash
 git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+python3 -m chonoi.live --mode gather
+```
+
+Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Menu có **Chơi trọn ngày**, **Chỉ chơi buổi sáng** và **Chỉ chơi buổi tối**.
+
+## Điều khiển
+
+| Phím | Buổi sáng · Sông Chín Khúc | Buổi tối · Nhà bè Má Tư |
+|---|---|---|
+| WASD hoặc mũi tên | Bơi, `S` / `↓` để lặn | Đi lại, `W` / `↑` đi về phía bắc |
+| E | Hái rau hoặc cập bến | Tương tác với bếp hoặc bàn để nấu, bưng, phục vụ |
+| Space | Bắt đàn cá gần khi đang lặn | |
+| R | Chơi lại buổi sáng | Chơi lại ca tối với kho đầu ca |
+
+Buổi sáng ghi `inventory.json` khi kết thúc. Trong **Chơi trọn ngày**, màn chuyển ca hiện kho đã chốt. Chọn **Mở quán** để dùng kho đó cho ca tối. Khi chỉ chơi buổi tối, game dùng `inventory.json` nếu có hoặc [kho mẫu](docs/contracts/inventory.sample.json). Có thể chỉ định kho khác bằng `python3 -m chonoi.live --mode quan --inventory kho.json`, hoặc đổi tên file bàn giao bằng `--inventory-out kho.json` khi chạy `--mode gather`.
+
+Điểm cuối ca bằng doanh thu cộng `reputation_multiplier × floor(uy tín)`, với hệ số trong [contract](game.contract.json) là 100. Tiền và boa hiển thị theo nghìn đồng.
+
+## Kiểm tra
+
+```bash
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
 ```
 
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
+
+Khi cần kiểm tra UI riêng, chạy `python3 -m http.server 8000 --bind 127.0.0.1` ở gốc repo và mở `http://127.0.0.1:8000/chonoi/web/?preview=1`. Chọn chế độ, rồi nhấn **E** hoặc **Space** để duyệt các snapshot mẫu. Bản xem có thể đi qua luồng thu hoạch, chuyển kho, nấu, bưng, phục vụ, thanh toán và tổng kết.
+
+## Sáng tạo của nhóm
+
+- Sông Chín Khúc có trời hồng, bờ dừa nước, nhà sàn và bọt khí khi Út Sen bơi dưới nước. Camera cuộn ngang theo nhân vật.
+- Nhà bè Má Tư có sàn gỗ, đèn dây đung đưa và khói khi bếp đang nấu. Út Sen mặc áo bà ba, quàng khăn rằn và mang giỏ lưới.
+- Thông báo dùng giọng Nam Bộ. Cạn oxy hiện cảnh báo, ngạt làm viền đỏ và rung nhẹ, khách boa làm thông báo thanh toán sáng lên. Đồ họa và hiệu ứng do client vẽ từ snapshot và event. [Bằng chứng UI](docs/proof/phase-1/client-ui.md)
 
 ## Tự do sáng tạo
 
