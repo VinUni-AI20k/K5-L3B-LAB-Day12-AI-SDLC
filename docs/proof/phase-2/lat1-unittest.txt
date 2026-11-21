@@ -1,0 +1,19 @@
+test_nguoi_choi_nong_hon_10m_khong_chase_khong_hit (tests.test_gather_lat1_p2.Chase.test_nguoi_choi_nong_hon_10m_khong_chase_khong_hit) ... ok
+test_phat_hien_trong_10m_khi_d_ge_10_thi_chase_3ms (tests.test_gather_lat1_p2.Chase.test_phat_hien_trong_10m_khi_d_ge_10_thi_chase_3ms) ... ok
+test_roi_chase_khi_xa_hon_16m (tests.test_gather_lat1_p2.Chase.test_roi_chase_khi_xa_hon_16m) ... ok
+test_het_mau_do_ca_sau_faint_monster_kho_rong (tests.test_gather_lat1_p2.Faint.test_het_mau_do_ca_sau_faint_monster_kho_rong) ... ok
+test_ngat_cung_tick_di_truoc_hit (tests.test_gather_lat1_p2.Faint.test_ngat_cung_tick_di_truoc_hit) ... ok
+test_tat_dinh (tests.test_gather_lat1_p2.Faint.test_tat_dinh) ... ok
+test_bat_tu_khong_hit_va_hit_lai_sau_khi_het (tests.test_gather_lat1_p2.Hit.test_bat_tu_khong_hit_va_hit_lai_sau_khi_het) ... ok
+test_cham_mat_mau_rot_nua_gio_lifo_bat_tu_va_recoil (tests.test_gather_lat1_p2.Hit.test_cham_mat_mau_rot_nua_gio_lifo_bat_tu_va_recoil) ... ok
+test_invuln_tu_scenario_chan_hit_toi_khi_het (tests.test_gather_lat1_p2.Hit.test_invuln_tu_scenario_chan_hit_toi_khi_het) ... ok
+test_moi_buoc_toi_da_mot_hit_con_gan_nhat_hoa_theo_id (tests.test_gather_lat1_p2.Hit.test_moi_buoc_toi_da_mot_hit_con_gan_nhat_hoa_theo_id) ... ok
+test_ngat_xuyen_bat_tu_va_khong_rot_hang (tests.test_gather_lat1_p2.Hit.test_ngat_xuyen_bat_tu_va_khong_rot_hang) ... ok
+test_trung_tam_thi_recoil_theo_x_duong (tests.test_gather_lat1_p2.Hit.test_trung_tam_thi_recoil_theo_x_duong) ... ok
+test_mac_dinh_ngay_1_tuan_tra_m1 (tests.test_gather_lat1_p2.Patrol.test_mac_dinh_ngay_1_tuan_tra_m1) ... ok
+test_patrol_1ms_toi_waypoint_roi_doi_muc_tieu (tests.test_gather_lat1_p2.Patrol.test_patrol_1ms_toi_waypoint_roi_doi_muc_tieu) ... ok
+
+----------------------------------------------------------------------
+Ran 14 tests in 1.942s
+
+OK
