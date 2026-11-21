@@ -22,7 +22,7 @@ Các tính năng của phase sau chưa nằm trong khung này.
 
 import math
 
-from ..ids import sort_by_id
+from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
@@ -117,8 +117,7 @@ class GatherSim:
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
+            self._step_harvest(events)
         # 4. bắt cá
         if inp.pressed("catch"):
             pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
@@ -138,6 +137,27 @@ class GatherSim:
         self.done = True
         self.reason = reason
         events.append(("gather_end", {"reason": reason, "inventory": {"items": self.inventory_items()}}))
+
+    # --- DEV 2: Hái hoa mặt nước ------------------------------------------------
+    def _step_harvest(self, events):
+        """Hái hoa tại mặt nước (d <= surface_depth), tie-breaking id_key tự nhiên."""
+        if not self._at_surface():
+            return
+        cands = [n for n in self.nodes if n["regrow_ticks"] == 0 and math.dist(self.pos, n["pos"]) <= self.t["interact_radius"]]
+        if not cands:
+            return
+        cands.sort(key=lambda n: (round(math.dist(self.pos, n["pos"]), 6), id_key(n["id"])))
+        chosen = cands[0]
+        capacity = self.t["hold_capacity"]
+        if len(self.hold) >= capacity:
+            events.append(("hold_full", {}))
+            return
+        yield_n = self.t.get("node_yield", 1)
+        space = capacity - len(self.hold)
+        add_n = min(yield_n, space)
+        self.hold.extend([chosen["kind"]] * add_n)
+        chosen["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+        events.append(("gather", {"node_id": chosen["id"], "kind": chosen["kind"]}))
 
     def _move(self, inp):
         speed = self.t["swim_speed"]
