@@ -99,9 +99,7 @@ class MonsterDynamics:
     def _hit(self, sim, mon, sp, events):
         sim.hp -= 1
         count = math.floor(len(sim.hold) * self.m["loss_ratio"])
-        lost = sim.hold[::-1][:count]
-        if count:
-            del sim.hold[-count:]
+        lost = sim.drop_hold(count)
         sim.invuln_ticks = self.m["invuln_ticks"]
         # hướng lùi: từ người chơi ra quái; trùng vị trí thì lùi ngược hướng mặt người chơi
         dx, dd = mon["pos"][0] - sim.pos[0], mon["pos"][1] - sim.pos[1]
@@ -115,7 +113,6 @@ class MonsterDynamics:
         events.append(("monster_hit", {"monster_id": mon["id"], "kind": mon["kind"], "hp": sim.hp, "lost": lost}))
         if sim.hp <= 0:
             sim.hp = 0
-            rest = sim.hold[::-1]
-            sim.hold.clear()
+            rest = sim.drop_hold(len(sim.hold))
             events.append(("faint", {"cause": "monster", "lost": rest, "hp": 0}))
             sim._finish("fainted", events)

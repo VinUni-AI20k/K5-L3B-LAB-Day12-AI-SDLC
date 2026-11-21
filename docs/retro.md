@@ -18,6 +18,15 @@ Bản nháp của D (Integrator); TuHoAnh và Cuongngucuteee đã thêm phần c
   - **Cuongngucuteee:** Mỗi test luật mới phải phá thử ít nhất một lần trước khi mở PR; HUD độ tươi (AC-P3-05) đẩy sớm, trước smoke phút 20.
   - **TuHoAnh:** Luôn `git fetch` + `merge origin/main` và chạy đủ `unittest` + `check_no_hardcode.py` trước mọi lần mở PR.
 
+## Phase 3 (nhanh)
+A gom và nộp (P3-10); mỗi người tự thêm dòng của mình.
+- Điều tốt:
+  - **Cuongngucuteee:** HUD độ tươi (P3-06) làm song song với gather và quán nhờ D gộp schema kho cá thể (P3-02) trước và ghi dạng snapshot trong hợp đồng; test dùng thẳng adapter của P3-02 nên không tự bịa dữ liệu.
+- Điều tệ:
+  - **Cuongngucuteee:** Mã việc trên Sheet lệch 1 so với kế hoạch nên tôi đặt nhầm tên hai PR (#39, #42); chưa thử HUD với sim v1.2 thật vì quán chưa xong.
+- 1 hành động cho Phase 4:
+  - **Cuongngucuteee:** Trước khi làm, đối chiếu mã việc trên Sheet với commit đã gộp; khi A, B gộp v1.2 thì mở cửa sổ chơi chụp lại HUD độ tươi.
+
 ## Phase 4 (cuối)
 - Rà lại hành động Phase 2: đã làm chưa? vì sao?
 - Điều tốt / điều tệ:

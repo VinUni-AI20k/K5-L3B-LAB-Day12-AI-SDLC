@@ -1,5 +1,7 @@
 # Standup giữa phase (mỗi người một dòng, 2–3 phút)
 
+## Phase 2
+
 | Phase | Người | Đã xong | Sắp làm | Vướng gì |
 |---|---|---|---|---|
 | 2 | A (NguyenDucNhat3006) | P2-03 cá bơi và sinh theo seed (#25), P2-06 Shop nâng cấp (#26) | AC-P3-02 gather giỏ cá thể; AC-P3-04 bàn giao trong `day` | Hồ sơ cá nhân và phần retro Phase 2 còn thiếu (nhật ký AI đã có ở PR #37) |
@@ -8,3 +10,14 @@
 | 2 | D (luongvh2510) | P2-01, P2-02 kế hoạch và contract v1.1; P2-07 `day`; P2-09 đến P2-13 smoke, hồi quy, ma trận, retro | Tag `phase-2`; AC-P3-01 schema kho cá thể và contract v1.2 | Giả định `clarify` #6 đến #12 chờ PO; gắn tag cần người dùng đồng ý |
 
 Ghi chú Phase 2 (C, Scrum): tổng hợp từ PR đã gộp, `docs/verification/phase-2.md` và `docs/plan/phase-3.md` lúc 2026-11-21, sau PR #36; mỗi người đọc lại và sửa dòng của mình nếu sai.
+
+## Phase 3
+
+| Phase | Người | Đã xong | Sắp làm | Vướng gì |
+|---|---|---|---|---|
+| 3 | A (NguyenDucNhat3006) | P3-03 độ tươi từng cá thể trong giỏ (#45, đã gộp); P3-05 bàn giao kho cá thể trong `day` (#46, đã gộp) | Gom retro Phase 3 (P3-10); P4-03 bench; demo (P4-10) | Hồ sơ cá nhân còn thiếu |
+| 3 | B (TuHoAnh) | P3-04 quán kho cá thể, hao tươi, giá theo độ tươi: đã đẩy nhánh `p3-04-quan-freshness` (commit `a252647`), chưa mở PR | Mở PR P3-04; P4-01 re-planning | Quán v1.2 là phần cuối để bật contract 1.2; HUD độ tươi phía quán chờ P3-04 gộp |
+| 3 | C (Cuongngucuteee) | P3-06 HUD độ tươi (#44, đã kiểm với gather v1.2 thật); P4-05 cảnh báo, tương phản cao (#42); làm thay P4-06 đóng gói (#39, đã gộp) | Xem lại HUD phía quán khi P3-04 gộp; chuẩn bị P4-08 | #44 phải gộp sau #42 |
+| 3 | D (luongvh2510) | P3-02 kho cá thể, adapter, khối `freshness` (#43, đã gộp) | Smoke bàn giao kho phút 20, bật `contract_version` 1.2, hồi quy, `docs/verification/phase-3.md`, tag `phase-3` | Bật 1.2 còn chờ quán (B); gather (A) đã gộp |
+
+Ghi chú Phase 3 (C, Scrum): tổng hợp từ PR #43 đến #47, nhánh `p3-04-quan-freshness` và `docs/plan/phase-3.md` lúc 2026-11-21 (sau khi #45, #46 gộp); mã việc theo tab Phân công (lệch 1 so với mã AC). Mỗi người đọc lại và sửa dòng của mình nếu sai.

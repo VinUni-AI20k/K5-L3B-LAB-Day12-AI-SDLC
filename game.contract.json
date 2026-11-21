@@ -134,7 +134,7 @@
         ]
       }
     },
-    "freshness": {"fresh_max": 100, "spoil_below": 30, "units_per_point": 240, "decay_per_s": {"gather": 0.5, "quan": 0.25}},
+    "freshness": {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30},
     "score": {"reputation_multiplier": 100}
   }
 }

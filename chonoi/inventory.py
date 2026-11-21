@@ -67,7 +67,7 @@ def write_inventory(path: str, items: dict):
 # --- kho cá thể (contract 1.2) -----------------------------------------------------------------
 INDIVIDUAL_KEYS = {"id", "kind", "fresh"}
 ID_RE = re.compile(r"^I[1-9][0-9]*$")
-FRESH_DEFAULT = 100  # độ tươi cá thể mới vào kho (khớp tuning.freshness.fresh_max)
+FRESH_DEFAULT = 100  # độ tươi cá thể mới vào kho (khớp tuning.freshness.initial)
 
 
 def validate_individuals(items, fresh_max=FRESH_DEFAULT, kinds=KINDS):

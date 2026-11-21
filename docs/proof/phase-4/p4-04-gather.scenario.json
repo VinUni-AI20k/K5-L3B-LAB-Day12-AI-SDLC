@@ -1,0 +1,2 @@
+{"gather": {"fish": [], "player": {"pos": [56, 20], "oxygen_ticks": 400},
+ "monsters": [{"id": "M1", "kind": "ca_sau", "pos": [62, 20], "waypoints": [[62, 20]]}]}}
