@@ -6,12 +6,14 @@ phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 m
 """
 
 import json
+import math
 
 from .day_config import gather_tuning
 from .errors import BadInput
 from .inventory import KINDS_P2, validate_items
+from .sim.monsters import monster_config
 
-GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks", "monsters"}
+GATHER_KEYS = {"player", "hold", "nodes", "fish", "monsters", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "invuln_ticks", "catch_cd_ticks"}
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
@@ -175,7 +177,7 @@ def _validate_monster(monster, gather):
     name = f"monsters.{monster['id']}"
     allowed = {"id", "kind", "pos", "waypoints", "target_idx", "state", "state_ticks_left", "recoil_dir"}
     kind = monster.get("kind")
-    species = gather.get("monsters", {}).get("species", {})
+    species = monster_config(gather)["species"]
     if set(monster) - allowed or not isinstance(kind, str) or kind not in species:
         raise BadInput(f"{name}: loài hoặc trường không hợp lệ")
     bounds = {**gather["bounds"], "d": species[kind]["depths"]}
@@ -189,15 +191,15 @@ def _validate_monster(monster, gather):
     state = monster.get("state", "patrol")
     ticks = monster.get("state_ticks_left", 0)
     _nonneg_int(f"{name}.state_ticks_left", ticks)
-    if type(target) is not int or target not in (0, 1) or state not in ("patrol", "chase", "recoil"):
+    if type(target) is not int or target not in (0, 1) or state not in ("patrol", "chase", "recoil", "stunned"):
         raise BadInput(f"{name}: target_idx hoặc state không hợp lệ")
     direction = monster.get("recoil_dir")
     if state == "recoil":
         if (ticks == 0 or not isinstance(direction, list) or len(direction) != 2
-                or not all(_num(value) and -1 <= value <= 1 for value in direction)
-                or abs(sum(value ** 2 for value in direction) - 1) > 1e-6):
+                or not all(_num(value) and math.isfinite(value) for value in direction)
+                or not math.isclose(math.hypot(*direction), 1.0, rel_tol=0, abs_tol=1e-6)):
             raise BadInput(f"{name}: recoil cần timer dương và vector đơn vị")
-    elif ticks or direction is not None:
+    elif (state == "stunned" and ticks == 0) or (state != "stunned" and ticks != 0) or direction is not None:
         raise BadInput(f"{name}: timer và hướng recoil không khớp trạng thái")
 
 

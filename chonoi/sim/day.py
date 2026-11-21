@@ -34,7 +34,8 @@ class DaySim:
         self.plan = self.plans[self.day]
         self.phase = "gather"
         effective = gather_tuning(self.tuning, self.active_upgrades)
-        self.current = GatherSim(effective, self.gather_scenario, self.streams, self.ids, day=self.day)
+        self.current = GatherSim(effective, self.gather_scenario, self.streams, self.ids,
+                                 day=self.day, active_upgrades=self.active_upgrades)
         self.current.reputation = self.reputation
 
     def _start_quan(self, stock):
