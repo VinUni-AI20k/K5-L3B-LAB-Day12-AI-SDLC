@@ -1,16 +1,18 @@
-"""Quán lát 4 (@minhthu27): nấu, bưng, phục vụ, tiền, boa, uy tín, quan_end. Hộp đen qua headless."""
+"""Quán lát 4 (@minhthu27): nấu, bưng, phục vụ, tiền, boa, uy tín, quan_end. Hộp đen qua headless.
+
+Schema khách theo docs/contracts/customer.md. Test dùng `random_customers: false` nên không phụ thuộc lát 3.
+"""
 
 import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
-# Người chơi đứng cạnh bếp B1 (2,8) và bàn T1 (9,2): ta dịch chuyển bằng pos của scenario.
-BASE = {"stock": {"ca_loc": 1}, "random_customers": False,
-        "customers": [{"id": "C1", "table_id": "T1", "dish": "ca_loc_nuong_trui", "state": "waiting",
-                       "patience_ticks": 3600}]}
+COOK = {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+AT_STOVE = {"pos": [2, 8]}
 
 
 def run(block, fr, ticks, w):
+    block = dict({"random_customers": False}, **block)
     sc = write_json(w.path("sc.json"), {"quan": block})
     inp = write_json(w.path("in.json"), frames(*fr))
     out = w.path("o.jsonl")
@@ -25,69 +27,96 @@ def names(rows):
 
 
 class QuanService(unittest.TestCase):
-    def test_nau_chin_bung_phuc_vu_tra_tien(self):
+    def test_bep_nhan_don_tru_kho_va_nau(self):
         with Workdir() as w:
-            blk = dict(BASE, player={"pos": [2, 8]})
-            fr = [{"tick": 0, "interact": True}, {"tick": 1, "interact": False},
-                  {"tick": 400, "interact": True}, {"tick": 401, "interact": False}]
-            rows = run(blk, fr, 400, w)
-            self.assertEqual(names(rows)[:2], ["cook_started", "dish_ready"])
-            self.assertEqual(snapshots(rows)[1]["stock"], {})
+            rows = run({"stock": {"ca_loc": 1}, "customers": [COOK], "player": AT_STOVE},
+                       [{"tick": 0, "interact": True}], 400, w)
+            cs = events(rows, "cook_started")[0]
+            self.assertEqual(cs["data"], {"stove_id": "B1", "dish": "ca_loc_nuong_trui", "customer_id": "C1"})
+            self.assertEqual(cs["tick"], 1)
+            self.assertEqual(events(rows, "dish_ready")[0]["tick"], 1 + 360)
+            first = snapshots(rows)[1]  # sau khi nhận đơn
+            self.assertEqual(first["stock"], {})
+            self.assertEqual(first["customers"][0]["order_status"], "assigned")
+            self.assertEqual(first["customers"][0]["reserved"], {})
 
     def test_luong_day_du_den_paid(self):
         with Workdir() as w:
-            # đứng ở bếp nấu, nhấc món; chuyển sang bàn bằng scenario không được -> đi bộ
-            blk = dict(BASE, player={"pos": [2, 8]})
             fr = [{"tick": 0, "interact": True}, {"tick": 1, "interact": False},
                   {"tick": 361, "interact": True}, {"tick": 362, "interact": False, "move": [0.76, -0.65]},
                   {"tick": 500, "move": [0, 0]}, {"tick": 520, "interact": True}]
-            rows = run(blk, fr, 1300, w)
+            rows = run({"stock": {"ca_loc": 1}, "customers": [COOK], "player": AT_STOVE}, fr, 1300, w)
             n = names(rows)
             for e in ("cook_started", "dish_ready", "dish_picked", "served", "paid"):
                 self.assertIn(e, n)
+            self.assertEqual(n.index("dish_picked") < n.index("served") < n.index("paid"), True)
             paid = events(rows, "paid")[0]["data"]
-            self.assertEqual(paid["price"], 60)
-            self.assertEqual(paid["tip"], 12)  # patience còn > 50%
+            self.assertEqual(paid, {"customer_id": "C1", "table_id": "T1", "dish": "ca_loc_nuong_trui",
+                                    "price": 60, "tip": 12, "total": 72})
             end = rows[-1]
             self.assertEqual(end["money"], 72)
+            self.assertEqual(end["earned"], 72)
             self.assertAlmostEqual(end["reputation"], 3.2)
+            self.assertEqual(snapshots(rows)[-1]["customers"], [])
+            self.assertIsNone(snapshots(rows)[-1]["hand"])
 
-    def test_khong_du_nguyen_lieu_khong_nau(self):
+    def test_thieu_nguyen_lieu_khong_nau(self):
         with Workdir() as w:
-            blk = dict(BASE, stock={}, player={"pos": [2, 8]})
-            rows = run(blk, [{"tick": 0, "interact": True}], 5, w)
+            rows = run({"stock": {}, "customers": [dict(COOK, reserved={})], "player": AT_STOVE},
+                       [{"tick": 0, "interact": True}], 5, w)
             self.assertNotIn("cook_started", names(rows))
 
-    def test_khach_dang_an_tra_tien_khong_boa_khi_kien_nhan_thap(self):
+    def test_khong_nau_don_unfulfillable(self):
         with Workdir() as w:
-            c = {"id": "C1", "table_id": "T1", "dish": "goi_bong_sung", "state": "eating",
-                 "patience_ticks": 100, "eat_ticks": 3}
-            rows = run({"customers": [c], "random_customers": False}, [], 5, w)
-            paid = events(rows, "paid")[0]["data"]
-            self.assertEqual((paid["price"], paid["tip"]), (40, 0))
-            self.assertAlmostEqual(rows[-1]["reputation"], 3.0)
+            c = dict(COOK, order_status="unfulfillable", reserved={})
+            rows = run({"stock": {"ca_loc": 1}, "customers": [c], "player": AT_STOVE},
+                       [{"tick": 0, "interact": True}], 5, w)
+            self.assertNotIn("cook_started", names(rows))
+
+    def test_khach_an_xong_tra_tien_va_roi_ban(self):
+        with Workdir() as w:
+            c = dict(COOK, dish_id="goi_bong_sung", state="eating", order_status="served",
+                     eat_ticks_left=3, base_price=40, tip=0, reserved={})
+            rows = run({"customers": [c]}, [], 5, w)
+            self.assertEqual(events(rows, "paid")[0]["tick"], 3)
+            self.assertEqual(events(rows, "paid")[0]["data"]["total"], 40)
+            self.assertAlmostEqual(rows[-1]["reputation"], 3.0)  # không boa: uy tín giữ nguyên
             self.assertEqual(snapshots(rows)[-1]["customers"], [])
 
-    def test_bep_nhan_don_cua_khach_cho(self):
+    def test_kien_nhan_thap_khong_boa(self):
         with Workdir() as w:
-            blk = dict(BASE, player={"pos": [2, 8]})
-            rows = run(blk, [{"tick": 0, "interact": True}], 3, w)
-            self.assertIn("cook_started", names(rows))
+            # tay đã cầm món của C1 và đứng cạnh T1; kiên nhẫn dưới 50% -> không boa
+            c = dict(COOK, patience_ticks_left=100, reserved={}, order_status="assigned")
+            hand = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
+            rows = run({"customers": [c], "hand": hand, "player": {"pos": [9, 2]}},
+                       [{"tick": 0, "interact": True}], 2, w)
+            self.assertEqual(events(rows, "served")[0]["data"],
+                             {"customer_id": "C1", "table_id": "T1", "dish": "ca_loc_nuong_trui"})
+            cust = snapshots(rows)[-1]["customers"][0]
+            self.assertEqual((cust["state"], cust["order_status"], cust["tip"]), ("eating", "served", 0))
 
-    def test_quan_end_khi_het_gio_va_tinh_tien(self):
+    def test_phuc_vu_nham_khach_khong_duoc(self):
         with Workdir() as w:
-            rows = run({"time_left_ticks": 3}, [], 10, w)
+            hand = {"order_id": "C9", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
+            rows = run({"customers": [dict(COOK, reserved={})], "hand": hand, "player": {"pos": [9, 2]}},
+                       [{"tick": 0, "interact": True}], 2, w)
+            self.assertNotIn("served", names(rows))
+
+    def test_het_ca_khach_dang_an_tra_ngay_roi_quan_end(self):
+        with Workdir() as w:
+            c = dict(COOK, state="eating", order_status="served", eat_ticks_left=500, base_price=60, tip=12,
+                     reserved={})
+            rows = run({"customers": [c], "time_left_ticks": 3}, [], 10, w)
+            n = names(rows)
+            self.assertEqual(n[-2:], ["paid", "quan_end"])
             end_ev = events(rows, "quan_end")[0]["data"]
-            self.assertEqual(end_ev["reason"], "time")
-            self.assertEqual(end_ev["money"], 0)
+            self.assertEqual((end_ev["reason"], end_ev["money"], end_ev["earned"]), ("time", 72, 72))
 
     def test_cung_seed_giong_byte(self):
         with Workdir() as w:
-            blk = dict(BASE, player={"pos": [2, 8]})
-            fr = [{"tick": 0, "interact": True}]
-            a = run(blk, fr, 500, w)
-            b = run(blk, fr, 500, w)
-            self.assertEqual(a, b)
+            kw = ({"stock": {"ca_loc": 1}, "customers": [COOK], "player": AT_STOVE},
+                  [{"tick": 0, "interact": True}], 500, w)
+            self.assertEqual(run(*kw), run(*kw))
 
 
 if __name__ == "__main__":
