@@ -6,6 +6,8 @@
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Phase 2, lát cá: `python -m unittest tests.test_p2_fish -v`
 - Phase 3, giỏ và độ tươi: `python -m unittest tests.test_p3_gather -v`
+- Phase 3, quán Q3 giữ chỗ theo ID: `python -m unittest tests.test_p3_q3_freshness -v`
+- Phase 4, soak DaySim: `python -m unittest tests.test_p4_soak -v`; chạy thật: `python -m chonoi.soak --seed 7 --days 10 --out docs/proof/phase-4/soak.json`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan|day` (mở địa chỉ in ra; WASD, E, Space, Esc tạm dừng, R chơi lại; `day` mặc định 5 Ngày, `--days N`)
 - Phase 2, lát 4b (bản chơi live): `python -m unittest tests.test_p2_ui_live -v`. Chạy đúng lệnh test ở trên, **đừng** thêm `-X utf8` (3 test `test_p1_contract` đọc stderr sẽ lỗi `NoneType.strip`, có sẵn trên `main`)
