@@ -121,6 +121,9 @@ function fmtItems(obj) {
   const keys = Object.keys(obj || {}).filter((k) => obj[k] > 0).sort();
   return keys.map((k) => `${KIND_NAME[k] || k}×${obj[k]}`).join(", ");
 }
+function patienceBarColor(frac) {
+  return frac < 0.25 ? "#ef5350" : "#66bb6a";
+}
 
 function fit() {
   const dpr = window.devicePixelRatio || 1;
@@ -301,7 +304,8 @@ function drawQuan(w, h) {
       if (eating && c.eat_ticks_left !== undefined) {
         bar(cx - 0.8 * s, cy + 0.65 * s, 1.6 * s, 6, c.eat_ticks_left / eatMax, "#66bb6a");
       } else if (c.patience_ticks_left !== undefined) {
-        bar(cx - 0.8 * s, cy + 0.65 * s, 1.6 * s, 6, c.patience_ticks_left / patMax, "#e57373");
+        const patienceFrac = c.patience_ticks_left / patMax;
+        bar(cx - 0.8 * s, cy + 0.65 * s, 1.6 * s, 6, patienceFrac, patienceBarColor(patienceFrac));
       }
     }
   });
