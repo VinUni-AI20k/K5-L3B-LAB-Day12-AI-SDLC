@@ -43,7 +43,6 @@ Clone nhánh `huydn8816` vào thư mục mới (không dùng bản làm việc),
 - macOS 14.5, Python 3.14.8: chạy bởi Phạm Đức Vinh (vindpd203). Thành công.
 - Linux 24.04, Python 3.14.8: chạy bởi Nguyễn Thế Bảo (NTheBao). Thành công.
 
-[Còn thiếu: log đính kèm trong docs/proof/phase-4/.]
 
 Kết luận AC-P4-07: đạt trên Windows, macOS và Linux.
 
