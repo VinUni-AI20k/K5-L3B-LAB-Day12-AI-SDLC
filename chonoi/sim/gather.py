@@ -132,8 +132,10 @@ class GatherSim:
             self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + refill)
             self.zero_oxy_ticks = 0
         else:
+            # Sáng tạo: Ở vùng nước sâu (d > 18.0), áp suất cao làm oxy tiêu hao gấp đôi (2 ticks/tick)
+            drain = 2 if in_depth_zone else 1
             if self.oxygen_ticks > 0:
-                self.oxygen_ticks -= 1
+                self.oxygen_ticks = max(0, self.oxygen_ticks - drain)
                 if self.oxygen_ticks == 0:
                     events.append(("oxygen_empty", {}))
             else:

@@ -66,6 +66,17 @@ class TestDepthPressureInnovation(unittest.TestCase):
         self.assertLess(sim.pos[1], 18.0)
         self.assertFalse(sim.depth_warned)
 
+    def test_hyperbaric_oxygen_drain_in_depth_zone(self):
+        # Ở nước nông d = 5.0: tiêu hao 1 tick oxy mỗi tick
+        sim_shallow = self._make_sim([10.0, 5.0], oxygen_ticks=100)
+        sim_shallow.step(BtnInput())
+        self.assertEqual(sim_shallow.oxygen_ticks, 99)
+
+        # Ở vùng sâu d = 20.0: tiêu hao 2 ticks oxy mỗi tick do áp suất
+        sim_deep = self._make_sim([10.0, 20.0], oxygen_ticks=100)
+        sim_deep.step(BtnInput())
+        self.assertEqual(sim_deep.oxygen_ticks, 98)
+
 
 if __name__ == "__main__":
     unittest.main()
