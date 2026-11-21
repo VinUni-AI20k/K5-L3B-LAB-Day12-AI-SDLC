@@ -1,8 +1,8 @@
 """Buổi tối — Mở Quán. KHUNG: đi lại, chặn biên, đồng hồ, kho nạp từ file/scenario.
 
 Lát 3: khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, kiên nhẫn,
-       bỏ đi (customer_left), no_dish, vòng đời khách.
-Lát 4: interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
+       bỏ đi (customer_left), no_dish, vòng đời khách, hao tươi & ươn.
+Lát 4: interact tại bếp/bàn (cook_started chốt giá theo tươi, dish_ready, dish_picked, served),
        ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
 """
 
@@ -42,13 +42,18 @@ class QuanSim:
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
         source_stock = inventory if inventory is not None else scenario.get("stock", [] if "freshness" in tuning else {})
-        self.individual_stock = "freshness" in tuning
+        self.individual_stock = "freshness" in tuning or isinstance(source_stock, list)
         if self.individual_stock:
             self.stock = [dict(item) for item in source_stock]
-            self._fresh_step = Fraction(str(tuning["freshness"]["quan_decay_per_s"])) / int(TICK)
+            fresh_cfg = tuning.get("freshness", {"quan_decay_per_s": 0.25, "spoiled_below": 30})
+            self._fresh_step = (
+                Fraction(str(fresh_cfg["quan_decay_per_s"])) / int(TICK)
+                if "freshness" in tuning
+                else Fraction(0)
+            )
             # Giữ đúng giá trị fixture; chỉ sửa sai số biểu diễn sát bội số của một tick.
             self._fresh = {item["id"]: self._initial_fresh(item["fresh"]) for item in self.stock}
-            self._spoiled_below = Fraction(str(tuning["freshness"]["spoiled_below"]))
+            self._spoiled_below = Fraction(str(fresh_cfg["spoiled_below"]))
         else:
             self.stock = dict(source_stock)
         self.hand = dict(scenario["hand"]) if scenario.get("hand") is not None else None
@@ -61,9 +66,7 @@ class QuanSim:
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        self.customers = []
-        for customer in scenario.get("customers", []):
-            self.customers.append(self._init_customer(customer))
+        self.customers = [self._init_customer(c) for c in scenario.get("customers", [])]
         for e in self.customers:
             ids.reserve(e["id"])
         self.money = 0
@@ -74,6 +77,8 @@ class QuanSim:
 
     def _initial_fresh(self, value):
         exact = Fraction(str(value))
+        if self._fresh_step <= 0:
+            return exact
         snapped = round(exact / self._fresh_step) * self._fresh_step
         return snapped if abs(exact - snapped) <= Fraction(1, 10**12) else exact
 
@@ -140,7 +145,7 @@ class QuanSim:
         return selected
 
     def _decay_stock(self, events):
-        if not self.individual_stock:
+        if not self.individual_stock or self._fresh_step <= 0:
             return
         spoiled = []
         for item in self.stock:
@@ -172,7 +177,7 @@ class QuanSim:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
         return {
             "player": {"pos": self.pos},
-            "stock": sort_by_id(self.stock) if self.individual_stock else
+            "stock": sort_by_id([dict(x) for x in self.stock]) if self.individual_stock else
                      {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
@@ -278,17 +283,22 @@ class QuanSim:
             if c is None:
                 return
             dish_id = c["dish_id"]
-            base_price = self.menu[dish_id]["price"]
-            items = []
+            list_price = self.menu[dish_id]["price"]
             if self.individual_stock:
-                reserved = set(c["reserved"])
-                items = [item for item in self.stock if item["id"] in reserved]
-                self.stock = [item for item in self.stock if item["id"] not in reserved]
-                items.sort(key=lambda item: (item["kind"], id_key(item["id"])))
-                for item in items:
-                    del self._fresh[item["id"]]
+                reserved_ids = set(c["reserved"])
+                used = [x for x in self.stock if x["id"] in reserved_ids]
+                self.stock = [x for x in self.stock if x["id"] not in reserved_ids]
+                used.sort(key=lambda x: (x["kind"], id_key(x["id"])))
+                if used:
+                    avg_fresh = sum(self._fresh.pop(x["id"]) for x in used) / len(used)
+                    base_price = math.floor(list_price * avg_fresh / 100)
+                else:
+                    base_price = list_price
+                items = [dict(x) for x in used]
                 c["reserved"] = []
             else:
+                base_price = list_price
+                items = []
                 for k in sorted(c["reserved"]):
                     amt = c["reserved"][k]
                     self.stock[k] = max(0, self.stock.get(k, 0) - amt)
