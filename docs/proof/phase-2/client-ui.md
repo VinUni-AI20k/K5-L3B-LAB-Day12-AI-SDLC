@@ -18,3 +18,7 @@ Bản triển khai dựng sẵn đường nối qua `chonoi/web/adapter.js`. C�
 - `POST /input` nhận chuyển động và các xung phím theo chu kỳ 60 Hz. Các cờ nút trở về false ở frame tiếp theo. `buy` chỉ xuất hiện ở frame mua. Live adapter cần bảo toàn thứ tự và chặn lệnh thuộc pha đã đóng. Client lấy ngày, pha, đồng hồ, uy tín và điểm từ snapshot.
 
 Không có cấu hình mở rộng trong checkout này.
+
+## Đối chiếu sau tích hợp
+
+Trên `881c4c4`, manifest đã lên 1.1. Đã chạy lại adapter snapshot mẫu qua đủ năm ngày, pause và oxy ngày kế. `/config` của live chưa công bố capability campaign. [Kết quả trên main](integration.md#ui-và-live-adapter)
