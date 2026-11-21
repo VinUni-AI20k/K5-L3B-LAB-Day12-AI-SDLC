@@ -33,8 +33,11 @@ python3 -m chonoi.live --mode gather                                # chơi th�
 - Ca tối (Quán): Khách vào bàn, gọi món ngẫu nhiên theo kho khả dụng, tính tiền + tip 20% khi phục vụ nhanh, trừ 0.5 uy tín nếu khách bỏ về.
 
 ## Sáng tạo của nhóm
-- **Giao diện sinh động (`chonoi/web/index.html`):** Thiết kế hiệu ứng sóng nước miệt vườn sông nước Cửu Long, khói bốc nghi ngút từ bếp B1, thông báo nổi tiền thưởng/tip và âm hưởng chợ nổi miền Tây.
-- **Bảo toàn Test Contract:** Toàn bộ hiệu ứng hiển thị chỉ chạy ở tầng presentation (frontend HTML5 canvas), tầng mô phỏng lõi (`chonoi/sim/`) và chế độ headless hoàn toàn độc lập, đảm bảo **100% tính tất định byte-by-byte** (SHA-256 match tuyệt đối).
+- **Đề tài miền Tây trong client (`chonoi/web/index.html`, theo PRD mục 3):** ánh hồng buổi sớm + quầng mặt trời, nước phù sa 2 lớp, sóng lăn tăn + tia sáng dưới nước, bờ dừa nước + nhà sàn cạnh bến; buổi tối có đèn dây vàng nhấp nháy, khói bếp khi nấu, sàn ván + phao nổi của nhà bè trên nước đêm. Út Sen mặc áo bà ba, quấn khăn rằn, đeo kính lặn khi lặn và giỏ lưới đeo hông.
+- **Vector hình theo loại nguyên liệu:** cá lóc (sọc, mõm nhọn), cá linh (bạc, đuôi chẻ), cá kèo (dẹt, sọc dọc), bông điên điển (chùm cầu vàng), bông súng (cánh hồng xòe), kèo nèo (chùm hoa); Cá Sấu vẽ riêng kèm cảnh báo "Thủy quái!" viền tím khi tới gần.
+- **HUD & màn hình chuẩn Phase 2:** chữ không chân ≥18px @1280×720, giờ đổi màu khi còn ≤30s, checklist "Má Tư cần" (đã lấy/cần từ event `day_plan`), gợi ý hái/cập bến khi tới gần, "Hết hơi!" khi oxy cạn; Menu chính, DayIntro, EveningIntro, DayResult, Shop (mua nâng cấp phím 1/2), Pause (Esc/P) và Summary — tất cả render phòng thủ, sim bật pha nào client hiện pha đó.
+- **Thoại giọng Nam Bộ theo event + SFX WebAudio** (không dùng file ngoài, âm lượng nhỏ, mở AudioContext sau phím đầu tiên): ví dụ "Trúng đàn cá linh rồi nè!", "Thu 60k, khách boa nha!" hiện cạnh log kỹ thuật.
+- **Bảo toàn Test Contract:** toàn bộ ở tầng presentation (canvas), `chonoi/sim/` và headless độc lập hoàn toàn. Bằng chứng: 2 lần `python -m chonoi.headless --mode gather --seed 1 --ticks 600` cho JSONL **giống nhau từng byte** (`fc /b`: no differences encountered); bộ 57 tests chạy OK trước và sau khi thêm UI.
 
 
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).

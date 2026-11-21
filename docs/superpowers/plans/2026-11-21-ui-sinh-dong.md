@@ -22,16 +22,15 @@
 
 ---
 
-### Task 0: Nhánh + commit 1 + plan doc + baseline  [IN PROGRESS]
-- [x] Chạy test suite ghi số fail gốc: 52 tests, 50 pass, 2 fail (test_phase1_qa_edges quan — sim TODO).
+### Task 0: Nhánh + commit 1 + plan doc + baseline  [DONE — với diễn biến]
+- [x] Chạy test suite ghi số fail gốc: 52 tests, 50 pass, 2 fail (test_phase1_qa_edges quan — sim TODO). Sau pull mới (sim quan PR#4): **57/57 OK**.
 - [x] Cập nhật msg commit 1 với số test thật trên fa881c5.
 - [x] `git checkout -b feat/ui`.
-- [ ] Commit 1 (HUD gather + vector shapes) lên nhánh — CHỜ USER TẮT HOOK MIMOSA.
-- [x] Viết plan doc này.
-- [ ] Commit `docs(plan): ...` lên nhánh.
-- [x] Restart live server gather (sim mới) + verify HUD động thật: O₂ tụt 30s→8s khi lặn, giỏ 8/12 với mini icon theo loại, event log dive/surface/fish_caught — ĐẠI (screenshot lưu artifacts).
+- [x] Commit 1 (HUD gather + vector shapes) — **đã vào main qua PR#5 (người nhóm đẩy hộ, nội dung khớp snapshot %TEMP%\chonoi-snap-commit1.html)**. Lưu ý: commit trên main gắn tài khoản Vuthanh2508, không phải phihoang1709 → các commit tiếp theo phải gắn phihoang1709 để đủ điều kiện cá nhân.
+- [x] Viết plan doc này (đã merge vào main theo PR#5).
+- [x] Restart live server gather (sim mới) + verify HUD động thật: O₂ tụt 30s→8s khi lặn, giỏ 8/12 mini icon, event log thật.
 
-### Task 1 = Commit 2: `feat(ui): enhance stove and table visual states for quan mode`
+### Task 1 = Commit 2: `feat(ui): enhance stove and table visual states for quan mode`  [CODE+VERIFY DONE, CHỜ COMMIT]
 **Files:** Modify `chonoi/web/index.html` — chỉ `drawQuan` + helper mới.
 **Interfaces (produces):** tái dùng `panel()`, `bar()`, `drawMiniIcon()`, `KIND_NAME`; thêm `drawAvatar(x,y,r,color)` (đầu + vai), `patColor(ratio)` (xanh>0.5→vàng>0.25→đỏ), const `STOVE_STATE_LABEL = {idle:"Trống",cooking:"Đang nấu",ready:"Đã chín"}`.
 - [ ] Bếp: label tiếng Việt theo `st.state` (undefined → idle); cooking: icon lửa (2 tam giác) + đếm giây; ready: glow xanh (shadowBlur) + nhịp alpha `0.6+0.4*|sin(tick/8)|` + "(E để lấy)".
@@ -41,7 +40,7 @@
 - [ ] Verify: test suite (same-fail); `python -m chonoi.live --mode quan --scenario %TEMP%\quan-scene.json` (B1 cooking, khách T1 waiting có dish_id+patience, 1 khách eating) → screenshot + console sạch.
 - [ ] Commit lên nhánh (msg file 2, ghi kết quả test).
 
-### Task 2 = Commit 3: `style(ui): reskin miền Tây theo PRD + animation sinh động`
+### Task 2 = Commit 3: `style(ui): reskin miền Tây theo PRD + animation sinh động`  [CODE+VERIFY DONE, CHỜ COMMIT]
 **Files:** Modify `chonoi/web/index.html` — const `THM` (palette) + `drawUtSen()`, `drawPalms()`, `drawStiltHouse()`, `drawStringLights()`, `drawSmoke()`; sửa `drawGather`, `drawQuan`, phần player 2 hàm.
 **Palette (THM):** gather sky `#ffd9d0→#ffb4a2` + quầng mặt trời; nước phù sa `#71805a→#15251f`; đất bờ `#4a3b28`; quan sàn gỗ đêm `#7a5a36`, nước quanh nhà bè `#16324a`.
 - [ ] **Sáng:** trời hồng + mặt trời (radial gradient); nước phù sa 2 lớp; sóng mặt nước sin `snap.tick`; tia sáng xiên alpha .04; bờ trái (x<0): đất + 2 dừa nước + nhà sàn cạnh bến (đọc `meta.dock_pos`).
@@ -52,7 +51,7 @@
 - [ ] Verify: test suite same-fail; screenshot gather (trời hồng/phù sa/dừa/Út Sen) + chơi thật bằng synthetic keydown; screenshot quan scenario; console sạch.
 - [ ] Commit lên nhánh (msg file 3).
 
-### Task 3 = Commit 4: `feat(ui): thoại Nam Bộ trong event log + SFX WebAudio`
+### Task 3 = Commit 4: `feat(ui): thoại Nam Bộ trong event log + SFX WebAudio`  [CODE+VERIFY DONE, CHỜ COMMIT — gồm thêm màn hình vòng ngày P2 và HUD chuẩn P2 đã gộp theo ticket TICKET-02]
 **Files:** Modify `chonoi/web/index.html` — const `EV_TALK`, `sound(evName)`, sửa `eventLog`, `poll`, keydown.
 - [ ] `EV_TALK`: map event PRD mục E → 1-2 câu thoại, biến thể chọn bằng `(e.tick + e.name.length) % n`: gather "Hái được {kind} nè!", fish_caught "Trúng đàn {kind} rồi nè!", hold_full "Giỏ đầy rồi, cập bến thôi!", oxygen_empty "Hết hơi rồi!", choke "Ngạt quá, mất một Máu!", faint "Út Sen ngất rồi...", customer_arrived "Có khách tới bàn {table_id}!", no_dish "Chẳng nấu được món nào...", cook_started "Bắt đầu nấu {dish}!", dish_ready "{dish} chín rồi!", dish_picked "Bưng {dish} lên nào!", served "Món {dish} tớià!", paid "Thu {amount}k, khách boa nha!", customer_left "Khách chờ quá bỏ về...". Event lạ → không thoại.
 - [ ] `eventLog`: thoại mới nhất size 13 `#ffd9c4` "💬" phía trên log kỹ thuật gốc (giữ log).
