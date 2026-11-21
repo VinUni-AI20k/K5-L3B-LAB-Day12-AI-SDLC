@@ -30,3 +30,4 @@
 - **Skill `check-determinism`** (`.agents/skills/check-determinism/SKILL.md`, chạy `python3 tools/check_determinism.py`): chạy headless hai lần cùng seed rồi so từng byte. Dùng sau khi sửa luật trong `chonoi/sim/`, trước khi mở PR và trước khi gắn tag.
 - **Hook `protect_locked_files`** (`.agents/hooks/protect_locked_files.py`, nối trong `.claude/settings.json`): hỏi lại người dùng trước khi agent sửa `game.contract.json`, `docs/contracts/` hay `chonoi/inventory.py` (schema kho). Chỉ đồng ý khi Integrator đã báo cả nhóm.
 - Windows không có `python3` thì gõ `python`; hai công cụ trên tự dùng python đang chạy.
+- **Hook `pre-push`** (`.agents/hooks/pre-push`, C): chạy toàn bộ test trước mỗi `git push`, test đỏ thì chặn. Cài một lần mỗi máy: `sh .agents/hooks/install.sh` (đặt `core.hooksPath`). Bỏ qua khẩn cấp: `git push --no-verify` và ghi lý do vào standup.
