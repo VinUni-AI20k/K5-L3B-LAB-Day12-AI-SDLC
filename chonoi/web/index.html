@@ -460,7 +460,10 @@ function drawGather(w, h) {
 
   // --- 5.1. Bầu trời ánh hồng buổi sớm & bờ dừa nước ---
   if (loadedImages.gatherBg) {
-    ctx.drawImage(loadedImages.gatherBg, 0, top, w, h - top - bottom);
+    const img = loadedImages.gatherBg;
+    const horizonY = Math.round(img.height * 0.365);
+    ctx.drawImage(img, 0, 0, img.width, horizonY, 0, top, w, Math.max(1, oy - top));
+    ctx.drawImage(img, 0, horizonY, img.width, img.height - horizonY, 0, oy, w, Math.max(1, h - bottom - oy));
   } else {
     const skyGrad = ctx.createLinearGradient(0, top, 0, oy);
     skyGrad.addColorStop(0, "#f9c5b8");
