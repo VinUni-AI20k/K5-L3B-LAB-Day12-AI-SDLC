@@ -1,4 +1,7 @@
 # Nhật ký dùng AI (theo phase và theo người)
 
-| Phase | Người | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
-|---|---|---|---|---|---|
+| Phase | Người   | Công cụ / model                      | Việc                                                            | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?)                                                                                                  |
+| ----- | ------- | ------------------------------------ | --------------------------------------------------------------- | ------------------------ | ------------------------------------------------------------------------------------------------------------------------ |
+| 1     | TuHoAnh | Gemini (Tech Lead) + Codex (VS Code) | P1-06: Quán lát 3 (khách, giữ chỗ, kiên nhẫn)                   | ~15k tokens (ước tính)   | P1-06 lúc đầu thiếu vài mặc định khách scenario & đóng ca; đã được Lương review sửa và merge sạch ở P1-07.               |
+| 1     | TuHoAnh | Gemini (Tech Lead) + Codex (VS Code) | P1-07: Quán lát 4 (bếp, phục vụ, tiền/boa, quan_end)            | ~20k tokens (ước tính)   | Merge `origin/main` gây conflict ở `quan.py`; dùng prompt kiểm soát để Codex giữ bản vá từ `main` và pass 111/111 tests. |
+| 1     | TuHoAnh | Gemini (Tech Lead) + Codex (VS Code) | HX-03: Skill `check-no-hardcode` (`tools/check_no_hardcode.py`) | ~10k tokens (ước tính)   | Checker phát hiện `360` ở `gather.py:204`, đã tuân thủ chỉ báo cáo không sửa file module khác.                           |
