@@ -17,7 +17,7 @@ NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
 FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
 QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
-             "reputation", "time_left_ticks"}
+             "reputation", "time_left_ticks", "reservations", "random_reservations"}
 DAY_KEYS = {"money", "earned", "reputation", "upgrades", "day_plan"}
 
 
@@ -243,11 +243,16 @@ def _validate_gather(b, tuning):
 
 
 def _validate_quan(b, tuning):
-    for arr in ("stoves", "tables", "customers"):
+    for arr in ("stoves", "tables", "customers", "reservations"):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate_items(b["stock"])
+        if isinstance(b["stock"], list):
+            b["stock"] = validate_item_list(b["stock"])
+        else:
+            validate_items(b["stock"])
+    if "random_reservations" in b and not isinstance(b["random_reservations"], bool):
+        raise BadInput("random_reservations phải là boolean")
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")
@@ -263,3 +268,45 @@ def _validate_quan(b, tuning):
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    stock_by_id = {item["id"]: item for item in b.get("stock", [])} if isinstance(b.get("stock"), list) else {}
+    reserved_ids = set()
+    for customer in b.get("customers", []):
+        if "reserved" not in customer or isinstance(customer["reserved"], dict):
+            continue  # Historical count-based fixtures remain readable during fixture migration.
+        if "stock" not in b:
+            continue  # --inventory is checked against these IDs when QuanSim is constructed.
+        reserved = customer["reserved"]
+        if (not isinstance(reserved, list) or
+                any(not isinstance(iid, str) or iid not in stock_by_id for iid in reserved)):
+            raise BadInput(f"customers.{customer['id']}.reserved phải trỏ tới id có trong quan.stock")
+        if len(reserved) != len(set(reserved)) or reserved_ids.intersection(reserved):
+            raise BadInput("customers.reserved không được dùng chung id cá thể")
+        for iid in reserved:
+            if stock_by_id[iid]["fresh"] < tuning["freshness"]["spoiled_below"]:
+                raise BadInput(f"customers.{customer['id']}.reserved không được giữ hàng đã ươn")
+        reserved_ids.update(reserved)
+    reservation_ids = set()
+    reservation_tables = set()
+    reservation_cfg = tuning["quan"]["reservations"]
+    for reservation in b.get("reservations", []):
+        rid = reservation["id"]
+        if set(reservation) != {"id", "table_id", "dish_id", "arrival_tick"}:
+            raise BadInput(f"reservations.{rid} chỉ có id, table_id, dish_id, arrival_tick")
+        if rid in reservation_ids:
+            raise BadInput(f"reservations: id trùng {rid}")
+        reservation_ids.add(rid)
+        if reservation.get("table_id") not in known or reservation["table_id"] in reservation_tables:
+            raise BadInput("reservations.table_id phải là bàn có thật và khác các đơn khác")
+        reservation_tables.add(reservation["table_id"])
+        if reservation.get("dish_id") not in tuning["menu"]:
+            raise BadInput(f"reservations.{rid}.dish_id không thuộc menu")
+        tick = reservation.get("arrival_tick")
+        duration = int(round(tuning["quan"]["duration_s"] * 60))
+        if isinstance(tick, bool) or not isinstance(tick, int) or not 0 < tick < duration:
+            raise BadInput(f"reservations.{rid}.arrival_tick phải thuộc (0, {duration})")
+    for customer in b.get("customers", []):
+        reservation_id = customer.get("reservation_id")
+        if reservation_id is not None and reservation_id not in reservation_ids:
+            raise BadInput(f"customers.{customer['id']}.reservation_id không có trong quan.reservations")
+    if len(b.get("reservations", [])) > reservation_cfg["count"]:
+        raise BadInput(f"reservations tối đa {reservation_cfg['count']} đơn")

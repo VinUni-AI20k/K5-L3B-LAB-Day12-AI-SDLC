@@ -102,7 +102,8 @@ class LiveGame:
         with self._lock:
             snap = self.session.snapshot()
             phase = snap.get("phase", self.mode)
-            meta = self.tuning.get(phase, self.tuning.get(self.mode, {}))
+            meta = dict(self.tuning.get(phase, self.tuning.get(self.mode, {})))
+            meta["freshness"] = self.tuning.get("freshness", {})
             if self.mode == "day":
                 meta = dict(meta, shop=self.tuning["shop"], gather=self.tuning["gather"],
                             quan=self.tuning["quan"])

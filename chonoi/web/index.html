@@ -195,9 +195,27 @@ function stockCounts(stock) {
   stock.forEach((item) => { counts[item.kind] = (counts[item.kind] || 0) + 1; });
   return counts;
 }
+function fmtFresh(items) {
+  const threshold = snap.meta && snap.meta.freshness ? snap.meta.freshness.spoiled_below : 0;
+  return (items || []).map((it) => {
+    const stale = Number(it.fresh) < threshold;
+    return (KIND_NAME[it.kind] || it.kind) + " " + Number(it.fresh).toFixed(1) + "%" + (stale ? " (ươn)" : "");
+  }).join(" · ");
+}
 function availableStock() {
-  const avail = stockCounts(snap.stock);
-  (snap.customers || []).forEach((c) => Object.keys(c.reserved || {}).forEach((k) => { avail[k] = (avail[k] || 0) - c.reserved[k]; }));
+  let avail;
+  if (Array.isArray(snap.stock)) {
+    const held = new Set();
+    (snap.customers || []).forEach((c) => {
+      if (Array.isArray(c.reserved)) c.reserved.forEach((id) => held.add(id));
+    });
+    avail = stockCounts(snap.stock.filter((item) => !held.has(item.id)));
+  } else {
+    avail = stockCounts(snap.stock);
+    (snap.customers || []).forEach((c) => {
+      if (!Array.isArray(c.reserved)) Object.keys(c.reserved || {}).forEach((k) => { avail[k] = (avail[k] || 0) - c.reserved[k]; });
+    });
+  }
   Object.keys(avail).forEach((k) => { if (avail[k] <= 0) delete avail[k]; });
   return avail;
 }
@@ -207,7 +225,7 @@ function curPlan() {
   if (Array.isArray(p)) return p.find((x) => x.day === snap.day) || null;
   return p || null;
 }
-function countHold() { const c = {}; (snap.hold || []).forEach((k) => { c[k] = (c[k] || 0) + 1; }); return c; }
+function countHold() { const c = {}; (snap.hold || []).forEach((item) => { const k = item.kind || item; c[k] = (c[k] || 0) + 1; }); return c; }
 
 // ---------- vẽ: tiện ích ----------
 function fit() {
@@ -348,6 +366,7 @@ function drawGather(w, h) {
     const done = Object.keys(need).every((k) => (have[k] || 0) >= need[k]);
     text("Cần lấy: " + Object.keys(need).map((k) => (KIND_NAME[k] || k) + " " + (have[k] || 0) + "/" + need[k]).join(" · "), 14, 92, { size: 18, color: done ? "#a5d6a7" : "#ffe082" });
   }
+  if (Array.isArray(snap.hold) && snap.hold.length) text("Độ tươi giỏ: " + fmtFresh(snap.hold), 14, 118, { size: 17, color: "#ffe082" });
   // --- cảnh báo giữa màn ---
   const sp = ((meta.monsters || {}).species || {}).ca_sau || {};
   const warnR = sp.detect_radius || 10;
@@ -373,7 +392,7 @@ function drawGather(w, h) {
     for (let i = 0; i < cap; i++) {
       const x0 = 14 + i * (sz + 4);
       ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(x0, y0, sz, sz);
-      if (snap.hold[i]) { ctx.fillStyle = kc(snap.hold[i]); ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6); }
+      if (snap.hold[i]) { ctx.fillStyle = kc(snap.hold[i].kind || snap.hold[i]); ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6); }
     }
     const names = countHold();
     text("Giỏ " + snap.hold.length + "/" + cap + "  " + fmtItems(names), 14, y0 + sz + 22, { size: 18, color: "#cfd8dc" });
@@ -442,6 +461,9 @@ function drawQuan(w, h) {
   const avail = fmtItems(availableStock()), stock = stockCounts(snap.stock), phys = fmtItems(stock);
   text("Kho khả dụng: " + (avail || "(trống)"), 14, 60, { size: 18, color: "#cfd8dc" });
   if (phys && phys !== avail) text("Tồn kho (gồm phần đã giữ): " + phys, 14, 86, { size: 18, color: "#9fb3c0" });
+  if (Array.isArray(snap.stock) && snap.stock.length) text("Độ tươi kho: " + fmtFresh(snap.stock), 14, 110, { size: 18, color: "#ffe082" });
+  const reservations = snap.reservations || [];
+  if (reservations.length) text("Đặt trước: " + reservations.map((r) => r.id + " " + r.table_id + " " + dishName(r.dish_id) + " · " + r.state + (r.arrival_tick ? " @" + r.arrival_tick : "")).join(" | "), 14, 136, { size: 17, color: "#ffe0a3" });
   const handTxt = snap.hand ? (typeof snap.hand === "string" ? snap.hand : dishName(snap.hand.dish_id)) : "tay trống";
   text("Đang cầm: " + handTxt, w - 14, 60, { size: 18, align: "right", color: "#ffe082" });
   const orders = snap.customers || [];
@@ -508,12 +530,16 @@ function drawIntro(w, h) {
     if (plan && plan.ingredients) text("Cần lấy: " + fmtItems(plan.ingredients), w / 2, y + 140 + Math.max(1, Object.keys(dishes).length) * 28 + 24, { size: 18, align: "center", color: "#ffe082" });
   } else {
     text("Buổi tối", w / 2, y + 56, { size: 36, align: "center", color: "#ffe0a3" });
-    const stock = stockCounts(snap.stock);
+    const physicalStock = snap.stock;
+    const stock = stockCounts(physicalStock);
     text("Nhập kho: " + (Object.keys(stock).length ? fmtItems(stock) : "(trống)"), w / 2, y + 110, { size: 22, align: "center" });
-    const stock = availableStock();
+    if (Array.isArray(physicalStock) && physicalStock.length) {
+      text("Độ tươi: " + fmtFresh(physicalStock), w / 2, y + 142, { size: 17, align: "center", color: "#ffe082" });
+    }
+    const available = availableStock();
     const pool = plan && plan.dishes ? Object.keys(plan.dishes) : Object.keys(DISH_RECIPE);
-    const ok = pool.filter((d) => DISH_RECIPE[d] && recipeOk(DISH_RECIPE[d], stock));
-    text("Nấu được: " + (ok.length ? ok.map(dishName).join(", ") : "chưa món nào"), w / 2, y + 160, { size: 22, align: "center", color: ok.length ? "#a5d6a7" : "#ff8a80" });
+    const ok = pool.filter((d) => DISH_RECIPE[d] && recipeOk(DISH_RECIPE[d], available));
+    text("Nấu được: " + (ok.length ? ok.map(dishName).join(", ") : "chưa món nào"), w / 2, y + 184, { size: 22, align: "center", color: ok.length ? "#a5d6a7" : "#ff8a80" });
   }
   text("Nhấn phím bất kỳ để tiếp tục", w / 2, y + 330, { size: 18, align: "center", color: "#9fb3c0" });
 }

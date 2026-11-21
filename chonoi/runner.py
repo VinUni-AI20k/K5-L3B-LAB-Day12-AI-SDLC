@@ -74,14 +74,17 @@ class Session:
             self.sim_tick += 1
         rows = []
         for event in events:
-            if len(event) == 3:
+            event_day = None
+            if len(event) == 4:
+                phase, name, data, event_day = event
+            elif len(event) == 3:
                 phase, name, data = event
             else:
                 name, data = event
                 phase = getattr(self.sim, "phase", self.mode)
             row = {"type": "event", "tick": self.tick, "phase": phase, "name": name, "data": data}
             if self.mode == "day":
-                row["day"] = self.sim.day
+                row["day"] = event_day if event_day is not None else self.sim.day
             rows.append(row)
         return rows
 
