@@ -1,10 +1,12 @@
 """Test cho tools/check_team.py (kiểm danh sách thành viên)."""
 
+import json
 import os
 import sys
 import unittest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tools"))
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.join(ROOT, "tools"))
 import check_team  # noqa: E402
 
 GOOD = """# TEAM
@@ -15,7 +17,6 @@ GOOD = """# TEAM
 | Chi | chi-le | client/ui | QA | quan |
 | Dũng | dung-pham | qa | Scrum | ui |
 """
-
 
 TEMPLATE = """# TEAM
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
@@ -34,8 +35,17 @@ class TeamCheck(unittest.TestCase):
         self.assertEqual(check_team.validate(m, 4, actor="an-nguyen", event="pull_request"), [])
 
     def test_template_is_rejected(self):
+        # Kiểm trên bản mẫu cố định (TEAM.md gốc của starter), không đọc TEAM.md thật:
+        # nhóm điền TEAM.md xong thì file thật hợp lệ, test cũ sẽ đỏ dù không có lỗi.
         m = check_team.parse_team(TEMPLATE)
         self.assertTrue(check_team.validate(m, 4))
+
+    def test_repo_team_md_is_valid(self):
+        with open(os.path.join(ROOT, "TEAM.md"), encoding="utf-8") as f:
+            m = check_team.parse_team(f.read())
+        with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
+            size = json.load(f)["team_size"]
+        self.assertEqual(check_team.validate(m, size), [])
 
     def test_wrong_size_duplicate_and_outsider(self):
         m = check_team.parse_team(GOOD)
