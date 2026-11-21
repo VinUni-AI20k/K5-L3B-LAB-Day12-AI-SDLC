@@ -109,6 +109,9 @@ kbd { display: inline-block; vertical-align: .03em; border: 1px solid #678273; b
 .dishes li { border: 1px solid #496054; background: #182a23; border-radius: 7px; padding: 6px 8px; font-size: .8rem; display: flex; justify-content: space-between; gap: 5px; }
 .dishes li.available { border-color: #8da875; background: #2b4536; }
 .dishes li strong, .dishes li small { display: block; }
+.dishes li .recipe-details strong { display: inline; }
+.recipe-details summary { cursor: pointer; }
+.recipe-details summary::marker { color: var(--gold); }
 .dishes li small { color: var(--muted); margin-top: 2px; }
 .dishes li .eligibility { white-space: nowrap; color: var(--muted); font-size: .7rem; align-self: center; }
 .dishes li.available .eligibility { color: var(--mint); }
@@ -169,7 +172,7 @@ kbd { display: inline-block; vertical-align: .03em; border: 1px solid #678273; b
 .phase-two h1, .phase-two .brand { font-family: system-ui, sans-serif; }
 .phase-two :is(.button, .preview-label, .mode small, .controls, .eyebrow, .stat > span, .stat.oxygen b,
   .world-label, .prompt, .toasts > div, .oxygen-alert, h2, .panel-title > span, .panel-title > strong,
-  .ingredients, .dishes li, .dishes li .eligibility, .station, .station p, .station .station-timer, .file-status, .totals dt) { font-size: 18px; }
+  .ingredients, .dishes li, .dishes li small, .dishes li .eligibility, .station, .station p, .station .station-timer, .file-status, .totals dt) { font-size: 18px; }
 .phase-two kbd { font-size: 18px; line-height: 1.15; padding-block: 2px; }
 .phase-two .eyebrow { letter-spacing: .07em; }
 .phase-two .topbar { height: auto; min-height: 53px; margin-bottom: 12px; }
@@ -269,6 +272,43 @@ kbd { display: inline-block; vertical-align: .03em; border: 1px solid #678273; b
 .station.fresh-shortage { border-color: #a86656; }
 .station.fresh-shortage .station-title span { color: var(--rose); font-weight: 800; }
 .campaign-paused #bag-panel { animation-play-state: paused !important; }
+
+.warning-icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 1.18em;
+  block-size: 1.18em;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font: 800 1em/1 system-ui, sans-serif;
+  vertical-align: -.07em;
+}
+.station .warning-text, .station .warning-text b { color: var(--rose); }
+
+:root.high-contrast {
+  --page: #050709;
+  --panel: #101721;
+  --line: #d8e5f2;
+  --cream: #fff;
+  --muted: #e6edf5;
+  --gold: #ffdf62;
+  --mint: #bafca9;
+  --rose: #ffc1b9;
+}
+.high-contrast body { background: var(--page); }
+.high-contrast :is(.panel, .station, .mode:not(.primary), .stat, .journey-card, .result-card, .journey-stats > div, .totals > div) { background: var(--panel); }
+.high-contrast :is(.ingredients > div, .dishes li, .slots li, kbd, .meter, .world-label, .prompt, .toasts > div) { border-color: var(--line); }
+.high-contrast :is(.world-label, .prompt, .toasts > div:not(.danger), .meter, .dishes li, .slots li) { background: #050709; }
+.high-contrast .dishes li.available { background: #1f352b; border-color: var(--mint); }
+.high-contrast :is(.oxygen-alert, .toasts .danger, .notice) { color: var(--rose); background: #361710; border-color: var(--rose); }
+.high-contrast .monster-alert { color: #ffea85; background: #251338; border-color: #ffea85; }
+.high-contrast .spoiled-badge { color: #fff2a1; background: #2b2106; outline: 1px solid #fff2a1; }
+.high-contrast .phase-two .oxygen .meter.alert, .high-contrast .station.ready { animation: none; }
+.high-contrast .button[aria-pressed="true"] { background: var(--gold); border-color: var(--gold); color: #080a0d; }
+.high-contrast .primary kbd { color: #050709; border-color: #050709; }
+.high-contrast .button:disabled { opacity: .78; }
+.high-contrast .button:focus-visible { outline-color: #fff; }
+.high-contrast .pause-overlay { background: #000d; }
 
 @media (min-width: 1051px) {
   .phase-three #game[data-mode="quan"] .stage .toasts { max-width: min(27%, 211px); }

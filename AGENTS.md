@@ -8,6 +8,7 @@
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 - Xem UI Phase 2 độc lập: `python3 -m http.server 8000 --bind 127.0.0.1` (mở `/chonoi/web/?preview=2`; E, Space, Esc/P)
 - Xem UI Phase 3: chạy cùng máy chủ tĩnh và mở `/chonoi/web/?preview=3` để kiểm kho cá thể, hàng ươn và giá chốt.
+- Benchmark render: `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json` (cần Chrome hoặc Chromium).
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.

@@ -105,7 +105,29 @@ function highlight(ctx, action, x, y, scale, w, h, v2) {
     { color: "#302419", background: "#f4bd70", size: v2 ? 18 : 11 });
 }
 
-function worldGather(ctx, w, h, state, action, t, hz, v2, floodSeason) {
+function cachedShore() {
+  const buffer = document.createElement("canvas");
+  const scenery = buffer.getContext("2d");
+  let previousKey;
+  return (ctx, w, h, horizon, drift) => {
+    const ratio = ctx.getTransform().a;
+    const key = [w, h, horizon, drift, ratio].join("/");
+    if (key !== previousKey) {
+      const width = Math.round(w * ratio);
+      const height = Math.round(h * ratio);
+      if (buffer.width !== width || buffer.height !== height) {
+        buffer.width = width;
+        buffer.height = height;
+      }
+      scenery.setTransform(ratio, 0, 0, ratio, 0, 0);
+      shore(scenery, w, h, horizon, drift);
+      previousKey = key;
+    }
+    ctx.drawImage(buffer, 0, 0, w, h);
+  };
+}
+
+function worldGather(ctx, w, h, state, action, t, hz, v2, floodSeason, drawShore, contrast) {
   const { meta, player } = state;
   const [[left, right], [surface, bottom]] = [meta.bounds.x, meta.bounds.d];
   const depth = bottom - surface;
@@ -119,11 +141,17 @@ function worldGather(ctx, w, h, state, action, t, hz, v2, floodSeason) {
   const x = (pos) => (pos - viewX) * scale;
   const y = (pos) => horizon + (pos - surface) * scale;
 
-  shore(ctx, w, h, horizon, viewX * scale, t);
-  const tiers = v2 && Number.isFinite(meta.danger_depth) && Number.isFinite(meta.deep_depth)
-    ? [y(meta.danger_depth), y(meta.deep_depth)] : undefined;
+  drawShore(ctx, w, h, horizon, viewX * scale);
+  const dangerDepth = meta.danger_depth ?? meta.monsters?.species?.ca_sau?.depths?.[0];
+  const deepDepth = meta.deep_depth ?? bottom - (dangerDepth - surface);
+  const tiers = v2 && Number.isFinite(dangerDepth) && dangerDepth < deepDepth && deepDepth < bottom
+    ? [y(dangerDepth), y(deepDepth)] : undefined;
   river(ctx, w, h, horizon, y(bottom), viewX * scale, t, tiers, floodSeason);
-  const tag = { size: v2 ? 18 : 11 };
+  if (contrast) {
+    ctx.fillStyle = "#07131ba8";
+    ctx.fillRect(0, 0, w, h);
+  }
+  const tag = { size: 18, background: contrast ? "#000" : undefined, color: contrast ? "#fff" : undefined };
   if (tiers) {
     ctx.strokeStyle = "#e1b1e9b8";
     ctx.setLineDash([8, 6]);
@@ -132,11 +160,11 @@ function worldGather(ctx, w, h, state, action, t, hz, v2, floodSeason) {
     ctx.lineTo(w, tiers[0]);
     ctx.stroke();
     ctx.setLineDash([]);
-    if (tiers[0] > 55 && tiers[0] < h - 25) label(ctx, meta.danger_depth + " m · Vùng nguy hiểm", 112, tiers[0], tag);
+    if (tiers[0] > 55 && tiers[0] < h - 25) label(ctx, dangerDepth + " m · Vùng nguy hiểm", 112, tiers[0], tag);
   }
   ctx.fillStyle = "#b8e3a063";
   ctx.fillRect(0, horizon, w, meta.surface_depth * scale);
-  ctx.fillStyle = "#d7dcb2";
+  ctx.fillStyle = contrast ? "#fff08a" : "#d7dcb2";
   ctx.fillRect(0, horizon - 1, w, 1.5);
   if (y(bottom) < h) {
     ctx.fillStyle = "#12312e";
@@ -198,7 +226,7 @@ function worldGather(ctx, w, h, state, action, t, hz, v2, floodSeason) {
   ctx.restore();
 }
 
-function worldQuan(ctx, w, h, state, action, t, v2) {
+function worldQuan(ctx, w, h, state, action, t, v2, contrast) {
   const [[left, right], [south, north]] = [state.meta.bounds.x, state.meta.bounds.z];
   const pad = Math.min(w, h) * .15;
   const scale = Math.min((w - 2 * pad) / (right - left), (h - 1.5 * pad) / (north - south));
@@ -209,7 +237,11 @@ function worldQuan(ctx, w, h, state, action, t, v2) {
   const x = (pos) => ox + (pos - left) * scale;
   const y = (pos) => oy + (north - pos) * scale;
   deck(ctx, w, h, ox, oy, width, height, t);
-  const tag = { size: v2 ? 18 : 11 };
+  if (contrast) {
+    ctx.fillStyle = "#07131b96";
+    ctx.fillRect(0, 0, w, h);
+  }
+  const tag = { size: 18, background: contrast ? "#000" : undefined, color: contrast ? "#fff" : undefined };
   for (const stove of state.stoves) {
     const sx = x(stove.pos[0]);
     const sy = y(stove.pos[1]);
@@ -238,7 +270,7 @@ function worldQuan(ctx, w, h, state, action, t, v2) {
   if (state.hand) mealArt(ctx, px, py - 22, 8);
 }
 
-export function createRenderer(cover, canvas) {
+export function createRenderer(cover, canvas, onPresented) {
   let current;
   let action;
   let tuning;
@@ -246,6 +278,9 @@ export function createRenderer(cover, canvas) {
   let dirty = true;
   let previousMs;
   let time = 0;
+  let contrast = false;
+  let pendingPresentation = false;
+  const drawShore = cachedShore();
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
   function drawCover() {
@@ -254,6 +289,11 @@ export function createRenderer(cover, canvas) {
   }
 
   function draw(ms) {
+    // The next animation boundary follows the browser's paint of the preceding Canvas frame.
+    if (pendingPresentation) {
+      pendingPresentation = false;
+      onPresented();
+    }
     if (!frozen && previousMs !== undefined) time += Math.min(100, ms - previousMs) / 1000;
     previousMs = ms;
     if (current && tuning && (!frozen || dirty)) {
@@ -263,8 +303,10 @@ export function createRenderer(cover, canvas) {
         const t = reducedMotion.matches ? 0 : time;
         const floodSeason = Boolean(tuning.freshness) || Array.isArray(current.stock) || typeof current.hold?.[0] === "object";
         const v2 = Boolean(tuning.shop) || floodSeason;
-        if (current.mode === "gather") worldGather(ctx, w, h, current, action, t, tuning.tick_hz, v2, floodSeason);
-        else worldQuan(ctx, w, h, current, action, t, v2);
+        if (current.mode === "gather") {
+          worldGather(ctx, w, h, current, action, t, tuning.tick_hz, v2, floodSeason, drawShore, contrast);
+          pendingPresentation = Boolean(onPresented);
+        } else worldQuan(ctx, w, h, current, action, t, v2, contrast);
         dirty = false;
       }
     }
@@ -277,6 +319,7 @@ export function createRenderer(cover, canvas) {
   return {
     configure(config) { tuning = config; },
     freeze(value) { if (value !== frozen) dirty = true; frozen = value; },
+    contrast(value) { if (value !== contrast) dirty = true; contrast = value; },
     state(snapshot, target) {
       action = target;
       const previous = current;
