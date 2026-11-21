@@ -155,9 +155,9 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
-        elif path == "/assets/cho-noi-sprites.png":
+        elif path in ("/assets/cho-noi-sprites.png", "/assets/ut-sen-swim.png"):
             try:
-                with open(os.path.join(WEB_DIR, "assets", "cho-noi-sprites.png"), "rb") as f:
+                with open(os.path.join(WEB_DIR, path.lstrip("/")), "rb") as f:
                     self._send(200, f.read(), "image/png")
             except OSError:
                 self._send(404, b'{"error":"khong co sprite"}')

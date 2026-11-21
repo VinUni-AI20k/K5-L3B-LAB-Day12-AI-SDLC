@@ -34,6 +34,9 @@ class LiveUiContractTest(unittest.TestCase):
         for dish_id in (*contract["menu"].keys(), *extra["menu"].keys()):
             self.assertIn(dish_id, self.html)
         self.assertIn("/assets/cho-noi-sprites.png", self.html)
+        self.assertIn("/assets/ut-sen-swim.png", self.html)
+        self.assertTrue(os.path.isfile(os.path.join(WEB_DIR, "assets", "cho-noi-sprites.png")))
+        self.assertTrue(os.path.isfile(os.path.join(WEB_DIR, "assets", "ut-sen-swim.png")))
 
     def test_live_game_gather_and_quan_snapshot_and_input(self):
         tuning = load_contract()["tuning"]

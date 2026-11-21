@@ -583,6 +583,8 @@ const MENU_INFO = {
 };
 const atlas = typeof Image !== "undefined" ? new Image() : { naturalWidth: 0 };
 atlas.src = "/assets/cho-noi-sprites.png";
+const swimSheet = typeof Image !== "undefined" ? new Image() : { naturalWidth: 0 };
+swimSheet.src = "/assets/ut-sen-swim.png";
 const SPRITES = {
   swim: [0, 125, 359, 227],
   serve: [354, 55, 230, 345],
@@ -598,8 +600,10 @@ const SPRITES = {
   rau_muong_xao: [939, 908, 315, 253]
 };
 function sprite(key, x, y, size, angle = 0, flip = false) {
-  const region = SPRITES[key];
-  if (!region || !atlas.naturalWidth) return false;
+  return drawSprite(atlas, SPRITES[key], x, y, size, angle, flip);
+}
+function drawSprite(image, region, x, y, size, angle, flip) {
+  if (!region || !image || !image.naturalWidth) return false;
   const [left, top, width, height] = region;
   const scale = size / Math.max(width, height);
   const w = width * scale, h = height * scale;
@@ -607,7 +611,7 @@ function sprite(key, x, y, size, angle = 0, flip = false) {
   ctx.translate(x, y);
   ctx.rotate(angle);
   if (flip) ctx.scale(-1, 1);
-  ctx.drawImage(atlas, left, top, width, height, -w / 2, -h / 2, w, h);
+  ctx.drawImage(image, left, top, width, height, -w / 2, -h / 2, w, h);
   ctx.restore();
   return true;
 }
@@ -854,13 +858,13 @@ function describeEvent(ev) {
       const dish = extractDishId(d.dish_id || d.dish);
       return { cat: "info", text: `Bưng món ${dish ? dishMeta(dish).short : ""}` };
     }
-    case "served":         return { cat: "good", text: `Phục vụ khách ${d.customer_id || d.table_id || ""}` };
+    case "served":         return { cat: "good", text: `Phục vụ khách ${d.order_id || d.customer_id || d.table_id || ""}` };
     case "paid": {
       const amt = d.total ?? d.amount ?? d.price ?? 0;
       const tip = d.tip || 0;
       return { cat: "good", text: `Thu +${amt}k${tip > 0 ? ` (boa +${tip}k)` : ""}` };
     }
-    case "customer_left":  return { cat: "bad",  text: `Khách ${d.customer_id || d.id || ""} bỏ đi!` };
+    case "customer_left":  return { cat: "bad",  text: `Khách ${d.order_id || d.customer_id || d.id || ""} bỏ đi!` };
     case "quan_end":       return { cat: "info", text: `Hết ca tối · Thu ${d.earned ?? d.shift_earned ?? 0}k` };
     default: {
       let s = "";
@@ -1766,11 +1770,17 @@ function drawGather(w, h, dt) {
       ctx.stroke();
     }
 
-    // Vẽ Út Sen (nhấp nháy nếu invuln_ticks > 0)
+    // Vẽ Út Sen (nhấp nháy nếu invuln_ticks > 0; ưu tiên animation bơi ut-sen-swim.png)
     if (!((p.invuln_ticks || 0) > 0 && Math.floor((snap.tick || 0) / 5) % 2)) {
       const ang = ((p.heading_deg || 0) * Math.PI) / 180;
       const facingLeft = Math.cos(ang) < 0;
-      if (!sprite("swim", px, py, 2.8 * s, facingLeft ? ang - Math.PI : ang, facingLeft)) {
+      const spriteAngle = facingLeft ? ang - Math.PI : ang;
+      const moving = !snap.finished && p.vel && Math.hypot(p.vel[0] || 0, p.vel[1] || 0) > 0;
+      // Mỗi khung giữ 6 tick; cắt cùng vùng trong mỗi ô 512x512 để giữ tỉ lệ nhân vật
+      const swimFrame = Math.floor((snap.tick || 0) / 6) % 6;
+      const swimRegion = [(swimFrame % 2) * 512, Math.floor(swimFrame / 2) * 512 + 100, 512, 330];
+      const animated = moving && drawSprite(swimSheet, swimRegion, px, py, 3.4 * s, spriteAngle, facingLeft);
+      if (!animated && !sprite("swim", px, py, 2.8 * s, spriteAngle, facingLeft)) {
         ctx.save();
         ctx.translate(px, py);
         ctx.rotate(ang);
@@ -1986,12 +1996,13 @@ function drawQuan(w, h) {
 
     drawText(st.id, x, y + 1, { size: 12, bold: true, align: "center", base: "middle", color: "#fff", shadow: true });
 
-    // Nhãn món & thanh tiến độ nấu
+    // Nhãn món & thanh tiến độ nấu (hiện thêm order_id nếu món gắn đơn cụ thể)
     if (stInfo) {
+      const stOrderId = st.dish && typeof st.dish === "object" && st.dish.order_id ? ` → ${st.dish.order_id}` : "";
       if (!sprite(stDish, x, y - 1.15 * s, 0.85 * s)) {
-        drawPillLabel(`${stInfo.icon} ${stInfo.short}`, x, y - 1.15 * s, "rgba(22,16,10,0.86)", "#ffe8b8", stInfo.color, 10);
+        drawPillLabel(`${stInfo.icon} ${stInfo.short}${stOrderId}`, x, y - 1.15 * s, "rgba(22,16,10,0.86)", "#ffe8b8", stInfo.color, 10);
       } else {
-        drawPillLabel(stInfo.short, x, y - 1.65 * s, "rgba(22,16,10,0.82)", "#ffe8b8", stInfo.color, 9);
+        drawPillLabel(`${stInfo.short}${stOrderId}`, x, y - 1.65 * s, "rgba(22,16,10,0.82)", "#ffe8b8", stInfo.color, 9);
       }
     } else {
       drawText("Bếp trống", x, y - 1.05 * s, { size: 10, align: "center", color: "#3d2410" });
@@ -2021,11 +2032,20 @@ function drawQuan(w, h) {
     if (c.id) byCustomerId[c.id] = c;
   }
 
+  const handOrderId = snap.hand && typeof snap.hand === "object" ? snap.hand.order_id : null;
   for (const tb of snap.tables || []) {
     const x = sx(tb.pos[0]), y = sy(tb.pos[1]);
     const c = byTable[tb.id] || (tb.customer_id ? byCustomerId[tb.customer_id] : null);
     const isTarget = hint && hint.kind === "table" && hint.id === tb.id;
+    const isDeliveryTarget = Boolean(handOrderId && c && c.id === handOrderId && c.state !== "eating");
 
+    if (isDeliveryTarget) {
+      ctx.strokeStyle = "#69f0ae";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(x, y, (1.28 + Math.sin(animTime * 6) * 0.08) * s, 0, Math.PI * 2);
+      ctx.stroke();
+    }
     if (isTarget) {
       ctx.strokeStyle = "#ffd54f";
       ctx.lineWidth = 2.5;
@@ -2158,10 +2178,11 @@ function drawQuan(w, h) {
     // Mâm món đang bưng trên tay
     if (handDish) {
       const hi = dishMeta(handDish);
+      const ordTag = handOrderId ? ` → ${handOrderId}` : "";
       if (sprite(handDish, px, py - 0.9 * s, 0.72 * s)) {
-        drawPillLabel(hi.short, px, py - 1.4 * s, "rgba(246,189,96,0.95)", "#241406", "#fff3e0", 10);
+        drawPillLabel(`${hi.short}${ordTag}`, px, py - 1.4 * s, "rgba(246,189,96,0.95)", "#241406", "#fff3e0", 10);
       } else {
-        drawPillLabel(`${hi.icon} ${hi.short}`, px, py - 0.92 * s, "rgba(246,189,96,0.95)", "#241406", "#fff3e0", 11);
+        drawPillLabel(`${hi.icon} ${hi.short}${ordTag}`, px, py - 0.92 * s, "rgba(246,189,96,0.95)", "#241406", "#fff3e0", 11);
       }
     }
 
