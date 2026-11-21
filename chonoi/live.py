@@ -104,6 +104,7 @@ class LiveGame:
             view = snap.get("phase", self.mode)
             snap["view"] = view
             snap["meta"] = self.tuning[view]
+            snap["menu"] = getattr(self.session.sim, "menu", None)  # quán: món đang bán (day đã lọc theo kế hoạch)
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None
