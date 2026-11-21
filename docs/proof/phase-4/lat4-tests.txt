@@ -1,0 +1,12 @@
+test_no_browser_does_not_write_artificial_fps (test_bench_p4.BenchHttp.test_no_browser_does_not_write_artificial_fps) ... Không mở được trình duyệt. Cần desktop/browser thật để đo FPS.
+ok
+test_real_live_server_bench_routes_and_canvas_script (test_bench_p4.BenchHttp.test_real_live_server_bench_routes_and_canvas_script) ... ok
+test_reject_submission_before_full_measurement (test_bench_p4.BenchHttp.test_reject_submission_before_full_measurement) ... ok
+test_average_and_one_percent_low_uses_slowest_frames (test_bench_p4.BenchMath.test_average_and_one_percent_low_uses_slowest_frames) ... ok
+test_reject_bad_samples_and_duplicate (test_bench_p4.BenchMath.test_reject_bad_samples_and_duplicate) ... ok
+test_slowest_ceiling_and_mean_of_slowest (test_bench_p4.BenchMath.test_slowest_ceiling_and_mean_of_slowest) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 1.528s
+
+OK

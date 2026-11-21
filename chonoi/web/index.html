@@ -25,6 +25,17 @@ let snap = null, offline = false;
 let HC = false;  // chế độ tương phản cao (phím H)
 try { HC = localStorage.getItem("hc") === "1"; } catch (e) { /* không có localStorage: vẫn chạy */ }
 
+// --- bench (Hùng): đo rAF thật khi ?bench=1; browser bình thường không thay đổi hành vi.
+// HUD harness Node.js không định nghĩa location nên mặc định chế độ chơi thường.
+const benchQuery = new URLSearchParams(typeof location === "undefined" ? "" : location.search);
+const benchEnabled = benchQuery.get("bench") === "1";
+const benchSeconds = Number(benchQuery.get("duration"));
+const benchDurationMs = Number.isFinite(benchSeconds) && benchSeconds > 0 ? benchSeconds * 1000 : 30000;
+let benchStage = "waiting", benchFirstAt = 0, benchStartAt = 0, benchLastAt = 0;
+const benchIntervals = [];
+let benchErrorMessage = "";
+
+
 // ---------- vào: phím ----------
 const down = new Set();
 const MOVE_KEYS = { w: "u", arrowup: "u", s: "d", arrowdown: "d", a: "l", arrowleft: "l", d: "r", arrowright: "r" };
@@ -38,6 +49,7 @@ function currentInput() {
   return { move: [dx, dy], interact: down.has("interact"), catch: down.has("catch") };
 }
 function pushInput() {
+  if (benchEnabled) return;  // bench (Hùng): giữ Út Sen đứng yên ở bến.
   const s = JSON.stringify(currentInput());
   if (s === lastSent) return;
   lastSent = s;
@@ -56,6 +68,7 @@ async function flush() {
 }
 function keyName(e) { return e.key.length === 1 ? e.key.toLowerCase() : e.key.toLowerCase(); }
 addEventListener("keydown", (e) => {
+  if (benchEnabled) return;  // bench: không nhận phím thay đổi cảnh.
   const k = keyName(e);
   if (HAS_SFX) SFX.unlock();  // trình duyệt chỉ cho phát âm sau thao tác của người dùng
   if (e.repeat) { if (k === " " || k.startsWith("arrow")) e.preventDefault(); return; }
@@ -69,6 +82,7 @@ addEventListener("keydown", (e) => {
   pushInput();
 });
 addEventListener("keyup", (e) => {
+  if (benchEnabled) return;
   const k = keyName(e);
   if (MOVE_KEYS[k]) down.delete(MOVE_KEYS[k]);
   else if (k === "e") down.delete("interact");
@@ -191,6 +205,14 @@ function fmtItems(list) {
 const countSpoiled = (list) => itemsOf(list).filter(isSpoiled).length;
 
 function fit() {
+  // bench (Hùng): kích thước canvas thật 1280x720 pixel, không phụ thuộc DPR.
+  if (benchEnabled) {
+    cv.style.width = "1280px";
+    cv.style.height = "720px";
+    if (cv.width !== 1280 || cv.height !== 720) { cv.width = 1280; cv.height = 720; }
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    return [1280, 720];
+  }
   const dpr = window.devicePixelRatio || 1;
   const w = innerWidth, h = innerHeight;
   if (cv.width !== Math.round(w * dpr) || cv.height !== Math.round(h * dpr)) { cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr); }
@@ -237,6 +259,17 @@ function eventLog(w, h) {
   ev.forEach((e, i) => text(`t${e.tick} ${e.name} ${brief(e.data)}`, w - 10, h - 70 - (ev.length - 1 - i) * 15, { size: 11, align: "right", color: "rgba(232,238,242,.75)" }));
 }
 function overlay(w, h) {
+  if (benchEnabled && benchStage === "done") {
+    text("Benchmark đã hoàn tất — xem kết quả trong terminal", w / 2, 30,
+         { align: "center", color: "#83df98", size: 16 });
+  } else if (benchEnabled && benchStage === "failed") {
+    text("Benchmark bị gián đoạn: " + benchErrorMessage, w / 2, 30,
+         { align: "center", color: "#ff8a80", size: 16 });
+  } else if (benchEnabled && benchStage === "waiting" &&
+             (document.hidden || !document.hasFocus())) {
+    text("Benchmark: đưa tab này ra trước để bắt đầu đo", w / 2, 30,
+         { align: "center", color: "#ffe082", size: 16 });
+  }
   if (offline) text("Mất kết nối tới máy chủ (đã tắt chưa?)", w / 2, 30, { align: "center", color: "#ff8a80", size: 16 });
   if (snap.error) text("Luật của nhóm báo lỗi — xem terminal. R để chơi lại.", w / 2, 52, { align: "center", color: "#ff8a80", size: 15 });
   if (snap.finished) {
@@ -475,7 +508,7 @@ function drawWarnings(w, h) {
   });
 }
 
-function frame() {
+function frame(timestamp) {
   requestAnimationFrame(frame);  // đặt trước để lỗi vẽ không làm dừng vòng lặp
   const [w, h] = fit();
   ctx.fillStyle = "#10161c"; ctx.fillRect(0, 0, w, h);
@@ -489,6 +522,63 @@ function frame() {
     overlay(w, h);
   } else {
     text(offline ? "Không kết nối được máy chủ…" : "Đang tải…", w / 2, h / 2, { align: "center", size: 18 });
+  }
+  if (benchEnabled && snap && snap.mode === "gather" && !offline && !snap.error) benchFrame(timestamp);
+}
+
+// --- bench (Hùng): 3 giây warmup, lấy khoảng cách rAF thật rồi gửi cho Python tính FPS.
+// Không giả lập FPS; tab mất tiêu điểm sẽ báo lỗi và không ghi kết quả.
+function benchFail(message) {
+  if (benchStage === "failed" || benchStage === "done") return;
+  benchErrorMessage = message;
+  benchStage = "failed";
+  console.error("Benchmark:", message);
+  fetch("/bench-error", {method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({error: message})}).catch((e) => console.error("Benchmark report:", e));
+}
+addEventListener("blur", () => {
+  if (benchStage === "warmup" || benchStage === "measure") benchFail("cửa sổ trình duyệt mất tiêu điểm");
+});
+addEventListener("visibilitychange", () => {
+  if (document.hidden && (benchStage === "warmup" || benchStage === "measure"))
+    benchFail("tab không còn ở phía trước");
+});
+function benchFrame(timestamp) {
+  if (benchStage === "waiting" && (document.hidden || !document.hasFocus())) return;
+  if ((benchStage === "warmup" || benchStage === "measure") && (document.hidden || !document.hasFocus())) {
+    benchFail("tab mất tiêu điểm trong khi đo");
+    return;
+  }
+  if (benchStage === "waiting") {
+    benchFirstAt = timestamp;
+    benchStage = "warmup";
+    fetch("/bench-start", {method: "POST", headers: {"Content-Type": "application/json"}, body: "{}"})
+      .then((r) => { if (!r.ok) throw Error("bench-start " + r.status); })
+      .catch((e) => benchFail("không báo được khung hình đầu tiên: " + e.message));
+    return;
+  }
+  if (benchStage === "warmup") {
+    if (timestamp - benchFirstAt >= 3000) {
+      benchStage = "measure";
+      benchStartAt = timestamp;
+      benchLastAt = timestamp;
+    }
+    return;
+  }
+  if (benchStage !== "measure") return;
+  const delta = timestamp - benchLastAt;
+  benchLastAt = timestamp;
+  if (!Number.isFinite(delta) || delta <= 0) {
+    benchFail("timestamp khung hình không hợp lệ");
+    return;
+  }
+  benchIntervals.push(delta);
+  if (timestamp - benchStartAt >= benchDurationMs && benchIntervals.length) {
+    benchStage = "submitted";
+    fetch("/bench", {method: "POST", headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({frame_intervals_ms: benchIntervals})})
+      .then(async (r) => { if (!r.ok) throw Error("bench " + r.status + ": " + await r.text()); benchStage = "done"; })
+      .catch((e) => benchFail("không gửi được FPS: " + e.message));
   }
 }
 requestAnimationFrame(frame);

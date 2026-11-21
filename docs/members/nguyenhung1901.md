@@ -1,7 +1,6 @@
-# nguyenhung1901 — phản tư cá nhân ( ≤ 200 từ)
+# nguyenhung1901 — Phản tư cá nhân
 
-- **Tôi đã làm:** Lát 4 Quán: nấu, nhặt, phục vụ, thanh toán, boa, uy tín và kiểm tra scenario. Ở Phase 2, bổ sung kiểm thử AC-P2-05/06/08/12 cho hai bếp, bốn bàn, sáu món, quy tắc cháy và giữ tiền/uy tín qua ca. **Link commit/PR:** *bổ sung link thật sau khi push*.
-- **Tôi đã review:** *chưa review*.
-- **AI sai ở đâu:** Có lúc test lấy `burn_s: null` trực tiếp từ cấu hình cũ, sẽ sai khi bật mở rộng. Tôi kiểm tra lại PRD và tách tuning lõi với tuning Burn. Lần khác test trên Windows lỗi `python3` trong subprocess, cần phân biệt lỗi môi trường với lỗi gameplay.
-- **Điều tôi học được:** Test xanh trên một snapshot chưa chứng minh đã bật extension trên manifest tích hợp. Cần kiểm tra thứ tự tick, điều kiện biên, nguồn cấu hình và giữ bằng chứng đúng commit.
-
+- **Đã làm:** Lát 4 Quán (nấu, phục vụ, thanh toán, uy tín); Phase 2 thêm test nhiều bếp/bàn và Burn ([PR #12](https://github.com/trongnghia2304/K5-L3B-LAB-Day12-AI-SDLC-ChoNoiCaMau/pull/12)); Phase 3 chuẩn bị và tích hợp kho cá thể, độ tươi, giá chốt lúc nấu ([logic `4a17355`](https://github.com/trongnghia2304/K5-L3B-LAB-Day12-AI-SDLC-ChoNoiCaMau/commit/4a17355), [test `e06109`](https://github.com/trongnghia2304/K5-L3B-LAB-Day12-AI-SDLC-ChoNoiCaMau/commit/e06109), [tài liệu `23ae5c4`](https://github.com/trongnghia2304/K5-L3B-LAB-Day12-AI-SDLC-ChoNoiCaMau/commit/23ae5c4)). Phase 4 viết `chonoi/bench.py`, test FPS và hỗ trợ cảnh báo khách sắp giận; bằng chứng `docs/proof/phase-4/lat4-bench.md`.
+- **Hỗ trợ/review:** Phối hợp hợp đồng giữa Lát 3 (giữ chỗ theo ID) và Lát 4; chưa có bằng chứng review PR của người khác nên không tự nhận đã review.
+- **AI sai ở đâu:** Có lúc suy ra test đỗ đồng nghĩa tích hợp xong, dù mới dùng adapter giả. Tôi đối chiếu ticket, đợi contract v1.2 thật và chạy lại QA. Với FPS, môi trường không cho mở localhost nên phải đo thật trên máy có browser, không tự đặt số.
+- **Bài học:** Tách thử nghiệm đơn vị với nghiệm thu end-to-end; lưu bằng chứng đúng phiên bản và đúng thiết bị.
