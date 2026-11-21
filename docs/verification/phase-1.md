@@ -1,34 +1,21 @@
 # Ma trận truy vết Phase 1
 
-| AC | Cách kiểm chứng | Bằng chứng (link `docs/proof/phase-1/...`) | Kết quả (đạt / chưa đạt — ghi trung thực) |
+Kiểm chứng mới nhất chạy trên `Quoosc` tại `f67767b`; proof script báo 189 test OK (5 expected failures thuộc các regression DaySim/Runner về sau) và headless 9/9 bước đạt. Xem [verify-run.txt](../proof/phase-1/verify-run.txt).
+
+| AC | Cách kiểm chứng | Bằng chứng | Kết quả |
 |---|---|---|---|
-| G1: oxy, ngạt, máu, ngất | Unit test oxy = 0 ở nước sâu; đủ 60 tick ngạt trừ máu; HP=0 mất giỏ và kết thúc | `tests/test_p1_logic.py::GatherLogic.test_empty_oxygen_chokes_and_faints` | đạt |
-| G2: hái, bắt cá, giỏ LIFO | Test hái ở mặt nước với giỏ gần đầy, nút mọc lại và sự kiện `hold_full` | `tests/test_p1_logic.py::GatherLogic.test_harvest_lifo_and_hold_full` | đạt |
-| G2: ghi kho tức thì | Headless ghi kho ngay sau hái; Live ghi cùng schema sau sự kiện thu hoạch | `tests/test_smoke_p1.py::Integration.test_inv_immediate_after_harvest`, `tests/test_live.py::LiveInventoryPersistenceTest.test_gather_writes_inventory_immediately` | đạt |
-| G2: cộng dồn kho qua lượt chơi | Hai tiến trình headless và Live restart đều giữ số lượng đã lưu trước đó | `tests/test_smoke_p1.py::Integration.test_inventory_accumulates_between_gather_runs`, `tests/test_live.py::LiveInventoryPersistenceTest.test_gather_writes_inventory_immediately` | đạt |
-| G2: cập bến và xuất kho | Smoke test cập bến tick 0, đọc/ghi kho JSON và Quán nạp kho | `tests/test_smoke_p1.py::Integration.test_inv_01_gather_writes_inventory_quan_reads_it` | đạt |
-| Q3: khách, giữ chỗ, kiên nhẫn | Test khách giữ nguyên liệu; hết kiên nhẫn bỏ đi và giảm uy tín | `tests/test_p1_logic.py::QuanLogic.test_customer_leaves_and_reputation_drops` | đạt |
-| Q4: bếp, nấu, bưng, thanh toán | Test bếp nhận món, nấu xong, lấy món, phục vụ bàn và cộng tiền | `tests/test_p1_logic.py::QuanLogic.test_reserved_customer_cooks_serves_and_pays` | đạt |
-| Q4: Bếp nấu và dish_ready | Unit test `test_stove_cooks_to_ready` | [`quan-lat4-test.txt`](docs/proof/phase-1/quan-lat4-test.txt) | đạt |
-| Q4: Tương tác nấu và nhấc món (cook_started, dish_picked) | Unit test `test_interact_cook_started_and_pick` | [`quan-lat4-test.txt`](docs/proof/phase-1/quan-lat4-test.txt) | đạt |
-| Q4: Phục vụ bàn và khách ăn trả tiền (served, paid, tip 20%, reputation) | Unit test `test_serve_and_paid_with_tip` | [`quan-lat4-test.txt`](docs/proof/phase-1/quan-lat4-test.txt) | đạt |
-| Q4: Phục vụ trễ không nhận được tip | Unit test `test_paid_without_tip_when_patience_low` | [`quan-lat4-test.txt`](docs/proof/phase-1/quan-lat4-test.txt) | đạt |
-| Q4: Thứ tự ưu tiên interact (gần nhất, bếp trước bàn) | Unit test `test_interact_priority_stove_before_table` | [`quan-lat4-test.txt`](docs/proof/phase-1/quan-lat4-test.txt) | đạt |
-| Q4: Hết ca tối phát sự kiện quan_end | Unit test `test_shift_ends_with_quan_end` | [`quan-lat4-test.txt`](docs/proof/phase-1/quan-lat4-test.txt) | đạt |
-| Hộp đen headless | Chạy gather/quán với seed cố định và JSONL; output determinism, mã 2 cho đầu vào sai | `docs/proof/phase-1/smoke.txt`, `docs/proof/phase-1/verify-run.txt` (skill `phase-1-verification`), `tests/test_smoke_p1.py` | đạt |
-| Giao diện HUD | Khung live đọc snapshot oxy/máu/giỏ/kho/bếp/khách; không chứa luật mô phỏng | `chonoi/web/index.html` | đạt |
-| Contract B/D, fixture khách | Chạy `test_p1_contract.py` qua headless ở 0 tick. Một fixture hợp lệ và ba ca sai (kiên nhẫn âm, trường lạ, cờ sai kiểu). | [Log suite QA](../proof/phase-1/qa-contract-tests.txt) | Đạt trên bản QA dựa trên `8ef3f08`. Cần chạy lại tại commit bàn giao. |
-| Contract D, tay và đơn assigned | Hai fixture tại tick 0, xem lệnh và JSON trong log. | [Hai ca thủ công cuối log](../proof/phase-1/qa-contract-tests.txt) | Chưa đạt trên bản QA. Tay null bị từ chối và đơn assigned thiếu món được chấp nhận. |
+| G1: oxy, ngạt, máu, ngất | Unit test oxy cạn, choke, faint | `tests.test_p1_logic.GatherLogic.test_empty_oxygen_chokes_and_faints` + full suite | đạt |
+| G2: hái, bắt cá, giỏ LIFO | Test hái/bắt, hold_full, regrow | `tests.test_p1_logic.GatherLogic.test_harvest_lifo_and_hold_full`, `tests.test_p1_g2` | đạt |
+| G2: kho, cập bến, cộng dồn | Integration headless và live persistence | `tests.test_smoke_p1.Integration`, `tests.test_live.LiveInventoryPersistenceTest` | đạt |
+| Q3: khách, giữ chỗ, kiên nhẫn, ID/lịch | P1 Q3 fixtures, reservation, patience, replay, validation | [`Q3 proof`](../proof/phase-1/q3/README.md), `tests.test_p1_q3` | đạt theo quyết định PO; mapping tới ticket/Test Contract gốc vẫn provisional |
+| Q4: nấu, bưng, phục vụ, tiền, ưu tiên tương tác | Lat 4 unit tests | [`quan-lat4-test.txt`](../proof/phase-1/quan-lat4-test.txt) | đạt theo tests; Q4-F1 orphan dish còn là finding riêng |
+| Headless gather/quán | Cùng seed replay, sample inventory, invalid input exit 2/no output | [`verify-run.txt`](../proof/phase-1/verify-run.txt) | đạt, 9/9 bước, exit 0 |
+| Contract D fixture tay/assigned | QA fixture cho `hand=null`, assigned order thiếu món | [`qa-contract-tests.txt`](../proof/phase-1/qa-contract-tests.txt) | chưa đạt trong lần QA được ghi; cần quyết định/fixture mới trước khi tuyên bố AC đạt |
+| HUD hoàn chỉnh | Live UI review | `chonoi/web/index.html`; phase UI proof ở Phase 2 | Phase 1 chỉ xác nhận khung HUD đọc snapshot, không xác nhận hoàn thiện đồ họa |
 
 ## Đánh giá ngắn
-- Yêu cầu đạt:
-  - Gather: di chuyển/chặn biên, oxy, ngạt, HP, hái/bắt cá và giỏ; xuất kho khi kết thúc.
-  - Quán: đặt lịch khách, giữ chỗ nguyên liệu, kiên nhẫn, bếp/nấu, bưng, phục vụ, tiền, tip và uy tín.
-  - Tích hợp: Gather ghi schema kho, Quán đọc `--inventory`, headless và live dùng cùng mô phỏng.
-- Yêu cầu chưa đạt:
-  - Chưa có bằng chứng biểu diễn đồ họa/HUD hoàn chỉnh ngoài khung hình khối tạm.
-- Điều cần chỉnh cho Phase 2:
-  - Bổ sung bằng chứng chạy headless thực tế vào `docs/proof/phase-1/`.
-  - Tách test lát thành file theo quy tắc 1 file test/lát nếu đội phân công cần.
-| Q3: customers, reservation, patience | 23 outcome tests; deterministic replay; invalid input rejected before output; gather/quan headless evidence | `docs/proof/phase-1/q3/README.md`, `tests/test_p1_q3.py` | PASS provisional; official acceptance mapping pending PRD/Test Contract |
-| Q4 integration review | Happy path and orphan-dish lifecycle review | `docs/proof/phase-1/q3/q4-review.md` | Happy path passed; Q4-F1 remains open |
+
+- Các hành vi luật P1 Gather, Q3 customer/reservation/patience, Q4 cook/serve và kho có unit/integration coverage; full suite đang pass.
+- `verify_phase1.py` chạy thật trên commit `f67767b`, Python 3.11.9 Windows; shim xử lý alias `python3` của Microsoft Store, không sửa contract.
+- Ticket gốc PRD-0/Test Contract không có đầy đủ trong checkout. Q3 decisions đang được đối chiếu theo PO clarify; không tuyên bố giảng viên đã nghiệm thu.
+- Năm expected failures trong full suite là regressions DaySim/Runner của Phase 2, không phải expected pass cho AC Phase 1.
