@@ -1,7 +1,7 @@
 # Research Phase 2 — Test Contract v1.1, vòng ngày, ảnh hưởng code
 
 > Người viết: worker RESEARCH (Claude), chỉ đọc code. Ngày 2026-11-21, branch `tv6/phase-1-team-ai`, HEAD `8f4330e`.
-> Nguồn: `docs/prd/phase-2-ticket-02.md` (TICKET-02, bản text thô). **Bản chép bị cắt mất nhiều chỗ** (giá trị trong `\"...\"` và vài ô bảng). Chỗ nào bị cắt ghi `[CẮT]`, cần đối chiếu lab board. Chỗ suy luận ghi **GIẢ ĐỊNH**.
+> Nguồn: `docs/prd/phase-2-ticket-02.md` (TICKET-02, bản text thô). **Cập nhật**: đề đã được chép lại đầy đủ (535 dòng); số dòng `:N` ở mục 1.1 và 2.2 theo bản cũ, còn mục 7 dẫn theo **bản mới**. Các chỗ `[CẮT]` cũ đã được thay bằng giá trị trong đề, chỉ còn lại những chỗ vẫn thiếu. Chỗ suy luận ghi **GIẢ ĐỊNH**.
 > Số dòng `chonoi/` theo working tree lúc viết. `chonoi/sim/gather.py` đang có lát 1 đã stage nhưng chưa commit; file có thể đổi tiếp.
 
 ## 0. Hiện trạng (đo lúc viết)
@@ -26,7 +26,7 @@ Lát 1 đã khớp đề: ngạt "tính cả bước vừa chạm 0" và "reset 
 
 | Đường dẫn | v1.0 hiện tại | v1.1 chuẩn | Nguồn (dòng PRD) |
 |---|---|---|---|
-| `contract_version` | `"1.0"` | `"1.1"` (`[CẮT]` ở `:377`, suy từ tên "Test Contract v1.1") | §4.1 |
+| `contract_version` | `"1.0"` | `"1.1"` (bản mới `:268`, `:518`) | §4.1 |
 | `extensions` (gốc manifest) | — | mảng mã mở rộng nhóm làm, vd. `[]` hoặc `["burn"]` (**GIẢ ĐỊNH** dạng mảng) | §3 `:298-300` |
 | `team_size` | 4 | số người thật (TEAM.md có 6) | README |
 | `gather.fish_yield` | linh 3, lóc 1 | + `ca_keo: 2` | §1.1 `:58` |
@@ -51,8 +51,8 @@ Lát 1 đã khớp đề: ngạt "tính cả bước vừa chạm 0" và "reset 
 
 Số khác giữ nguyên như v1.0 (đề §1 khớp từng số: bounds, bến, bơi 4.0, ramp 6, oxy 30 s, refill 6, choke 60, hp 3, giỏ 12, hái 2.0, regrow 20 s, catch 2.0, cooldown 0.5 s, quán 180 s, đi 4.0, interact 1.5, khách 120 + 900·k, kiên nhẫn 60 s, ăn 10 s, boa 0.2, ngưỡng 0.5, +0.2, −0.5, uy tín 3.0 trong [0,5], `burn_s: null`, điểm ×100).
 
-### 1.2 Các chỗ đề bị cắt / chưa rõ trong contract
-- **`ca_keo_nuong.cook_s` bị cắt** (`:203-206` chỉ còn "ca_keo ×2 … 70"). Giá 70 rõ, thời gian nấu **không có**. Trong JSON bên dưới để `null` để `contract.py` báo lỗi, buộc TV1 điền từ lab board.
+### 1.2 Chỗ chưa rõ trong contract
+- `ca_keo_nuong`: nấu **6 s**, giá 70 (bản mới `:133-137`). Đã điền vào JSON.
 - `recoil_dist`: đề ghi "mỗi bước 2/60 m" trong 60 bước → tổng **2.0 m**. GIẢ ĐỊNH `recoil_dist` là tổng quãng (2.0), không phải m/s.
 - Ngưỡng độ sâu để Cá Sấu phát hiện (`d ≥ 10`) trùng `depths[0]`. Mở rộng rắn cũng vậy (`depths [8,20]`, rời chase khi `d < 8`). → dùng `species.depths[0]` làm ngưỡng, không thêm khóa.
 - Vị trí `day_plan` và `shop`: GIẢ ĐỊNH nằm trong `tuning` (cạnh `gather`/`quan`/`menu`).
@@ -164,7 +164,7 @@ Số khác giữ nguyên như v1.0 (đề §1 khớp từng số: bounds, bến,
       "goi_bong_sung": {"recipe": {"bong_sung": 2}, "cook_s": 4, "price": 40},
       "lau_ca_linh_dien_dien": {"recipe": {"ca_linh": 3, "bong_dien_dien": 1}, "cook_s": 10, "price": 120},
       "canh_chua_ca_loc": {"recipe": {"ca_loc": 1, "bong_dien_dien": 1}, "cook_s": 8, "price": 90},
-      "ca_keo_nuong": {"recipe": {"ca_keo": 2}, "cook_s": null, "price": 70},
+      "ca_keo_nuong": {"recipe": {"ca_keo": 2}, "cook_s": 6, "price": 70},
       "lau_mam": {"recipe": {"ca_linh": 2, "ca_keo": 1, "keo_neo": 1, "bong_dien_dien": 1}, "cook_s": 12, "price": 200}
     },
     "day_plan": [
@@ -191,7 +191,7 @@ Số khác giữ nguyên như v1.0 (đề §1 khớp từng số: bounds, bến,
 }
 ```
 
-**Cảnh báo**: dán JSON này sẽ làm `contract.py` hiện tại **báo mã 2 cho mọi lệnh**, vì nó buộc `fish_initial` là mảng 6 (`contract.py:97-99`), chỉ nhận 2 loại nút (`:89-96`) và `cook_s > 0` (`:140-143`). Phải sửa `contract.py` cùng commit (mục 3).
+**Cảnh báo**: dán JSON này sẽ làm `contract.py` hiện tại **báo mã 2 cho mọi lệnh**, vì nó buộc `fish_initial` là mảng 6 (`contract.py:97-99`) và chỉ nhận 2 loại nút (`:89-96`). Phải sửa `contract.py` cùng commit (mục 3).
 
 ---
 
@@ -203,8 +203,8 @@ Số khác giữ nguyên như v1.0 (đề §1 khớp từng số: bounds, bến,
 |---|---|---|---|
 | `monster_hit` | gather | `{monster_id, hp, lost, pos}` | `pos` = vị trí **người chơi**; `lost` = mảng kind theo LIFO (mất trước đứng trước) |
 | `fish_spawned` | gather | `{id, kind, pos}` | chỉ khi sinh theo lịch (không phát cho 8 đàn đầu ca) |
-| `faint` | gather | v1.0 `{}` → thêm `cause: [CẮT]` nếu do bị chạm, `[CẮT]` liệt kê phần giỏ còn lại, `hp: 0` | GIẢ ĐỊNH: `{"cause":"monster","lost":[…giỏ còn lại…],"hp":0}` khi do chạm; do ngạt giữ `{}` hoặc `{"cause":"choke"}` → **CÂU HỎI** |
-| `day_start` | day | `{}` (**GIẢ ĐỊNH**: số ngày nằm ở vỏ event, xem dưới) | |
+| `faint` | gather | Do bị chạm: `{"cause":"monster","lost":[…phần giỏ còn lại…],"hp":0}` (bản mới `:416`) | Do ngạt: đề không nói → GIẢ ĐỊNH giữ `{}` như v1.0 (P2-Q3) |
+| `day_start` | day | `{}` (bản mới `:417-418`); số Ngày nằm ở trường `day` của vỏ event | |
 | `phase_start` | day | `{}` | pha mới nằm ở trường `phase` của vỏ event |
 | `day_plan` | day | `{dishes, ingredients}` của Ngày đó | |
 | `paused`, `resumed` | mọi mode | `{}` (GIẢ ĐỊNH, ô bảng gộp) | |
@@ -213,9 +213,9 @@ Số khác giữ nguyên như v1.0 (đề §1 khớp từng số: bounds, bến,
 | `shop_end` | shop | `{reason: "done"\|"time"}` | |
 | Mở rộng | | `attack{pos,monster_ids}`, `monster_stunned{monster_id,pos,stun_ticks}`, `photo{id,reputation}`, `released{id}`, `dish_burnt{stove_id,order_id,dish_id,order_status}`, `vendor_trade{action,kind,price,money}` | chỉ khi bật |
 
-- Vỏ event ở mode `day` có thêm một trường (`[CẮT]` ở `:539-540`, gần như chắc là `day`). GIẢ ĐỊNH: `{"type":"event","tick":..,"phase":..,"day":N,"name":..,"data":..}`.
+- Vỏ event ở mode `day` có thêm trường `day`. Ví dụ trong đề (bản mới `:436`): `{"type":"event","tick":0,"phase":"gather","day":1,"name":"day_plan","data":{"dishes":{…},"ingredients":{…}}}`. Thứ tự khóa: `type, tick, phase, day, name, data`.
 - "Event kết thúc mang pha cũ" (`:538`): `gather_end` có `phase:"gather"`, kể cả khi `phase_start(quan)` phát cùng tick.
-- Dòng `end` của `day` thêm `days_completed` (số Shop đã đóng). Đủ Ngày thì `reason: [CẮT]` (GIẢ ĐỊNH `"days_completed"` hoặc `"done"` → **CÂU HỎI**).
+- Dòng `end` của `day` thêm `days_completed` (số Shop đã đóng). Đủ Ngày thì `reason: "days_complete"` (bản mới `:440-442`).
 
 ### 2.2 Thứ tự một bước
 
@@ -235,9 +235,9 @@ Hệ quả: cùng tick có thể có `choke` rồi `monster_hit`; cập bến th
 
 **Cá Sấu (§1.2 `:89-120`)**
 - `patrol` 1.0 m/s tới waypoint; đến nơi thì đổi mục tiêu cho bước sau. `target_idx` mặc định 1 (waypoint 0 là chỗ xuất phát).
-- `patrol → chase` khi người chơi ở `d ≥ 10` và cách ≤ 10 m; `chase` 3.0 m/s về phía người chơi. `chase → patrol` khi cách > 16 m hoặc người chơi lên `d < 10` (`[CẮT]` một phần, GIẢ ĐỊNH theo ngưỡng loài).
+- `patrol → chase` khi người chơi ở `d ≥ 10` và cách ≤ 10 m; `chase` 3.0 m/s về phía người chơi. `chase → patrol` khi cách > 16 m hoặc người chơi lên `d < 10` (bản mới `:62-68`).
 - Kẹp theo biên map và `depths` của loài.
-- Hit: sau khi cả hai di chuyển, cách ≤ 1.5 m, người chơi ở `[CẮT]` (GIẢ ĐỊNH: dưới nước) và `invuln_ticks == 0` → −1 Máu, bỏ `floor(len(hold) × 0.5)` món từ cuối giỏ, `invuln = 90`. Không đổi sang recoil trong lúc người chơi bất tử.
+- Hit: sau khi cả hai di chuyển, cách ≤ 1.5 m, người chơi ở `[VẪN THIẾU trong đề, bản mới :70-71]` (GIẢ ĐỊNH: dưới nước, P2-Q7) và `invuln_ticks == 0` → −1 Máu, bỏ `floor(len(hold) × 0.5)` món từ cuối giỏ, `invuln = 90`. Không đổi sang recoil trong lúc người chơi bất tử.
 - `recoil` 60 bước, **bắt đầu từ bước sau**: lùi theo hướng xa người chơi chốt lúc chạm (trùng tâm thì +x), mỗi bước 2/60 m trước khi chặn mép, không gây hit. Hết recoil về patrol, xét phát hiện/chạm từ bước kế.
 - M2 chỉ có từ Ngày 3. `gather` độc lập dùng bố trí Ngày 1 (chỉ M1).
 - Ngạt **xuyên bất tử** và không làm rơi hàng (`:43`).
@@ -274,11 +274,11 @@ Ký hiệu: **K** = file khung (luật chung cấm sửa → **cần nhóm/integ
 |---|---|---|---|
 | `--mode day`, `--days 1..5` | `chonoi/headless.py:36-48` | **K** | Bỏ chặn `day` (`:47-48`); thêm `--days` (chỉ với day, 1–5, mặc định 1; sai → mã 2) |
 | Nút `pause`, `shop_done` (bool), `buy` (chuỗi, chỉ ở frame khai báo) | `chonoi/inputs.py:13,26-61,72-91` | **K** | `BUTTONS_V10` → thêm `pause`, `shop_done`; `load_frames` nhận `buy` là chuỗi khác rỗng; `InputPlayer.advance` trả `buy` **không kế thừa**; `InputState` thêm `buy` |
-| Nút mở rộng `attack`/`photo` | `inputs.py` | **K** | Chỉ khi bật. **Xung đột**: test P1 `test_smoke_p1.py:65-67` đòi `attack` → mã 2 (xem mục 4) |
+| Nút mở rộng `attack`/`photo` | `inputs.py` | **K** | Chỉ khi bật. Không bật thì **bỏ qua** (mã 0), nên test P1 `test_smoke_p1.py:65-67` đòi mã 2 phải sửa (mục 4.1) |
 | 6 nguyên liệu | `chonoi/inventory.py:13` (`KINDS_P1`) | **K** | + `ca_keo`, `keo_neo`, nếu không file kho có `ca_keo` → mã 2 |
 | Scenario v1.1 | `chonoi/scenario.py:13-20, 43-46, 84-163` | **K** | `GATHER_KEYS` + `monsters`, (`ca_ho`, `random_ho`); `NODE_KINDS`/`FISH_KINDS` thêm loài mới; `fish[].age_ticks`; `monsters[]` `{id,kind,pos,waypoints,target_idx,state,state_ticks_left,recoil_dir}`; khối `day{money,earned,reputation,upgrades,day_plan}`; mode day nhận nhiều khối (`:45-46` hiện cấm); cấm `quan.stock`/`quan.reputation` khi chạy day; `0 ≤ money ≤ earned` |
 | Kiểm tuning v1.1 | `chonoi/contract.py:76-110,140-143` | **K** | `fish_initial` là số; 3 loại nút, 3 loài cá; kiểm khóa cá/quái/shop/day_plan; tính lại `ingredients` và so |
-| Session nhiều pha, 3 bộ đếm tick | `chonoi/runner.py:21-25,28-35,51-69,77-97` | **K** | `build_sim` cho `day`; `_common` hiện gán `tick = sim_tick = phase_tick` (`:52`) → cần tách 3 bộ đếm (pause, đổi pha); `state` (`[CẮT]` — GIẢ ĐỊNH `playing`/`paused`/`finished`); vỏ event thêm `day`; `end_row` thêm `days_completed`; `write_inventory_if_done` không dùng trong day |
+| Session nhiều pha, 3 bộ đếm tick | `chonoi/runner.py:21-25,28-35,51-69,77-97` | **K** | `build_sim` cho `day`; `_common` hiện gán `tick = sim_tick = phase_tick` (`:52`) → cần tách 3 bộ đếm (pause, đổi pha); `state` thêm giá trị `"paused"` (bản mới `:380`); vỏ event thêm `day`; `end_row` thêm `days_completed`; `write_inventory_if_done` không dùng trong day |
 | Live cho day + pause/shop | `chonoi/live.py:118-125,218` | **K** | `--mode` thêm `day`; `set_input` nhận `pause`, `shop_done`, `buy`; `meta` theo **pha** hiện tại (`tuning[phase]`) và thêm `menu`, `day_plan`, `shop` |
 | Số chuẩn + cá bơi/sinh | `chonoi/sim/gather.py` `__init__` `:57-68`, `step`, thêm `_fish_step`, `_spawn` | N | `fish_initial` số → chọn 8 điểm khác nhau theo seed; bơi/phản xạ/đổi hướng; sinh; `age_ticks` |
 | Bắt cá cả đàn | `gather.py` (lát 2) | N | `try_add_hold` thêm **từng món** (`:131-141`) → cần kiểm `len(hold) + yield ≤ 12` **trước**, nếu không sẽ thêm thiếu. Cooldown chỉ đặt khi bắt thành công |
@@ -302,7 +302,7 @@ Ký hiệu: **K** = file khung (luật chung cấm sửa → **cần nhóm/integ
 |---|---|---|
 | `test_smoke_p1.py:45` `len(s["fish"]) == 6` | `fish_initial = 8` | Đổi thành 8, đọc từ tuning |
 | `test_smoke_p1.py:70-77` `--mode day` → mã 2 | v1.1 hỗ trợ `day` | Bỏ `day` khỏi danh sách; giữ `river` → 2; thêm `--days 0`/`6` → 2 |
-| `test_smoke_p1.py:65-67` nút `attack` → mã 2 | v1.1: "nút đúng kiểu nhưng mở rộng chưa bật thì bỏ qua" (`:444`) → nếu nhóm coi `attack` là nút v1.1 thì phải mã 0 | **CÂU HỎI**. Nếu không làm Lao: GIẢ ĐỊNH `attack` vẫn là trường lạ → mã 2, giữ test |
+| `test_smoke_p1.py:65-67` nút `attack` → mã 2 | v1.1: "nút đúng kiểu nhưng sai pha hoặc mở rộng chưa bật thì bỏ qua" (đề bản mới `:306`) → `attack: true` phải **mã 0** (bị bỏ qua) | Đổi test: `attack` → mã 0; giữ `jump` → mã 2 (P2-Q6) |
 | `test_python_starter_units.py:46-50` `attack` không phải nút v1.0 | như trên | như trên |
 | `test_inv_bad_schema_exit_2` `ca_la_lung` | vẫn đúng | giữ; thêm ca `ca_keo` hợp lệ |
 | Test bơi/mép (`test_move_*`) | cá bơi không ảnh hưởng người chơi | giữ |
@@ -333,7 +333,7 @@ Ký hiệu: **K** = file khung (luật chung cấm sửa → **cần nhóm/integ
 
 | Trường | Ở đâu | Dùng cho HUD |
 |---|---|---|
-| `state` | mọi snapshot | `playing` / `paused` / `finished` (GIẢ ĐỊNH, đề `[CẮT]`) → menu pause làm mờ nền |
+| `state` | mọi snapshot | v1.0 `playing`/`finished` + `"paused"` (bản mới `:380`) → menu pause làm mờ nền |
 | `phase` | đã có (`runner.py:31`) | `gather` / `quan` / `shop` → chọn cảnh |
 | `phase_tick`, `sim_tick` | đã có, cần tách khỏi `tick` | |
 | `day`, `day_plan` (Ngày hiện tại hoặc cả mảng), `upgrades`, `active_upgrades` | mọi pha khi mode `day` (§4.4 `:526-528`) | DayIntro (danh sách Má Tư), HUD "đã lấy/cần", Shop |
@@ -348,25 +348,30 @@ Ký hiệu: **K** = file khung (luật chung cấm sửa → **cần nhóm/integ
 
 Các màn chỉ có ở UI (Menu chính, DayIntro 4 s, EveningIntro, DayResult, Summary, Settings) không có trong headless. `live.py` cần cách cho UI biết đang ở màn nào; GIẢ ĐỊNH: UI tự hiển thị theo `phase` + sự kiện `day_start`/`phase_start`/`shop_end`.
 
-Phím mới: Esc/P → `pause`; Shop: phím chọn nâng cấp → `buy:"oxygen"`/`"hp"` (dạng chuỗi `[CẮT]`, xem câu hỏi), Enter → `shop_done`.
+Phím mới: Esc/P → `pause`; Shop: phím chọn nâng cấp → `{"buy":"oxygen"}` / `{"buy":"hp"}` (bản mới `:296-297`), Enter → `shop_done`.
 
 ---
 
 ## 6. Rủi ro chính
 1. **P1 chưa xong** (lát 2–4 TODO, chưa có tag `phase-1`). Test ẩn P2 kiểm lại P1 → làm P1 trước.
 2. **File khung bắt buộc sửa** (mục 3). Nếu giữ luật "không sửa khung" thì không đạt v1.1. Cần quyết ngay ai sửa.
-3. **Đề bị cắt** ở các chỗ chấm điểm: `state`, `faint.cause`, `end.reason`, chuỗi `buy`, trường vỏ event day, `ca_keo_nuong.cook_s`. Phải đối chiếu lab board.
+3. **Đề còn thiếu** sau khi chép lại (mục 7): điều kiện vị trí người chơi khi bị Cá Sấu hit, dạng `extensions`, cá bị bắt có biến mất không, `faint.data` khi ngất do ngạt.
 4. `hold_full` data không thống nhất: code gửi `{"kind"}` (`gather.py:138`, `docs/contracts/README.md`), còn `specs/001-phase-1-core/contracts/events.md` ghi `{source_id}`. Chốt một bên.
 5. Bắt cả đàn bằng `try_add_hold` từng món sẽ thêm thiếu (vd. còn 1 ô mà bắt cá linh).
 6. Tách `tick`/`sim_tick`/`phase_tick` đụng `runner.py`, dễ vỡ test cũ (`test_session_steps_gather_and_dock` kiểm `snapshot()["tick"]`).
 
-## 7. Câu hỏi mở (đề xuất PO hỏi lab board / ghi `docs/clarify.md`)
-- P2-Q1: `ca_keo_nuong.cook_s` bao nhiêu giây? (bị cắt)
-- P2-Q2: Giá trị đầy đủ của `state` trong snapshot v1.1 (`playing`/`paused`/`finished`? có giá trị cho Shop không?)
-- P2-Q3: `faint.data` khi ngất do ngạt và do bị chạm: `cause` nhận giá trị gì, tên trường "phần giỏ còn lại"?
-- P2-Q4: Chuỗi `buy` cho nâng cấp lõi là gì (`"oxygen"`, `"upgrade:oxygen"`…)?
-- P2-Q5: Trường thêm vào vỏ event mode `day` tên gì (`day`?) và `end.reason` khi chạy đủ Ngày?
-- P2-Q6: Không làm Lao thì nút `attack` trong inputs là mã 2 (trường lạ) hay bị bỏ qua (mã 0)?
-- P2-Q7: Hit Cá Sấu cần người chơi ở đâu (`[CẮT]` "người chơi ở … và hết bất tử")?
-- P2-Q8: `extensions` trong manifest là mảng mã hay object?
-- P2-Q9: Đàn cá bị bắt có biến mất không? (clarify #14 vẫn là GIẢ ĐỊNH; trần 12 và luật sinh ngụ ý là có)
+## 7. Câu hỏi mở — trạng thái sau khi đọc đề bản đầy đủ
+
+| # | Câu hỏi | Trạng thái | Căn cứ (dòng trong `docs/prd/phase-2-ticket-02.md` bản mới) |
+|---|---|---|---|
+| P2-Q1 | `ca_keo_nuong.cook_s`? | **ĐÃ CÓ TRONG ĐỀ**: 6 s, giá 70 | `:133-137`. Đã điền vào JSON mục 1.4 |
+| P2-Q2 | Giá trị `state` trong snapshot | **ĐÃ CÓ TRONG ĐỀ** (phần thêm): `state:"paused"`; `playing`/`finished` giữ như v1.0. Pha Shop dùng `phase:"shop"`, không phải `state` | `:380`, `:394-397` |
+| P2-Q3 | `faint.data` | **ĐÃ CÓ một phần**: do bị chạm thì `{"cause":"monster","lost":[giỏ còn lại],"hp":0}`. **VẪN MỞ**: ngất do ngạt có thêm `lost`/`hp` không (GIẢ ĐỊNH giữ `{}` như v1.0) | `:416` |
+| P2-Q4 | Chuỗi `buy` của nâng cấp lõi | **ĐÃ CÓ TRONG ĐỀ**: `"oxygen"`, `"hp"`; mở rộng: `"weapon"`, `"net"`, `"buy:<kind>"`/`"sell:<kind>"`; lệnh không hỗ trợ → `buy_failed` | `:294-306` |
+| P2-Q5 | Trường thêm vào vỏ event day; `end.reason` | **ĐÃ CÓ TRONG ĐỀ**: trường `day` (ví dụ `day_plan` ở tick 0); `end` thêm `days_completed`, đủ Ngày thì `reason:"days_complete"` | `:436`, `:440-442` |
+| P2-Q6 | `attack` khi không làm Lao | **ĐÃ CÓ TRONG ĐỀ**: "Nút đúng kiểu nhưng sai pha hoặc mở rộng chưa bật thì **bỏ qua**" → mã 0, không phải mã 2. Hệ quả: test `test_smoke_p1.py:65-67` và `test_python_starter_units.py:46-50` (đòi `attack` → mã 2) phải sửa, ghi lý do. `jump` vẫn là nút lạ → mã 2 | `:289-291`, `:306` |
+| P2-Q7 | Hit Cá Sấu cần người chơi ở đâu | **VẪN MỞ**: bản mới vẫn trống chỗ "người chơi ở … và hết bất tử" (GIẢ ĐỊNH: dưới nước; trên thực tế Cá Sấu bị kẹp `d ≥ 10`, bán kính 1.5 nên người chơi luôn ở `d ≥ 8.5`, kết quả gần như không đổi) | `:70-71` |
+| P2-Q8 | `extensions` là mảng hay object | **VẪN MỞ**: đề chỉ nói "khai mã ở `extensions` tại gốc manifest" (GIẢ ĐỊNH mảng chuỗi, vd. `["burn"]`) | `:223` |
+| P2-Q9 | Đàn cá bị bắt có biến mất không | **VẪN MỞ**: đề không nói thẳng (GIẢ ĐỊNH biến mất, vì có trần 12 đàn và luật sinh thêm; clarify #14) | — |
+
+Ghi thêm từ bản đầy đủ: `day_start`/`phase_start` có data `{}` (`:417-418`); `phase` ∈ `gather`/`quan`/`shop` (`:394-397`); ví dụ scenario day có tiền: `{"day":{"money":200,"earned":200},"gather":{"hold":["ca_loc","bong_sung","bong_sung"],"random_fish":false}}` (`:377`). Dữ liệu `paused`/`resumed` vẫn không có ô riêng (`:421`) → GIẢ ĐỊNH `{}`.
