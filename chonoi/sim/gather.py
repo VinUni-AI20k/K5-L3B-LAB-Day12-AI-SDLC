@@ -17,7 +17,7 @@ Các tính năng của phase sau chưa nằm trong khung này.
 
 import math
 
-from ..ids import sort_by_id
+from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
@@ -55,12 +55,17 @@ class GatherSim:
         if "fish" in scenario:
             src_fish = scenario["fish"]
         elif scenario.get("random_fish", True):
-            src_fish = t["fish_initial"]
+            fi = t["fish_initial"]
+            if isinstance(fi, list):
+                src_fish = fi
+            else:
+                src_fish = self._spawn_initial_fish(int(fi), ids)
         else:
             src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
+        # Đàn cá ban đầu; M2 sẽ mở rộng bơi & sinh theo lịch ở Phase 2.
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                      "heading_deg": f.get("heading_deg", 0), "age_ticks": int(f.get("age_ticks", 0))}
+                     for f in src_fish]
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
@@ -69,6 +74,43 @@ class GatherSim:
         self.reputation = tuning["quan"]["reputation_initial"]
         self.done = False
         self.reason = None
+
+    def _spawn_initial_fish(self, count: int, ids):
+        """Sinh `count` đàn cá đầu ca (v1.1) ở các điểm hình học khác nhau theo seed."""
+        r = self.rng.get("fish_spawn")
+        xs = self.t.get("fish_spawn_x", [15, 30, 45, 60, 75, 90])
+        depths_map = self.t.get("fish_spawn_depths", {"ca_linh": [5, 10], "ca_loc": [10, 16], "ca_keo": [24, 27]})
+        weights_map = self.t.get("fish_weights", {"ca_linh": 0.4, "ca_loc": 0.3, "ca_keo": 0.3})
+        kinds = sorted(weights_map.keys())
+        used_pts = set()
+        out = []
+        for _ in range(count):
+            avail = []
+            for k in kinds:
+                pts = [(x, d) for x in xs for d in depths_map.get(k, []) if (x, d) not in used_pts]
+                if pts:
+                    avail.append((k, pts))
+            if not avail:
+                break
+            total_w = sum(weights_map[k] for k, _ in avail)
+            pick = r.random() * total_w
+            acc = 0.0
+            chosen_k, chosen_pts = avail[-1]
+            for k, pts in avail:
+                acc += weights_map[k]
+                if pick <= acc:
+                    chosen_k, chosen_pts = k, pts
+                    break
+            pt = chosen_pts[r.randrange(len(chosen_pts))]
+            used_pts.add(pt)
+            out.append({
+                "id": ids.new("F"),
+                "kind": chosen_k,
+                "pos": [float(pt[0]), float(pt[1])],
+                "heading_deg": r.random() * 360.0,
+                "age_ticks": 0,
+            })
+        return out
 
     # --- giao diện cho runner -------------------------------------------------
     def inventory_items(self) -> dict:
@@ -116,11 +158,65 @@ class GatherSim:
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
+            if self._at_surface():
+                radius = self.t["interact_radius"]
+                candidates = []
+                for n in self.nodes:
+                    if n["regrow_ticks"] == 0:
+                        d = math.dist(self.pos, n["pos"])
+                        if d <= radius:
+                            candidates.append((d, n))
+                if candidates:
+                    candidates.sort(key=lambda item: (item[0], id_key(item[1]["id"])))
+                    node = candidates[0][1]
+                    yield_count = self.t["node_yield"]
+                    free_space = self.t["hold_capacity"] - len(self.hold)
+                    if free_space >= yield_count:
+                        self.hold.extend([node["kind"]] * yield_count)
+                        node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+                        events.append(("gather", {
+                            "node_id": node["id"],
+                            "kind": node["kind"],
+                            "amount": yield_count,
+                        }))
+                    else:
+                        events.append(("hold_full", {
+                            "action": "gather",
+                            "node_id": node["id"],
+                            "required": yield_count,
+                            "free": max(0, free_space),
+                        }))
         # 4. bắt cá
         if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+            if self.catch_cd_ticks == 0 and not self._at_surface():
+                radius = self.t["catch_radius"]
+                candidates = []
+                for f in self.fish:
+                    d = math.dist(self.pos, f["pos"])
+                    if d <= radius:
+                        candidates.append((d, f))
+                if candidates:
+                    candidates.sort(key=lambda item: (item[0], id_key(item[1]["id"])))
+                    fish = candidates[0][1]
+                    yield_count = self.t["fish_yield"][fish["kind"]]
+                    yield_count = self.t["fish_yield"].get(fish["kind"], 1)
+                    free_space = self.t["hold_capacity"] - len(self.hold)
+                    if free_space >= yield_count:
+                        self.hold.extend([fish["kind"]] * yield_count)
+                        self.fish.remove(fish)
+                        self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+                        events.append(("fish_caught", {
+                            "fish_id": fish["id"],
+                            "kind": fish["kind"],
+                            "yield": yield_count,
+                        }))
+                    else:
+                        events.append(("hold_full", {
+                            "action": "catch",
+                            "fish_id": fish["id"],
+                            "required": yield_count,
+                            "free": max(0, free_space),
+                        }))
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
