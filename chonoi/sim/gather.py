@@ -120,6 +120,19 @@ class GatherSim:
             self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
             if oxygen_before > 0 and self.oxygen_ticks == 0:
                 events.append(("oxygen_empty", {}))
+        if not at_surface and self.oxygen_ticks == 0:
+            self.zero_oxy_ticks += 1
+            if self.zero_oxy_ticks >= self.t["choke_interval_ticks"]:
+                self.zero_oxy_ticks = 0
+                self.hp = max(0, self.hp - 1)
+                events.append(("choke", {"hp": self.hp}))
+                if self.hp == 0:
+                    self.hold = []
+                    events.append(("faint", {"reason": "fainted"}))
+                    self._finish("fainted", events)
+                    return events
+        else:
+            self.zero_oxy_ticks = 0
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():

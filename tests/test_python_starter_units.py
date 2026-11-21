@@ -126,6 +126,61 @@ class GatherCore(unittest.TestCase):
         self.step(s)
         self.assertEqual(s.sim.oxygen_ticks, 9)
 
+    def test_choking_starts_on_tick_oxygen_reaches_zero(self):
+        s = self.session({"pos": [20, 5], "oxygen_ticks": 1})
+        self.step(s)
+        self.assertEqual(s.sim.zero_oxy_ticks, 1)
+        interval = self.g["choke_interval_ticks"]
+        for _ in range(interval - 2):
+            self.assertEqual(self.step(s), [])
+        self.assertEqual(s.sim.hp, self.g["hp_max"])
+        rows = self.step(s)
+        self.assertEqual([(r["name"], r["data"]) for r in rows],
+                         [("choke", {"hp": self.g["hp_max"] - 1})])
+        self.assertEqual(s.sim.zero_oxy_ticks, 0)
+        for _ in range(interval - 1):
+            self.assertEqual(self.step(s), [])
+        self.assertEqual([r["name"] for r in self.step(s)], ["choke"])
+
+    def test_surface_resets_choking_before_damage(self):
+        s = self.session({"pos": [20, self.g["surface_depth"] + 0.001],
+                          "oxygen_ticks": 0, "zero_oxy_ticks": self.g["choke_interval_ticks"] - 1})
+        self.assertEqual([r["name"] for r in self.step(s, (0, -1))], ["surface"])
+        self.assertEqual(s.sim.zero_oxy_ticks, 0)
+        self.assertEqual(s.sim.hp, self.g["hp_max"])
+        self.assertEqual(s.sim.oxygen_ticks, self.g["oxygen_refill_per_tick"])
+
+    def test_faint_clears_hold_before_end_and_precedes_docking_and_time(self):
+        s = self.session({"pos": [2, 1], "oxygen_ticks": 0, "hp": 1,
+                          "zero_oxy_ticks": self.g["choke_interval_ticks"] - 1},
+                         hold=["ca_loc", "bong_sung"], time_left_ticks=1)
+        rows = self.step(s, edges=("interact", "catch"))
+        self.assertEqual([r["name"] for r in rows], ["choke", "faint", "gather_end"])
+        self.assertEqual(rows[1]["data"], {"reason": "fainted"})
+        self.assertEqual(rows[2]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+        snapshot = s.snapshot()
+        self.assertEqual(snapshot["player"]["hp"], 0)
+        self.assertEqual(snapshot["hold"], [])
+        self.assertEqual(snapshot["hold_count"], 0)
+        self.assertEqual(snapshot["state"], "finished")
+        self.assertEqual(s.end_row()["reason"], "fainted")
+
+    def test_choke_interval_reads_tuning(self):
+        self.g["choke_interval_ticks"] = 2
+        s = self.session({"pos": [20, 5], "oxygen_ticks": 0})
+        self.assertEqual(self.step(s), [])
+        self.assertEqual([r["name"] for r in self.step(s)], ["choke"])
+
+    def test_faint_writes_empty_inventory_through_runner(self):
+        from chonoi.inventory import read_inventory
+        s = self.session({"pos": [20, 5], "oxygen_ticks": 0, "hp": 1,
+                          "zero_oxy_ticks": self.g["choke_interval_ticks"] - 1}, hold=["ca_loc"])
+        self.step(s)
+        with Workdir() as w:
+            path = write_json(w.path("inventory.json"), {"items": {"ca_loc": 3}})
+            s.write_inventory_if_done(path)
+            self.assertEqual(read_inventory(path), {})
+
 
 if __name__ == "__main__":
     unittest.main()
