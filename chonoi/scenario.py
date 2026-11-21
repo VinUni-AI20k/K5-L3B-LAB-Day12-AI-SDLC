@@ -146,6 +146,8 @@ def _validate_quan(b, tuning):
             _check_ids(arr, b[arr])
     if "stock" in b:
         validate_items(b["stock"])
+    if "random_customers" in b and not isinstance(b["random_customers"], bool):
+        raise BadInput("quan.random_customers phải là boolean")
     if "hand" in b and b["hand"] not in tuning["menu"]:
         raise BadInput("quan.hand phải là dish_id hợp lệ")
     if "reputation" in b:
@@ -180,13 +182,17 @@ def _validate_quan(b, tuning):
         if "patience_s" in c:
             if not _num(c["patience_s"]) or c["patience_s"] < 0:
                 raise BadInput(f"customers.{c['id']}.patience_s phải không âm")
-        reserved = c.get("reserved", menu[dish_id]["recipe"])
+        # Ordered/eating customers have already consumed raw ingredients;
+        # do not infer a fresh reservation from their menu recipe.
+        reserved = c.get("reserved", {} if state in ("ordered", "eating") else menu[dish_id]["recipe"])
         if not isinstance(reserved, dict):
             raise BadInput(f"customers.{c['id']}.reserved phải là object")
         try:
             reserved = validate_items(reserved)
         except BadInput as e:
             raise BadInput(f"customers.{c['id']}.reserved: {e}")
+        if state in ("ordered", "eating") and reserved:
+            raise BadInput(f"customers.{c['id']}: khách đã nấu không giữ nguyên liệu thô")
         for kind, amount in reserved.items():
             reserved_totals[kind] = reserved_totals.get(kind, 0) + amount
     if "stock" in b:
