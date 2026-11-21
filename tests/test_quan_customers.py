@@ -15,7 +15,9 @@ class QuanCustomersTest(unittest.TestCase):
     def test_headless_customer_reserves_from_inventory_at_scheduled_tick(self):
         first = self.tuning["quan"]["first_customer_tick"]
         with Workdir() as work:
-            inventory = write_json(work.path("kho.json"), {"items": {"ca_loc": 1, "bong_sung": 1}})
+            inventory = write_json(work.path("kho.json"), {"items": [
+                {"id": "I1", "kind": "ca_loc", "fresh": 100.0},
+                {"id": "I2", "kind": "bong_sung", "fresh": 100.0}]})
             out = work.path("out.jsonl")
             code, err = run_headless("--mode", "quan", "--seed", "17", "--ticks", str(first),
                                      "--snapshot-every", "1", "--inventory", inventory, "--out", out)

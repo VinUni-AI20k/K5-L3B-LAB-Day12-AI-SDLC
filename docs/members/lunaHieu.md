@@ -12,3 +12,9 @@
 - **Tôi đã review:** In toàn bộ `git diff` tracked và đối chiếu trực tiếp các điểm biên: recoil bắt đầu bước sau, tick hết recoil không hit, tách `lost` của hit và ngất, snapshot quái sắp ID. Test Phase 1 về bất tử/ngạt được cập nhật vì luật v1.1 quy định ngạt xuyên bất tử và không làm rơi hàng.
 - **Kết quả kiểm chứng:** Toàn suite **80/80 đạt, exit 0**; [ma trận AC](../verification/phase-2.md) và [output test thật](../proof/phase-2/monster-survival-test.txt). Chưa commit nhánh `feat/p2-monster-survival`.
 - **Cần phối hợp:** Người 1 cập nhật manifest v1.1; Người 3 truyền `day`/`active_upgrades` từ vòng ngày và kiểm snapshot chung. Sau khi ghép, chạy lại toàn suite và kiểm tra conflict ở `gather.py`/`scenario.py`.
+
+## Phase 3 — P3-02: Inventory Schema & Day Adapter
+
+- **Tôi đã làm:** Viết [đặc tả AC-P3-I2-01..06](../plan/phase-3.md); thêm `IdRegistry` cấp ID `I1...` không tái dùng, kiểm/ghi nguyên tử file kho cá thể v1.2, validate scenario và adapter giữ nguyên `id/kind/fresh` khi Gather bàn giao cho Quán trong Day Loop. Cập nhật manifest và mẫu kho; CLI headless từ chối file đếm cũ với mã 2.
+- **Kết quả kiểm chứng:** **152/152 test đạt, exit 0**; [ma trận AC](../verification/phase-3.md) và [output thật](../proof/phase-3/inventory-v12-test.txt). Các test Phase 1/2 về file kho và snapshot Day được đổi kỳ vọng theo breaking change v1.2.
+- **Cần phối hợp:** P3-01 áp dụng hao tươi theo tick; P3-03 chọn cá thể khi nấu và hoàn thiện kho Quán. Repo chưa có hợp đồng v1.2 trong `docs/contracts/`, nên nhóm cần xác nhận tên khóa tuning độ tươi đã ghi trong spec/manifest.
