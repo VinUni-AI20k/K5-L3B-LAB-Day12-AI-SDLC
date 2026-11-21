@@ -26,7 +26,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
-from .inventory import KINDS_P1, read_inventory
+from .inventory import KINDS_P2, read_inventory
 from .runner import Session
 from .scenario import load_scenario
 from .sim.quan import QuanSim
@@ -48,6 +48,18 @@ def _parse_shop_catalog(tuning: dict) -> dict:
     shop = tuning.get("shop") if isinstance(tuning.get("shop"), dict) else {}
 
     def _entry(key, default_costs, default_bonus, label, unit):
+        upgrades = shop.get("upgrades") if isinstance(shop.get("upgrades"), dict) else {}
+        if isinstance(upgrades.get(key), list) and upgrades[key]:
+            tiers = sorted(upgrades[key], key=lambda item: item.get("level", 0))
+            costs = [int(item["price"]) for item in tiers]
+            bonus = default_bonus
+            if key == "oxygen" and "oxygen_max_s" in tiers[0]:
+                base = tuning.get("gather", {}).get("oxygen_max_s", 30)
+                bonus = int(tiers[0]["oxygen_max_s"]) - int(base)
+            elif key == "hp" and "hp_max" in tiers[0]:
+                base = tuning.get("gather", {}).get("hp_max", 3)
+                bonus = int(tiers[0]["hp_max"]) - int(base)
+            return {"id": key, "label": label, "unit": unit, "costs": costs, "bonus": bonus, "max_level": len(costs)}
         raw = shop.get(key)
         if not isinstance(raw, dict):
             raw = (shop.get("items") or {}).get(key) if isinstance(shop.get("items"), dict) else None
@@ -75,7 +87,9 @@ def _parse_shop_catalog(tuning: dict) -> dict:
         return {"id": key, "label": label, "unit": unit, "costs": costs, "bonus": bonus, "max_level": max_lvl}
 
     dur_ticks = int(round(shop.get("duration_s", SHOP_DEFAULT_TICKS / 60.0) * 60))
-    if isinstance(shop.get("duration_ticks"), int):
+    if isinstance(shop.get("max_ticks"), int):
+        dur_ticks = shop["max_ticks"]
+    elif isinstance(shop.get("duration_ticks"), int):
         dur_ticks = shop["duration_ticks"]
     return {
         "duration_ticks": max(60, dur_ticks),
@@ -120,14 +134,9 @@ def _day_plan_for(tuning: dict, day: int) -> dict:
 
 
 def _try_native_day_session(tuning, scenario, seed, days):
-    """Dùng `runner.Session('day', ...)` nếu lõi Phase 2 (`chonoi/sim/day.py`) đã được tích hợp."""
-    try:
-        sess = Session("day", tuning, scenario, seed)
-    except Exception:
-        return None
-    if isinstance(sess.sim, QuanSim):
-        return None
-    return sess
+    """Giao diện live dùng trình điều phối 6 màn hình (Menu/DayIntro/EveningIntro/DayResult/Shop/Summary)
+    bọc trực tiếp Session('gather') và Session('quan'); headless `--mode day` chạy thẳng DaySim."""
+    return None
 
 
 class LiveGame:
@@ -210,6 +219,7 @@ class LiveGame:
         day_tuning = self._tuned_for_day(day)
         self.tuning = day_tuning
         sess = Session("gather", day_tuning, {}, self._seed + day * 101)
+        sess.sim.day = day
         sess.sim.money = self.carry_money
         sess.sim.earned = self.carry_earned
         sess.sim.reputation = self.carry_reputation
@@ -639,19 +649,32 @@ def main(argv=None) -> int:
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
         tuning = load_contract()["tuning"]
-        inventory_kinds = KINDS_P1
+        inventory_kinds = KINDS_P2
         if a.extra_content:
             with open(EXTRA_CONTENT_PATH, encoding="utf-8") as content_file:
                 extra = json.load(content_file)
             gather = tuning["gather"]
             extra_gather = extra["gather"]
-            gather["nodes"].extend(extra_gather["nodes"])
-            gather["fish_initial"].extend(extra_gather["fish_initial"])
+            existing_node_ids = {n["id"] for n in gather["nodes"]}
+            for node in extra_gather["nodes"]:
+                if node["id"] not in existing_node_ids:
+                    gather["nodes"].append(node)
+                    existing_node_ids.add(node["id"])
+            if isinstance(gather["fish_initial"], list):
+                gather["fish_initial"].extend(extra_gather["fish_initial"])
+            else:
+                for kind in extra_gather["fish_yield"]:
+                    gather.setdefault("fish_depths", {}).setdefault(kind, [6, 18])
+                    gather.setdefault("fish_spawn_depths", {}).setdefault(kind, [10, 16])
+                    gather.setdefault("fish_weights", {}).setdefault(kind, 0.15)
             gather["fish_yield"].update(extra_gather["fish_yield"])
             tuning["menu"].update(extra["menu"])
-            inventory_kinds += tuple(extra_gather["fish_yield"])
-            inventory_kinds += tuple(node["kind"] for node in extra_gather["nodes"])
-        scenario = load_scenario(a.scenario, a.mode, tuning) if (a.scenario and a.mode != "day") else {}
+            inventory_kinds = tuple(dict.fromkeys(
+                inventory_kinds
+                + tuple(extra_gather["fish_yield"])
+                + tuple(node["kind"] for node in extra_gather["nodes"])
+            ))
+        scenario = load_scenario(a.scenario, a.mode, tuning) if a.scenario else {}
         inventory = read_inventory(a.inventory, inventory_kinds) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")

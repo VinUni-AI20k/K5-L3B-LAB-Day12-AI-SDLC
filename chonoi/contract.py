@@ -23,7 +23,13 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    version = c.get("contract_version")
+    if version not in ("1.0", "1.1"):
+        raise BadInput("contract_version phải là 1.0 hoặc 1.1")
+    extensions = c.get("extensions", [])
+    if not isinstance(extensions, list) or any(not isinstance(code, str) or not code for code in extensions):
+        raise BadInput("extensions phải là mảng mã mở rộng (chuỗi khác rỗng)")
+    validate_tuning(c.get("tuning"), version=version, extensions=extensions)
     return c
 
 
@@ -50,7 +56,7 @@ def _bounds(name, b, keys):
             raise BadInput(f"tuning.{name}.bounds.{k} phải là [0, số dương]")
 
 
-def _validate_gather(g):
+def _validate_gather(g, v11=False):
     """Dải hợp lệ P1 theo PRD mục 13.2."""
     _between("gather.duration_s", g.get("duration_s"), 60, 600)
     _bounds("gather", g.get("bounds"), ("x", "d"))
@@ -74,7 +80,8 @@ def _validate_gather(g):
     if not _num(g.get("start_heading_deg")):
         raise BadInput("tuning.gather.start_heading_deg phải là số")
     fy = g.get("fish_yield")
-    if not isinstance(fy, dict) or not {"ca_linh", "ca_loc"} <= set(fy):
+    required_fish = {"ca_linh", "ca_loc", "ca_keo"} if v11 else {"ca_linh", "ca_loc"}
+    if not isinstance(fy, dict) or not required_fish <= set(fy):
         raise BadInput("tuning.gather.fish_yield phải có ca_linh và ca_loc")
     for k, v in fy.items():
         _int_between(f"gather.fish_yield.{k}", v, 1, g["hold_capacity"])
@@ -86,15 +93,19 @@ def _validate_gather(g):
         if not isinstance(n, dict) or not isinstance(n.get("id"), str) or n["id"] in seen:
             raise BadInput("tuning.gather.nodes: mỗi nút cần id duy nhất")
         seen.add(n["id"])
-        if n.get("kind") not in ("bong_dien_dien", "bong_sung"):
-            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind phải là bong_dien_dien hoặc bong_sung")
+        if n.get("kind") not in (("bong_dien_dien", "bong_sung", "keo_neo") if v11 else ("bong_dien_dien", "bong_sung")):
+            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind không hợp lệ")
         kinds.add(n["kind"])
         _pos_in(f"gather.nodes.{n['id']}.pos", n.get("pos"), b, ("x", "d"))
         if n["pos"][1] != 0:
             raise BadInput(f"tuning.gather.nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
-    if kinds != {"bong_dien_dien", "bong_sung"}:
-        raise BadInput("tuning.gather.nodes phải có ít nhất một nút mỗi loại (bong_dien_dien, bong_sung)")
+    required_nodes = {"bong_dien_dien", "bong_sung", "keo_neo"} if v11 else {"bong_dien_dien", "bong_sung"}
+    if kinds != required_nodes:
+        raise BadInput("tuning.gather.nodes phải có đủ loại nút theo phiên bản contract")
     fish = g.get("fish_initial")
+    if v11:
+        _int_between("gather.fish_initial", fish, 8, 8)
+        return
     if not isinstance(fish, list) or len(fish) != 6:
         raise BadInput("tuning.gather.fish_initial phải là danh sách đúng 6 đàn")
     seen = set()
@@ -109,13 +120,13 @@ def _validate_gather(g):
             raise BadInput(f"tuning.gather.fish_initial.{f['id']}: đàn cá phải ở dưới nước")
 
 
-def validate_tuning(t):
+def validate_tuning(t, version="1.0", extensions=()):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
-    _validate_gather(g)
+    _validate_gather(g, v11=version == "1.1")
     # Quán: dải hợp lệ P1 (PRD mục 13.2)
     _between("quan.duration_s", q.get("duration_s"), 60, 600)
     _bounds("quan", q.get("bounds"), ("x", "z"))
@@ -135,9 +146,14 @@ def validate_tuning(t):
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
     if q.get("burn_s") is not None:
-        raise BadInput("burn_s phải là null ở Phase 1")
+        if version != "1.1" or "burn" not in extensions:
+            raise BadInput("burn_s hữu hạn cần contract v1.1 và extensions chứa burn")
+        _between("quan.burn_s", q["burn_s"], 0.1, 600)
     # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+    if version == "1.1":
+        from .sim.day_config import validate_day_scenario
+        validate_day_scenario({}, t)

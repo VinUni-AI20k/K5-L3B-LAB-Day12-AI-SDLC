@@ -77,9 +77,13 @@ class LiveUiContractTest(unittest.TestCase):
         with open(EXTRA_CONTENT_PATH, encoding="utf-8") as f:
             extra = json.load(f)
         tuning["gather"]["nodes"].extend(extra["gather"]["nodes"])
-        tuning["gather"]["fish_initial"].extend(extra["gather"]["fish_initial"])
         tuning["gather"]["fish_yield"].update(extra["gather"]["fish_yield"])
-        g = LiveGame("gather", tuning, {}, seed=1)
+        scenario = {}
+        if isinstance(tuning["gather"]["fish_initial"], list):
+            tuning["gather"]["fish_initial"].extend(extra["gather"]["fish_initial"])
+        else:
+            scenario = {"fish": extra["gather"]["fish_initial"], "random_fish": False}
+        g = LiveGame("gather", tuning, scenario, seed=1)
         st = json.loads(g.state_json())
         self.assertTrue({"keo_neo", "rau_muong"} <= {n["kind"] for n in st["nodes"]})
         self.assertTrue({"ca_keo", "ca_ro_dong"} <= {f["kind"] for f in st["fish"]})
@@ -127,8 +131,8 @@ class LiveUiContractTest(unittest.TestCase):
         st = json.loads(g.state_json())
         self.assertEqual(st["screen"], "playing")
         self.assertEqual(st["mode"], "quan")
-        g.session.sim.money = 150
-        g.session.sim.earned = 150
+        g.session.sim.money = 220
+        g.session.sim.earned = 220
         g.session.sim.time_left_ticks = 1
         g._tick_once()
         st = json.loads(g.state_json())

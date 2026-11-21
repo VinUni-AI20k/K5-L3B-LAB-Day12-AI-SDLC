@@ -596,9 +596,11 @@ const DISH_LABELS = {
   ca_loc_nuong_trui:       { name: "Cá lóc nướng trui",       short: "Lóc nướng",    color: "#d9823b", icon: "🍢" },
   goi_bong_sung:           { name: "Gỏi bông súng",           short: "Gỏi súng",     color: "#ec7098", icon: "🥗" },
   lau_ca_linh_dien_dien:   { name: "Lẩu cá linh điên điển",   short: "Lẩu cá linh",  color: "#f2b830", icon: "🍲" },
+  canh_chua_ca_loc:        { name: "Canh chua cá lóc điên điển", short: "Canh chua", color: "#7cb342", icon: "🍲" },
+  ca_keo_nuong:            { name: "Cá kèo nướng muối ớt",    short: "Cá kèo nướng", color: "#e07a3c", icon: "🍢" },
+  lau_mam:                 { name: "Lẩu mắm miền Tây",        short: "Lẩu mắm",      color: "#a1887f", icon: "🥘" },
   ca_keo_kho_to:           { name: "Cá kèo kho tộ",           short: "Cá kèo kho",   color: "#c98542", icon: "🥘" },
   ca_keo_nuong_muoi_ot:    { name: "Cá kèo nướng muối ớt",    short: "Cá kèo nướng", color: "#e07a3c", icon: "🍢" },
-  canh_chua_ca_loc:        { name: "Canh chua cá lóc",        short: "Canh chua",    color: "#7cb342", icon: "🍲" },
   canh_chua_ca_keo_keo_neo:{ name: "Canh chua cá kèo kèo nèo",short: "Canh chua kèo",color: "#7cb342", icon: "🍲" },
   canh_chua_ca_ro_keo_neo: { name: "Canh chua cá rô kèo nèo", short: "Canh chua rô", color: "#7cb342", icon: "🍲" },
   lau_mam_keo_neo:         { name: "Lẩu mắm kèo nèo",         short: "Lẩu mắm",      color: "#a1887f", icon: "🍲" },
@@ -638,7 +640,7 @@ const SPRITES = {
 function sprite(key, x, y, size, angle = 0, flip = false) {
   return drawSprite(atlas, SPRITES[key], x, y, size, angle, flip);
 }
-function drawSprite(image, region, x, y, size, angle, flip) {
+function drawSprite(image, region, x, y, size, angle = 0, flip = false) {
   if (!region || !image || !image.naturalWidth) return false;
   const [left, top, width, height] = region;
   const scale = size / Math.max(width, height);
