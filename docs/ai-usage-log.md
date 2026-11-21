@@ -13,6 +13,8 @@
 
 | Phase | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|
+| 1 | Claude Code (Claude Sonnet 5.5) | Đọc repo, phân tích phần việc; code gather lát 2 (`try_gather`, `try_catch`) + 16 test hộp đen | chưa đo | 2 test đầu bị đỏ do AI viết sai test, không phải sai luật: (1) scenario đặt cá ở mặt nước bị headless từ chối (mã 2, cá phải ở dưới nước); (2) test hồi chiêu lệch 1 tick vì bấm hai lần liên tiếp không có frame thả nút nên không có cạnh lên. Tôi đọc lỗi, sửa test, chạy lại toàn bộ (57 OK) trước khi đẩy |
+| 1 | Claude Code (Claude Sonnet 5.5) | Soạn giả định gửi PO, điền TEAM/members/nhật ký | chưa đo | AI đưa tên hiển thị tạm là handle vì không biết họ tên thật; tôi cần tự thay |
 
 ## viethoang126
 
