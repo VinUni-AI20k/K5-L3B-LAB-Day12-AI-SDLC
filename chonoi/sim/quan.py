@@ -1,25 +1,28 @@
-"""Buổi tối — Mở Quán. KHUNG: đi lại, chặn biên, đồng hồ, kho nạp từ file/scenario.
+"""Buổi tối — Mở Quán. Kitchen & Serving: xem kitchen.py.
 
 Nhóm viết tiếp (PRD-0 mục F, Quán):
-  TODO(nhóm, lát 3): khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, kiên nhẫn,
-                     bỏ đi (customer_left), no_dish, vòng đời khách.
-  TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
-                     ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
+  TODO(nhóm, lát 3): khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, no_dish.
+  Khách dựng sẵn dùng chung timers/cleanup của kitchen.py; không chạy cleanup hai lần.
 """
 
+from copy import deepcopy
+
 from ..ids import sort_by_id
+from .kitchen import KitchenServingMixin
 from .ramp import ramp_velocity
 
-TICK = 60.0
 
-
-class QuanSim:
+class QuanSim(KitchenServingMixin):
     mode = "quan"
     phase = "quan"
 
     def __init__(self, tuning, scenario, streams, ids, inventory=None):
+        # LiveGame restart must not reuse mutated customers, reservations or dishes.
+        scenario = deepcopy(scenario)
         t = tuning["quan"]
         self.t = t
+        self.tick_hz = tuning["tick_hz"]
+        self.tick = 0
         self.menu = tuning["menu"]
         self.rng = streams
         self.ids = ids
@@ -31,14 +34,13 @@ class QuanSim:
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
         self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
         self.hand = scenario.get("hand")
-        self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
+        self.time_left_ticks = scenario.get("time_left_ticks", self._ticks(t["duration_s"]))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
         self.stoves = [dict(s, state=s.get("state", "idle"), dish=s.get("dish"),
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        # TODO(nhóm): khách dựng sẵn từ scenario (customers[]) và suy ra giữ chỗ (reserved).
-        self.customers = [dict(c, reserved=c.get("reserved", {})) for c in scenario.get("customers", [])]
+        self.customers = [dict(c) for c in scenario.get("customers", [])]
         for e in self.customers:
             ids.reserve(e["id"])
         self.money = 0
@@ -46,6 +48,7 @@ class QuanSim:
         self.shift_earned = 0
         self.done = False
         self.reason = None
+        self._validate_kitchen_state()
 
     @staticmethod
     def _merge(defaults, updates):
@@ -60,7 +63,7 @@ class QuanSim:
     def snapshot(self) -> dict:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
         return {
-            "player": {"pos": self.pos},
+            "player": {"pos": self.pos, "vel": self.vel},
             "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
@@ -70,17 +73,17 @@ class QuanSim:
         }
 
     def step(self, inp):
+        if self.done:
+            return []
         events = []
+        self.tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # TODO(nhóm): giảm kiên nhẫn / nấu / ăn; bếp chín -> ready; xử lý khách theo thứ tự PRD-0 mục F.
+        self._advance_kitchen_timers(events)
         self._move(inp)
-        # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
-        # TODO(nhóm): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.
-        if self.time_left_ticks <= 0:
-            self.done = True
-            self.reason = "time"
-            events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
-                                        "shift_earned": self.shift_earned, "reputation": self.reputation}))
+        if inp.pressed("interact"):
+            self._interact(events)
+        self._settle_customers(events)
+        # TODO(nhóm, lát 3): if not self.done, khách mới theo lịch + no_dish.
         return events
 
     def _move(self, inp):
@@ -89,7 +92,7 @@ class QuanSim:
         self.vel = ramp_velocity(self, (mx * speed, mz * speed), int(self.t.get("ramp_max_ticks", 6)))
         b = self.t["bounds"]
         for i, axis in enumerate(("x", "z")):
-            self.pos[i] += self.vel[i] / TICK
+            self.pos[i] += self.vel[i] / self.tick_hz
             lo, hi = b[axis]
             if self.pos[i] <= lo:
                 self.pos[i], self.vel[i] = lo, max(0.0, self.vel[i])
