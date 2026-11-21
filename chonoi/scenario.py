@@ -161,3 +161,41 @@ def _validate_quan(b, tuning):
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    _validate_quan_lat4(b, tuning)
+
+
+STOVE_STATES = ("idle", "cooking", "ready")
+
+
+def _validate_quan_lat4(b, tuning):
+    """Lát 4: món trên tay, bếp, khách đang ăn phải nhất quán (mâu thuẫn -> mã 2)."""
+    menu = tuning["menu"]
+    hand = b.get("hand")
+    if hand is not None and (not isinstance(hand, str) or hand not in menu):
+        raise BadInput("hand phải là null hoặc id món có trong menu")
+    known_stoves = {s["id"] for s in tuning["quan"]["stoves"]}
+    for s in b.get("stoves", []):
+        if s["id"] not in known_stoves:
+            raise BadInput(f"stoves.{s['id']}: id bếp không tồn tại")
+        st, dish = s.get("state", "idle"), s.get("dish")
+        if st not in STOVE_STATES:
+            raise BadInput(f"stoves.{s['id']}.state phải là một trong {STOVE_STATES}")
+        for key in ("cook_ticks_left", "ready_ticks"):
+            if key in s:
+                _nonneg_int(f"stoves.{s['id']}.{key}", s[key])
+        if st == "idle" and (dish is not None or s.get("cook_ticks_left", 0) or s.get("ready_ticks", 0)):
+            raise BadInput(f"stoves.{s['id']}: bếp idle không được có món/đếm giờ")
+        if st != "idle" and dish not in menu:
+            raise BadInput(f"stoves.{s['id']}: bếp {st} phải có dish trong menu")
+        if st == "cooking" and s.get("cook_ticks_left", 0) < 1:
+            raise BadInput(f"stoves.{s['id']}: bếp cooking cần cook_ticks_left >= 1")
+    for c in b.get("customers", []):
+        if "dish_id" in c and c["dish_id"] not in menu:
+            raise BadInput(f"customers.{c['id']}: dish_id không có trong menu")
+        if c.get("state") == "eating":
+            for key in ("price", "tip", "eat_ticks_left"):
+                if key not in c:
+                    raise BadInput(f"customers.{c['id']}: khách eating thiếu {key}")
+                _nonneg_int(f"customers.{c['id']}.{key}", c[key])
+            if c["eat_ticks_left"] < 1:
+                raise BadInput(f"customers.{c['id']}: eat_ticks_left phải >= 1")
