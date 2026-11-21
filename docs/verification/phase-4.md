@@ -32,3 +32,12 @@ Các công cụ này do Bảo viết, không nằm trong bản đo ở trên. M�
 | AC-P4-12 Benchmark headless xuất năm trường (thông lượng tick, không đo FPS) | `chonoi/benchmark.py` | chưa có artifact | Chưa chạy. Khác với `chonoi/bench.py` (đo khung hình có render) |
 
 Lưu ý: `chonoi.benchmark` và `bench_cmd` trong contract hiện trỏ tới bản headless. PHASE4.md yêu cầu benchmark có render, nên nhóm cần quyết định `bench_cmd` nào là chính thức.
+
+## Kiểm clone sạch (AC-P4-07, làm lại)
+
+Clone nhánh `huydn8816` vào thư mục mới (không dùng bản làm việc), chạy đúng ba lệnh trong README:
+1. `PYTHONPATH=tests:. python3 -m unittest discover -s tests`: lần đầu có 1 lỗi do `bench_cmd` (test của Bảo còn kiểm tên `benchmark`); đã sửa test theo quyết định nhóm. Chạy lại: xanh.
+2. `python3 -m chonoi.headless --mode gather --seed 1 --ticks 60 --out out.jsonl`: thoát mã 0.
+3. `python3 -m chonoi.bench --seed 42 --duration 3 --out bench.json`: thoát mã 0, trả về 5 trường (`avg_fps` 59,99; `p1_low_fps` 58,48).
+
+Giới hạn: chỉ chạy trên Windows (Git Bash, Python 3.14, Chrome). Chưa chạy trên macOS hoặc Linux, nên AC-P4-07 chỉ đạt một phần.
