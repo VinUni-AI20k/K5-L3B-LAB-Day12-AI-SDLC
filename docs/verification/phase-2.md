@@ -1,6 +1,6 @@
 # Kiểm chứng Phase 2 — phần Q3
 
-Kiểm tra nhánh Quoosc sau khi pull/merge main `ff4b376` vào `0de1da6`. Các defect kỹ thuật Q3 DaySim/Runner đã được sửa và có test regression. Kết quả cuối: [focused tests](../proof/phase-4/q3-focused-tests.txt), [full regression](../proof/phase-4/q3-full-regression.txt), [headless Day 1/3](../proof/phase-4/day-headless-run.txt).
+Kiểm tra nhánh Quoosc sau khi pull/merge main `dd090f6` vào `0de1da6`. Các defect kỹ thuật Q3 DaySim/Runner đã được sửa và có test regression. Kết quả cuối: [focused tests](../proof/phase-4/q3-focused-tests.txt), [full regression](../proof/phase-4/q3-full-regression.txt), [headless Day 1/3](../proof/phase-4/day-headless-run.txt).
 
 | Phạm vi | Kiểm chứng | Kết quả |
 |---|---|---|
@@ -11,7 +11,7 @@ Kiểm tra nhánh Quoosc sau khi pull/merge main `ff4b376` vào `0de1da6`. Các 
 | Q4-F1 orphan dish | [`test_p2_q4_f1_reuse.py`](../../tests/test_p2_q4_f1_reuse.py) | Tái sử dụng món đúng dish_id; reservation của khách nhận được giải phóng; test kiểm tra kho, payment một lần và state eating |
 | `no_dish` theo PO #11 | `tests.test_p2_q3_no_dish` | Đạt: đúng lượt, không backlog/ID mới, ca tiếp tục |
 | Headless Day 1 và Day 3 | [`day-headless-run.txt`](../proof/phase-4/day-headless-run.txt) | Cả hai exit 0; replay Day 3 deterministic |
-| Regression toàn repo | [`q3-full-regression.txt`](../proof/phase-4/q3-full-regression.txt) | 212 tests, OK, exit 0 |
+| Regression toàn repo | [`q3-full-regression.txt`](../proof/phase-4/q3-full-regression.txt) | 216 tests, OK, exit 0 |
 
 ## Trạng thái phần việc
 

@@ -10,7 +10,7 @@ Hoàn tất kỹ thuật DaySim/Runner integration Q3: empty menu plan, reputati
 
 ## Phase 3
 
-Triển khai freshness bằng Fraction, reservation ID vật lý, spoil/retry và idempotent consume/release. Tích hợp contract root v1.3 qua gather → file inventory → Quan và Day, giữ freshness/ID; full regression 212 tests. `unfulfillable` payload còn chờ PO/Integrator, và UI v1.3 chưa có review mới. [Spec handoff](../../specs/002-p3-q3-freshness/handoff.md).
+Triển khai freshness bằng Fraction, reservation ID vật lý, spoil/retry và idempotent consume/release. Tích hợp contract root v1.3 qua gather → file inventory → Quan và Day, giữ freshness/ID; full regression 216 tests. `unfulfillable` payload còn chờ PO/Integrator, và UI v1.3 chưa có review mới. [Spec handoff](../../specs/002-p3-q3-freshness/handoff.md).
 
 ## Phase 4
 
