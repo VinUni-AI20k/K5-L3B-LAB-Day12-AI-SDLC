@@ -3,7 +3,7 @@
 import json
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, kinds, read_jsonl, run_headless, snapshots, write_json
 
 with open("game.contract.json", encoding="utf-8") as f:
     T = json.load(f)["tuning"]
@@ -52,7 +52,7 @@ class Monster(unittest.TestCase):
         hit = events(rows, "monster_hit")[0]
         # M1 ở [60,24], cách 5 m: đuổi 3 m/s tới khi còn ≤ 1.5 m -> 70 bước
         self.assertEqual(hit["tick"], 71)
-        self.assertEqual(hit["data"], {"monster_id": "M1", "hp": G["hp_max"] - 1,
+        self.assertEqual(dict(hit["data"], lost=kinds(hit["data"]["lost"])), {"monster_id": "M1", "hp": G["hp_max"] - 1,
                                        "lost": ["ca_keo", "bong_sung"], "pos": [55, 24]})
         p = snapshots(rows)[-1]
         self.assertEqual(p["player"]["invuln_ticks"], T["gather"]["monsters"]["invuln_ticks"] - 9)
@@ -69,7 +69,8 @@ class Monster(unittest.TestCase):
         sc = {"gather": {"player": {"pos": [60, 24], "hp": 1}, "random_fish": False, "hold": ["ca_loc"]}}
         with Workdir() as w:
             rows = run(w, "gather", 5, sc)
-        self.assertEqual(events(rows, "faint")[0]["data"], {"cause": "monster", "hp": 0, "lost": ["ca_loc"]})
+        d = events(rows, "faint")[0]["data"]
+        self.assertEqual(dict(d, lost=kinds(d["lost"])), {"cause": "monster", "hp": 0, "lost": ["ca_loc"]})
         self.assertEqual(rows[-1]["reason"], "fainted")
 
     def test_scenario_monsters_rong(self):

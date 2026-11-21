@@ -6,7 +6,7 @@ Phần lớn là test hộp đen qua headless; riêng helper `_add_to_hold` test
 import json
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, kinds, to_items, read_jsonl, run_headless, snapshots, write_json
 
 from chonoi.ids import IdAllocator
 from chonoi.rng import Streams
@@ -105,21 +105,21 @@ class Choke(unittest.TestCase):
             end = events(rows, "gather_end")
             self.assertEqual(len(end), 1)
             self.assertEqual(end[0]["tick"], 1)
-            self.assertEqual(end[0]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+            self.assertEqual(end[0]["data"], {"reason": "fainted", "inventory": {"items": []}})  # v1.2: kho cá thể
             self.assertEqual(rows[-1]["reason"], "fainted")
             self.assertEqual(snapshots(rows)[-1]["hold"], [])
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
 
 class Hold(unittest.TestCase):
     def make(self, hold):
-        return GatherSim(contract(), {"hold": hold, "random_fish": False}, Streams(1), IdAllocator())
+        return GatherSim(contract(), {"hold": to_items(hold), "random_fish": False}, Streams(1), IdAllocator())
 
     def test_them_vao_cuoi_lifo(self):
         sim, ev = self.make(["ca_loc"]), []
         self.assertTrue(sim._add_to_hold("ca_linh", 3, ev))
-        self.assertEqual(sim.hold, ["ca_loc", "ca_linh", "ca_linh", "ca_linh"])
+        self.assertEqual(kinds(sim.hold), ["ca_loc", "ca_linh", "ca_linh", "ca_linh"])  # v1.2: kho cá thể
         self.assertEqual(ev, [])
 
     def test_day_thi_hold_full_khong_them(self):

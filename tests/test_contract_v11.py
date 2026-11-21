@@ -4,7 +4,7 @@ import json
 import math
 import unittest
 
-from helpers import Workdir, events, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, kinds, read_jsonl, run_headless, snapshots, write_json
 
 
 def contract():
@@ -28,7 +28,7 @@ def run(w, ticks, scenario=None, seed=1):
 class Contract(unittest.TestCase):
     def test_version_va_du_lieu_chuan(self):
         c = contract()
-        self.assertEqual(c["contract_version"], "1.1")
+        self.assertEqual(c["contract_version"], "1.2")  # contract đã lên v1.2 (Phase 3)
         self.assertEqual(len(T["menu"]), 6)
         self.assertEqual([n["id"] for n in G["nodes"]], ["N1", "N2", "N3", "N4", "N5", "N6"])
         self.assertEqual(G["fish_yield"], {"ca_linh": 3, "ca_loc": 1, "ca_keo": 2})
@@ -82,7 +82,8 @@ class Faint(unittest.TestCase):
                               "player": {"pos": [50, 5], "oxygen_ticks": 0, "hp": 1,
                                          "zero_oxy_ticks": G["choke_interval_ticks"] - 1}})
         data = events(rows, "faint")[0]["data"]
-        self.assertEqual(data, {"cause": "choke", "hp": 0, "lost": ["ca_keo", "bong_sung", "ca_loc"]})
+        self.assertEqual(dict(data, lost=kinds(data["lost"])),
+                         {"cause": "choke", "hp": 0, "lost": ["ca_keo", "bong_sung", "ca_loc"]})  # v1.2: kho cá thể
 
 
 if __name__ == "__main__":

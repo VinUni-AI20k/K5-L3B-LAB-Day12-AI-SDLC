@@ -8,7 +8,7 @@ Sự kiện của bước k mang tick = k + 1.
 import json
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, kinds, read_jsonl, run_headless, snapshots, write_json
 
 
 def tuning():
@@ -62,7 +62,7 @@ class Gather(unittest.TestCase):
             self.assertEqual(ev[0]["tick"], 1)
             self.assertEqual(ev[0]["data"]["node_id"], "N2")
             self.assertEqual(ev[0]["data"]["kind"], "bong_sung")
-            self.assertEqual(last(rows)["hold"], ["bong_sung"] * G["node_yield"])
+            self.assertEqual(kinds(last(rows)["hold"]), ["bong_sung"] * G["node_yield"])
 
     def test_bang_khoang_cach_id_nho_hon_thang(self):
         # N10 và N2 cùng cách 1.0: id nhỏ theo thứ tự số là N2 (không phải N10 theo chuỗi).
@@ -77,14 +77,14 @@ class Gather(unittest.TestCase):
             rows = run_gather(w, {"player": {"pos": [10, 0]}, "nodes": [node("N1", far)]}, 3,
                               press(0, button="interact"))
             self.assertEqual(events(rows, "gather"), [])
-            self.assertEqual(last(rows)["hold"], [])
+            self.assertEqual(kinds(last(rows)["hold"]), [])
 
     def test_duoi_nuoc_khong_hai(self):
         with Workdir() as w:
             rows = run_gather(w, {"player": {"pos": [10, 1]}, "nodes": [node("N1", 10)]}, 3,
                               press(0, button="interact"))
             self.assertEqual(events(rows, "gather"), [])
-            self.assertEqual(last(rows)["hold"], [])
+            self.assertEqual(kinds(last(rows)["hold"]), [])
 
     def test_nut_moc_lai_sau_regrow_s(self):
         with Workdir() as w:
@@ -138,14 +138,14 @@ class Catch(unittest.TestCase):
             self.assertEqual(ev[0]["data"]["fish_id"], "F1")
             self.assertEqual(ev[0]["data"]["kind"], "ca_linh")
             s = last(rows)
-            self.assertEqual(s["hold"], ["ca_linh"] * G["fish_yield"]["ca_linh"])
+            self.assertEqual(kinds(s["hold"]), ["ca_linh"] * G["fish_yield"]["ca_linh"])
             self.assertEqual(s["fish"], [])
 
     def test_ca_loc_cho_dung_so_mon(self):
         with Workdir() as w:
             sc = {"player": {"pos": [15, 5]}, "nodes": [], "fish": [fish("F1", [15, 5], "ca_loc")]}
             rows = run_gather(w, sc, 3, press(0, button="catch"))
-            self.assertEqual(last(rows)["hold"], ["ca_loc"] * G["fish_yield"]["ca_loc"])
+            self.assertEqual(kinds(last(rows)["hold"]), ["ca_loc"] * G["fish_yield"]["ca_loc"])
 
     def test_ca_gan_nhat_va_bang_nhau_id_nho_thang(self):
         with Workdir() as w:
@@ -170,7 +170,7 @@ class Catch(unittest.TestCase):
             sc = {"player": {"pos": [15, 0]}, "nodes": [], "fish": [fish("F1", [15, 1])]}
             rows = run_gather(w, sc, 3, press(0, button="catch"))
             self.assertEqual(events(rows, "fish_caught"), [])
-            self.assertEqual(last(rows)["hold"], [])
+            self.assertEqual(kinds(last(rows)["hold"]), [])
 
     def test_hoi_chieu_dat_dung_va_chan_dung(self):
         with Workdir() as w:

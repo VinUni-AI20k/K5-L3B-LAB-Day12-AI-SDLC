@@ -32,13 +32,15 @@ class QuanService(unittest.TestCase):
             rows = run({"stock": {"ca_loc": 1}, "customers": [COOK], "player": AT_STOVE},
                        [{"tick": 0, "interact": True}], 400, w)
             cs = events(rows, "cook_started")[0]
+            items = cs["data"].pop("items")  # v1.2: cook_started.data.items là mảng cá thể đã tiêu
             self.assertEqual(cs["data"], {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui"})
+            self.assertEqual([(it["id"], it["kind"]) for it in items], [("I1", "ca_loc")])
             self.assertEqual(cs["tick"], 1)
             self.assertEqual(events(rows, "dish_ready")[0]["tick"], 1 + 360)
             first = snapshots(rows)[1]  # sau khi nhận đơn
-            self.assertEqual(first["stock"], {})
+            self.assertEqual(first["stock"], [])
             self.assertEqual(first["customers"][0]["order_status"], "assigned")
-            self.assertEqual(first["customers"][0]["reserved"], {})
+            self.assertEqual(first["customers"][0]["reserved"], [])
 
     def test_luong_day_du_den_paid(self):
         with Workdir() as w:
@@ -51,11 +53,13 @@ class QuanService(unittest.TestCase):
                 self.assertIn(e, n)
             self.assertEqual(n.index("dish_picked") < n.index("served") < n.index("paid"), True)
             paid = events(rows, "paid")[0]["data"]
-            self.assertEqual(paid, {"order_id": "C1", "table_id": "T1", "base_price": 60, "tip": 12,
-                                    "amount": 72, "reason": "eaten"})
+            # v1.2: giá theo tươi. Cá lóc đã hao 1 tick ở quán (fresh 99.996) lúc bắt đầu nấu:
+            # base_price = floor(60 × 99.996 / 100) = 59, boa = floor(59 × 0.2) = 11
+            self.assertEqual(paid, {"order_id": "C1", "table_id": "T1", "base_price": 59, "tip": 11,
+                                    "amount": 70, "reason": "eaten"})
             end = rows[-1]
-            self.assertEqual(end["money"], 72)
-            self.assertEqual(end["earned"], 72)
+            self.assertEqual(end["money"], 70)  # v1.2: 59 + boa 11
+            self.assertEqual(end["earned"], 70)
             self.assertAlmostEqual(end["reputation"], 3.2)
             self.assertEqual(snapshots(rows)[-1]["customers"], [])
             self.assertIsNone(snapshots(rows)[-1]["hand"])
