@@ -1,3 +1,5 @@
+> Sau merge: manifest v1.1 và Q3/Q4 đã có trên main; DaySim và phê duyệt hợp đồng còn mở. Xem [research](research.md), [handoff](handoff.md). Nội dung dưới là baseline lịch sử.
+
 # Phase 2 Q3 — khách và kế hoạch ngày
 
 Nguồn: `docs/plan/phase-2.md`, `docs/plan/phan-chia-cong-viec.md` và yêu cầu người dùng. Ticket-02 gốc và Test Contract v1.1 chưa truy cập được; kế hoạch nhóm là nguồn thứ cấp.
