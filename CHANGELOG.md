@@ -1,5 +1,14 @@
 # Changelog
-## Unreleased — Test Contract v1.2 (Phase 3, CR "Mùa Nước Nổi")
+## v1.0.0 — Test Contract v1.3 (Phase 4, tag `phase-4`)
+
+### Thêm
+- `contract_version: "1.3"`; gốc manifest khai `bench_cmd` (`python3 -m chonoi.bench`) và `soak_cmd` (`python3 -m chonoi.soak`). Gameplay, tuning, kho và JSONL giữ nguyên v1.2.
+- `chonoi/bench.py`: cảnh lặn chuẩn (seed 42, độ tươi, cá bơi, Cá Sấu, Út Sen đứng ở bến), làm nóng 3 s, đo `--duration` s → `bench.json {avg_fps, p1_low_fps, frames, measured_s, load_ms}`.
+- `chonoi/soak.py`: nhiều Ngày trong một tiến trình với bot tất định, kế hoạch D1–D5 lặp từ Ngày 6 → `soak.json {days, days_completed, crashes, results[], duration_s}`.
+- `DaySession.day_plan()`: Ngày > 5 lặp kế hoạch D1–D5.
+- `tests/test_bench_soak.py`.
+
+## v1.2 — Phase 3 (tag `phase-3`, CR "Mùa Nước Nổi")
 
 ### Breaking change
 - **File kho đếm → kho cá thể.** v1.1 `{"items":{"ca_loc":1}}` → v1.2 `{"items":[{"id":"I1","kind":"ca_loc","fresh":100}]}`, sắp theo id, kho rỗng `{"items":[]}`. Contract v1.2 trả **mã 2** cho file kho đếm, kind lạ, id trùng, `fresh` ngoài [0, 100].

@@ -118,6 +118,10 @@ class DaySession:
                 self.item_ids.reserve(it["id"])
         self._initial = self._start_day()
 
+    def day_plan(self) -> dict:
+        """Kế hoạch của Ngày hiện tại; từ Ngày 6 lặp lại D1–D5 (soak v1.3, TICKET-04 mục 2)."""
+        return self.plan[(self.day - 1) % len(self.plan) + 1]
+
     # --- dựng pha -----------------------------------------------------------------
     def _day_tuning(self):
         """Tuning của Ngày hiện tại: oxy/Máu theo cấp đang áp dụng (quái lọc theo from_day trong GatherSim(day=…)).
@@ -141,7 +145,7 @@ class DaySession:
                              item_ids=self.item_ids)
         self._sync_into(self.sim)
         self.phase_tick = 0
-        plan = self.plan[self.day]
+        plan = self.day_plan()
         return [self._event("day_start", {}, "gather"),
                 self._event("day_plan", {"dishes": plan["dishes"], "ingredients": plan["ingredients"]}, "gather"),
                 self._event("phase_start", {}, "gather")]
@@ -170,7 +174,7 @@ class DaySession:
             # v1.2: bàn giao mảng cá thể ngay tick đổi pha, không hao thêm; ca quán chạy từ bước sau
             self.sim = QuanSim(self._day_t, quan_sc, self._streams, IdAllocator(), inventory=inventory,
                                item_ids=self.item_ids,
-                               menu_filter=sorted(self.plan[self.day]["dishes"]))  # lọc kế hoạch trước nguyên liệu
+                               menu_filter=sorted(self.day_plan()["dishes"]))  # lọc kế hoạch trước nguyên liệu
             self._sync_into(self.sim)
             self.phase_tick = 0
             return [self._event("phase_start", {}, "quan")]
@@ -233,7 +237,7 @@ class DaySession:
         s = {"type": "snapshot", "tick": self.tick, "sim_tick": self.sim_tick, "mode": "day", "phase": sim.phase,
              "phase_tick": self.phase_tick, "state": self.state(), "time_left_ticks": sim.time_left_ticks,
              "money": self.money, "earned": self.earned, "reputation": self.reputation, "score": self._score(),
-             "day": self.day, "day_plan": self.plan[self.day], "upgrades": dict(self.upgrades),
+             "day": self.day, "day_plan": self.day_plan(), "upgrades": dict(self.upgrades),
              "active_upgrades": dict(self.active_upgrades)}
         s.update(sim.snapshot())
         return s
