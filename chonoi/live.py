@@ -21,17 +21,20 @@ import sys
 import threading
 import time
 import traceback
+from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from .campaign import CampaignSession
 from .contract import DEFAULT_PATH, load_contract
 from .errors import BadInput
-from .inputs import BUTTONS_V10, InputState, normalize
+from .inputs import BUTTONS_V10, CAMPAIGN_BUTTONS, InputState, normalize
 from .inventory import read_inventory
 from .runner import Session
 from .scenario import load_scenario
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 SAMPLE_INVENTORY = os.path.join(os.path.dirname(DEFAULT_PATH), "docs", "contracts", "inventory.sample.json")
+SAMPLE_INVENTORY_V12 = os.path.join(os.path.dirname(SAMPLE_INVENTORY), "inventory.v12.sample.json")
 WEB_FILES = {"index.html": "text/html", "styles.css": "text/css", "phase2.preview.json": "application/json",
              "phase3.preview.json": "application/json",
              "river-cover.webp": "image/webp",
@@ -44,11 +47,12 @@ RECENT_EVENTS = 40
 class _TickInputs:
     """Nhận trạng thái phím từ HTTP và cấp một xung cho mỗi cạnh lên ở tick live."""
 
-    def __init__(self):
+    def __init__(self, buttons=BUTTONS_V10):
         self.move = (0.0, 0.0)
-        self.down = dict.fromkeys(BUTTONS_V10, False)
-        self.pending = dict.fromkeys(BUTTONS_V10, 0)
+        self.down = dict.fromkeys(buttons, False)
+        self.pending = dict.fromkeys(buttons, 0)
         self.pulses = set()
+        self.purchases = deque()
 
     def set(self, move, **buttons):
         if move is not None:
@@ -60,10 +64,11 @@ class _TickInputs:
 
     def advance(self):
         # Kể cả hai cú bấm đến giữa cùng hai tick, mỗi xung vẫn có một tick nhả sau nó.
-        self.pulses = {name for name in BUTTONS_V10 if self.pending[name] and name not in self.pulses}
+        self.pulses = {name for name in self.pending if self.pending[name] and name not in self.pulses}
         for name in self.pulses:
             self.pending[name] -= 1
-        return InputState(self.move, {name: name in self.pulses for name in BUTTONS_V10}, self.pulses)
+        buy = self.purchases.popleft() if self.purchases else None
+        return InputState(self.move, {name: name in self.pulses for name in self.down}, self.pulses, buy=buy)
 
 
 class LiveGame:
@@ -72,6 +77,8 @@ class LiveGame:
     def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, *, autoplay=True, contract=None):
         self.tuning = tuning
         self.web_config = {**tuning, **{key: contract[key] for key in ("contract_version", "extensions", "freshness") if contract and key in contract}}
+        if self.web_config.get("contract_version") in ("1.2", "1.3") and tuning.get("day_plan") and tuning.get("shop"):
+            self.web_config["capabilities"] = {"campaign_v12": True}
         self.seed = seed
         self._launch_mode = mode
         self._launch_scenario = scenario
@@ -89,13 +96,16 @@ class LiveGame:
         return self.session.mode
 
     def _begin(self, play_mode, mode, scenario, inventory, inventory_out):
-        self.session = Session(mode, self.tuning, scenario, self.seed, inventory)
+        if mode == "campaign":
+            self.session = CampaignSession(self.tuning, scenario, self.seed, introductions=True)
+        else:
+            self.session = Session(mode, self.tuning, scenario, self.seed, inventory)
         self._phase_args = (play_mode, mode, scenario, inventory, inventory_out)
         self.play_mode = play_mode
         self.inventory_out = inventory_out
         self.active = True
         self._session_id += 1
-        self.inputs = _TickInputs()
+        self.inputs = _TickInputs(CAMPAIGN_BUTTONS if mode == "campaign" else BUTTONS_V10)
         self.events = []
         self._saved = False
         self._inventory_error = None
@@ -122,6 +132,7 @@ class LiveGame:
                 except Exception:  # luật của nhóm lỗi: báo ra terminal + client, dừng bước (restart để chơi lại)
                     self.error = traceback.format_exc()
                     sys.stderr.write(self.error)
+                    self.active = False
                     self.session.sim.done = True
                     self.session.sim.reason = "error"
             delay = nxt - time.perf_counter()
@@ -134,9 +145,14 @@ class LiveGame:
         s = self.session
         if not self.active or s.done:
             return
+        campaign = self.mode == "day"
+        if campaign and s.awaiting:
+            return
         for row in s.step(self.inputs.advance()):
             self.events.append(row)
         del self.events[:-RECENT_EVENTS]
+        if campaign and s.awaiting:
+            self.inputs = _TickInputs(CAMPAIGN_BUTTONS)
         if self.mode == "gather" and s.done and self.inventory_out:
             self._save_inventory()
 
@@ -154,10 +170,10 @@ class LiveGame:
     def state_json(self) -> bytes:
         with self._lock:
             snap = self.session.snapshot()
-            snap["meta"] = self.tuning[self.mode]
+            snap["meta"] = self.tuning[snap["phase"]]
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
-            snap["reason"] = self.session.sim.reason if self.session.done else None
+            snap["reason"] = self.session.end_row()["reason"] if self.session.done else None
             snap["error"] = self.error
             snap["session_id"] = self._session_id
             snap["inventory_saved"] = self._saved
@@ -171,13 +187,22 @@ class LiveGame:
                   all(isinstance(c, (int, float)) and not isinstance(c, bool) and abs(c) <= 1 for c in move))
             if not ok:
                 raise ValueError("move phải là [a, b] trong [-1, 1]")
-        buttons = {}
-        for b in BUTTONS_V10:
-            if b in body:
-                if not isinstance(body[b], bool):
-                    raise ValueError(f"{b} phải là boolean")
-                buttons[b] = body[b]
         with self._lock:
+            buttons = {}
+            for b in self.inputs.down:
+                if b in body:
+                    if not isinstance(body[b], bool):
+                        raise ValueError(f"{b} phải là boolean")
+                    buttons[b] = body[b]
+            if self.mode == "day":
+                if self.session.awaiting or self.session.done:
+                    return
+                buy = body.get("buy")
+                if buy is not None:
+                    if not isinstance(buy, str) or buy not in self.tuning["shop"]["upgrades"]:
+                        raise ValueError("mã nâng cấp không hợp lệ")
+                    if self.session.phase == "shop" and not self.session.paused:
+                        self.inputs.purchases.append(buy)
             self.inputs.set(move, **buttons)
 
     def restart(self):
@@ -185,11 +210,17 @@ class LiveGame:
             self._begin(*self._phase_args)
 
     def play(self, choice):
-        if choice not in ("day", "gather", "quan", "menu"):
-            raise ValueError("Chế độ chơi phải là day, gather, quan hoặc menu.")
+        if choice not in ("campaign", "day", "gather", "quan", "menu"):
+            raise ValueError("Chế độ chơi không hợp lệ.")
         with self._lock:
             if choice == "menu":
                 self.active = False
+                return
+            if choice == "campaign":
+                if not (self.tuning.get("day_plan") and self.tuning.get("shop")):
+                    raise ValueError("Thiếu cấu hình hành trình")
+                fixture = {self._launch_mode: self._launch_scenario}
+                self._begin(choice, choice, fixture, None, None)
                 return
             mode = "gather" if choice == "day" else choice
             scenario = self._launch_scenario if mode == self._launch_mode else {}
@@ -199,11 +230,15 @@ class LiveGame:
                 inventory = self._launch_inventory
                 if inventory is None and "stock" not in scenario:
                     path = self._browser_inventory_path
-                    inventory = read_inventory(path if os.path.exists(path) else SAMPLE_INVENTORY)
+                    sample = SAMPLE_INVENTORY_V12 if self.tuning.get("freshness") else SAMPLE_INVENTORY
+                    inventory = read_inventory(path if os.path.exists(path) else sample)
                 self._begin(choice, mode, scenario, inventory, None)
 
-    def continue_day(self):
+    def continue_day(self, stage=None):
         with self._lock:
+            if self.mode == "day" and self.active:
+                self.session.proceed(stage)
+                return
             if (self.play_mode != "day" or not self.active or self.mode != "gather"
                     or not any(row["name"] == "gather_end" for row in self.events)):
                 raise ValueError("Cần hoàn thành buổi sáng trong chế độ Chơi trọn ngày.")
@@ -270,7 +305,10 @@ class _Handler(BaseHTTPRequestHandler):
                 else:
                     self.game.play(body.get("mode"))
             elif path == "/continue":
-                self.game.continue_day()
+                body = json.loads(raw.decode("utf-8") or "{}")
+                if not isinstance(body, dict):
+                    raise ValueError("body phải là object")
+                self.game.continue_day(body.get("stage"))
             elif path == "/restart":
                 self.game.restart()
             else:

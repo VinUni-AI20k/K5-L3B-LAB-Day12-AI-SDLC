@@ -607,11 +607,11 @@ async function transition(next, command) {
 }
 
 const begin = (mode) => transition("game", async () => {
-  const nextCampaign = mode === "campaign" || previewCampaign || liveCampaign;
+  const nextCampaign = mode === "campaign" || previewCampaign;
   const useMock = previewCampaign || (mode === "campaign" && !liveV12);
   if (useMock) await loadMock();
   const target = useMock ? mockAdapter : baseAdapter;
-  await target.play(mode === "campaign" ? "day" : mode);
+  await target.play(mode === "campaign" && useMock ? "day" : mode);
   adapter = target;
   campaign = nextCampaign;
   tuning = useMock ? mockTuning : baseTuning;
@@ -754,9 +754,9 @@ try {
   } else {
     const config = await baseAdapter.config();
     baseTuning = uiConfig(config);
-    liveCampaign = ["1.1", "1.2"].includes(config.contract_version) &&
+    liveCampaign = ["1.1", "1.2", "1.3"].includes(config.contract_version) &&
       (config.capabilities?.campaign_v12 === true || config.capabilities?.campaign_v11 === true);
-    liveV12 = liveCampaign && config.contract_version === "1.2";
+    liveV12 = liveCampaign && ["1.2", "1.3"].includes(config.contract_version);
   }
   tuning = baseTuning;
   write("campaign-note", liveV12 ? "Năm ngày ở chợ nổi" : "Bản xem trước · 5 ngày");

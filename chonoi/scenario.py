@@ -41,11 +41,32 @@ def load_scenario(path, mode: str, tuning: dict, *, inventory=None) -> dict:
     for k in data:
         if k not in known_modes:
             raise BadInput(f"chế độ không hỗ trợ trong scenario: {k}")
+    if mode == "day":
+        for phase in ("gather", "quan"):
+            if phase in data:
+                _validate_phase(data[phase], phase, tuning, inventory=None)
+        day = data.get("day", {})
+        if not isinstance(day, dict) or set(day) - {"money", "earned", "reputation"}:
+            raise BadInput("khối day chỉ nhận money, earned và reputation")
+        for field in ("money", "earned"):
+            if field in day:
+                _nonneg_int(f"day.{field}", day[field])
+        if "reputation" in day:
+            value = day["reputation"]
+            quan = tuning["quan"]
+            if not _num(value) or not quan["reputation_min"] <= value <= quan["reputation_max"]:
+                raise BadInput("day.reputation ngoài miền")
+        return data
     if set(data) - {mode}:
         raise BadInput(f"khối sai mode: chạy --mode {mode} chỉ nhận khối '{mode}'")
     if mode not in data:
         return {}
     block = data[mode]
+    _validate_phase(block, mode, tuning, inventory)
+    return block
+
+
+def _validate_phase(block, mode, tuning, inventory):
     if not isinstance(block, dict):
         raise BadInput(f"khối '{mode}' phải là object")
     allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
@@ -56,7 +77,6 @@ def load_scenario(path, mode: str, tuning: dict, *, inventory=None) -> dict:
         _validate_gather(block, tuning)
     else:
         _validate_quan(block, tuning, inventory)
-    return block
 
 
 def _num(v):
