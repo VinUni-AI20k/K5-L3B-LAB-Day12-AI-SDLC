@@ -59,7 +59,7 @@ export function updateFloodFx(fl, dt, W) {
 export function drawFloodFx(c, fl, W, H, yTop, t) {
   const a = fl.vis; if (a < 0.02 || yTop >= H) return;
   const y0 = Math.max(0, yTop), hh = H - y0, dir = fl.active ? fl.dir : fl.lean >= 0 ? 1 : -1;
-  c.fillStyle = "#dff6ff";
+  c.fillStyle = "#f2e2b8"; // silt
   for (let i = 0; i < NS; i++) {
     const s = streak[i * 3 + 2], x = Math.round(streak[i * 3]), y = Math.round(y0 + streak[i * 3 + 1] * hh + Math.sin(t * 3 + i) * 2);
     if (i % 5 === 0) { c.globalAlpha = a * 0.5; c.fillRect(x, y, 2, 2); continue; } // bubble
@@ -91,7 +91,7 @@ export class ChannelFx {
       } }
   }
   draw(c, ox, oy, sx, sy, W, H, t) {
-    c.fillStyle = "#bff3ff";
+    c.fillStyle = "#ead7a6";
     for (let k = 0; k < this.ch.length; k++) { const ch = this.ch[k], horiz = ch.vx !== 0;
       const X0 = ox + ch.x0 * sx, X1 = ox + ch.x1 * sx, Y0 = oy + ch.d0 * sy, Y1 = oy + ch.d1 * sy;
       if (X1 < 0 || X0 > W || Y1 < 0 || Y0 > H) continue;

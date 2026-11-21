@@ -314,7 +314,8 @@ export function hyacinth(c, x, y, w, t, seed = 0) {
 }
 
 // ---------- underwater ----------
-export const WATER = [[0, "#3fb6c4"], [0.18, "#1f8aa0"], [0.45, "#155f80"], [0.75, "#0e3c5e"], [1, "#081f38"]];
+// Mekong water is silty (phù sa): warm ochre at the surface, muddy brown in the middle, dark umber at depth
+export const WATER = [[0, "#b89462"], [0.18, "#9c7a4c"], [0.45, "#7a5c38"], [0.75, "#55402a"], [1, "#2e2218"]];
 export function godRays(c, camX, top, height, t, alpha = 0.07) {
   c.save();
   c.globalCompositeOperation = "lighter";
@@ -322,7 +323,7 @@ export function godRays(c, camX, top, height, t, alpha = 0.07) {
     const bx = ((i * 83 - camX * 0.3) % (W + 120) + W + 120) % (W + 120) - 60 + Math.sin(t * 0.4 + i) * 10;
     const w = 14 + (i % 3) * 10;
     const g = c.createLinearGradient(0, top, 0, top + height);
-    g.addColorStop(0, `rgba(200,245,255,${alpha * (1 + (i % 2))})`); g.addColorStop(1, "rgba(200,245,255,0)");
+    g.addColorStop(0, `rgba(255,228,170,${alpha * (1 + (i % 2))})`); g.addColorStop(1, "rgba(255,228,170,0)");
     c.fillStyle = g;
     c.beginPath(); c.moveTo(bx, top); c.lineTo(bx + w, top); c.lineTo(bx + w + 70, top + height); c.lineTo(bx + 40, top + height); c.fill();
   }
@@ -348,28 +349,55 @@ export function diver(c, x, y, facing, phase, speed = 1, o = {}) {
   if (facing < 0) c.scale(-1, 1);
   if (o.tilt) c.rotate(o.tilt * facing);
   const kick = Math.sin(phase * (6 + speed * 8));
-  // ponytail streaming behind
-  for (let i = 0; i < 6; i++) R(c, 3 - i, -4 + Math.round(Math.sin(phase * 8 - i * 0.7) * (i / 3)), 1, 1, P.hair);
-  R(c, 2, -4, 1, 1, P.orange);
-  // legs + fins
-  const legs = [[kick * 2, P.suit], [-kick * 2, P.suitD]];
-  for (const [dy, col] of legs) {
-    R(c, -12, -1 + Math.round(dy * 0.5), 6, 2, col);
-    R(c, -16, -1 + Math.round(dy), 4, 2, P.skin);
-    R(c, -20, -2 + Math.round(dy * 1.4), 4, 3, P.orange);
-    R(c, -21, -1 + Math.round(dy * 1.6), 1, 2, P.orangeD);
+  // Út Sen: green áo bà ba, dark trousers, green fins, red khăn rằn headband trailing, round goggles,
+  // woven basket (giỏ) hanging at the waist on a shoulder strap. Outline-first so she reads on silty brown water.
+  const OUT = "#1a1410", AO = "#5fa774", AOD = "#3e7a52", AOL = "#86c79a", PANT = "#22302b", FIN = "#6fb07e", FIND = "#4b8a5c",
+    KR = "#c8312b", KRL = "#f2e6d0", HAIR = "#2a1d17", BAS = "#9a6a3a", BASD = "#6b4524", BASL = "#c99a5e";
+  // khăn rằn tail streaming behind the head (flaps faster when swimming)
+  for (let i = 0; i < 9; i++) { // two-pixel-thick checked cloth trailing straight back from the knot, waving
+    const wy = Math.round(Math.sin(phase * (7 + speed * 5) - i * 0.7) * Math.min(2, i / 3));
+    const x = 2 - i * 1.6, y = -6 + wy;
+    R(c, x - 1, y - 1, 3, 4 - (i > 6 ? 1 : 0), OUT);
+    R(c, x, y, 2, 1, i % 2 ? KRL : KR); R(c, x, y + 1, 2, 1, i % 2 ? KR : KRL);
   }
-  // torso
-  R(c, -7, -3, 11, 5, P.suit); R(c, -7, -3, 11, 1, P.suitL); R(c, -7, 1, 11, 1, P.suitD);
-  R(c, -2, -3, 1, 5, P.orange);
+  // legs (dark trousers) + green fins
+  const legs = [[kick * 2, PANT], [-kick * 2, "#18221e"]];
+  for (const [dy, col] of legs) {
+    R(c, -14, -2 + Math.round(dy * 0.5), 8, 3, OUT);
+    R(c, -13, -1 + Math.round(dy * 0.5), 7, 2, col);
+    R(c, -19, -2 + Math.round(dy * 1.4), 6, 3, FIND);
+    R(c, -19, -2 + Math.round(dy * 1.4), 5, 2, FIN);
+  }
+  // torso: áo bà ba with a row of small buttons
+  R(c, -8, -4, 13, 7, OUT);
+  R(c, -7, -3, 11, 5, AO); R(c, -7, -3, 11, 1, AOL); R(c, -7, 1, 11, 1, AOD);
+  for (let i = 0; i < 3; i++) R(c, -5 + i * 3, 0, 1, 1, "#f2d27a");
   // arms: reaching forward, stroke when moving
   const arm = Math.round(Math.sin(phase * (4 + speed * 6)) * 2 * speed);
   if (o.grab) { R(c, 3, -2, 9, 2, P.skin); R(c, 11, -3, 2, 4, P.skin); }
-  else { R(c, 3, -2 + arm, 6, 1, P.skin); R(c, 3, 1 - arm, 5, 1, P.skinD); }
-  // head
-  R(c, 4, -5, 6, 6, P.skin); R(c, 3, -6, 6, 3, P.hair); R(c, 3, -3, 2, 3, P.hair);
-  R(c, 6, -4, 4, 3, P.mask); R(c, 7, -3, 3, 1, P.lens);
-  R(c, 5, -1, 1, 1, "#f07a7a");
+  else { R(c, 3, -2 + arm, 6, 2, AO); R(c, 8, -2 + arm, 2, 2, P.skin); R(c, 3, 1 - arm, 5, 1, P.skinD); }
+  // basket strap (shoulder → waist) and the woven basket hanging below the hip; o.basket = 0..1 fill shows the catch
+  R(c, 0, -3, 1, 1, BASD); R(c, -1, -2, 1, 1, BASD); R(c, -2, -1, 1, 1, BASD); R(c, -3, 0, 1, 1, BASD); R(c, -4, 1, 1, 2, BASD);
+  // woven basket: wide rim, rounded belly, criss-cross weave; the catch peeks over the rim
+  const bx = -9, by = 3, sway = Math.round(Math.sin(phase * 3) * (0.5 + speed * 0.5));
+  const rows = [[0, 9], [0, 9], [0, 9], [1, 7], [2, 5]]; // [inset, width] per row below the rim
+  R(c, bx - 1 + sway, by - 1, 11, 2, OUT); R(c, bx + sway, by - 1, 9, 1, BASL); // rim
+  rows.forEach(([ins, w], r) => {
+    R(c, bx + ins - 1 + sway, by + 1 + r, w + 2, 1, OUT);
+    for (let k = 0; k < w; k++) R(c, bx + ins + k + sway, by + 1 + r, 1, 1, (k + r) % 2 ? BAS : BASD);
+  });
+  R(c, bx + 2 + sway, by + 6, 5, 1, OUT);
+  const fill = Math.max(0, Math.min(1, o.basket ?? 0));
+  if (fill > 0) { R(c, bx + 1 + sway, by - 2, 3, 1, "#d8e6ee"); R(c, bx + 2 + sway, by - 3, 1, 1, "#d8e6ee"); }
+  if (fill > 0.4) R(c, bx + 4 + sway, by - 2, 3, 1, "#7a8a4a");
+  if (fill > 0.75) { R(c, bx + 7 + sway, by - 3, 2, 2, "#ff8fb1"); R(c, bx + 7 + sway, by - 2, 1, 1, "#ffd23a"); }
+  // head: outline, skin, hair bun at the back, red headband with white dashes, round goggle
+  R(c, 3, -7, 8, 8, OUT);
+  R(c, 4, -6, 6, 6, P.skin);
+  R(c, 3, -7, 4, 4, HAIR); R(c, 2, -6, 2, 3, HAIR);
+  R(c, 3, -6, 7, 2, KR); R(c, 4, -6, 1, 1, KRL); R(c, 7, -6, 1, 1, KRL);
+  R(c, 7, -4, 4, 4, OUT); R(c, 8, -3, 2, 2, "#bfe6ff"); R(c, 8, -3, 1, 1, "#ffffff");
+  R(c, 6, -1, 2, 1, "#c46a5a");
   c.restore();
 }
 // Ca linh: school of small silver fish. Ca loc: one long dark snakehead.

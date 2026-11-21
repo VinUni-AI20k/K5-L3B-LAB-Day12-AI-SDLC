@@ -9,8 +9,9 @@
 // be killed in the contract; in the GUI they have HP too (croc 24, snake 6): every spear hit stuns (croc 2 s + 3 m
 // push, numbers of the contract "Lao xua" extension) AND deals damage; at 0 HP they are defeated for this dive.
 // Inventory (I or the bag icon): freezes the dive; throw items out of the basket to free space.
-// Terrain (terrain.js, creative, GUI only): rock / mountains / pillars / ledge / cave with collision ONLY below 30 m;
-// the contract zone keeps edge decoration only. Dòng nước lũ (current.js, v1.2 §2) + 2 permanent deep channels.
+// Terrain (terrain.js, creative, GUI only): deep zone rock / mountains / pillars / ledge / cave (diver, spear, deep fish
+// collide); contract zone: bank cliffs + pillars / mounds / shelves in the gaps between spawn columns — background layer,
+// only the diver and the spear collide (contract fish / croc movement unchanged). Dòng nước lũ (current.js, v1.2 §2) + 2 permanent deep channels.
 import { W, H, screen, input, clamp, lerp, fx, Particles, txt, panel, measure, reduceMotion } from "./engine.js";
 import { sfx, music, voiceLine } from "./audio.js";
 import { P, R, bands, sky, sun, cloud, bank, hyacinth, godRays, kelp, rock, WATER, diver, fish, nodeArt, dock, KIND_NAME, icon } from "./art.js";
@@ -23,6 +24,13 @@ import { stats, recordCatch, recordHunt, recordDefeat, save, persist } from "./p
 import { makeCrocs, updateCrocs, crocHit, startRecoil, crocNear, drawCroc, stunCroc, crocAt, damageCroc, CROC_HUNT } from "./croc.js";
 import * as meta from "./meta.js";
 import { freshCfg, newItem, decay, plain, freshBar } from "./fresh.js"; // chores tracker (sibling module); every call is optional-chained
+
+// accessibility (hub module a11y.js): loaded defensively so the dive still runs if the module is missing
+let A11Y = {}; import("./a11y.js").then((m) => { A11Y = m; }).catch(() => {});
+// GUI-only pacing (the headless sim keeps the contract's fish_spawn_ticks / regrow_s)
+const GUI_SPAWN_MUL = 0.5, GUI_REGROW_MUL = 0.5;
+const hcOn = () => !!(A11Y.isHC ? A11Y.isHC() : A11Y.highContrast ?? false);
+const hcCol = (k, d) => A11Y.HC?.[k] ?? d; // a11y.HC palette: warn / danger / outline / light
 
 const VS = 10; // vertical px per metre (camera scrolls with depth)
 
@@ -59,6 +67,10 @@ export class GatherScene {
     this.fishSeq = 0; this.fish = [];
     if (Array.isArray(t.fish_initial)) this.fish = t.fish_initial.map((f) => this.newSchool(f.kind, f.pos[0], f.pos[1]));
     else for (let i = 0; i < t.fish_initial; i++) { const q = this.pickSpawn(this.fish); if (!q) break; this.fish.push(this.newSchool(q.kind, q.pos[0], q.pos[1])); }
+    // quest guarantee (GUI): top up with the needed kinds right away (within fish_max)
+    for (let guard = 0; guard < 6 && Array.isArray(this.fish) && this.fish.length < (t.fish_max ?? 12); guard++) {
+      const k = this.questKind(this.fish); if (!k) break; const q = this.pickSpawn(this.fish, k); if (!q) break; this.fish.push(this.newSchool(q.kind, q.pos[0], q.pos[1]));
+    }
     this.fullHintT = 0; // "river full" guidance toast, at most once per 30 s
     this.spawnT = 0;
     // Cá Sấu Năm Chèo: M1 from day 1, M2 only from_day 3 (standalone gather = day-1 layout)
@@ -73,8 +85,8 @@ export class GatherScene {
     // Dòng nước lũ (Test Contract v1.2 §2): gather.current or the defaults; direction seeded per dive
     this.flood = new Flood(t.current, (Math.random() * 2147483647) | 0, this.hz, {
       warning: (n, dir) => { this.floodWarn = 2; sfx("riser", 1.2); sfx("bubble"); },
-      start: (dir) => { sfx("whoosh"); sfx("swish", 1); fx.shake(2, 0.3); this.toast("Dòng lũ! " + (dir > 0 ? "⇢" : "⇠"), "#9fd8ff"); },
-      end: (dir, reason) => { if (reason === "elapsed") { sfx("swish", 0.6); this.toast("Dòng lũ đã qua", "#9fd8ff"); } } });
+      start: (dir) => { sfx("whoosh"); sfx("swish", 1); fx.shake(2, 0.3); this.toast("Dòng lũ! " + (dir > 0 ? "⇢" : "⇠"), "#f0d9a0"); },
+      end: (dir, reason) => { if (reason === "elapsed") { sfx("swish", 0.6); this.toast("Dòng lũ đã qua", "#f0d9a0"); } } });
     if (t.current?.enabled === false || t.random_current === false) this.flood.next = Infinity;
     this._leanAt = (x, d) => (d >= this.flood.c.min_depth ? this.flood.lean * this.flood.vis : 0) + (d > DEEP.zone && this.ter.chanAt(x, d)?.vx ? 0.6 * Math.sign(this.ter.chanAt(x, d).vx) : 0);
     this._rays = () => godRays(screen.px, this.cam * this._scale(), this._surfaceY(), this._sy(this.maxD) - this._surfaceY(), this.t_now || 0, 0.08);
@@ -114,22 +126,47 @@ export class GatherScene {
     // scheduled spawn: every fish_spawn_ticks, at most one school, under fish_max, clearance from every live school
     if (!t.fish_spawn_ticks) return;
     this.spawnT += dt;
-    if (this.spawnT < t.fish_spawn_ticks / this.hz) return;
-    this.spawnT -= t.fish_spawn_ticks / this.hz;
-    const alive = this.fish.filter((f) => !f.caught);
-    if (alive.length >= (t.fish_max ?? 12)) return;
-    const q = this.pickSpawn(alive); if (!q) return; // no free point: skip this turn
+    // GUI tuning (Sáng tạo): spawns twice as often as the contract (headless keeps fish_spawn_ticks)
+    const every = t.fish_spawn_ticks / this.hz * GUI_SPAWN_MUL;
+    if (this.spawnT < every) return;
+    this.spawnT -= every;
+    let alive = this.fish.filter((f) => !f.caught);
+    const want = this.questKind(alive);
+    if (alive.length >= (t.fish_max ?? 12)) {
+      // river full but a quest fish is missing: swap out the farthest off-screen school the quest doesn't need
+      if (!want) return;
+      const need = this.need || {}, p = this.p;
+      const spare = alive.filter((f) => !f.hooked && !(f.kind in need) && (this._sx(f.x) < -30 || this._sx(f.x) > W + 30 || this._sy(f.d) < -30 || this._sy(f.d) > H + 30))
+        .sort((a, b) => Math.hypot(b.x - p.x, b.d - p.d) - Math.hypot(a.x - p.x, a.d - p.d))[0];
+      if (!spare) return;
+      this.fish = this.fish.filter((f) => f !== spare); alive = alive.filter((f) => f !== spare);
+    }
+    const q = this.pickSpawn(alive, want); if (!q) return; // no free point: skip this turn
     this.fish.push(this.newSchool(q.kind, q.pos[0], q.pos[1]));
+  }
+  // quest guarantee (GUI): the needed fish kind whose live schools can't cover what is still missing (null = all covered)
+  questKind(alive) {
+    if (!this.need) return null;
+    const have = {}; for (const k of this.hold) have[k] = (have[k] || 0) + 1;
+    const fy = this.t.fish_yield || {};
+    for (const [kind, n] of Object.entries(this.need)) {
+      if (!(this.t.fish_depths || {})[kind]) continue;
+      const left = n - (have[kind] || 0); if (left <= 0) continue;
+      const schools = alive.filter((f) => f.kind === kind).length;
+      if (schools * (fy[kind] || 1) < left + (fy[kind] || 1)) return kind; // keep one school of slack
+    }
+    return null;
   }
   // one spawn draw (v1.1): species by fish_weights renormalised over the species that still have a spawn point at
   // more than fish_spawn_clearance from every live school, then a uniform point of that species. null = no point.
-  pickSpawn(alive) {
+  pickSpawn(alive, prefer = null) {
     const t = this.t, clear = t.fish_spawn_clearance ?? 1, ok = {};
     for (const [kind, ds] of Object.entries(t.fish_spawn_depths || {})) {
       const pts = []; for (const x of t.fish_spawn_x || []) for (const d of ds) if (alive.every((f) => f.caught || Math.hypot(f.x - x, f.d - d) > clear)) pts.push([x, d]);
       if (pts.length) ok[kind] = pts;
     }
     const kinds = Object.keys(ok); if (!kinds.length) return null;
+    if (prefer && ok[prefer]) return { kind: prefer, pos: ok[prefer][Math.floor(Math.random() * ok[prefer].length)] };
     const wts = kinds.map((k) => (t.fish_weights || {})[k] ?? 1), sum = wts.reduce((a, b) => a + b, 0);
     let r = Math.random() * sum, kind = kinds[kinds.length - 1];
     for (let i = 0; i < kinds.length; i++) { r -= wts[i]; if (r < 0) { kind = kinds[i]; break; } }
@@ -141,7 +178,14 @@ export class GatherScene {
     const have = {}; for (const k of this.hold) have[k] = (have[k] || 0) + 1;
     const out = [], p = this.p;
     for (const [kind, n] of Object.entries(this.need)) {
-      if ((have[kind] || 0) >= n || !(this.t.fish_depths || {})[kind]) continue;
+      if ((have[kind] || 0) >= n) continue;
+      if (!(this.t.fish_depths || {})[kind]) { // a plant: point at the nearest ready node (else the one regrowing soonest)
+        const mine = this.nodes.filter((q) => q.kind === kind);
+        const ready = mine.filter((q) => q.ready).sort((a, b2) => Math.abs(a.pos[0] - p.x) - Math.abs(b2.pos[0] - p.x));
+        const nb = ready[0] || mine.slice().sort((a, b2) => a.regrow - b2.regrow)[0];
+        if (nb) out.push({ kind, f: { x: nb.pos[0], d: 0 }, dist: Math.hypot(nb.pos[0] - p.x, p.d), node: true, wait: nb.ready ? null : nb.regrow });
+        continue;
+      }
       let best = null, bd = 1e9;
       for (const f of this.fish) { if (f.caught || f.hooked || f.kind !== kind) continue; const r = Math.hypot(f.x - p.x, f.d - p.d); if (r < bd) { bd = r; best = f; } }
       out.push({ kind, f: best, dist: best ? bd : null });
@@ -153,7 +197,7 @@ export class GatherScene {
     if (this.fullHintT > 0) { this.fullHintT -= dt; return; }
     const alive = this.fish.filter((f) => !f.caught).length;
     if (alive < (this.t.fish_max ?? 12)) return;
-    const miss = this.radarTargets().find((r) => !r.f);
+    const miss = this.radarTargets().find((r) => !r.f && !r.node);
     if (miss) { this.toast("Sông đầy cá rồi — bắt bớt cá khác để " + KIND_NAME[miss.kind] + " ghé tới", "#9fd8ff"); this.fullHintT = 30; }
   }
   crocBite(m) {
@@ -215,13 +259,25 @@ export class GatherScene {
   moveDiver(dx, dd) {
     const p = this.p, ter = this.ter, R = 0.45;
     const nx = clamp(p.x + dx, 0, this.t.bounds.x[1]);
-    if (p.d + R < DEEP.zone || !ter.hits(nx, p.d, R)) p.x = nx; else p.vx *= 0.2;
+    if (!ter.hits(nx, p.d, R)) p.x = nx;
+    else if (!this.slip(nx, p.d, 0, 1, R, p.vd)) p.vx *= 0.2; // blocked: try sliding around a bump (step along d)
     const nd = clamp(p.d + dd, 0, this.maxD);
-    if (nd + R < DEEP.zone || !ter.hits(p.x, nd, R)) p.d = nd; else p.vd *= 0.2;
+    if (!ter.hits(p.x, nd, R)) p.d = nd;
+    else if (!this.slip(p.x, nd, 1, 0, R, p.vx)) p.vd *= 0.2;
+  }
+  // blocked move to (x,d): accept it shifted sideways along (ax,ad) by up to 0.3 m (rounded rock bumps / slopes)
+  // pref: velocity along the slip axis — slide only that way when the player is steering along it
+  slip(x, d, ax, ad, R, pref = 0) {
+    const p = this.p, ter = this.ter, s0 = pref > 0.3 ? 1 : -1, both = Math.abs(pref) <= 0.3;
+    for (let k = 1; k <= 10; k++) for (let m = 0; m < (both ? 2 : 1); m++) { const s = m ? -s0 : s0;
+      const o = s * k * 0.05, xx = clamp(x + ax * o, 0, this.t.bounds.x[1]), dd = clamp(d + ad * o, 0, this.maxD);
+      if (!ter.hits(xx, dd, R)) { p.x = xx; p.d = dd; return true; }
+    }
+    return false;
   }
   // pushed into rock (knockback): pop out to the nearest open spot, upward first
   unstick() {
-    const p = this.p, ter = this.ter, R = 0.45; if (!ter || p.d + R < DEEP.zone || !ter.hits(p.x, p.d, R)) return;
+    const p = this.p, ter = this.ter, R = 0.45; if (!ter || !ter.hits(p.x, p.d, R)) return;
     for (let k = 1; k <= 80; k++) for (const [ax, ad] of [[0, -1], [1, 0], [-1, 0], [0, 1]]) { const x = p.x + ax * k * 0.25, d = p.d + ad * k * 0.25; if (d <= this.maxD && x >= 0 && x <= this.t.bounds.x[1] && !ter.hits(x, d, R)) { p.x = x; p.d = d; return; } }
   }
   openClam(k) {
@@ -359,7 +415,7 @@ export class GatherScene {
     if (h.state === "out") {
       const step = 24 * dt; h.x += h.ax * step; h.d += h.ad * step; h.dist += step;
       if (h.d < 0) { h.d = 0; h.state = "back"; }
-      const rockHit = h.d > DEEP.zone && (this.ter.solid(h.x, h.d) || this.ter.solid(h.x - h.ax * step * 0.5, h.d - h.ad * step * 0.5));
+      const rockHit = h.d > 2.5 && (this.ter.solid(h.x, h.d) || this.ter.solid(h.x - h.ax * step * 0.5, h.d - h.ad * step * 0.5));
       const sn = rockHit ? null : this.snakeAt(h.x, h.d), cr = sn || rockHit ? null : crocAt(this.crocs, h.x, h.d);
       if (rockHit) { // spear bounces off rock: back off to open water, "tink" spark, rope reels in
         for (let i = 0; i < 6 && this.ter.solid(h.x, h.d); i++) { h.x -= h.ax * step * 0.25; h.d -= h.ad * step * 0.25; }
@@ -426,7 +482,7 @@ export class GatherScene {
     this.ps.add({ x: this._sx(m.x), y: this._sy(m.d), ring: true, size: 4, life: 0.4, color: "#ffe14d", fade: false });
   }
   pick(n) {
-    n.ready = false; n.regrow = this.t.regrow_s; n.pop = 0.4;
+    n.ready = false; n.regrow = this.t.regrow_s * GUI_REGROW_MUL; n.pop = 0.4; // GUI: regrow twice as fast as the contract
     this.hold.push(n.kind); this.syncFrom(); sfx("pick"); meta.trackChore?.("picked:" + n.kind);
     this.toast("+ " + KIND_NAME[n.kind], "#ffd23a");
     fx.flash("rgba(255,220,120,.25)", 0.12);
@@ -492,10 +548,10 @@ export class GatherScene {
     // water body
     bands(c, 0, surY, W, botY - surY + 30, WATER, 16);
     // deep zone: darker, colder water below DEEP.zone
-    { const zy = this._sy(DEEP.zone); const g = c.createLinearGradient(0, zy - 40, 0, botY); g.addColorStop(0, "rgba(4,10,30,0)"); g.addColorStop(0.25, "rgba(4,10,30,.45)"); g.addColorStop(1, "rgba(2,4,16,.8)"); c.fillStyle = g; c.fillRect(0, zy - 40, W, botY - zy + 40); }
+    { const zy = this._sy(DEEP.zone); const g = c.createLinearGradient(0, zy - 40, 0, botY); g.addColorStop(0, "rgba(30,20,12,0)"); g.addColorStop(0.25, "rgba(30,20,12,.45)"); g.addColorStop(1, "rgba(18,12,6,.8)"); c.fillStyle = g; c.fillRect(0, zy - 40, W, botY - zy + 40); }
     // parallax underwater mountains (far uw_far + ridgeline, god rays, mid uw_mid arches, near ridges); clearer with depth
     { const camD = (this.camY + H / 2 - 58) / VS; this.ter.drawBackdrop(c, cam * sc, this.camY, W, H, clamp((camD - 8) / 32, 0, 1), time, this._rays); }
-    { const zy = this._sy(DEEP.zone); R(c, 0, zy, W, 1, "rgba(140,200,255,.18)"); txt("— VÙNG SÂU · cá to —", W - 6, zy - 2, { size: 7, align: "right", color: "rgba(160,215,255,.55)", weight: 800 }); }
+    { const zy = this._sy(DEEP.zone); R(c, 0, zy, W, 1, "rgba(230,200,140,.22)"); txt("— VÙNG SÂU · cá to —", W - 6, zy - 2, { size: 7, align: "right", color: "rgba(240,215,160,.65)", weight: 800 }); }
     // parallax weeds + hyacinth mats
     for (let i = 0; i < 8; i++) { const wx = ((i * 190 + 40) - cam * sc) ; if (wx > -40 && wx < W + 40) hyacinth(c, wx, surY, 24 + (i % 3) * 10, time, i); }
     { const ln = this.flood.lean * this.flood.vis; for (let i = 0; i < 24; i++) { const kx = (i * 46 - cam * sc * 1.1); const mx = ((kx % (W + 60)) + W + 60) % (W + 60) - 30; leanKelp(c, kelp, mx, botY, 24 + (i % 5) * 14, time, ln); } }
@@ -561,7 +617,7 @@ export class GatherScene {
     const blink = this.invuln > 0 && Math.floor(time * 16) % 2;
     if (!blink) { // speargun in hand along the aim, then the diver rotated to the swim direction
       if (under && !this.harp) { const ax = Math.cos(this.aim) * this._scale(), ay = Math.sin(this.aim) * VS, n = Math.hypot(ax, ay) || 1; c.strokeStyle = "#5a5f6a"; c.lineWidth = 2; c.beginPath(); c.moveTo(px + ax / n * 3, py + ay / n * 3); c.lineTo(px + ax / n * 11, py + ay / n * 11); c.stroke(); c.lineWidth = 1; }
-      diver(c, px, py, p.face, p.phase, Math.hypot(p.vx, p.vd) / this.swim, { grab: !!this.harp, tilt: this.tilt * p.face }); }
+      diver(c, px, py, p.face, p.phase, Math.hypot(p.vx, p.vd) / this.swim, { grab: !!this.harp, tilt: this.tilt * p.face, basket: this.cap ? this.hold.length / this.cap : 0 }); }
     this.ps.draw(c, 0, 0);
     for (const q of this.sinks) { // thrown-out items sinking / drifting away from the diver
       c.save(); c.globalAlpha = clamp(q.life, 0, 1); c.translate(Math.round(this._sx(q.x)), Math.round(this._sy(q.d))); c.rotate(q.rot); c.drawImage(icon(q.kind), -5, -5, 10, 10); c.restore();
@@ -580,16 +636,22 @@ export class GatherScene {
     if (this.inv) this.drawInv(time);
     else if (this.tutTip) this.drawTutTip(time);
     if (this.result) this.drawResult(c, time);
-    else if (this.hintT > 0 && !this.started) this.drawHint(c);
+    else if (this.hintT > 0 && !this.started && !this.inv) this.drawHint(c);
   }
 
   drawHUD(c, time) {
     const u = screen.ui, p = this.p, under = p.d > this.t.surface_depth;
     // "Thủy quái!" — purple screen border while a monster is within its detect radius
-    if (this.crocWarn > 0.01) {
+    const HC = hcOn();
+    if (this.crocWarn > 0.01) { // icon + text + border (HC: thick yellow/black border, bigger icon, white outlined text)
       const a = this.crocWarn * (0.65 + 0.35 * Math.sin(time * 9));
-      u.save(); u.strokeStyle = `rgba(170,70,255,${a})`; u.lineWidth = 6; u.strokeRect(3, 3, W - 6, H - 6); u.restore();
-      txt("Thủy quái!", W / 2, 34, { size: 12, align: "center", color: "#d9a6ff", weight: 900, stroke: "#1a0830", sw: 3, alpha: this.crocWarn });
+      u.save();
+      if (HC) { u.globalAlpha = Math.max(0.85, this.crocWarn); u.lineWidth = 10; u.strokeStyle = hcCol("outline", "#000"); u.strokeRect(5, 5, W - 10, H - 10); u.lineWidth = 5; u.strokeStyle = hcCol("warn", "#ffef00"); u.strokeRect(5, 5, W - 10, H - 10); }
+      else { u.strokeStyle = `rgba(170,70,255,${a})`; u.lineWidth = 6; u.strokeRect(3, 3, W - 6, H - 6); }
+      u.restore();
+      const sz = HC ? 16 : 12, tw = measure("Thủy quái!", sz, 900), ix = W / 2 - tw / 2 - (HC ? 14 : 10), iy = HC ? 38 : 30;
+      this.warnIcon(u, ix, iy, HC ? 1.5 : 1, HC ? hcCol("warn", "#ffef00") : "#b46cff", HC ? "#000" : "#1a0830", HC ? 1 : this.crocWarn);
+      txt("Thủy quái!", W / 2, HC ? 44 : 34, HC ? { size: sz, align: "center", color: "#fff", weight: 900, stroke: "#000", sw: 5 } : { size: sz, align: "center", color: "#d9a6ff", weight: 900, stroke: "#1a0830", sw: 3, alpha: this.crocWarn });
     }
     // timer pill (colour change at ≤ 30 s)
     const mm = Math.floor(Math.ceil(this.time) / 60), ss = Math.ceil(this.time) % 60;
@@ -599,30 +661,35 @@ export class GatherScene {
     // oxygen (< 25 %: red + blink)
     const ox = 8, oy = 6, ow = 92, oh = 11, fr = this.oxy / this.oxyMax;
     const lowO = fr < 0.25, blinkO = lowO && Math.floor(time * 5) % 2;
-    panel(ox, oy, ow, oh, { fill: "rgba(4,16,30,.8)", border: lowO ? "#ff5a5a" : "#2a5a7a", r: 5 });
-    const ocol = lowO ? "#ff5a5a" : fr < 0.5 ? "#ffd23a" : "#4fd0ff";
+    panel(ox, oy, ow, oh, HC ? { fill: "#000", border: hcCol("warn", "#ffef00"), r: 5 } : { fill: "rgba(4,16,30,.8)", border: lowO ? "#ff5a5a" : "#2a5a7a", r: 5 });
+    const ocol = HC ? (lowO && blinkO ? hcCol("warn", "#ffef00") : "#fff") : lowO ? "#ff5a5a" : fr < 0.5 ? "#ffd23a" : "#4fd0ff";
     u.save(); u.globalAlpha = blinkO ? 0.45 : 1; u.beginPath(); u.roundRect(ox + 1.5, oy + 1.5, Math.max(0, (ow - 3) * fr), oh - 3, 4); u.clip();
     u.fillStyle = ocol; u.fillRect(ox, oy, ow, oh);
     u.fillStyle = "rgba(255,255,255,.3)"; u.fillRect(ox, oy + 1, ow, 2); u.restore();
-    txt("O₂", ox + 5, oy + 9, { size: 7, color: "#dff4ff", weight: 900 });
-    txt(Math.ceil(this.oxy) + "/" + this.oxyMax + "s", ox + ow - 4, oy + 9, { size: 7, color: "#fff", align: "right", weight: 900 });
-    if (this.oxy <= 0 && under) txt("Hết hơi!", W / 2, H / 2 - 40, { size: 16, align: "center", color: "#ff5a5a", weight: 900, stroke: "#1a1220", sw: 3, alpha: 0.6 + 0.4 * Math.sin(time * 10) });
+    if (HC) { u.strokeStyle = hcCol("warn", "#ffef00"); u.lineWidth = 2; u.strokeRect(ox - 1, oy - 1, ow + 2, oh + 2); }
+    txt("O₂", ox + 5, oy + 9, HC ? { size: 7, color: "#000", weight: 900, stroke: "#fff", sw: 2 } : { size: 7, color: "#dff4ff", weight: 900 });
+    txt(Math.ceil(this.oxy) + "/" + this.oxyMax + "s", ox + ow - 4, oy + 9, HC ? { size: 7, color: "#000", align: "right", weight: 900, stroke: "#fff", sw: 2 } : { size: 7, color: "#fff", align: "right", weight: 900 });
+    if (lowO && under && this.oxy > 0) txt("Sắp hết hơi!", ox + ow + 5, oy + (HC ? 11 : 9), HC ? { size: 11, color: "#fff", weight: 900, stroke: "#000", sw: 4 } : { size: 8, color: "#ff8a8a", weight: 900, stroke: "#1a1220", sw: 2, alpha: blinkO ? 0.55 : 1 });
+    if (this.oxy <= 0 && under) txt("Hết hơi!", W / 2, H / 2 - 40, HC ? { size: 22, align: "center", color: "#fff", weight: 900, stroke: "#000", sw: 6 } : { size: 16, align: "center", color: "#ff5a5a", weight: 900, stroke: "#1a1220", sw: 3, alpha: 0.6 + 0.4 * Math.sin(time * 10) });
     // HP hearts + depth
     for (let i = 0; i < this.hpMax; i++) { const hx = ox + 6 + i * 12, hy = oy + oh + 8; this.heart(u, hx, hy, i < this.hp, time); }
     const deepNow = p.d > DEEP.zone;
     txt("Máu " + this.hp + "/" + this.hpMax, ox + 6, oy + oh + 24, { size: 7, color: "#ffb0c0", weight: 900, stroke: "#06101e", sw: 2 });
-    txt("↓ " + Math.round(p.d) + "m" + (deepNow ? "  O₂×" + DEEP.pressure : ""), ox + 6 + this.hpMax * 12 + 4, oy + oh + 12, { size: 8, color: deepNow ? "#9fd8ff" : "#dff4ff", weight: 900, stroke: "#06101e", sw: 2 });
+    txt("↓ " + Math.round(p.d) + "m" + (deepNow ? "  O₂×" + DEEP.pressure : ""), ox + 6 + this.hpMax * 12 + 4, oy + oh + 12, { size: 8, color: deepNow ? "#f0d9a0" : "#fff3dc", weight: 900, stroke: "#06101e", sw: 2 });
     // catch cooldown (harpoon in flight counts as busy)
     { const cdMax = this.t.catch_cooldown_s || 0.5, busy = !!this.harp, k = busy ? 0 : 1 - clamp(this.catchCd / cdMax, 0, 1);
       const cx = ox + 50, cy = oy + oh + 18; panel(cx, cy, 50, 9, { fill: "rgba(4,16,30,.8)", border: k >= 1 ? "#7dffb0" : "#5a6a7a", r: 4 });
       u.fillStyle = k >= 1 ? "#7dffb0" : "#ffd23a"; u.fillRect(cx + 1.5, cy + 1.5, 47 * k, 6);
       txt("Lao ⚔" + this.dmg + (k >= 1 ? " ✓" : "…"), cx + 25, cy + 7, { size: 7, align: "center", color: "#08131f", weight: 900 }); }
     // basket: one row for the contract's 12 slots, two rows once the "Giỏ lưới lớn" upgrade adds more
-    const bw = 108, bx = W - bw - 6, by = 6, cap = this.cap, rows = cap > 12 ? 2 : 1, perRow = Math.ceil(cap / rows);
+    const big = this.cap > 26; // 10× basket: newest items + a fill bar instead of one tiny square per slot
+    const bw = 108, bx = W - bw - 6, by = 6, cap = big ? 10 : this.cap, rows = big ? 2 : cap > 12 ? 2 : 1, perRow = big ? 10 : Math.ceil(cap / rows);
     const slotw = (bw - 10) / perRow, ic = Math.min(10, slotw + 1), bh = 6 + rows * 10 - 1;
     panel(bx, by, bw, bh, { fill: "rgba(8,20,38,.8)", border: "#f3d27a", r: 6 });
     u.imageSmoothingEnabled = false;
-    for (let i = 0; i < cap; i++) { const row = Math.floor(i / perRow), col = i % perRow, sxx = bx + 5 + col * slotw, syy = by + 3 + row * 10; if (this.hold[i]) { u.drawImage(icon(this.hold[i]), sxx + (slotw - 1 - ic) / 2, syy + 4.5 - ic / 2, ic, ic); const it = this.items[i]; if (it) { // v1.2 freshness bar / spoiled tint
+    const off = big ? Math.max(0, this.hold.length - 10) : 0;
+    if (big) { const k = this.hold.length / this.cap, fx = bx + 5, fy = by + 14, fw = bw - 10; u.fillStyle = "rgba(255,255,255,.1)"; u.fillRect(fx, fy, fw, 4); u.fillStyle = k >= 1 ? "#ff6b6b" : k > 0.8 ? "#ffd23a" : "#7dffb0"; u.fillRect(fx, fy, fw * Math.min(1, k), 4); }
+    for (let i = 0; i < (big ? 10 : cap); i++) { const row = big ? 0 : Math.floor(i / perRow), col = i % perRow, sxx = bx + 5 + col * slotw, syy = by + 3 + row * 10; const hi = i + off; if (this.hold[hi]) { u.drawImage(icon(this.hold[hi]), sxx + (slotw - 1 - ic) / 2, syy + 4.5 - ic / 2, ic, ic); const it = this.items[hi]; if (it) { // v1.2 freshness bar / spoiled tint
         if (it.spoiled) { u.fillStyle = "rgba(90,90,90,.65)"; u.fillRect(sxx, syy, slotw - 1, 9); u.fillStyle = "#ff5a5a"; u.fillRect(sxx + 1, syy + 1, 2, 2); }
         freshBar(u, sxx, syy + 8, slotw - 1, 1.5, it.fresh, it.spoiled); } } else { u.fillStyle = "rgba(255,255,255,.08)"; u.fillRect(sxx, syy, slotw - 1, 9); } }
     { const [gx, gy, gw, gh] = this.bagRect; // clickable bag icon (I)
@@ -656,22 +723,29 @@ export class GatherScene {
     // controls hint (bottom)
     txt("WASD bơi · E hái/cập bến · Space/chuột: bắn lao · Shift bơi nhanh · I: túi đồ · Esc/P tạm dừng", W / 2, H - 5, { size: 7, align: "center", color: "rgba(255,255,255,.55)", weight: 700 });
   }
+  // warning triangle with "!" (monster-near icon), centre-left at (x,y)
+  warnIcon(u, x, y, k, fill, ink, a) {
+    u.save(); u.globalAlpha = a; u.translate(Math.round(x), Math.round(y)); u.scale(k, k);
+    u.fillStyle = ink; u.beginPath(); u.moveTo(0, -8); u.lineTo(8, 6); u.lineTo(-8, 6); u.closePath(); u.fill();
+    u.fillStyle = fill; u.beginPath(); u.moveTo(0, -6); u.lineTo(6, 4.5); u.lineTo(-6, 4.5); u.closePath(); u.fill();
+    u.fillStyle = ink; u.fillRect(-1, -3, 2, 4); u.fillRect(-1, 2, 2, 1.5); u.restore();
+  }
   // Dòng lũ: warning banner (text + arrow icon, 2 s before) and the active pill "Dòng lũ ⇢ 6s"
   drawFloodHUD(u, time) {
     const fl = this.flood, warn = fl.warning();
     const arrow = (x, y, dir, col) => { u.save(); u.translate(x, y); u.scale(dir, 1); u.fillStyle = col; u.fillRect(-7, -2, 8, 4); u.beginPath(); u.moveTo(1, -6); u.lineTo(8, 0); u.lineTo(1, 6); u.closePath(); u.fill(); u.restore(); };
     if (warn) {
       const a = 0.7 + 0.3 * Math.sin(time * 10), y = 52;
-      panel(W / 2 - 78, y - 13, 156, 20, { fill: "rgba(6,24,44,.88)", border: "#7fd8ff", r: 7, alpha: a });
-      txt("Dòng lũ sắp tới! " + (warn > 0 ? "⇢" : "⇠"), W / 2 + 8, y + 1, { size: 10, align: "center", color: "#bff0ff", weight: 900, stroke: "#06101e", sw: 2, alpha: a });
-      arrow(W / 2 - 64, y - 3, warn, "#7fd8ff");
+      panel(W / 2 - 78, y - 13, 156, 20, { fill: "rgba(40,26,12,.9)", border: "#f0c870", r: 7, alpha: a });
+      txt("Dòng lũ sắp tới! " + (warn > 0 ? "⇢" : "⇠"), W / 2 + 8, y + 1, { size: 10, align: "center", color: "#ffe9b8", weight: 900, stroke: "#1a1208", sw: 2, alpha: a });
+      arrow(W / 2 - 64, y - 3, warn, "#f0c870");
     }
     if (fl.active) {
       const s = Math.ceil(fl.secondsLeft()), y = 22, under = this.p.d >= fl.c.min_depth;
-      panel(W / 2 - 34, y, 68, 13, { fill: "rgba(6,24,44,.85)", border: under ? "#7fd8ff" : "#4a6a80", r: 6 });
-      txt("Dòng lũ " + (fl.dir > 0 ? "⇢" : "⇠") + " " + s + "s", W / 2, y + 10, { size: 8, align: "center", color: under ? "#bff0ff" : "#8fb0c4", weight: 900 });
+      panel(W / 2 - 34, y, 68, 13, { fill: "rgba(40,26,12,.85)", border: under ? "#f0c870" : "#7a6a50", r: 6 });
+      txt("Dòng lũ " + (fl.dir > 0 ? "⇢" : "⇠") + " " + s + "s", W / 2, y + 10, { size: 8, align: "center", color: under ? "#ffe9b8" : "#c4b08f", weight: 900 });
     }
-    if (this.chanNow && this.p.d > DEEP.zone) txt(this.chanNow.vx ? "Dòng ngầm ⇢ đi nhanh!" : "Dòng trồi ↑", W / 2, H - 16, { size: 8, align: "center", color: "#9fe8ff", weight: 900, stroke: "#06101e", sw: 2, alpha: 0.8 });
+    if (this.chanNow && this.p.d > DEEP.zone) txt(this.chanNow.vx ? "Dòng ngầm ⇢ đi nhanh!" : "Dòng trồi ↑", W / 2, H - 16, { size: 8, align: "center", color: "#f0d9a0", weight: 900, stroke: "#1a1208", sw: 2, alpha: 0.8 });
   }
   // edge-of-screen arrow + fish icon + distance to the nearest school of each needed kind that is off-screen
   drawRadar(u, time) {
@@ -686,7 +760,7 @@ export class GatherScene {
       u.fillStyle = "rgba(8,20,38,.85)"; u.beginPath(); u.arc(ax, ay, 9, 0, TAU); u.fill(); u.strokeStyle = "#ffd23a"; u.lineWidth = 1; u.stroke();
       u.translate(ax, ay); u.rotate(ang); u.fillStyle = "#ffd23a"; u.beginPath(); u.moveTo(15, 0); u.lineTo(9, -4); u.lineTo(9, 4); u.closePath(); u.fill();
       u.restore(); u.save(); u.globalAlpha = a; u.imageSmoothingEnabled = false; u.drawImage(icon(r.kind), ax - 5, ay - 5, 10, 10); u.restore();
-      txt(Math.round(r.dist) + "m", ax, ay + (ay > cy ? -12 : 18), { size: 7, align: "center", color: "#ffe9b0", weight: 900, stroke: "#1a1220", sw: 2, alpha: a });
+      txt(Math.round(r.dist) + "m" + (r.wait ? " · mọc " + Math.ceil(r.wait) + "s" : ""), ax, ay + (ay > cy ? -12 : 18), { size: 7, align: "center", color: "#ffe9b0", weight: 900, stroke: "#1a1220", sw: 2, alpha: a });
     }
   }
   hpBar(c, x, y, w, hp, max, a = 1, label = null) {
@@ -751,6 +825,7 @@ export class GatherScene {
   }
   // geometry shared by drawInv and clicks
   invGeo() { const pw = 300, ph = 222, px = W / 2 - pw / 2, py = 24, cols = 4, sw = 70, sh = 18; return { pw, ph, px, py, cols, sw, sh, gx: px + 10, gy: py + 24 }; }
+  invTop() { const g = this.invGeo(), rows = Math.ceil(Math.max(this.hold.length, 1) / g.cols); return Math.max(0, Math.min(Math.floor((this.inv?.sel || 0) / g.cols) - 3, rows - 8)); }
   onClick(mx, my) {
     const [bx, by, bw, bh] = this.bagRect;
     if (this.result || this.ended) return;
@@ -758,8 +833,8 @@ export class GatherScene {
     if (this.tutTip) { this.clickEat = true; return; }
     if (!this.inv) return;
     this.clickEat = true; const g = this.invGeo();
-    const col = Math.floor((mx - g.gx) / g.sw), row = Math.floor((my - g.gy) / (g.sh + 1)), i = row * g.cols + col;
-    if (col < 0 || col >= g.cols || row < 0 || i >= this.hold.length) return;
+    const col = Math.floor((mx - g.gx) / g.sw), row = Math.floor((my - g.gy) / (g.sh + 1)), i = (row + this.invTop()) * g.cols + col;
+    if (col < 0 || col >= g.cols || row < 0 || row >= 8 || i >= this.hold.length) return;
     if (i === this.inv.sel) this.inv.clickThrow = true; else { this.inv.sel = i; this.inv.confirm = null; sfx("click"); }
   }
   updateInv(dt, toggle, kX, eat) {
@@ -799,8 +874,11 @@ export class GatherScene {
     txt("TÚI ĐỒ", g.px + 12, g.py + 16, { size: 12, color: "#f3d27a", weight: 900, italic: true, stroke: "#2a1408", sw: 3 });
     txt(`Giỏ ${this.hold.length}/${cap}`, g.px + g.pw - 12, g.py + 16, { size: 9, align: "right", color: this.hold.length >= cap ? "#ff8a8a" : "#ffe9b0", weight: 900 });
     u.imageSmoothingEnabled = false;
-    for (let i = 0; i < cap; i++) {
-      const col = i % g.cols, row = Math.floor(i / g.cols), x = g.gx + col * g.sw, y = g.gy + row * (g.sh + 1), sel = i === v.sel && i < this.hold.length;
+    const VR = 8, top = this.invTop(); // scrolling window of VR rows (the 10× basket doesn't fit on one panel)
+    if (top > 0) txt("▲", g.px + g.pw - 10, g.gy + 6, { size: 8, align: "right", color: "#ffe14d", weight: 900 });
+    if ((top + VR) * g.cols < Math.max(this.hold.length, 1)) txt("▼", g.px + g.pw - 10, g.gy + VR * (g.sh + 1) - 2, { size: 8, align: "right", color: "#ffe14d", weight: 900 });
+    for (let i = top * g.cols; i < Math.min(cap, (top + VR) * g.cols); i++) {
+      const col = i % g.cols, row = Math.floor(i / g.cols) - top, x = g.gx + col * g.sw, y = g.gy + row * (g.sh + 1), sel = i === v.sel && i < this.hold.length;
       const has = i < this.hold.length, rare = has && this.holdFrom[i];
       panel(x, y, g.sw - 3, g.sh, { fill: sel ? "rgba(255,170,60,.32)" : has ? "rgba(30,18,8,.75)" : "rgba(30,18,8,.35)", border: sel ? "#ffe14d" : rare ? "#ffb36b" : "rgba(243,210,122,.3)", r: 3 });
       if (!has) continue;
@@ -815,7 +893,7 @@ export class GatherScene {
     // summary by kind vs today's needed list
     const have = {}; for (const k of this.hold) have[k] = (have[k] || 0) + 1;
     const kinds = this.need ? Object.keys(this.need) : []; for (const k of Object.keys(have)) if (!kinds.includes(k)) kinds.push(k);
-    const sy = g.gy + Math.ceil(cap / g.cols) * (g.sh + 1) + 4, cw = Math.min(48, (g.pw - 20) / Math.max(1, kinds.length));
+    const sy = g.gy + Math.min(VR, Math.ceil(cap / g.cols)) * (g.sh + 1) + 4, cw = Math.min(48, (g.pw - 20) / Math.max(1, kinds.length));
     txt(this.need ? "CẦN HÔM NAY" : "THEO LOẠI", g.px + 12, sy + 7, { size: 6, color: "#9fd8ff", weight: 900 });
     kinds.forEach((k, i) => {
       const x = g.px + 10 + i * cw, y = sy + 10, nh = have[k] || 0, need = this.need?.[k], met = need != null && nh >= need;

@@ -47,6 +47,7 @@ export function newGame() { const best = save?.best || 0; save = freshSave(); sa
 export function resume() { save = load() || freshSave(); return save; }
 
 // Effective tuning = contract values + upgrades. Scenes must read numbers from here, never hard-code.
+export const GUI_HOLD_MUL = 10;
 export function stats(contract) {
   const g = contract.tuning.gather, q = contract.tuning.quan, u = save.up;
   const lv = (id) => (contract.tuning.shop?.upgrades?.[id] || [])[(save.active?.[id] || 0) - 1];
@@ -54,7 +55,8 @@ export function stats(contract) {
     // core (Test Contract v1.1): oxygen / hp come from the contract base or the ACTIVE contract upgrade level
     oxygenMax: lv("oxygen")?.oxygen_max_s ?? g.oxygen_max_s,
     hpMax: lv("hp")?.hp_max ?? g.hp_max,
-    holdCap: g.hold_capacity + UPGRADES.cap.eff[u.cap],
+    // GUI (Sáng tạo): the basket starts 10× the contract's hold_capacity; headless keeps 12
+    holdCap: g.hold_capacity * GUI_HOLD_MUL + UPGRADES.cap.eff[u.cap],
     swimSpeed: g.swim_speed * UPGRADES.fins.eff[u.fins],
     catchRadius: g.catch_radius + UPGRADES.net.eff[u.net],
     cookMul: UPGRADES.stove.eff[u.stove],

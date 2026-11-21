@@ -38,16 +38,17 @@ export function preloadDeep() {
 // start already on the patrol curve (x = home + sin(phase)·range), so the first update does not teleport it
 function mk(id, sp, x, d, phase) { return { id, sp, kind: sp.kind, x: Math.max(1, Math.min(99, x + Math.sin(phase) * sp.range)), d, hx: x, hd: d, range: sp.range, face: 1, caught: false, phase, hp: sp.hp || 1, hpMax: sp.hp || 1, state: "patrol", st: 0, vx: 0, vd: 0, flash: 0, hpShow: 0 }; }
 // collision radius of a deep fish against terrain (m)
-export const bodyR = (f) => f.sp.boss ? 2.2 : f.sp.school ? 1.4 : Math.max(0.9, (f.sp.hitR ?? f.sp.radius * 0.7) * 0.6);
+export const bodyR = (f) => f.sp.boss ? 1.9 : f.sp.school ? 1.4 : Math.max(0.9, (f.sp.hitR ?? f.sp.radius * 0.7) * 0.6);
 // terrain (terrain.js): move every spawn into open water (away from rock, current channels and the cave) and
 // shrink / recentre each patrol so the whole sway path stays clear of rock
 export function placeDeep(list, ter, maxD = DEEP.depth) {
   for (const f of list) {
     const [d0, d1] = band(f, maxD), r = bodyR(f);
-    const [x, d] = ter.openSpot(f.hx, Math.max(d0 + 0.7, Math.min(d1 - 0.7, f.hd)), r, d0 + 0.7, d1 - 0.7);
+    const fits = (a, b) => !ter.fishBlocked(a, b, r + 0.3) && !ter.fishBlocked(a, b - 0.7, r) && !ter.fishBlocked(a, b + 0.7, r);
+    const [x, d] = ter.openSpot(f.hx, Math.max(d0 + 0.7, Math.min(d1 - 0.7, f.hd)), r, d0 + 0.7, d1 - 0.7, fits);
     const [L, R] = ter.freeSpan(x, d, r, 0.7, f.sp.range + 8);
     const c = Math.max(1, Math.min(99, x + (R - L) / 2)), half = (L + R) / 2;
-    f.hx = c; f.hd = d; f.range = Math.max(0.5, Math.min(f.sp.range, half - 0.3));
+    f.hx = c; f.hd = d; f.range = Math.max(0.2, Math.min(f.sp.range, half - 0.3));
     f.x = Math.max(1, Math.min(99, f.hx + Math.sin(f.phase) * f.range)); f.d = d;
   }
 }
@@ -189,7 +190,7 @@ export function drawDeepScenery(c, ox, oy, sx, sy, t, W, H, kelp, rock, ter = nu
   }
   c.imageSmoothingEnabled = prevSmooth;
   // glowing motes (bioluminescent plankton): fixed fill, alpha pulses
-  c.fillStyle = "#9dffe0";
+  c.fillStyle = "#d9f08a"; // soft yellow-green
   for (let i = 0; i < MOTES; i++) {
     const ph = mote[i * 3 + 2], x = mote[i * 3] + Math.sin(t * 0.3 + ph) * 1.5, d = mote[i * 3 + 1] + Math.sin(t * 0.5 + ph * 2) * 0.8;
     const px = ox + x * sx, py = oy + d * sy;

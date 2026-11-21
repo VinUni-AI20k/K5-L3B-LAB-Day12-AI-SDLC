@@ -41,7 +41,26 @@ export class Terrain {
       { name: "stream", x0: 2, x1: 98, d0: 44, d1: 47, vx: 2, vd: 0 },
       { name: "upwell", x0: p3.x + p3.hw + 0.6, x1: p3.x + p3.hw + 3.2, d0: 33, d1: 56.5, vx: 0, vd: -2.5 },
     ];
+    // contract zone (0–30 m) — collides with the DIVER and the SPEAR only (fish / monsters keep their contract
+    // movement and are drawn in front). Everything sits in the gaps between the spawn columns x∈{15,30,45,60,75,90}
+    // (≥ 3 m clear), off the croc lanes (M1 x 58–66 @ 22–26, M2 x 83–91 @ 16–20), below 3 m (nodes / dock at d=0).
+    this.spil = [{ x: 22.5, hw: 1.45, top: 9 + r() * 1.5, ph: r() * 6, wide: 0.03 }, { x: 52.5, hw: 1.55, top: 9.5 + r() * 1.5, ph: r() * 6, wide: 0.03 }, { x: 80, hw: 1.2, top: 11 + r() * 1.5, ph: r() * 6, wide: 0.02 }];
+    this.smounds = [{ x: 37.5, h: 9 + r() * 2, w: 3.2, lim: 4.4 }, { x: 68.5, h: 2.8 + r() * 0.4, w: 2.5, lim: 3.4 }, { x: 8.5, h: 5 + r() * 2, w: 2.2, lim: 3.4 }];
+    this.sshelf = [{ x0: 19, x1: 22.5, d0: 16 + r(), th: 1.1 }, { x0: 52.5, x1: 56.6, d0: 13 + r(), th: 1.0 }, { x0: 48.4, x1: 52.5, d0: 20 + r(), th: 0.9, left: true }];
     this.cv = null; this.cvMoss = false; this.bg = null;
+  }
+  // left bank stays thin under the dock (start x=2) so the diver can drop straight down; it widens below ~20 m
+  bankL(d) { return (d < 20 ? 0.5 + d * 0.05 : 1.5 + (d - 20) * 0.1) + Math.sin(d * 0.7 + this.fa) * 0.2 + Math.sin(d * 2.1) * 0.1; }
+  bankR(d) { return 100 - (2.5 + Math.sin(d * 0.6 + this.fb) * 0.55 + Math.sin(d * 1.9 + 2) * 0.25 + (d > 18 ? (d - 18) * 0.035 : 0)); }
+  // contract-zone rock (background layer): river-bank cliffs from 3 m, pillars, mounds on the 30 m floor, shelves
+  shallow(x, d) {
+    if (d < 3) return false;
+    if (x < this.bankL(d) || x > this.bankR(d)) return true;
+    if (d < 8.5) return false;
+    for (const p of this.spil) { const dx = x - p.x, hw = p.hw * (1 + 0.15 * Math.sin(d * 1.6 + p.ph)) + (d - p.top) * p.wide; if (d >= p.top && dx >= -hw && dx <= hw && d >= p.top + 1.2 * (dx / hw) * (dx / hw)) return true; }
+    for (const m of this.smounds) { const dx = x - m.x; if (dx >= -m.lim && dx <= m.lim) { const u = dx / m.w; if (d >= ZONE - m.h * Math.exp(-u * u) + Math.sin(x * 1.7) * 0.2) return true; } }
+    for (const s of this.sshelf) if (x >= s.x0 && x <= s.x1) { const k = s.left ? (s.x1 - x) / (s.x1 - s.x0) : (x - s.x0) / (s.x1 - s.x0), top = s.d0 + Math.sin(x * 2.3) * 0.2; if (d >= top && d <= top + s.th * (0.45 + 0.55 * (1 - k))) return true; }
+    return false;
   }
 
   floorAt(x) {
@@ -57,7 +76,8 @@ export class Terrain {
   inCave(x, d) { const c = this.cave; return Math.abs(x - c.cx) <= c.hw + 1.5 && d >= c.top - 1; }
   // solid rock? (contract zone never)
   solid(x, d) {
-    if (d < ZONE || d > BOT || x < 0 || x > 100) return false;
+    if (d < 0 || d > BOT || x < 0 || x > 100) return false;
+    if (d < ZONE) return this.shallow(x, d);
     for (const ch of this.channels) if (x >= ch.x0 && x <= ch.x1 && d >= ch.d0 && d <= ch.d1) return false;
     const c = this.cave, cu = (x - c.cx) / c.hw;
     if (cu >= -1 && cu <= 1 && d >= c.top + Math.sin(x * 1.1) * 0.5 + cu * cu * 2.2) return !this.caveOpen(x, d);
@@ -72,11 +92,14 @@ export class Terrain {
   }
   // circle of radius r (m) touches rock?
   hits(x, d, r) {
-    if (d + r < ZONE) return false;
+    if (d + r < 3) return false;
     if (this.solid(x, d)) return true;
-    const q = r * 0.7071;
-    return this.solid(x + r, d) || this.solid(x - r, d) || this.solid(x, d + r) || this.solid(x, d - r) ||
-      this.solid(x + q, d + q) || this.solid(x - q, d + q) || this.solid(x + q, d - q) || this.solid(x - q, d - q);
+    for (let rr = r; rr > 0.05; rr -= 0.5) { // rings every 0.5 m so thin ledges are never stepped over
+      const q = rr * 0.7071;
+      if (this.solid(x + rr, d) || this.solid(x - rr, d) || this.solid(x, d + rr) || this.solid(x, d - rr) ||
+        this.solid(x + q, d + q) || this.solid(x - q, d + q) || this.solid(x + q, d - q) || this.solid(x - q, d - q)) return true;
+    }
+    return false;
   }
   // fish avoid rock, channels (with margin) and the cave
   fishBlocked(x, d, r) {
@@ -85,8 +108,8 @@ export class Terrain {
     return this.inCave(x, d);
   }
   // nearest open-water point to (x,d) for a body of radius r inside [dmin,dmax] (spiral search)
-  openSpot(x, d, r, dmin = ZONE + 1, dmax = BOT - 1) {
-    const ok = (a, b) => b >= dmin && b <= dmax && a >= 1 && a <= 99 && !this.fishBlocked(a, b, r + 0.5);
+  openSpot(x, d, r, dmin = ZONE + 1, dmax = BOT - 1, pred = null) {
+    const ok = (a, b) => b >= dmin && b <= dmax && a >= 1 && a <= 99 && (pred ? pred(a, b) : !this.fishBlocked(a, b, r + 0.5));
     if (ok(x, d)) return [x, d];
     for (let rad = 0.5; rad <= 30; rad += 0.5) for (let k = 0; k < 24; k++) {
       const a = k / 24 * Math.PI * 2, nx = x + Math.cos(a) * rad, nd = d + Math.sin(a) * rad * 0.6;
@@ -97,7 +120,7 @@ export class Terrain {
   // free horizontal span around x at depths d±dd (for a patrol of a body of radius r): [left, right] in m
   freeSpan(x, d, r, dd = 0.7, max = 14) {
     const bad = (a) => a < 1 || a > 99 || this.fishBlocked(a, d - dd, r) || this.fishBlocked(a, d, r) || this.fishBlocked(a, d + dd, r);
-    let L = 0, R = 0;
+    let L = 0, R = 0; if (bad(x)) return [0, 0];
     while (L < max && !bad(x - L - 0.25)) L += 0.25;
     while (R < max && !bad(x + R + 0.25)) R += 0.25;
     return [L, R];
@@ -115,41 +138,52 @@ export class Terrain {
     const B = 2, cols = Math.ceil(w / B), rows = Math.ceil(h / B), y0 = Math.floor(ZONE * sy / B) - 1;
     // contract-zone edge outcrops (background decoration, translucent, no collision)
     g.globalAlpha = 0.6;
-    for (let j = Math.floor(2 * sy / B); j < y0 + 2; j++) {
+    for (let j = 0; j < 0; j++) {
       const d = j * B / sy;
       const wl = 1.6 + Math.sin(d * 0.45 + this.fa) * 0.9 + Math.sin(d * 1.3) * 0.4 + (d > 20 ? (d - 20) * 0.12 : 0);
       const wr = 1.4 + Math.sin(d * 0.5 + this.fb) * 0.8 + Math.sin(d * 1.1 + 2) * 0.4 + (d > 22 ? (d - 22) * 0.1 : 0);
       const xl = Math.round(wl * sx / B), xr = Math.round((100 - wr) * sx / B);
-      g.fillStyle = "#123040"; g.fillRect(0, j * B, xl * B, B); g.fillRect(xr * B, j * B, w - xr * B, B);
-      g.fillStyle = "#1d4a52"; g.fillRect(xl * B - B, j * B, B, B); g.fillRect(xr * B, j * B, B, B);
+      g.fillStyle = "#43331f"; g.fillRect(0, j * B, xl * B, B); g.fillRect(xr * B, j * B, w - xr * B, B);
+      g.fillStyle = "#5a4630"; g.fillRect(xl * B - B, j * B, B, B); g.fillRect(xr * B, j * B, B, B);
     }
     // little background rock clumps on the contract floor edges (30 m line), purely decorative
-    for (const xm of [5, 13, 27, 71, 86, 94]) { const cx = xm * sx, cy = ZONE * sy; g.fillStyle = "#123040"; g.beginPath(); g.ellipse(cx, cy, 14 + (xm % 3) * 5, 7 + (xm % 2) * 3, 0, Math.PI, 0); g.fill(); g.fillStyle = "#1d4a52"; g.fillRect(Math.round(cx - 8), Math.round(cy - 6), 8, 1); }
+    for (const xm of [5, 13, 27, 71, 86, 94]) { const cx = xm * sx, cy = ZONE * sy; g.fillStyle = "#43331f"; g.beginPath(); g.ellipse(cx, cy, 14 + (xm % 3) * 5, 7 + (xm % 2) * 3, 0, Math.PI, 0); g.fill(); g.fillStyle = "#5a4630"; g.fillRect(Math.round(cx - 8), Math.round(cy - 6), 8, 1); }
     g.globalAlpha = 1;
     // deep-zone rock: per 2-px block, shaded by depth into the rock; cave interior = dark back wall
-    const PAL = ["#3e7d3c", "#2b5e33", "#1f4430", "#173326", "#12261f", "#0f1d1c"];
+    const PAL = ["#5b8a35", "#3f6028", "#4a3d26", "#3a2f1e", "#2e2417", "#221a10"]; // mossy green top → olive-brown rock
+    const SPAL = ["#4d6233", "#3b4a2a", "#3f3627", "#342c20", "#2b241a", "#231d15"]; // contract zone: darker, desaturated (background)
     const above = new Int16Array(cols); // solid blocks directly above (edge distance), per column
-    for (let j = y0; j < rows; j++) {
+    for (let j = Math.floor(2 * sy / B); j < rows; j++) {
+      const sh = (j + 0.5) * B / sy < ZONE;
       const d = (j + 0.5) * B / sy;
       for (let i = 0; i < cols; i++) {
         const x = (i + 0.5) * B / sx, s = this.solid(x, d);
         if (!s) {
           above[i] = 0;
-          if (d > ZONE && this.inCave(x, d) && this.caveOpen(x, d)) { g.fillStyle = hash(i, j) < 0.15 ? "#0d1a1c" : "#081012"; g.fillRect(i * B, j * B, B, B); }
+          if (d > ZONE && this.inCave(x, d) && this.caveOpen(x, d)) { g.fillStyle = hash(i, j) < 0.15 ? "#1c140c" : "#130d07"; g.fillRect(i * B, j * B, B, B); }
           continue;
         }
         const e = above[i]++; const n = hash(i, j);
         let k = e === 0 ? 0 : e === 1 ? 1 : e < 4 ? 2 : e < 8 ? 3 : 4;
         if (k >= 3 && n < 0.12) k = 2; else if (k >= 2 && n > 0.9) k = 5;
         const side = !this.solid(x - B / sx, d) || !this.solid(x + B / sx, d), under = !this.solid(x, d + B / sy);
-        g.fillStyle = under ? "#0a1414" : side && k > 1 ? "#1e3f2e" : PAL[k];
+        g.fillStyle = sh ? (under ? "#19140e" : side && k > 1 ? "#3d3528" : SPAL[k]) : under ? "#1a130b" : side && k > 1 ? "#4f4129" : PAL[k];
         g.fillRect(i * B, j * B, B, B);
         // mossy lumps on top edges from the uw_tiles sea-floor strip (4-px slices), else procedural moss
-        if (e === 0 && d > ZONE + 0.3) {
+        if (e === 0 && (d > ZONE + 0.3 || (sh && d > 3.2))) {
+          g.globalAlpha = sh ? 0.55 : 1;
           if (moss && i % 2 === 0) { const sxx = 16 + ((i * 2 + (j & 7) * 13) % 172); g.drawImage(tiles, sxx, 110, 4, 22, i * B, j * B - 7, 4, 22); }
-          else if (!moss) { g.fillStyle = "#4f9a46"; g.fillRect(i * B, j * B - (n < 0.3 ? 2 : 0), B, n < 0.3 ? 2 : 1); }
+          else if (!moss) { g.fillStyle = "#6a9a3c"; g.fillRect(i * B, j * B - (n < 0.3 ? 2 : 0), B, n < 0.3 ? 2 : 1); }
+          g.globalAlpha = 1;
         }
       }
+    }
+    // hanging roots + water hyacinth clumps on the bank cliffs near the surface
+    for (const [x0, x1, s] of [[0, 4.2, 1], [95.8, 100, 2]]) for (let k = 0; k < 9; k++) {
+      const x = (x0 + (x1 - x0) * (k + 0.5) / 9) * sx, len = (2.5 + hash(k, s) * 4.5) * sy;
+      g.fillStyle = k % 2 ? "#5a4026" : "#6e5232";
+      for (let y = 0; y < len; y += 1) g.fillRect(Math.round(x + Math.sin(y * 0.15 + k) * 1.5), Math.round(y), 1, 1);
+      if (k % 3 === 0) { g.fillStyle = "#4f8a3a"; g.fillRect(Math.round(x) - 3, 0, 7, 2); g.fillStyle = "#79b04a"; g.fillRect(Math.round(x) - 2, 0, 3, 1); g.fillStyle = "#b98ac8"; g.fillRect(Math.round(x) + 1, 0, 1, 1); }
     }
     this.cv = cv; this.cvMoss = moss; this.cvS = sx;
     return cv;
@@ -171,10 +205,10 @@ export class Terrain {
     c.save(); c.globalCompositeOperation = "lighter";
     for (const q of this.crystals) {
       const x = Math.round(ox + q.x * sx), y = Math.round(oy + q.d * sy), a = 0.55 + 0.35 * Math.sin(t * 2 + q.ph), s = q.s, dir = q.up ? -1 : 1;
-      c.globalAlpha = a * 0.25; c.fillStyle = "#6fffe0"; c.beginPath(); c.arc(x, y + dir * s, s * 2.6, 0, Math.PI * 2); c.fill();
-      c.globalAlpha = a; c.fillStyle = "#9ffff0";
+      c.globalAlpha = a * 0.25; c.fillStyle = "#c8ff8a"; c.beginPath(); c.arc(x, y + dir * s, s * 2.6, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = a; c.fillStyle = "#e2ffa8";
       c.beginPath(); c.moveTo(x - s * 0.6, y); c.lineTo(x, y + dir * s * 2.2); c.lineTo(x + s * 0.6, y); c.closePath(); c.fill();
-      c.fillStyle = "#e8fff9"; c.fillRect(x - 1, y + dir * s, 1, 2);
+      c.fillStyle = "#fffbe0"; c.fillRect(x - 1, y + dir * s, 1, 2);
     }
     c.restore();
     const k = this.clam, x = Math.round(ox + k.x * sx), y = Math.round(oy + k.d * sy), open = k.open ? Math.min(1, k.t * 3) : 0.12 + 0.08 * Math.sin(t * 1.5);
@@ -201,12 +235,14 @@ export class Terrain {
   }
   bakeBg() {
     const far = img("bg/uw_far.png"), mid = img("bg/uw_mid.png");
-    if (!this.bg) this.bg = { farRidge: this.ridge(640, 120, 11 + this.seed, "#0d2f47", "#1d5270", 1), nearRidge: this.ridge(720, 120, 37 + this.seed, "#061722", "#123647", 2.5), mid: null, far: null };
+    if (!this.bg) this.bg = { farRidge: this.ridge(640, 120, 11 + this.seed, "#5a4630", "#6e5a3e", 1), nearRidge: this.ridge(720, 120, 37 + this.seed, "#2e2217", "#43331f", 2.5), mid: null, far: null };
     if (!this.bg.mid && ready(mid)) { // uw_mid at half size, tinted into the water colour
       const cv = mkCanvas(480, 256), g = cv.getContext("2d"); g.imageSmoothingEnabled = false; g.drawImage(mid, 0, 0, 480, 256);
-      g.globalCompositeOperation = "source-atop"; g.fillStyle = "rgba(6,34,52,.55)"; g.fillRect(0, 0, 480, 256); this.bg.mid = cv;
+      g.globalCompositeOperation = "source-atop"; g.fillStyle = "rgba(74,54,30,.62)"; g.fillRect(0, 0, 480, 256); this.bg.mid = cv; // brown silt wash
     }
-    if (!this.bg.far && ready(far)) this.bg.far = far;
+    if (!this.bg.far && ready(far)) { // uw_far with a sepia / silt wash baked in
+      const w = far.naturalWidth, h = far.naturalHeight, cv = mkCanvas(w, h), g = cv.getContext("2d"); g.imageSmoothingEnabled = false; g.drawImage(far, 0, 0);
+      g.globalCompositeOperation = "source-atop"; g.fillStyle = "rgba(88,62,32,.7)"; g.fillRect(0, 0, w, h); this.bg.far = cv; }
   }
   // camX = camera x in world px, camY = vertical camera (px), vis = 0..1 (fades in with depth)
   drawBackdrop(c, camX, camY, W, H, vis, t, rays) {
@@ -219,10 +255,10 @@ export class Terrain {
       if (fill && yb < H) { c.fillStyle = fill; c.fillRect(0, Math.round(yb), W, H - Math.round(yb) + 1); }
     };
     if (bg.far) tile(bg.far, 0.12, 345 - camY * 0.16, 0.12 + 0.45 * vis, null);
-    tile(bg.farRidge, 0.2, 330 - camY * 0.2, 0.25 + 0.55 * vis, "#0d2f47");
+    tile(bg.farRidge, 0.2, 330 - camY * 0.2, 0.25 + 0.55 * vis, "#5a4630");
     if (rays) rays();
     if (bg.mid) tile(bg.mid, 0.5, 420 - camY * 0.33, 0.15 + 0.6 * vis, null);
-    tile(bg.nearRidge, 0.7, 520 - camY * 0.6, 0.2 + 0.7 * vis, "#061722");
+    tile(bg.nearRidge, 0.7, 520 - camY * 0.6, 0.2 + 0.7 * vis, "#2e2217");
     c.globalAlpha = 1; c.imageSmoothingEnabled = prev;
   }
 }
