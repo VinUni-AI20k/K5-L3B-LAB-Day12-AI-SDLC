@@ -2,7 +2,7 @@
 
 Game 2D quản lý quán ăn miền Tây: buổi sáng Út Sen lặn bắt cá, hái bông trên sông Chín Khúc (`gather`); buổi tối nấu và phục vụ khách trên nhà bè của Má Tư (`quan`). Những gì mang về buổi sáng quyết định quán bán được món nào.
 
-Lab Day 12 · AI SDLC · Test Contract v1.0. Thành viên và vai: [`TEAM.md`](TEAM.md).
+Lab Day 12 · AI SDLC · Test Contract v1.1. Thành viên và vai: [`TEAM.md`](TEAM.md).
 
 ## Chạy từ clone sạch (macOS / Linux, chỉ cần Python 3, không cài thêm gì)
 
@@ -14,10 +14,16 @@ python3 -m chonoi.live --mode gather
 
 Mở địa chỉ lệnh in ra (mặc định `http://127.0.0.1:8000/`). Muốn chơi buổi tối: `python3 -m chonoi.live --mode quan`.
 
-**Chơi nối hai buổi** (quán dùng đúng giỏ mang về):
+**Chơi nối hai buổi:** mặc định, khi Gather kết thúc game tự chuyển sang Quán và mang theo kho:
 
 ```bash
-python3 -m chonoi.live --mode gather --inventory-out kho.json
+python3 -m chonoi.live --mode gather
+```
+
+Muốn giữ Gather ở màn kết thúc và chạy Quán riêng bằng file kho:
+
+```bash
+python3 -m chonoi.live --mode gather --no-auto-transition --inventory-out kho.json
 python3 -m chonoi.live --mode quan --inventory kho.json
 ```
 
@@ -78,3 +84,14 @@ Phase 1 chưa có phần tự sáng tạo; nhóm làm lõi đúng trước. Khi 
 ## Về lab
 
 Yêu cầu từng phase mở theo giờ tại lab board **[Chợ Nổi Lab](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg)**. Chi tiết khung Python của giảng viên (cái gì có sẵn, đổi ngôn ngữ thế nào): [`docs/STARTER.md`](docs/STARTER.md).
+
+
+## Phase 2 — Chơi trọn vòng ngày
+```bash
+python3 -m chonoi.live --mode day
+python3 -m chonoi.headless --mode day --days 1 --seed 42 --ticks 22200 --out day.jsonl
+tools/smoke_p2.sh
+```
+Live mặc định 5 Ngày; `--days 1..5` chọn số Ngày. Headless mặc định 1 Ngày. Bấm Chơi, xem lời dặn Má Tư, WASD bơi/đi, E hái/cập bến/nấu/bưng/phục vụ, Space bắt cá, Esc/P pause. Shop mua Bình oxy/Áo phao bằng nút, đóng sớm hoặc chờ 10 s hoạt động. Cấp mua áp dụng từ Ngày kế; earned và điểm không bị trừ khi mua. Thoát trở về màn lời chào để đóng thẻ trình duyệt.
+
+Lõi đã bổ sung: vòng gather→quan→Shop, kế hoạch D1–D5, menu/intro/kết quả/tổng kết, pause cả Shop, HUD mục tiêu và quái, 6 tên món. Chưa bật các mở rộng weapon/net/snake/burn/vendor/ca_ho/settings. Nguồn: `docs/tickets/TICKET-02.md`; kiểm chứng: `docs/verification/phase-2.md`.

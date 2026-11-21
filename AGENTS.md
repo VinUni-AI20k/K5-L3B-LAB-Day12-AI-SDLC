@@ -3,6 +3,9 @@
 > Cập nhật file này qua các phase (lịch sử git phải cho thấy điều đó). Ngắn gọn, có lệnh chạy thật.
 
 ## Lệnh
+- Smoke + bằng chứng phase 2: `tools/smoke_p2.sh` (regression, bàn giao kho, day tất định, nâng cấp ngày kế).
+- Vòng ngày: `python3 -m chonoi.headless --mode day --days 5 --seed 1 --ticks 111000 --out out.jsonl`
+- Chơi đầy đủ: `python3 -m chonoi.live --mode day` (Esc/P pause, Shop mua bằng nút).
 - Smoke + bằng chứng phase 1: `tools/smoke_p1.sh`
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
@@ -27,4 +30,6 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- Command `tools/smoke_p1.sh`: kiểm bàn giao kho và regression phase 1.
+- Command `tools/smoke_p2.sh`: kiểm vòng ngày, Shop, cấp active và JSONL tất định trước PR/tag phase 2.
+- Nguồn Phase 2: `docs/tickets/TICKET-02.md`; thay contract/khung phải ghi lý do trong `docs/verification/phase-2.md`.

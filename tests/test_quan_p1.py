@@ -52,8 +52,10 @@ class Customers(unittest.TestCase):
 
     def test_het_ban_thi_bo_luot(self):
         with Workdir() as w:
+            # v1.1 có 4 bàn: lấp hết bàn (khách chờ không giữ hàng) để lượt khách mới không có chỗ
             sc = {"stock": {"ca_loc": 2}, "random_customers": True,
-                  "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]}
+                  "customers": [{"id": f"C{i}", "table_id": f"T{i}", "dish_id": "ca_loc_nuong_trui",
+                                 "order_status": "unfulfillable"} for i in range(1, 5)]}
             code, err, rows = run_quan(w, sc, ticks=120)
             self.assertEqual(code, 0, err)
             self.assertEqual(events(rows, "customer_arrived") + events(rows, "no_dish"), [])

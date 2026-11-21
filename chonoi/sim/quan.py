@@ -1,4 +1,8 @@
-"""Buổi tối — Mở Quán (`quan`), theo PRD-0 mục D, E, F (Phase 1).
+"""Buổi tối — Mở Quán (`quan`), theo PRD-0 mục D, E, F (Phase 1) và TICKET-02 mục 1.3, 2 (Phase 2).
+
+Phase 2: số bếp/bàn và 6 món đọc từ game.contract.json. Mode `day` tạo QuanSim với
+`plan_dishes` (lọc món theo kế hoạch Ngày trước khi xét nguyên liệu) và `carry`
+(tiền, earned, uy tín mang từ Ngày trước); quán chạy riêng dùng cả menu.
 
 Mặt bằng nhìn từ trên xuống: vị trí `[x, z]`. Một bước (tick) xử lý đúng thứ tự PRD-0 mục F "Quán":
   1. Đồng hồ: giảm giờ ca, kiên nhẫn khách đang chờ, thời gian nấu, thời gian ăn;
@@ -49,7 +53,9 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, plan_dishes=None, carry=None):
+        """`plan_dishes`: id món trong kế hoạch Ngày (mode `day`); None = quán chạy riêng, dùng cả menu.
+        `carry`: {money, earned, reputation} mang từ Ngày trước (mode `day`); None = đầu lượt độc lập."""
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
@@ -70,12 +76,15 @@ class QuanSim:
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2); thiếu cả hai -> kho rỗng
         self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
         self.time_left_ticks = scenario.get("time_left_ticks", _ticks(t["duration_s"]))
-        self.reputation = scenario.get("reputation", t["reputation_initial"])
+        carry = carry or {}
+        self.reputation = scenario.get("reputation", carry.get("reputation", t["reputation_initial"]))
         self.random_customers = scenario.get("random_customers", True)
         self.phase_tick = 0
-        self.money = 0
-        self.earned = 0
+        self.money = carry.get("money", 0)
+        self.earned = carry.get("earned", 0)
         self.shift_earned = 0
+        # Thứ tự duyệt món cố định theo mã Unicode; mode `day` lọc theo kế hoạch TRƯỚC khi xét nguyên liệu.
+        self.dish_pool = sorted(self.menu) if plan_dishes is None else sorted(d for d in plan_dishes if d in self.menu)
         self.done = False
         self.reason = None
 
@@ -423,7 +432,7 @@ class QuanSim:
             return
         held = self._reserved_total()
         avail = {k: self.stock.get(k, 0) - held.get(k, 0) for k in self.stock}
-        options = [d for d in sorted(self.menu)
+        options = [d for d in self.dish_pool
                    if all(avail.get(k, 0) >= n for k, n in self.menu[d]["recipe"].items())]
         if not options:
             events.append(("no_dish", {}))
