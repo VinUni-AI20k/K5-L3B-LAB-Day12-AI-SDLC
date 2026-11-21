@@ -1,9 +1,4 @@
-"""Buổi tối — Mở Quán: đi lại, khách gọi món, giữ chỗ nguyên liệu và kiên nhẫn.
-
-Nhóm viết tiếp (PRD-0 mục F, Quán):
-  TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
-                     ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
-"""
+"""Buổi tối — Mở Quán: đi lại, khách gọi món, giữ chỗ, nấu bếp, phục vụ, tiền/tip và kết ca."""
 
 import math
 from collections import Counter
@@ -81,15 +76,19 @@ class QuanSim:
             by_id[u["id"]].update(u)
         return sort_by_id(list(by_id.values()))
 
+    def _compute_score(self) -> int:
+        return self.earned + self.reputation_multiplier * math.floor(self.reputation)
+
     def snapshot(self) -> dict:
         occupied = self._occupied_tables()
         return {
-            "player": {"pos": self.pos},
+            "player": {"pos": list(self.pos)},
             "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
-                       for s in self.stoves],
-            "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in self.tables],
+                       for s in sort_by_id(self.stoves)],
+            "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])}
+                       for tb in sort_by_id(self.tables)],
             "customers": [dict(c, reserved=dict(c["reserved"])) for c in sort_by_id(self.customers)],
         }
 
@@ -109,8 +108,14 @@ class QuanSim:
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"
-            events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
-                                        "shift_earned": self.shift_earned, "reputation": self.reputation}))
+            events.append(("quan_end", {
+                "reason": "time",
+                "money": self.money,
+                "earned": self.earned,
+                "shift_earned": self.shift_earned,
+                "reputation": self.reputation,
+                "score": self._compute_score(),
+            }))
         return events
 
     @staticmethod
