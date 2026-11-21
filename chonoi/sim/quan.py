@@ -10,8 +10,6 @@ Nhóm viết tiếp (PRD-0 mục F, Quán):
 from ..ids import sort_by_id
 from .ramp import ramp_velocity
 
-TICK = 60.0
-
 
 class QuanSim:
     mode = "quan"
@@ -23,6 +21,11 @@ class QuanSim:
         self.menu = tuning["menu"]
         self.rng = streams
         self.ids = ids
+        self.tick_hz = tuning["tick_hz"]
+        self.phase_tick = 0
+        self.random_customers = scenario.get("random_customers", True)
+        self.customer_interval_ticks = round(t["customer_interval_s"] * self.tick_hz)
+        self.patience_max_ticks = round(t["patience_s"] * self.tick_hz)
         p = scenario.get("player", {})
         self.pos = list(p.get("pos", t["start_pos"]))
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
@@ -31,7 +34,7 @@ class QuanSim:
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
         self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
         self.hand = scenario.get("hand")
-        self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
+        self.time_left_ticks = scenario.get("time_left_ticks", round(t["duration_s"] * self.tick_hz))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
         self.stoves = [dict(s, state=s.get("state", "idle"), dish=s.get("dish"),
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
@@ -58,7 +61,7 @@ class QuanSim:
         return sort_by_id(list(by_id.values()))
 
     def snapshot(self) -> dict:
-        occupied = {c["table_id"]: c["id"] for c in self.customers}
+        occupied = self._occupied_tables()
         return {
             "player": {"pos": self.pos},
             "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
@@ -71,11 +74,14 @@ class QuanSim:
 
     def step(self, inp):
         events = []
+        self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         # TODO(nhóm): giảm kiên nhẫn / nấu / ăn; bếp chín -> ready; xử lý khách theo thứ tự PRD-0 mục F.
         self._move(inp)
         # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
-        # TODO(nhóm): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.
+        table = self._arrival_table()
+        if table is not None:
+            self._seat_customer(table, events)
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"
@@ -83,13 +89,35 @@ class QuanSim:
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
         return events
 
+    def _occupied_tables(self):
+        return {c["table_id"]: c["id"] for c in self.customers}
+
+    def _arrival_table(self):
+        since_first = self.phase_tick - self.t["first_customer_tick"]
+        if not self.random_customers or since_first < 0 or since_first % self.customer_interval_ticks:
+            return None
+        occupied = self._occupied_tables()
+        return next((table for table in self.tables if table["id"] not in occupied), None)
+
+    def _seat_customer(self, table, events):
+        dishes = [dish for dish, entry in sorted(self.menu.items())
+                  if all(self.stock.get(kind, 0) >= amount for kind, amount in entry["recipe"].items())]
+        if not dishes:
+            return
+        dish = self.rng.get("customer_order").choice(dishes)
+        customer_id = self.ids.new("C")
+        table_id = table["id"]
+        self.customers.append({"id": customer_id, "table_id": table_id, "dish": dish, "state": "waiting",
+                               "patience_ticks": self.patience_max_ticks, "eat_ticks_left": 0, "reserved": {}})
+        events.append(("customer_arrived", {"customer_id": customer_id, "table_id": table_id, "dish": dish}))
+
     def _move(self, inp):
         speed = self.t["walk_speed"]
         mx, mz = inp.move
         self.vel = ramp_velocity(self, (mx * speed, mz * speed), int(self.t.get("ramp_max_ticks", 6)))
         b = self.t["bounds"]
         for i, axis in enumerate(("x", "z")):
-            self.pos[i] += self.vel[i] / TICK
+            self.pos[i] += self.vel[i] / self.tick_hz
             lo, hi = b[axis]
             if self.pos[i] <= lo:
                 self.pos[i], self.vel[i] = lo, max(0.0, self.vel[i])
