@@ -20,6 +20,7 @@
   - `scenario.py`: khối `day {money,earned,reputation,upgrades,day_plan}`, `gather.monsters[]`, `fish[].age_ticks`; cấm `quan.stock`/`quan.reputation` khi chạy day.
   - `live.py`: `--mode day`, `set_input` nhận `pause`/`shop_done`/`buy`, `meta` theo pha + `menu`, `day_plan`, `shop`, `upgrades`; snapshot thêm `paused`.
   - Mới: `chonoi/sim/day.py` (DaySim), `chonoi/sim/shop.py` (ShopSim). Gọi GatherSim/QuanSim qua giao diện hiện có; ngữ cảnh Ngày tạm truyền bằng bản sao tuning (cấp oxy/Máu, lọc menu theo kế hoạch, spawns theo `from_day`) tới khi có T246/T230.
+- **v1.2 khung (TV6, T305–T306, T330–T331)**: `scenario.apply_items_v12` (một dòng trong `_validate_block`, tách khỏi khối TV3); `runner.inventory_io` + `IdAllocator` reserve id cá thể; `DaySim` bàn giao cùng tick / id xuyên Ngày / Shop không hao. **Không sửa** `inventory.py`/`contract.py` (TV1). Đường v1.2 cần `validate_items_v12`, `read_inventory`/`write_inventory(..., version=)`, `tuning.freshness` — chưa có → mã 2 `"chờ TV1: …"`. Test: `tests/test_freshness_frame.py`.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).

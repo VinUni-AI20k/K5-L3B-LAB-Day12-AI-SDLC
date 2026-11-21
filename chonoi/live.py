@@ -29,8 +29,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from .contract import DEFAULT_PATH, load_contract
 from .errors import BadInput
 from .inputs import BUTTONS_V10, LiveInputs, buttons_for
-from .inventory import read_inventory
-from .runner import Session
+from .runner import Session, inventory_io
 from .scenario import load_scenario
 from .sim.day import missing_day_keys
 
@@ -44,7 +43,8 @@ class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
     def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, days=1, contract=None):
-        self._args = (mode, tuning, scenario, seed, inventory, days)
+        version = contract.get("contract_version") if contract is not None else None
+        self._args = (mode, tuning, scenario, seed, inventory, days, version)
         self.buttons, self.strings = buttons_for(contract) if contract is not None else (BUTTONS_V10, ())
         self.mode = mode
         self.tuning = tuning
@@ -280,8 +280,10 @@ def main(argv=None) -> int:
         tuning = contract["tuning"]
         if a.mode == "day" and missing_day_keys(tuning):
             raise BadInput(f"--mode day: contract chưa có khóa {', '.join(missing_day_keys(tuning))} (chờ TV1)")
-        scenario = load_scenario(a.scenario, a.mode, tuning)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        version = contract.get("contract_version")
+        scenario = load_scenario(a.scenario, a.mode, tuning, version)
+        read_inv, _ = inventory_io(version) if (a.inventory or a.inventory_out) else (None, None)
+        inventory = read_inv(a.inventory) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, days=days, contract=contract)

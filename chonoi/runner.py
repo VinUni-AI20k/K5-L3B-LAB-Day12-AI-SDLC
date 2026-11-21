@@ -10,28 +10,62 @@ Pause (đề §4.2) là lớp bọc chung ở `Session.step`, dùng cho cả ba 
 tăng `tick`, phát `paused`; còn pause thì bỏ cạnh hành động/`buy`, không gọi sim (lịch, timer kể cả Shop
 đứng yên); cạnh kế phát `resumed` rồi chạy gameplay ngay bước đó.
 
+Kho v1.2 (TV6, T306): đọc/ghi theo `contract_version` qua hàm của TV1 (`inventory_io`); một `IdAllocator`
+cho cả lượt chạy là bộ cấp id cá thể `I<n>` toàn cục (reserve mọi id cá thể nạp từ scenario/file trước khi
+sim cấp mới); `--inventory-out` ghi đúng một lần khi có `gather_end` (ngất → `{"items":[]}`), chạm `--ticks`
+trước thì không đụng đích. v1.0/v1.1 giữ nguyên từng byte.
+
 `Session` là API bước tick gọn dùng chung cho headless (`run`) và cửa sổ chơi trực tiếp (`chonoi.live`):
 cả hai chạy CÙNG một lớp sim, không nhân đôi logic.
 """
 
+import inspect
 import math
 
 from .ids import IdAllocator
 from .inputs import BUTTONS_V10, InputPlayer
-from .inventory import write_inventory
+from .errors import BadInput
+from .inventory import read_inventory, write_inventory
 from .jsonl import JsonlWriter
 from .rng import Streams
+from .scenario import is_v12
 from .sim.day import DaySim
 from .sim.gather import GatherSim
 from .sim.quan import QuanSim
 
 
-def build_sim(mode, tuning, scenario, seed, inventory, days=1):
+def inventory_io(version):
+    """(đọc, ghi) file kho theo phiên bản. v1.0/v1.1: hàm cũ y nguyên. v1.2: hàm của TV1 nhận `version`."""
+    if not is_v12(version):
+        return read_inventory, write_inventory
+    ok = all("version" in inspect.signature(f).parameters for f in (read_inventory, write_inventory))
+    if not ok:
+        raise BadInput("kho cá thể v1.2 chưa hỗ trợ — chờ TV1: chonoi.inventory.read_inventory(path, version=…) "
+                       "và write_inventory(path, items, version=…) (T301, T302)")
+    return (lambda path: read_inventory(path, version=version),
+            lambda path, items: write_inventory(path, items, version=version))
+
+
+def _item_ids(scenario, inventory):
+    """Id của mọi cá thể nạp sẵn (scenario hold/stock, file kho, mẫu day) — rỗng với kho đếm v1.0/v1.1."""
+    arrays = [inventory]
+    for b in (scenario, scenario.get("gather"), scenario.get("quan")):
+        if isinstance(b, dict):
+            arrays += [b.get("hold"), b.get("stock")]
+    if isinstance(inventory, dict):
+        arrays.append(inventory.get("items"))
+    return [it["id"] for arr in arrays if isinstance(arr, list)
+            for it in arr if isinstance(it, dict) and isinstance(it.get("id"), str)]
+
+
+def build_sim(mode, tuning, scenario, seed, inventory, days=1, version=None):
     streams, ids = Streams(seed), IdAllocator()
+    for iid in _item_ids(scenario, inventory):  # bộ cấp I<n> toàn cục tiếp tục sau id lớn nhất đã nạp
+        ids.reserve(iid)
     if mode == "gather":
         return GatherSim(tuning, scenario, streams, ids)
     if mode == "day":
-        return DaySim(tuning, scenario, streams, ids, days=days)
+        return DaySim(tuning, scenario, streams, ids, days=days, version=version)
     return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
 
 
@@ -42,10 +76,11 @@ def _score(sim, tuning):
 class Session:
     """Một lượt chơi: dựng sim, bước từng tick, lấy snapshot / dòng end."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, days=1):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, days=1, version=None):
         self.mode = mode
+        self.version = version
         self.tuning = tuning
-        self.sim = build_sim(mode, tuning, scenario, seed, inventory, days)
+        self.sim = build_sim(mode, tuning, scenario, seed, inventory, days, version)
         self.tick = 0
         self.sim_tick = 0
         self.phase_tick = 0
@@ -121,12 +156,15 @@ class Session:
     def write_inventory_if_done(self, inventory_out):
         """File kho: ghi MỘT lần khi có gather_end; chưa kết thúc thì giữ nguyên file đích."""
         if self.mode == "gather" and self.sim.done and inventory_out:
-            write_inventory(inventory_out, self.sim.inventory_items())
+            items = self.sim.inventory_items()
+            if is_v12(self.version) and not items:
+                items = []  # ngất / giỏ rỗng → {"items":[]} (kể cả khi sim còn trả kho đếm rỗng)
+            inventory_io(self.version)[1](inventory_out, items)
 
 
 def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None,
-        days=1, buttons=BUTTONS_V10, strings=()):
-    sess = Session(mode, tuning, scenario, seed, inventory, days)
+        days=1, buttons=BUTTONS_V10, strings=(), version=None):
+    sess = Session(mode, tuning, scenario, seed, inventory, days, version)
     player = InputPlayer(frames, buttons, strings)
     w = JsonlWriter(out_path)
     try:

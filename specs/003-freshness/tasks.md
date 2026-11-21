@@ -14,8 +14,8 @@
 - [ ] T302 [US1] [adapter] (TV1) `write_inventory` v1.2: sắp theo id, fresh float đầy đủ, file tạm + `os.replace`; ngất → `{"items":[]}`
 - [ ] T303 [P] [US1] [adapter] (TV1) `chonoi/contract.py` validate `freshness {initial, gather_decay_per_s, quan_decay_per_s, spoiled_below}` + kiểm `decay×240/tick_hz` nguyên; `game.contract.json` thêm `freshness` (đổi `"1.2"` ở T340)
 - [ ] T304 [P] [US1] [adapter] (TV1) `docs/contracts/` mục v1.2 từ `specs/003-freshness/contracts/*.md`; báo nhóm schema đã chốt (handoff cho TV2/TV3/TV4/Cursor)
-- [ ] T305 [US1] [adapter] (TV6, agent khung) `chonoi/scenario.py`: `gather.hold`, `quan.stock` mảng cá thể; `customers[].reserved` mảng id; id vật lý duy nhất giữa nơi chứa; reserved trỏ cá thể chưa ươn, đủ công thức, không dùng chung → sai mã 2
-- [ ] T306 [P] [US1] [adapter] (TV6, agent khung) `chonoi/headless.py` + `runner.py`: đọc/ghi kho theo version; bộ cấp id cá thể `ItemIds` toàn cục truyền cho sim; `write_inventory_if_done` dùng v1.2
+- [x] T305 [US1] [adapter] (TV6, agent khung) `chonoi/scenario.py`: `gather.hold`, `quan.stock` mảng cá thể; `customers[].reserved` mảng id; id vật lý duy nhất giữa nơi chứa; reserved trỏ cá thể chưa ươn, đủ công thức, không dùng chung → sai mã 2
+- [x] T306 [P] [US1] [adapter] (TV6, agent khung) `chonoi/headless.py` + `runner.py`: đọc/ghi kho theo version; bộ cấp id cá thể `ItemIds` toàn cục truyền cho sim; `write_inventory_if_done` dùng v1.2
 - [ ] T307 [P] [US1] [qa] (TV5) Test AC-P3-01…05 (kho đếm → 2, id trùng, fresh ngoài miền, ghi nguyên tử một lần, ngất rỗng, tick_limit giữ đích)
 
 **Checkpoint (~phút 12)**: TV1 báo schema chốt → các lát dưới chạy song song.
@@ -36,7 +36,7 @@
 
 ## Phase 4 — day — TV6 (agent khung)
 - [x] T330 [US4] [sim/day] (TV6) Bàn giao `gather_end → quan` cùng tick, không hao thêm, quán chạy từ bước sau — `chonoi/runner.py` / `chonoi/sim/day.py`
-- [ ] T331 [US4] [sim/day] (TV6) Id tăng xuyên Ngày; Ngày đầu giữ id mẫu `gather.hold`, Ngày kế cấp id mới theo thứ tự mảng (kind/fresh ban đầu); Shop `stock` cá thể không hao
+- [x] T331 [US4] [sim/day] (TV6) Id tăng xuyên Ngày; Ngày đầu giữ id mẫu `gather.hold`, Ngày kế cấp id mới theo thứ tự mảng (kind/fresh ban đầu); Shop `stock` cá thể không hao
 - [ ] T332 [P] [US4] [qa] (TV5) Test AC-P3-19…21 (smoke day nhiều Ngày, pause/Shop không hao)
 
 ## Phase 5 — HUD — TV6 (Cursor), chỉ `chonoi/web/`

@@ -46,8 +46,11 @@ def _check_ids(name, arr):
         seen.add(e["id"])
 
 
-def load_scenario(path, mode: str, tuning: dict) -> dict:
-    """gather/quan: trả dict của khối đó. day (v1.1): trả {"day":…, "gather":…, "quan":…} (khối vắng = {})."""
+def load_scenario(path, mode: str, tuning: dict, version=None) -> dict:
+    """gather/quan: trả dict của khối đó. day (v1.1): trả {"day":…, "gather":…, "quan":…} (khối vắng = {}).
+
+    `version` = `contract_version`; từ "1.2" thì `hold`/`stock`/`reserved` theo kho cá thể (`_items_v12_view`).
+    """
     if path is None:
         return {"day": {}, "gather": {}, "quan": {}} if mode == "day" else {}
     try:
@@ -56,15 +59,15 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
     if mode == "day":
-        return _load_day(data, tuning)
+        return _load_day(data, tuning, version)
     if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
         raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
     if set(data) - {mode}:
         raise BadInput(f"khối sai mode: chạy --mode {mode} chỉ nhận khối '{mode}'")
-    return _validate_block(mode, data.get(mode, {}), tuning)
+    return _validate_block(mode, data.get(mode, {}), tuning, version)
 
 
-def _validate_block(mode, block, tuning):
+def _validate_block(mode, block, tuning, version=None):
     if not isinstance(block, dict):
         raise BadInput(f"khối {mode} phải là object")
     allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
@@ -76,14 +79,16 @@ def _validate_block(mode, block, tuning):
         t = block["time_left_ticks"]
         if isinstance(t, bool) or not isinstance(t, int) or not (1 <= t <= dur):
             raise BadInput(f"time_left_ticks phải là số nguyên trong [1, {dur}]")
+    # Một dòng gọi kiểm v1.2 (hàm riêng) — tránh đụng khối `_validate_gather`/`_validate_quan` của TV3.
+    view = apply_items_v12(mode, block, tuning, version)
     if mode == "gather":
-        _validate_gather(block, tuning)
+        _validate_gather(view, tuning)
     else:
-        _validate_quan(block, tuning)
+        _validate_quan(view, tuning)
     return block
 
 
-def _load_day(data, tuning):
+def _load_day(data, tuning, version=None):
     """Scenario `day` (đề §4.3): khối day dựng trạng thái xuyên Ngày; gather/quan là mẫu khởi tạo mỗi Ngày."""
     if not isinstance(data, dict) or not set(data) <= {"day", "gather", "quan"}:
         raise BadInput("scenario day chỉ được có khối 'day', 'gather', 'quan'")
@@ -93,9 +98,104 @@ def _load_day(data, tuning):
         if bad:
             raise BadInput(f"chạy day cấm quan.{', quan.'.join(bad)} (dùng gather.hold / day.reputation)")
     out = {"day": _validate_day(data.get("day", {}), tuning),
-           "gather": _validate_block("gather", data.get("gather", {}), tuning),
-           "quan": _validate_block("quan", q, tuning)}
+           "gather": _validate_block("gather", data.get("gather", {}), tuning, version),
+           "quan": _validate_block("quan", q, tuning, version)}
     return out
+
+
+# --- v1.2: kho cá thể (TV6, T305) --------------------------------------------------------------
+# Schema TỪNG cá thể ({id, kind, fresh}) là của TV1 (`inventory.validate_items_v12`, T301); phần dưới chỉ
+# kiểm mức scenario: id vật lý duy nhất giữa các nơi chứa, `customers[].reserved` là mảng id trỏ cá thể
+# chưa ươn trong kho, đúng công thức, không dùng chung. Sau đó trả "góc nhìn đếm" để các kiểm v1.0/v1.1
+# (`_validate_gather`, `_validate_quan` — khối của TV3) chạy nguyên vẹn trên cùng dữ liệu.
+
+UNITS_PER_POINT = 240  # ADR-0001: độ tươi nội bộ là số nguyên 240 đơn vị/điểm
+
+
+def is_v12(version) -> bool:
+    try:
+        return tuple(int(x) for x in str(version).split(".")) >= (1, 2)
+    except ValueError:
+        return False
+
+
+def fresh_units(fresh) -> int:
+    return int(round(fresh * UNITS_PER_POINT))
+
+
+def _tv1_items_v12():
+    from . import inventory
+    fn = getattr(inventory, "validate_items_v12", None)
+    if fn is None:
+        raise BadInput("kho cá thể v1.2 chưa hỗ trợ — chờ TV1: chonoi.inventory.validate_items_v12 (T301)")
+    return fn
+
+
+def apply_items_v12(mode, block, tuning, version):
+    """Cổng v1.2 cho `_validate_block`: không phải 1.2 → trả `block` nguyên; có thì kiểm + góc nhìn đếm."""
+    if not is_v12(version):
+        return block
+    return _items_v12_view(mode, block, tuning)
+
+
+def _items_v12_view(mode, block, tuning):
+    """Kiểm scenario kho cá thể (T305). Góc nhìn đếm để `_validate_gather`/`_validate_quan` chạy y nguyên."""
+    validate = _tv1_items_v12()
+    fr = tuning.get("freshness")
+    if not isinstance(fr, dict) or "spoiled_below" not in fr:
+        raise BadInput("contract chưa có khóa tuning.freshness (chờ TV1, T303)")
+    spoiled_units = fresh_units(fr["spoiled_below"])
+    view = dict(block)
+    seen = {}
+    for where in ("hold", "stock"):
+        if where not in block:
+            continue
+        items = block[where]
+        if not isinstance(items, list):
+            raise BadInput(f"{mode}.{where} phải là mảng cá thể {{id, kind, fresh}} (contract v1.2)")
+        validate(items)
+        for it in items:
+            if it["id"] in seen:
+                raise BadInput(f"id cá thể {it['id']} trùng giữa {seen[it['id']]} và {mode}.{where}")
+            seen[it["id"]] = f"{mode}.{where}"
+    if "hold" in block:
+        view["hold"] = [it["kind"] for it in block["hold"]]
+    if mode != "quan":
+        return view
+    stock = {it["id"]: it for it in block.get("stock", [])}
+    if "stock" in block:
+        counts = {}
+        for it in block["stock"]:
+            counts[it["kind"]] = counts.get(it["kind"], 0) + 1
+        view["stock"] = counts
+    used = {}
+    customers = []
+    for c in block.get("customers", []):
+        c = dict(c)
+        r = c.get("reserved")
+        if r is not None:
+            cid = c.get("id")
+            if not isinstance(r, list) or not all(isinstance(x, str) and x for x in r):
+                raise BadInput(f"customers.{cid}: reserved phải là mảng id cá thể (contract v1.2)")
+            kinds = {}
+            for iid in r:
+                it = stock.get(iid)
+                if it is None:
+                    raise BadInput(f"customers.{cid}: reserved trỏ id {iid} không có trong quan.stock")
+                if iid in used:
+                    raise BadInput(f"customers.{cid}: cá thể {iid} đã được giữ cho {used[iid]}")
+                used[iid] = cid
+                if fresh_units(it["fresh"]) < spoiled_units:
+                    raise BadInput(f"customers.{cid}: reserved trỏ cá thể ươn {iid}")
+                kinds[it["kind"]] = kinds.get(it["kind"], 0) + 1
+            recipe = tuning["menu"].get(c.get("dish_id"), {}).get("recipe")
+            if r and recipe is not None and kinds != recipe:
+                raise BadInput(f"customers.{cid}: reserved {r} không đúng công thức {c['dish_id']} ({recipe})")
+            c["reserved"] = kinds
+        customers.append(c)
+    if "customers" in block:
+        view["customers"] = customers
+    return view
 
 
 def _validate_day(b, tuning):
