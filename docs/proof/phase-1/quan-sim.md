@@ -1,7 +1,7 @@
 # Bằng chứng triển khai Module sim/quan (Lát 3 & 4 - Phase 1)
 
 **Người thực hiện:** Nguyễn Văn Lâm (`sim/quan` · Integrator)  
-**Phạm vi:** [chonoi/sim/quan.py](file:///e:/Projects/Lab12Vinuni/K5-L3B-LAB-Day12-AI-SDLC-NhomBaKhi/chonoi/sim/quan.py), [chonoi/scenario.py](file:///e:/Projects/Lab12Vinuni/K5-L3B-LAB-Day12-AI-SDLC-NhomBaKhi/chonoi/scenario.py), [tests/test_quan.py](file:///e:/Projects/Lab12Vinuni/K5-L3B-LAB-Day12-AI-SDLC-NhomBaKhi/tests/test_quan.py)
+**Phạm vi** · [chonoi/sim/quan.py](../../../chonoi/sim/quan.py), [chonoi/scenario.py](../../../chonoi/scenario.py), [tests/test_quan.py](../../../tests/test_quan.py).
 
 ## 1. Các hạng mục đã hoàn thành
 
