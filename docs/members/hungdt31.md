@@ -3,6 +3,7 @@
 - Vai trò trong nhóm: `qa` (Test, smoke 2 tiến trình, verification) · QA Lead · Dự phòng `client/ui`
 - Tôi đã làm (kèm link commit):
   - Phase 1 (`3280d75`): chạy `check_team.py`, unittest, smoke 2 mode, ma trận kiểm chứng đầu tiên.
+  - Phase 2: smoke tích hợp + `day` 5 Ngày (`docs/proof/phase-2/`), bot `tools/qa_autoplay.py` và `tools/qa_check_day.py`; phát hiện và sửa payload `monster_hit` lệch Test Contract; [verification/phase-2.md](../verification/phase-2.md).
   - Phase 1 (nhánh `test/p1-qa-verification`): ma trận AC đầy đủ cho 49 test ([phase-1.md](../verification/phase-1.md)); smoke e2e thật gather → kho → quan (money 264, rep 3.6), có kiểm tất định từng byte; viết skill `.agents/skills/qa-verify-phase`.
 - Tôi đã review (kèm link):
   - (Cập nhật link PR đã review)

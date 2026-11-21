@@ -415,7 +415,8 @@ class GatherSim:
         drop_n = math.floor(len(self.hold) * m_cfg["loss_ratio"])
         lost = [self.hold.pop() for _ in range(drop_n)]
         events.append(("monster_hit", {
-            "monster_id": m["id"], "kind": m["kind"], "hp": self.hp, "lost": lost,
+            # Test Contract v1.1 mục 4.4: data = monster_id, hp, lost, pos (vị trí người chơi)
+            "monster_id": m["id"], "hp": self.hp, "lost": lost, "pos": self.pos.copy(),
         }))
         dx, dy = m["pos"][0] - self.pos[0], m["pos"][1] - self.pos[1]
         norm = math.hypot(dx, dy)
