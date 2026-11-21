@@ -37,6 +37,7 @@ class GatherSim:
     def __init__(self, tuning, scenario, streams, ids):
         t = tuning["gather"]
         self.t = t
+        self.tick_hz = tuning["tick_hz"]
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -147,7 +148,7 @@ class GatherSim:
             self.heading = math.degrees(math.atan2(md, mx)) % 360
         b = self.t["bounds"]
         for i, axis in enumerate(AXES):
-            self.pos[i] += self.vel[i] / TICK
+            self.pos[i] += self.vel[i] / self.tick_hz
             lo, hi = b[axis]
             if self.pos[i] <= lo:
                 self.pos[i] = lo
