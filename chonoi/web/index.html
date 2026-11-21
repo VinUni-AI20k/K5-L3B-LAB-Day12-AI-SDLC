@@ -248,6 +248,314 @@ function checkEventsForFX(events) {
   lastProcessedTick = events[events.length - 1].tick;
 }
 
+// ==========================================
+// SFX WebAudio (tổng hợp) + phụ đề T461 / Phase 4
+// ==========================================
+let audioCtx = null;
+let soundOn = true;
+let captionsOn = true;
+let sfxPrimed = false;
+const sfxSeen = new Set();
+const captionLines = []; // {text, until}
+let nearMonsterLatch = false;
+let angryCustLatch = false;
+
+(function loadSfxPrefs() {
+  try {
+    const s = localStorage.getItem("chonoi_sfx_sound");
+    const c = localStorage.getItem("chonoi_sfx_captions");
+    if (s === "0") soundOn = false;
+    if (s === "1") soundOn = true;
+    if (c === "0") captionsOn = false;
+    if (c === "1") captionsOn = true;
+  } catch (e) { /* private mode */ }
+})();
+
+function saveSfxPrefs() {
+  try {
+    localStorage.setItem("chonoi_sfx_sound", soundOn ? "1" : "0");
+    localStorage.setItem("chonoi_sfx_captions", captionsOn ? "1" : "0");
+  } catch (e) { /* ignore */ }
+}
+
+function ensureAudio() {
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  } catch (e) {
+    return null;
+  }
+}
+
+function unlockAudio() { ensureAudio(); }
+
+function beep(freq, durSec, type, vol) {
+  if (!soundOn) return;
+  try {
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const t0 = ctx.currentTime;
+    const dur = Math.min(0.4, Math.max(0.04, durSec || 0.12));
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    osc.type = type || "sine";
+    osc.frequency.setValueAtTime(freq, t0);
+    const peak = Math.min(0.1, vol == null ? 0.05 : vol);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.exponentialRampToValueAtTime(peak, t0 + 0.012);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    osc.connect(g);
+    g.connect(ctx.destination);
+    osc.start(t0);
+    osc.stop(t0 + dur + 0.02);
+  } catch (e) { /* thiếu WebAudio → im lặng */ }
+}
+
+function pushCaption(line) {
+  if (!captionsOn || !line) return;
+  const now = performance.now();
+  captionLines.push({ text: line, until: now + 1800 });
+  while (captionLines.length > 3) captionLines.shift();
+}
+
+function eventSfxKey(e) {
+  const d = e.data || {};
+  const id = d.item_id || d.fish_id || d.customer_id || d.order_id || d.node_id || d.upgrade || d.action || "";
+  return String(e.tick) + "|" + e.name + "|" + id;
+}
+
+/** Map event name → {caption, play} */
+const SFX_BY_EVENT = {
+  fish_caught: {
+    caption: "[♪ tõm] bắt cá",
+    play: function () { beep(520, 0.1, "sine", 0.05); beep(780, 0.12, "triangle", 0.04); },
+  },
+  gather: {
+    caption: "[♪ xột] hái rau",
+    play: function () { beep(640, 0.1, "square", 0.035); },
+  },
+  monster_hit: {
+    caption: "[♪ rầm] Cá Sấu cắn!",
+    play: function () { beep(95, 0.32, "sawtooth", 0.08); },
+  },
+  spoiled: {
+    caption: "[♪ ực] hàng ươn",
+    play: function () { beep(170, 0.22, "triangle", 0.05); },
+  },
+  served: {
+    caption: "[♪ chát] phục vụ",
+    play: function () { beep(700, 0.1, "square", 0.04); },
+  },
+  paid: {
+    caption: "[♪ leng] tiền vào",
+    play: function () { beep(880, 0.08, "sine", 0.05); beep(1175, 0.14, "sine", 0.045); },
+  },
+  bought: {
+    caption: "[♪ keng] mua nâng cấp",
+    play: function () { beep(988, 0.16, "sine", 0.055); },
+  },
+  buy_failed: {
+    caption: "[♪ bụp] mua lỗi",
+    play: function () { beep(140, 0.2, "sawtooth", 0.05); },
+  },
+  day_start: {
+    caption: "[♪ ting] ngày mới",
+    play: function () { beep(523, 0.12, "sine", 0.05); beep(659, 0.16, "sine", 0.04); },
+  },
+  oxygen_empty: {
+    caption: "[♪ ục] hết hơi",
+    play: function () { beep(210, 0.28, "sine", 0.05); },
+  },
+  faint: {
+    caption: "[♪ ịch] ngất!",
+    play: function () { beep(85, 0.35, "sawtooth", 0.07); },
+  },
+  customer_left: {
+    caption: "[♪ hự] khách bỏ đi",
+    play: function () { beep(250, 0.18, "triangle", 0.045); },
+  },
+  monster_warn: {
+    caption: "[♪ ù] thủy quái gần!",
+    play: function () { beep(310, 0.14, "square", 0.04); },
+  },
+  angry_warn: {
+    caption: "[♪ hứ] khách sắp giận",
+    play: function () { beep(360, 0.12, "square", 0.04); },
+  },
+};
+
+function fireSfxNamed(name, captionOverride) {
+  const spec = SFX_BY_EVENT[name];
+  if (!spec) return;
+  pushCaption(captionOverride || spec.caption);
+  if (!paused) spec.play();
+}
+
+function processSfxFromEvents(events, opts) {
+  opts = opts || {};
+  if (!events || !events.length) return;
+  if (!sfxPrimed && !opts.forcePlay) {
+    events.forEach(function (e) { sfxSeen.add(eventSfxKey(e)); });
+    sfxPrimed = true;
+    return;
+  }
+  sfxPrimed = true;
+  events.forEach(function (e) {
+    const key = eventSfxKey(e);
+    if (sfxSeen.has(key)) return;
+    sfxSeen.add(key);
+    if (paused && !opts.forcePlay) return;
+    let name = e.name;
+    if (name === "choke") name = "monster_hit";
+    const spec = SFX_BY_EVENT[name];
+    if (!spec) return;
+    let cap = spec.caption;
+    if (name === "paid") {
+      const tip = (e.data && e.data.tip) || 0;
+      if (tip > 0) cap = "[♪ leng] tiền + boa " + tip + "k";
+    }
+    pushCaption(cap);
+    if (soundOn && !paused) spec.play();
+  });
+}
+
+function sfxEdgeWarn(nearMonster, angry) {
+  if (paused) {
+    nearMonsterLatch = !!nearMonster;
+    angryCustLatch = !!angry;
+    return;
+  }
+  if (nearMonster && !nearMonsterLatch) {
+    nearMonsterLatch = true;
+    const key = "warn|monster|" + (snap && snap.tick);
+    if (!sfxSeen.has(key)) {
+      sfxSeen.add(key);
+      fireSfxNamed("monster_warn");
+    }
+  } else if (!nearMonster) nearMonsterLatch = false;
+  if (angry && !angryCustLatch) {
+    angryCustLatch = true;
+    const key = "warn|angry|" + (snap && snap.tick);
+    if (!sfxSeen.has(key)) {
+      sfxSeen.add(key);
+      fireSfxNamed("angry_warn");
+    }
+  } else if (!angry) angryCustLatch = false;
+}
+
+function drawSfxCaptions(w, h) {
+  const now = performance.now();
+  for (let i = captionLines.length - 1; i >= 0; i--) {
+    if (captionLines[i].until <= now) captionLines.splice(i, 1);
+  }
+  if (!captionsOn || !captionLines.length) return;
+  const n = captionLines.length;
+  const boxH = 28 + n * 26;
+  const boxW = Math.min(520, w - 40);
+  const bx = (w - boxW) / 2;
+  const by = h - 78 - boxH;
+  ctx.save();
+  ctx.fillStyle = highContrast ? "rgba(0,0,0,0.92)" : "rgba(8,12,18,0.78)";
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(bx, by, boxW, boxH, 8) : ctx.rect(bx, by, boxW, boxH);
+  ctx.fill();
+  if (highContrast) {
+    ctx.strokeStyle = "#ffe600";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  captionLines.forEach(function (line, i) {
+    text(line.text, w / 2, by + 26 + i * 26, {
+      size: 18, align: "center", bold: true,
+      color: highContrast ? "#ffe600" : "#ffe082",
+    });
+  });
+  ctx.restore();
+}
+
+function drawSfxHudToggles(w, h) {
+  // Góc trên phải — không đụng gameplay
+  const bw = 118, bh = 36, gap = 8;
+  const x1 = w - 16 - bw, y0 = 8;
+  const x0 = x1 - bw - gap;
+  btn("toggleSound", soundOn ? "🔊 Âm: BẬT" : "🔇 Âm: TẮT", x0, y0, bw, bh, {
+    size: 18,
+    fill: soundOn ? "#1b5e20" : "#37474f",
+    stroke: soundOn ? "#69f0ae" : "#90a4ae",
+  });
+  btn("toggleCaptions", captionsOn ? "CC: BẬT" : "CC: TẮT", x1, y0, bw, bh, {
+    size: 18,
+    fill: captionsOn ? "#0d47a1" : "#37474f",
+    stroke: captionsOn ? "#82b1ff" : "#90a4ae",
+  });
+}
+
+function toggleSound() {
+  unlockAudio();
+  soundOn = !soundOn;
+  saveSfxPrefs();
+  if (soundOn) beep(660, 0.08, "sine", 0.04);
+}
+
+function toggleCaptions() {
+  captionsOn = !captionsOn;
+  saveSfxPrefs();
+  if (captionsOn) pushCaption("[♪] phụ đề bật");
+}
+
+// Demo SFX: phát lần lượt event mẫu (phụ đề luôn; âm theo soundOn)
+let sfxDemoTimer = null;
+function startSfxDemo() {
+  uiScreen = "play";
+  paused = false;
+  snap = {
+    mode: "gather", tick: 1, time_left_ticks: 9000, hold_capacity: 12, hold: [],
+    player: { pos: [20, 12], oxygen_ticks: 900, oxygen_max_ticks: 1800, hp: 3, hp_max: 3, at_surface: false },
+    nodes: [], fish: [], monsters: [], events: [],
+    meta: { bounds: { x: [0, 100], d: [0, 30] }, dock_pos: [2, 0], dock_radius: 3 },
+  };
+  sfxPrimed = true;
+  sfxSeen.clear();
+  captionLines.length = 0;
+  const seq = [
+    { tick: 10, name: "fish_caught", data: { fish_id: "F1", kind: "ca_loc" } },
+    { tick: 20, name: "gather", data: { node_id: "N1", kind: "bong_sung" } },
+    { tick: 30, name: "monster_hit", data: { hp: 2 } },
+    { tick: 40, name: "spoiled", data: { item_id: "I1", kind: "ca_linh", location: "hold" } },
+    { tick: 50, name: "oxygen_empty", data: {} },
+    { tick: 60, name: "faint", data: { hp: 0 } },
+    { tick: 70, name: "served", data: { table_id: "T1" } },
+    { tick: 80, name: "paid", data: { tip: 6, price: 34 } },
+    { tick: 90, name: "bought", data: { upgrade: "oxygen", level: 1 } },
+    { tick: 100, name: "buy_failed", data: { action: "hp", reason: "funds" } },
+    { tick: 110, name: "day_start", data: {} },
+    { tick: 120, name: "customer_left", data: { order_id: "C1" } },
+    { tick: 130, name: "monster_warn", data: {} },
+    { tick: 140, name: "angry_warn", data: {} },
+  ];
+  let i = 0;
+  if (sfxDemoTimer) clearInterval(sfxDemoTimer);
+  pushCaption("[♪ demo] chuỗi SFX — M tắt âm, N tắt phụ đề");
+  sfxDemoTimer = setInterval(function () {
+    if (i >= seq.length) { clearInterval(sfxDemoTimer); sfxDemoTimer = null; pushCaption("[♪ demo] xong"); return; }
+    const e = seq[i++];
+    // named warns are not real snap events — fire directly
+    if (e.name === "monster_warn" || e.name === "angry_warn") {
+      const key = eventSfxKey(e);
+      if (!sfxSeen.has(key)) { sfxSeen.add(key); fireSfxNamed(e.name); }
+    } else {
+      processSfxFromEvents([e], { forcePlay: true });
+      if (snap) {
+        snap.events = (snap.events || []).concat([e]);
+        snap.tick = e.tick;
+      }
+    }
+  }, 900);
+}
+
 // --- Điều khiển & Network (day mode + shop_done/buy từ UI Cursor) ---
 const down = new Set();
 const MOVE_KEYS = { w: "u", arrowup: "u", s: "d", arrowdown: "d", a: "l", arrowleft: "l", d: "r", arrowright: "r" };
@@ -356,6 +664,9 @@ function skipIntroOrAdvance() {
 
 addEventListener("keydown", (e) => {
   const k = keyName(e);
+  unlockAudio();
+  if (k === "m") { e.preventDefault(); toggleSound(); return; }
+  if (k === "n") { e.preventDefault(); toggleCaptions(); return; }
   if (k === "c") { highContrast = !highContrast; e.preventDefault(); return; }
   if (k === "escape" || k === "p") {
     if (uiScreen === "play" || uiScreen === "shop" || DEMO === "pause") { e.preventDefault(); togglePause(); return; }
@@ -394,6 +705,7 @@ addEventListener("keyup", (e) => {
 addEventListener("blur", () => { down.clear(); pushInput(); });
 
 cv.addEventListener("click", (e) => {
+  unlockAudio();
   const r = cv.getBoundingClientRect();
   const cx = e.clientX - r.left, cy = e.clientY - r.top;
   for (let i = buttons.length - 1; i >= 0; i--) {
@@ -424,28 +736,43 @@ function onButton(id) {
   else if (id === "demoShop") setScreen("shop");
   else if (id === "demoSum") setScreen("summary");
   else if (id === "demoFresh") { location.search = "?demo=fresh"; }
+  else if (id === "demoSfx") { location.search = "?demo=sfx"; }
   else if (id === "contrast") highContrast = !highContrast;
+  else if (id === "toggleSound") toggleSound();
+  else if (id === "toggleCaptions") toggleCaptions();
 }
 
 async function poll() {
   if (DEMO === "fresh") { applyFreshDemo(); setTimeout(poll, 200); return; }
+  if (DEMO === "sfx") { setTimeout(poll, 200); return; }
   if (DEMO && DEMO !== "pause") { setTimeout(poll, 200); return; }
   try {
     const r = await fetch("/state", { cache: "no-store" });
     snap = await r.json();
     offline = false;
     syncPhaseFromSnap();
-    if (snap && snap.events) checkEventsForFX(snap.events);
+    if (snap && snap.events) {
+      checkEventsForFX(snap.events);
+      processSfxFromEvents(snap.events); // lần đầu prime im; event mới mới SFX/phụ đề
+    }
   } catch (e) { offline = true; }
   setTimeout(poll, 24);
 }
 
+let freshSfxDone = false;
 function applyFreshDemo() {
   const q = params.get("mode") === "quan";
   snap = JSON.parse(JSON.stringify(q ? DEMO_DATA.fresh_quan : DEMO_DATA.fresh_snap));
   uiScreen = "play";
   offline = false;
-  if (snap && snap.events) checkEventsForFX(snap.events);
+  if (snap && snap.events) {
+    checkEventsForFX(snap.events);
+    if (!freshSfxDone) {
+      freshSfxDone = true;
+      sfxPrimed = true;
+      processSfxFromEvents(snap.events, { forcePlay: true });
+    }
+  }
 }
 
 function syncPhaseFromSnap() {
@@ -1217,6 +1544,7 @@ function drawGather(w, h) {
   });
 
   // Viền cảnh báo Thủy quái gần
+  sfxEdgeWarn(nearMonster, false);
   if (nearMonster) {
     ctx.strokeStyle = highContrast ? "#ffe600" : "rgba(244, 67, 54, 0.85)";
     ctx.lineWidth = 8;
@@ -1418,9 +1746,10 @@ function drawQuan(w, h) {
     const pl = patienceLeft(c), pm = patienceMax(c, meta);
     return pl !== undefined && pm > 0 && pl / pm < 0.25;
   });
+  sfxEdgeWarn(false, angry);
   if (angry) alertBanner(w, 200, "⚠ Khách sắp giận bỏ về!");
 
-  text("Phím: WASD (Đi lại) · E (Bưng/Nấu/Dọn) · Esc (Tạm dừng) · R (Chơi lại)", w - 16, h - 18, { size: 18, align: "right", color: "#90a4ae" });
+  text("Phím: WASD · E · Esc/P · R · M âm · N phụ đề", w - 16, h - 18, { size: 18, align: "right", color: "#90a4ae" });
 }
 
 // ==========================================
@@ -1454,13 +1783,20 @@ function drawMenu(w, h) {
     stroke: highContrast ? "#ffe600" : "#4fc3f7",
     color: highContrast ? "#ffe600" : "#e1f5fe"
   });
-  btn("quit", "Đóng", w / 2 - 130, h * 0.44 + 134, 260, 48, { fill: "#3e2723", stroke: "#ef5350" });
+  btn("toggleSound", soundOn ? "🔊 Âm thanh: BẬT (M)" : "🔇 Âm thanh: TẮT (M)", w / 2 - 130, h * 0.44 + 126, 260, 44, {
+    size: 18, fill: soundOn ? "#1b5e20" : "#37474f", stroke: soundOn ? "#69f0ae" : "#90a4ae"
+  });
+  btn("toggleCaptions", captionsOn ? "Phụ đề SFX: BẬT (N)" : "Phụ đề SFX: TẮT (N)", w / 2 - 130, h * 0.44 + 178, 260, 44, {
+    size: 18, fill: captionsOn ? "#0d47a1" : "#37474f", stroke: captionsOn ? "#82b1ff" : "#90a4ae"
+  });
+  btn("quit", "Đóng", w / 2 - 130, h * 0.44 + 230, 260, 44, { fill: "#3e2723", stroke: "#ef5350" });
 
   text("Khởi động nhanh các Demo:", w / 2, h - 80, { size: 18, align: "center", color: "#90a4ae" });
   if (!DEMO) {
-    btn("demoDay", "DayIntro", w / 2 - 210, h - 54, 130, 40, { size: 18 });
-    btn("demoShop", "Shop", w / 2 - 70, h - 54, 140, 40, { size: 18 });
-    btn("demoFresh", "Freshness", w / 2 + 80, h - 54, 130, 40, { size: 18 });
+    btn("demoDay", "DayIntro", w / 2 - 280, h - 54, 120, 40, { size: 18 });
+    btn("demoShop", "Shop", w / 2 - 150, h - 54, 100, 40, { size: 18 });
+    btn("demoFresh", "Fresh", w / 2 - 40, h - 54, 100, 40, { size: 18 });
+    btn("demoSfx", "SFX", w / 2 + 70, h - 54, 100, 40, { size: 18 });
   }
 }
 
@@ -1714,6 +2050,10 @@ function frame() {
 
   ctx.restore();
 
+  // SFX toggles + phụ đề (ngoài screen-shake)
+  drawSfxHudToggles(w, h);
+  drawSfxCaptions(w, h);
+
   // Chỉ số FPS góc màn hình cho Phase 4 Benchmark
   text(Math.round(fpsEMA) + " FPS", 10, h - 18, { size: 18, color: highContrast ? "#ffe600" : "rgba(255,255,255,0.4)" });
   applyContrastFrame(w, h);
@@ -1745,6 +2085,10 @@ else if (DEMO === "warn") {
     events: [],
     meta: { bounds: { x: [0, 16], z: [0, 10] }, patience_s: 60 },
   };
+} else if (DEMO === "sfx") {
+  soundOn = false; // kiểm phụ đề với âm tắt (không ghi đè localStorage)
+  captionsOn = true;
+  startSfxDemo();
 } else if (DEMO) setScreen(DEMO);
 </script>
 </body>
