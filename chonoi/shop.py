@@ -6,6 +6,7 @@ Cấp vừa mua ghi vào `upgrades` (hiển thị ngay); `active_upgrades` chỉ
 """
 
 from . import inventory as inv
+from .contract import CORE_UPGRADES, enabled
 
 
 class ShopSim:
@@ -13,6 +14,7 @@ class ShopSim:
     phase = "shop"
 
     def __init__(self, tuning, money, earned, reputation, upgrades, stock):
+        self.tuning = tuning
         self.cfg = tuning["shop"]
         self.money = money
         self.earned = earned
@@ -28,6 +30,8 @@ class ShopSim:
 
     def buy(self, action, events):
         levels = self.cfg["upgrades"].get(action)
+        if action not in CORE_UPGRADES and not enabled(self.tuning, action):
+            levels = None  # nâng cấp của mở rộng chưa bật
         if levels is None:  # lệnh không hỗ trợ (mở rộng chưa bật, Chợ...)
             events.append(("buy_failed", {"action": action, "reason": "unknown"}))
             return

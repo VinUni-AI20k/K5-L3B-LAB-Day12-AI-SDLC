@@ -70,7 +70,10 @@ class DaySession(PauseMixin):
             hold = [dict(it) for it in self.hold_tpl]
         else:
             hold = [{"id": self.item_ids.new("I"), "kind": it["kind"], "units": it["units"]} for it in self.hold_tpl]
-        self.sim = GatherSim(t, sc, self.streams, IdAllocator(), day=self.day, item_ids=self.item_ids, hold=hold)
+        net_lv = self.active_upgrades.get("net", 0)
+        net = t["shop"]["upgrades"]["net"][net_lv - 1] if net_lv else None
+        self.sim = GatherSim(t, sc, self.streams, IdAllocator(), day=self.day, item_ids=self.item_ids, hold=hold,
+                             net=net)
         self._sync_into_sim()
         self.phase_tick = 0
         out.append(("gather", "phase_start", {}))

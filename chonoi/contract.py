@@ -24,8 +24,21 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    exts = c.get("extensions", [])
+    if not isinstance(exts, list) or any(e not in EXTENSIONS for e in exts) or len(set(exts)) != len(exts):
+        raise BadInput(f"extensions phải là mảng mã không trùng thuộc {sorted(EXTENSIONS)}")
+    validate_tuning(c.get("tuning"), exts)
+    c["tuning"]["extensions"] = list(exts)  # để luật đọc qua tuning: "burn" in tuning["extensions"]
     return c
+
+
+EXTENSIONS = {"weapon", "net", "snake", "burn", "vendor", "ca_ho", "current", "reservations", "settings"}
+CORE_UPGRADES = ("oxygen", "hp")
+
+
+def enabled(tuning, code) -> bool:
+    """Mở rộng `code` có được khai trong manifest không (tắt thì luật lõi giữ nguyên)."""
+    return code in tuning.get("extensions", ())
 
 
 def _int_between(name, v, lo, hi):
@@ -142,7 +155,7 @@ def _validate_day(t):
             _int_between(f"shop.upgrades.{uid}.price", lv.get("price"), 1, 1_000_000)
 
 
-def validate_tuning(t):
+def validate_tuning(t, exts=()):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
@@ -175,8 +188,17 @@ def validate_tuning(t):
         raise BadInput("quan.tip_min_patience_ratio phải thuộc (0, 1]")
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
-    if q.get("burn_s") is not None:
-        raise BadInput("burn_s phải là null trong lõi (chỉ hữu hạn khi bật mở rộng burn)")
+    if "burn" in exts:
+        _between("quan.burn_s", q.get("burn_s"), 0.1, 600)
+    elif q.get("burn_s") is not None:
+        raise BadInput("burn_s phải là null khi chưa bật mở rộng burn")
+    if "net" in exts:
+        levels = t.get("shop", {}).get("upgrades", {}).get("net")
+        if not isinstance(levels, list) or not levels:
+            raise BadInput("bật net cần shop.upgrades.net[] {level, price, catch_radius, max_schools}")
+        for lv in levels:
+            _between("shop.upgrades.net.catch_radius", lv.get("catch_radius"), 0.5, 20)
+            _int_between("shop.upgrades.net.max_schools", lv.get("max_schools"), 1, 12)
     # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")

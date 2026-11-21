@@ -36,7 +36,7 @@ def tick_service(sim, events):
                 events.append(("dish_ready", {"stove_id": s["id"], "order_id": s["dish"]["order_id"],
                                           "dish_id": s["dish"]["dish_id"]}))
         elif s["state"] == "ready":
-            s["ready_ticks"] += 1  # burn_s = null: không cháy
+            s["ready_ticks"] += 1  # TODO(burn): khi enabled(tuning, "burn"), ready_ticks > burn_s·60 -> dish_burnt
     for c in sim.customers:
         if c["state"] == "eating":
             c["eat_ticks_left"] = max(0, c["eat_ticks_left"] - 1)

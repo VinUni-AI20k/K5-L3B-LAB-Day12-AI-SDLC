@@ -442,6 +442,20 @@
             "price": 500,
             "hp_max": 5
           }
+        ],
+        "net": [
+          {
+            "level": 1,
+            "price": 250,
+            "catch_radius": 4.0,
+            "max_schools": 2
+          },
+          {
+            "level": 2,
+            "price": 500,
+            "catch_radius": 6.0,
+            "max_schools": 3
+          }
         ]
       }
     }

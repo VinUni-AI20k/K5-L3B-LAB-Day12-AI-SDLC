@@ -10,6 +10,7 @@ Dùng được trên `sim` (GatherSim):
       source = {"action": "catch", "fish_id": id} hoặc {"action": "gather", "node_id": id}
 Số liệu chỉ đọc từ sim.t (interact_radius, node_yield, regrow_s, catch_radius, catch_cooldown_s, fish_yield).
 Sự kiện: events.append((tên, data)).
+Mở rộng net (TODO, khi bật "net" trong extensions): sim.net = {level, catch_radius, max_schools} hoặc None (cấp 0 = luật lõi).
 """
 
 
