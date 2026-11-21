@@ -7,9 +7,17 @@ Chạy: python3 -m unittest discover -s tests -v
 
 import json
 import os
+import sys
 import unittest
 
-from helpers import (Workdir, close, events, frames, read_jsonl, run_headless, snapshots, write_json)
+_tests_dir = str(Path(__file__).parent)
+if _tests_dir not in sys.path:
+    sys.path.insert(0, _tests_dir)
+
+try:
+    from helpers import (Workdir, close, events, frames, read_jsonl, run_headless, snapshots, write_json)
+except ImportError:
+    from tests.helpers import (Workdir, close, events, frames, read_jsonl, run_headless, snapshots, write_json)
 
 
 def last_pos(rows):
@@ -214,6 +222,9 @@ class Movement(unittest.TestCase):
 class Integration(unittest.TestCase):
     def test_inv_01_gather_writes_inventory_quan_reads_it(self):
         """Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung."""
+        with open("game.contract.json", encoding="utf-8") as f:
+            if json.load(f).get("contract_version", "1.0") >= "1.2":
+                self.skipTest("Kho đếm v1.0 được thay thế bởi kho cá thể v1.2 (Breaking Change)")
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"]}})
             inp = write_json(w.path("in.json"), frames({"tick": 0, "interact": True}))

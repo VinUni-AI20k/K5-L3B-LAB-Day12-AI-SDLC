@@ -144,6 +144,14 @@ def validate_tuning(t, version="1.0"):
     if version < "1.1" and q.get("burn_s") is not None:
         raise BadInput("burn_s phải là null ở Phase 1")
     # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
+    if version >= "1.2":
+        f = t.get("freshness")
+        if not isinstance(f, dict):
+            raise BadInput("Contract v1.2 yêu cầu khối tuning.freshness")
+        _between("freshness.initial", f.get("initial"), 1, 100)
+        _between("freshness.gather_decay_per_s", f.get("gather_decay_per_s"), 0, 10)
+        _between("freshness.quan_decay_per_s", f.get("quan_decay_per_s"), 0, 10)
+        _between("freshness.spoiled_below", f.get("spoiled_below"), 0, 100)
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:

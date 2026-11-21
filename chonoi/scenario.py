@@ -16,8 +16,8 @@ GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_o
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
 FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
-QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
-             "reputation", "time_left_ticks"}
+QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "reservations",
+             "random_customers", "reputation", "time_left_ticks"}
 
 
 def _check_ids(name, arr):
@@ -152,7 +152,7 @@ def _validate_gather(b, tuning):
 
 
 def _validate_quan(b, tuning):
-    for arr in ("stoves", "tables", "customers"):
+    for arr in ("stoves", "tables", "customers", "reservations"):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:

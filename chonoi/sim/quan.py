@@ -50,7 +50,6 @@ class QuanSim:
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
         self._tgt = None
         self._ramp_left = 0
-
         # Kho quán cá thể: tiếp nhận mảng cá thể [{id, kind, fresh}, ...]
         raw_stock = inventory if inventory is not None else scenario.get("stock", {})
         self._legacy_stock = isinstance(raw_stock, dict)
@@ -72,7 +71,6 @@ class QuanSim:
                         "kind": k,
                         "fresh": 100.0,
                     })
-
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = float(scenario.get("reputation", t["reputation_initial"]))
@@ -102,7 +100,14 @@ class QuanSim:
         for c in scenario.get("customers", []):
             ids.reserve(c["id"])
             dish_id = c.get("dish_id") or c.get("dish")
-            base_price = c.get("base_price", self.menu[dish_id]["price"] if (dish_id and dish_id in self.menu) else 0)
+            listed_price = self.menu[dish_id]["price"] if (dish_id and dish_id in self.menu) else 0
+            if "freshness" in c and c["freshness"]:
+                avg_fresh = sum(c["freshness"]) / len(c["freshness"])
+                base_price = math.floor(listed_price * avg_fresh / 100.0)
+            elif "base_price" in c:
+                base_price = c["base_price"]
+            else:
+                base_price = listed_price
             order_status = c.get("order_status", "served" if c.get("state") == "eating" else "reserved")
 
             raw_res = c.get("reserved", c.get("reserved_ids", []))
@@ -159,6 +164,10 @@ class QuanSim:
         self.shift_earned = 0
         self.done = False
         self.reason = None
+
+        self.reservations = [dict(r) for r in scenario.get("reservations", [])]
+        for r in self.reservations:
+            ids.reserve(r["id"])
 
     @staticmethod
     def _merge(defaults, updates):
@@ -300,7 +309,40 @@ class QuanSim:
         # 4. Xử lý khách hàng (ăn xong, hết kiên nhẫn, hết ca)
         self._update_customers(events)
 
-        # 5. Khách mới theo lịch
+        # 5. Xử lý khách đặt trước (reservations)
+        arrived_res = []
+        for r in self.reservations:
+            if r.get("arrival_tick", 0) == self.phase_tick:
+                dish_id = r.get("dish_id")
+                selected_ids = self._reserve_items_for_dish(dish_id) or []
+                c_id = r["id"]
+                cust = {
+                    "id": c_id,
+                    "table_id": r["table_id"],
+                    "dish_id": dish_id,
+                    "order_tick": self.phase_tick,
+                    "state": "waiting",
+                    "patience_ticks_left": int(round(self.t["patience_s"] * 60)),
+                    "eat_ticks_left": 0,
+                    "order_status": "reserved",
+                    "reserved_ids": list(selected_ids),
+                    "reserved": list(selected_ids),
+                    "base_price": self.menu[dish_id]["price"] if dish_id in self.menu else 0,
+                    "tip": 0,
+                }
+                self.customers.append(cust)
+                events.append(("reservation_arrived", {
+                    "id": r["id"],
+                    "order_id": r["id"],
+                    "table_id": r["table_id"],
+                    "dish_id": dish_id,
+                    "reserved": list(selected_ids),
+                }))
+                arrived_res.append(r["id"])
+        if arrived_res:
+            self.reservations = [r for r in self.reservations if r["id"] not in set(arrived_res)]
+
+        # 6. Khách mới theo lịch
         if self.time_left_ticks > 0 and self.random_customers:
             self._spawn_customer(events)
 
