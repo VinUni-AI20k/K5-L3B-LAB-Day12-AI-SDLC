@@ -72,16 +72,62 @@ class QuanSim:
     def step(self, inp):
         events = []
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # TODO(nhóm): giảm kiên nhẫn / nấu / ăn; bếp chín -> ready; xử lý khách theo thứ tự PRD-0 mục F.
+        # Thứ tự gọi do Integrator giữ; đối chiếu PRD-0 mục F rồi mới đổi (báo cả nhóm).
+        self._tick_customers(events)      # lát 3: kiên nhẫn, customer_left
+        self._tick_stoves_and_eating(events)  # lát 4: nấu -> dish_ready, ăn xong -> paid
         self._move(inp)
-        # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
-        # TODO(nhóm): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.
+        if inp.pressed("interact"):
+            self._interact(events)        # lát 4: tối đa MỘT interact
+        self._spawn_customers(events)     # lát 3: khách mới theo lịch, no_dish
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
         return events
+
+    # --- lát 3 (sở hữu: người làm quán lát 3) ------------------------------------
+    def _tick_customers(self, events):
+        """TODO(nhóm, lát 3): giảm kiên nhẫn khách đang chờ (sort_by_id); hết kiên nhẫn -> customer_left,
+        trả nguyên liệu giữ chỗ về kho (self._release), self._change_reputation(left_reputation_delta)."""
+
+    def _spawn_customers(self, events):
+        """TODO(nhóm, lát 3): khách đầu ở first_customer_tick, sau đó mỗi customer_interval_s; id qua self.ids;
+        chọn món nấu được từ kho CHƯA giữ chỗ (self._available()); không có món -> no_dish;
+        có -> ngồi bàn trống, giữ chỗ nguyên liệu (self._reserve). Ngẫu nhiên chỉ qua self.rng."""
+
+    # --- lát 4 (sở hữu: người làm quán lát 4) ------------------------------------
+    def _tick_stoves_and_eating(self, events):
+        """TODO(nhóm, lát 4): bếp cooking giảm cook_ticks_left, về 0 -> ready + dish_ready;
+        khách eating giảm thời gian ăn, xong -> paid (price + boa), money/earned/shift_earned,
+        self._change_reputation(tip_reputation) nếu có boa; bàn trống."""
+
+    def _interact(self, events):
+        """TODO(nhóm, lát 4): chọn đối tượng trong interact_radius theo (khoảng cách, bếp trước bàn, id):
+        bếp idle + có đơn giữ chỗ -> cook_started (trừ kho theo giữ chỗ); bếp ready + tay trống -> dish_picked;
+        bàn có khách đúng món + tay cầm món -> served. Chỉ MỘT hành động mỗi tick."""
+
+    # --- dùng chung (lát 3 + lát 4) ----------------------------------------------
+    def _change_reputation(self, delta):
+        """Mọi thay đổi uy tín đi qua đây: kẹp [reputation_min, reputation_max]."""
+        lo, hi = self.t["reputation_min"], self.t["reputation_max"]
+        self.reputation = min(hi, max(lo, self.reputation + delta))
+
+    def _available(self) -> dict:
+        """Kho còn dùng được = stock - tổng reserved của mọi khách."""
+        free = dict(self.stock)
+        for c in self.customers:
+            for k, n in c.get("reserved", {}).items():
+                free[k] = free.get(k, 0) - n
+        return free
+
+    def _reserve(self, customer, dish):
+        """Giữ chỗ nguyên liệu của món `dish` cho khách (chưa trừ stock; trừ khi cook_started)."""
+        customer["reserved"] = dict(self.menu[dish]["recipe"])
+
+    def _release(self, customer):
+        """Bỏ giữ chỗ (khách bỏ đi trước khi nấu)."""
+        customer["reserved"] = {}
 
     def _move(self, inp):
         speed = self.t["walk_speed"]
