@@ -12,6 +12,17 @@ from chonoi.rng import Streams
 from helpers import Workdir, events, read_jsonl, run_headless, write_json
 
 
+def _after_one_gather_step(items):
+    """v1.2: giỏ hao 2 đơn vị (0.5/60 điểm) ở ĐẦU bước, trước ngạt/hit (TICKET-03 thứ tự trong tick)."""
+    from chonoi.items import from_public, public
+    out = []
+    for it in items:
+        x = from_public(it)
+        x["fresh_units"] = max(0, x["fresh_units"] - 2)
+        out.append(public(x))
+    return out
+
+
 class MonsterMovement(unittest.TestCase):
     def setUp(self):
         self.tuning = copy.deepcopy(load_contract()["tuning"])
@@ -122,15 +133,15 @@ class MonsterCombat(unittest.TestCase):
                 result = self.step(s)
                 hit = next(e for e in result if e["name"] == "monster_hit")
                 count = len(hold) // 2
-                self.assertEqual(hit["data"]["lost"], list(reversed(hold))[:count])
+                self.assertEqual(hit["data"]["lost"], _after_one_gather_step(list(reversed(hold))[:count]))
                 if hp == 1:
                     faint = next(e for e in result if e["name"] == "faint")
-                    self.assertEqual(faint["data"]["lost"], list(reversed(hold))[count:])
+                    self.assertEqual(faint["data"]["lost"], _after_one_gather_step(list(reversed(hold))[count:]))
                     self.assertFalse({it["id"] for it in hit["data"]["lost"]} &
                                      {it["id"] for it in faint["data"]["lost"]})
                     self.assertEqual(s.sim.hold, [])
                 else:
-                    self.assertEqual(s.sim.hold, validate_public_items(hold[:len(hold)-count]))
+                    self.assertEqual(s.sim.hold, validate_public_items(_after_one_gather_step(hold[:len(hold)-count])))
 
     def test_day_parameter_and_fixture_replacement(self):
         for day, expected in [(1, ["M1"]), (2, ["M1"]), (3, ["M1", "M2"])]:

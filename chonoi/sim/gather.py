@@ -24,7 +24,7 @@ import math
 
 from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
-from ..items import ItemIds, public_list
+from ..items import Freshness, ItemIds, decay, from_public, is_v12, new_item, public_list
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -56,6 +56,13 @@ class GatherSim:
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        # v1.2 (TICKET-03): giỏ là mảng cá thể {id, kind, fresh_units}; hao ở đầu bước, ươn phát spoiled
+        self.v12 = is_v12(tuning)
+        self.fr = Freshness(tuning) if self.v12 else None
+        if self.v12:
+            self.hold = [dict(h) if "fresh_units" in h else from_public(h) for h in self.hold]
+            for it in self.hold:
+                self.item_ids.reserve(it["id"])
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
@@ -95,7 +102,10 @@ class GatherSim:
         self.reason = None
 
     # --- giao diện cho runner -------------------------------------------------
-    def inventory_items(self) -> dict:
+    def inventory_items(self):
+        """v1.1: dict đếm. v1.2: mảng cá thể nội bộ theo thứ tự vào giỏ (runner ghi file sắp id; day bàn giao)."""
+        if self.v12:
+            return [dict(it) for it in self.hold]
         return hold_to_items(self.hold)
 
     def snapshot(self) -> dict:
@@ -105,7 +115,7 @@ class GatherSim:
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": self.hold, "hold_count": len(self.hold),
+            "hold": public_list(self.hold) if self.v12 else self.hold, "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
@@ -132,6 +142,9 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        if self.v12:  # 1b. độ tươi hàng có sẵn ở đầu bước (hàng mới bắt/hái ở bước này hao từ bước sau)
+            for it in decay(self.hold, self.fr.gather_per_tick, self.fr):
+                events.append(("spoiled", {"item_id": it["id"], "kind": it["kind"], "location": "hold"}))
         # 2. bơi + chặn mép
         was_surface = self._at_surface()
         self._move(inp)
@@ -369,7 +382,7 @@ class GatherSim:
         if free < amount:
             events.append(("hold_full", {"action": "gather", "node_id": n["id"], "required": amount, "free": free}))
             return
-        self.hold.extend([n["kind"]] * amount)
+        self._add(n["kind"], amount)
         n["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
         events.append(("gather", {"node_id": n["id"], "kind": n["kind"], "amount": amount}))
 
@@ -383,15 +396,22 @@ class GatherSim:
         if free < amount:
             events.append(("hold_full", {"action": "catch", "fish_id": f["id"], "required": amount, "free": free}))
             return
-        self.hold.extend([f["kind"]] * amount)
+        self._add(f["kind"], amount)
         self.fish = [x for x in self.fish if x["id"] != f["id"]]
         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
         events.append(("fish_caught", {"fish_id": f["id"], "kind": f["kind"], "yield": amount}))
 
+    def _add(self, kind, amount):
+        if self.v12:  # cá thể mới fresh = initial, id I… tiếp nối xuyên pha/Ngày
+            self.hold.extend(new_item(self.item_ids, kind, self.fr) for _ in range(amount))
+        else:
+            self.hold.extend([kind] * amount)
+
     def _finish(self, reason, events):
         self.done = True
         self.reason = reason
-        events.append(("gather_end", {"reason": reason, "inventory": {"items": self.inventory_items()}}))
+        inv = public_list(self.hold, by_id=True) if self.v12 else self.inventory_items()
+        events.append(("gather_end", {"reason": reason, "inventory": {"items": inv}}))
 
     def _move(self, inp):
         speed = self.t["swim_speed"]

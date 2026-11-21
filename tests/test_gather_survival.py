@@ -10,6 +10,17 @@ from chonoi.items import validate_public_items
 from chonoi.runner import Session
 
 
+def _after_one_gather_step(items):
+    """v1.2: giỏ hao 2 đơn vị (0.5/60 điểm) ở ĐẦU bước, trước ngạt/hit (TICKET-03 thứ tự trong tick)."""
+    from chonoi.items import from_public, public
+    out = []
+    for it in items:
+        x = from_public(it)
+        x["fresh_units"] = max(0, x["fresh_units"] - 2)
+        out.append(public(x))
+    return out
+
+
 class GatherSurvival(unittest.TestCase):
     def test_v12_choke_loss_preserves_individuals_and_lifo(self):
         tuning = load_contract()["tuning"]
@@ -27,7 +38,7 @@ class GatherSurvival(unittest.TestCase):
                 s.sim.hold = validate_public_items(hold, "gather.hold")
                 result = s.step(InputPlayer([]).advance(0))
                 faint = next(e for e in result if e["name"] == "faint")
-                self.assertEqual(faint["data"]["lost"], list(reversed(hold)))
+                self.assertEqual(faint["data"]["lost"], _after_one_gather_step(list(reversed(hold))))
                 self.assertEqual(s.sim.hold, [])
 
     def test_no_transition_at_rest_and_initial_empty(self):

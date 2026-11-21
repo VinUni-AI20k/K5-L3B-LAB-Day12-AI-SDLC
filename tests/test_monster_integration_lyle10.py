@@ -11,6 +11,17 @@ from chonoi.inputs import InputPlayer
 from chonoi.items import validate_public_items
 
 
+def _after_one_gather_step(items):
+    """v1.2: giỏ hao 2 đơn vị (0.5/60 điểm) ở ĐẦU bước, trước ngạt/hit (TICKET-03 thứ tự trong tick)."""
+    from chonoi.items import from_public, public
+    out = []
+    for it in items:
+        x = from_public(it)
+        x["fresh_units"] = max(0, x["fresh_units"] - 2)
+        out.append(public(x))
+    return out
+
+
 class MonsterIntegration(unittest.TestCase):
     def run_case(self, w, mode, scenario, ticks=0, extra=()):
         sc = write_json(w.path("scenario.json"), scenario)
@@ -73,7 +84,8 @@ class MonsterIntegration(unittest.TestCase):
         rows = session.step(InputPlayer([]).advance(0))
         lost = {r["name"]: r["data"]["lost"] for r in rows
                 if r["name"] in ("monster_hit", "faint")}
-        self.assertEqual(lost, {"monster_hit": [hold[2]], "faint": [hold[1], hold[0]]})
+        self.assertEqual(lost, {"monster_hit": _after_one_gather_step([hold[2]]),
+                                "faint": _after_one_gather_step([hold[1], hold[0]])})
         self.assertFalse({item["id"] for item in lost["monster_hit"]} &
                          {item["id"] for item in lost["faint"]})
 
