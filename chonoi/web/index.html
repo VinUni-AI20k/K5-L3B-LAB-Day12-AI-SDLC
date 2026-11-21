@@ -251,89 +251,404 @@ function overlay(w, h) {
 }
 
 // ----- cảnh GATHER: nhìn ngang, x sang phải, d xuống -----
+function drawSmallFish(x, y, size, color, phase, tick) {
+  const swim = Math.sin(tick / 13 + phase) * size * 0.12;
+  ctx.save();
+  ctx.translate(x + swim, y + Math.sin(tick / 19 + phase) * size * 0.08);
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.ellipse(0, 0, size * 0.42, size * 0.2, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.34, 0);
+  ctx.lineTo(-size * 0.68, -size * (0.25 + 0.06 * Math.sin(tick / 8 + phase)));
+  ctx.lineTo(-size * 0.68, size * (0.25 + 0.06 * Math.sin(tick / 8 + phase)));
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#fff7dd";
+  ctx.beginPath();
+  ctx.arc(size * 0.25, -size * 0.04, Math.max(1, size * 0.045), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawLargeFish(x, y, size, tick) {
+  const bob = Math.sin(tick / 24) * size * 0.025;
+  ctx.save();
+  ctx.translate(x, y + bob);
+  ctx.fillStyle = "rgba(39,20,47,.88)";
+  ctx.strokeStyle = "#ba82cb";
+  ctx.lineWidth = Math.max(1.5, size * 0.035);
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.48, 0);
+  ctx.quadraticCurveTo(-size * 0.25, -size * 0.38, size * 0.22, -size * 0.25);
+  ctx.quadraticCurveTo(size * 0.47, -size * 0.13, size * 0.5, 0);
+  ctx.quadraticCurveTo(size * 0.18, size * 0.28, -size * 0.25, size * 0.18);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.45, 0);
+  ctx.lineTo(-size * 0.72, -size * 0.22);
+  ctx.lineTo(-size * 0.68, size * 0.22);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.08, -size * 0.2);
+  ctx.quadraticCurveTo(size * 0.06, -size * 0.48, size * 0.25, -size * 0.2);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.ellipse(-size * 0.48, size * 0.02, size * 0.13, size * 0.09, 0, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.fillStyle = "#f7e6ff";
+  ctx.beginPath();
+  ctx.arc(size * 0.34, -size * 0.05, Math.max(2, size * 0.035), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#241528";
+  ctx.beginPath();
+  ctx.arc(size * 0.35, -size * 0.05, Math.max(1, size * 0.016), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawDiver(x, y, size, heading, tick, invulnerable) {
+  ctx.save();
+  ctx.translate(x, y + Math.sin(tick / 12) * size * 0.025);
+  ctx.rotate((heading * Math.PI) / 180);
+  if (invulnerable && Math.floor(tick / 5) % 2) ctx.globalAlpha = 0.38;
+  const kick = Math.sin(tick / 5) * size * 0.09;
+
+  // fins and legs
+  ctx.fillStyle = "#174b42";
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.48, -size * 0.12);
+  ctx.lineTo(-size * 1.12, -size * (0.2 + kick / size));
+  ctx.lineTo(-size * 1.38, -size * (0.22 + kick / size));
+  ctx.lineTo(-size * 1.02, size * 0.02);
+  ctx.closePath();
+  ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.5, size * 0.12);
+  ctx.lineTo(-size * 1.05, size * (0.34 - kick / size));
+  ctx.lineTo(-size * 1.34, size * (0.32 - kick / size));
+  ctx.lineTo(-size * 0.94, size * 0.01);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#4a9b70";
+  ctx.beginPath();
+  ctx.ellipse(-size * 1.3, -size * (0.21 + kick / size), size * 0.2, size * 0.095, -0.1, 0, Math.PI * 2);
+  ctx.ellipse(-size * 1.27, size * (0.32 - kick / size), size * 0.2, size * 0.095, 0.1, 0, Math.PI * 2);
+  ctx.fill();
+
+  // wetsuit, backpack and arms
+  ctx.fillStyle = "#187b63";
+  ctx.beginPath();
+  ctx.roundRect(-size * 0.52, -size * 0.25, size * 0.94, size * 0.5, size * 0.16);
+  ctx.fill();
+  ctx.fillStyle = "#083f3b";
+  ctx.fillRect(-size * 0.55, -size * 0.2, size * 0.22, size * 0.4);
+  ctx.strokeStyle = "#e8c99a";
+  ctx.lineWidth = size * 0.075;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(size * 0.05, -size * 0.16);
+  ctx.lineTo(size * 0.62, -size * 0.32);
+  ctx.moveTo(size * 0.05, size * 0.15);
+  ctx.lineTo(size * 0.62, size * 0.25);
+  ctx.stroke();
+
+  // head, goggles and snorkel
+  ctx.fillStyle = "#f0c39b";
+  ctx.beginPath();
+  ctx.ellipse(size * 0.58, 0, size * 0.3, size * 0.27, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#201c25";
+  ctx.beginPath();
+  ctx.arc(size * 0.53, -size * 0.19, size * 0.24, Math.PI, Math.PI * 2);
+  ctx.lineTo(size * 0.75, -size * 0.02);
+  ctx.lineTo(size * 0.37, -size * 0.05);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#b82f46";
+  ctx.fillRect(size * 0.36, -size * 0.24, size * 0.46, size * 0.09);
+  ctx.fillStyle = "#b5edee";
+  ctx.strokeStyle = "#26343b";
+  ctx.lineWidth = size * 0.055;
+  ctx.beginPath();
+  ctx.ellipse(size * 0.75, -size * 0.04, size * 0.16, size * 0.14, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.stroke();
+  ctx.fillStyle = "#132b37";
+  ctx.beginPath();
+  ctx.arc(size * 0.79, -size * 0.04, size * 0.06, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#d34e54";
+  ctx.lineWidth = size * 0.06;
+  ctx.beginPath();
+  ctx.moveTo(size * 0.43, -size * 0.18);
+  ctx.lineTo(size * 0.35, -size * 0.43);
+  ctx.lineTo(size * 0.7, -size * 0.43);
+  ctx.stroke();
+
+  // woven catch basket
+  ctx.fillStyle = "rgba(92,62,38,.85)";
+  ctx.strokeStyle = "#d5aa70";
+  ctx.lineWidth = size * 0.035;
+  ctx.beginPath();
+  ctx.moveTo(-size * 0.43, size * 0.3);
+  ctx.lineTo(size * 0.02, size * 0.3);
+  ctx.lineTo(-size * 0.05, size * 0.68);
+  ctx.lineTo(-size * 0.34, size * 0.68);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+  for (let i = 1; i < 4; i++) {
+    const mx = -size * 0.43 + size * i * 0.1125;
+    ctx.beginPath();
+    ctx.moveTo(mx, size * 0.31);
+    ctx.lineTo(mx - size * 0.025, size * 0.66);
+    ctx.stroke();
+  }
+  for (let i = 1; i < 3; i++) {
+    const my = size * (0.3 + i * 0.12);
+    ctx.beginPath();
+    ctx.moveTo(-size * 0.4, my);
+    ctx.lineTo(-size * 0.02, my);
+    ctx.stroke();
+  }
+  ctx.restore();
+}
+
 function drawGather(w, h) {
   const meta = snap.meta || {};
   const b = meta.bounds;
-  if (!b || !b.x || !b.d) return;
-  const X = b.x[1], D = b.d[1], SKY = 6;
-  const top = 64, bottom = 56;
-  const s = Math.max(1, Math.min((w - 20) / (X + 4), (h - top - bottom) / (D + SKY + 1)));
-  const ox = (w - s * (X + 4)) / 2 + 2 * s, oy = top + SKY * s;
-  const sx = (x) => ox + x * s, sy = (d) => oy + d * s;
-  // trời + nước
-  ctx.fillStyle = "#cfeaf5"; ctx.fillRect(0, top, w, SKY * s);
-  const g = ctx.createLinearGradient(0, oy, 0, sy(D));
-  g.addColorStop(0, "#49b0dc"); g.addColorStop(1, "#08243f");
-  ctx.fillStyle = g; ctx.fillRect(sx(0), oy, X * s, D * s);
-  ctx.strokeStyle = "#e9f7ff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(0), oy); ctx.lineTo(sx(X), oy); ctx.stroke();
-  // vạch độ sâu
-  for (let d = 5; d <= D; d += 5) {
-    ctx.strokeStyle = "rgba(255,255,255,.08)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(sx(0), sy(d)); ctx.lineTo(sx(X), sy(d)); ctx.stroke();
-    text(d + " m", sx(0) + 4, sy(d) - 2, { size: 10, color: "rgba(255,255,255,.4)" });
+  if (!b || !b.x || !b.d || !snap.player || !snap.player.pos) return;
+  const [xMin, xMax] = b.x, [dMin, dMax] = b.d;
+  const tick = snap.sim_tick ?? snap.tick ?? 0;
+  const surfaceY = h * 0.145, hudBottom = 72;
+  const worldWidth = xMax - xMin;
+  const depth = dMax - Math.max(0, dMin);
+  const scale = Math.max(1, Math.min((w - 24) / worldWidth, (h - surfaceY - hudBottom) / depth));
+  const sx = (x) => 12 + (x - xMin) * scale;
+  const sy = (d) => surfaceY + Math.max(0, d) * scale;
+  const bedY = Math.min(h - hudBottom, sy(dMax * 0.86));
+
+  // sunset sky and distant shoreline
+  const sky = ctx.createLinearGradient(0, 0, 0, surfaceY + 8);
+  sky.addColorStop(0, "#f5a96f");
+  sky.addColorStop(0.72, "#ffd89a");
+  sky.addColorStop(1, "#f2dcaa");
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, w, surfaceY + 4);
+  ctx.fillStyle = "#fff7da";
+  ctx.beginPath();
+  ctx.arc(w * 0.81, surfaceY * 0.39, Math.min(27, h * 0.04), 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = "#547a3d";
+  ctx.beginPath();
+  ctx.moveTo(0, surfaceY);
+  for (let i = 0; i <= 12; i++) {
+    const x = (w / 12) * i;
+    const y = surfaceY - 5 - (Math.sin(i * 5.7) * 0.5 + 0.5) * 13;
+    ctx.lineTo(x, y);
   }
-  // bến
-  const dp = meta.dock_pos, dr = meta.dock_radius;
-  if (!dp || dr === undefined) return;
-  ctx.fillStyle = "#8d6e4b"; ctx.fillRect(sx(dp[0] - 1.5), sy(-0.7), 3 * s, 0.9 * s);
-  ctx.fillStyle = "#b9503a"; ctx.beginPath(); ctx.moveTo(sx(dp[0] - 1.8), sy(-0.7)); ctx.lineTo(sx(dp[0]), sy(-2.4)); ctx.lineTo(sx(dp[0] + 1.8), sy(-0.7)); ctx.fill();
-  ctx.strokeStyle = "rgba(255,230,150,.7)"; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(sx(dp[0]), sy(dp[1]), dr * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-  text("Bến (E)", sx(dp[0]), sy(-2.8), { size: 11, align: "center", color: "#5a3a22" });
-  // nút hái
+  ctx.lineTo(w, surfaceY + 5); ctx.lineTo(0, surfaceY + 5); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "#78924d";
+  ctx.beginPath();
+  ctx.moveTo(0, surfaceY + 1);
+  for (let i = 0; i <= 14; i++) {
+    const x = (w / 14) * i;
+    ctx.lineTo(x, surfaceY - 2 - (Math.sin(i * 4.1 + 1) * 0.5 + 0.5) * 8);
+  }
+  ctx.lineTo(w, surfaceY + 7); ctx.lineTo(0, surfaceY + 7); ctx.closePath(); ctx.fill();
+
+  // warm, shadowed water
+  const water = ctx.createLinearGradient(0, surfaceY, 0, h);
+  water.addColorStop(0, "#b8894e");
+  water.addColorStop(0.48, "#8e6638");
+  water.addColorStop(1, "#49331f");
+  ctx.fillStyle = water;
+  ctx.fillRect(0, surfaceY, w, h - surfaceY);
+  ctx.strokeStyle = "rgba(255,244,208,.72)";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let x = 0; x <= w; x += 16) {
+    const y = surfaceY + Math.sin(x / 34 + tick / 18) * 1.8;
+    if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // broad sunbeams, clipped below the surface
+  ctx.save();
+  ctx.beginPath(); ctx.rect(0, surfaceY, w, h - surfaceY); ctx.clip();
+  for (let i = 0; i < 7; i++) {
+    const startX = ((i + 0.25) / 7) * w;
+    const drift = Math.sin(tick / 170 + i * 1.7) * 20;
+    const spread = w * (0.035 + (i % 3) * 0.009);
+    ctx.fillStyle = "rgba(255,222,159,.075)";
+    ctx.beginPath();
+    ctx.moveTo(startX - spread * 0.18, surfaceY);
+    ctx.lineTo(startX + spread * 0.18, surfaceY);
+    ctx.lineTo(startX + spread + drift, bedY);
+    ctx.lineTo(startX - spread + drift, bedY);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // soft underwater ridges
+  ctx.fillStyle = "rgba(68,48,29,.28)";
+  ctx.beginPath();
+  ctx.moveTo(0, bedY - 38);
+  for (let i = 0; i <= 10; i++) {
+    const x = (w / 10) * i;
+    ctx.quadraticCurveTo(x + w / 20, bedY - 86 + Math.sin(i * 2.2) * 16, x + w / 10, bedY - 36);
+  }
+  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "rgba(43,32,23,.68)";
+  ctx.beginPath();
+  ctx.moveTo(0, bedY + 2);
+  for (let i = 0; i <= 12; i++) {
+    const x = (w / 12) * i;
+    ctx.quadraticCurveTo(x + w / 24, bedY - 36 + Math.sin(i * 1.6) * 13, x + w / 12, bedY + 4);
+  }
+  ctx.lineTo(w, h); ctx.lineTo(0, h); ctx.closePath(); ctx.fill();
+
+  // anchored plants with a gentle current-driven sway
+  const grassCount = Math.max(18, Math.ceil(w / 48));
+  const grassBase = h - hudBottom - 10;
+  for (let i = 0; i < grassCount; i++) {
+    const x = (i / (grassCount - 1)) * w;
+    const height = 55 + ((i * 37) % 120);
+    const sway = Math.sin(tick / 22 + i * 1.9) * 11;
+    ctx.strokeStyle = i % 4 === 0 ? "#327347" : "#3e8549";
+    ctx.lineWidth = 2 + (i % 3);
+    ctx.beginPath();
+    ctx.moveTo(x, grassBase);
+    ctx.quadraticCurveTo(x - sway, grassBase - height * 0.45, x + sway * 0.45, grassBase - height);
+    ctx.stroke();
+  }
+
+  // bubbles loop deterministically from the game tick (no random state)
+  for (let i = 0; i < 34; i++) {
+    const cycle = (tick * 0.003 + i * 0.173) % 1;
+    const x = ((i * 97.31 + Math.sin(tick / 90 + i) * 18) % w + w) % w;
+    const y = bedY - cycle * (bedY - surfaceY - 12);
+    const r = 1.5 + (i % 4) * 0.75;
+    ctx.strokeStyle = `rgba(211,224,202,${0.28 + (i % 3) * 0.08})`;
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  // lily pads/nodes from the authoritative snapshot
   ([...(snap.nodes || [])]).sort((a, b) => String(a.id).localeCompare(String(b.id), "en", { numeric: true })).forEach((n) => {
+    if (!n.pos) return;
+    const x = sx(n.pos[0]), y = sy(n.pos[1]);
     const ready = n.ready !== false;
-    ctx.globalAlpha = ready ? 1 : 0.35;
-    ctx.fillStyle = kc(n.kind); ctx.beginPath(); ctx.ellipse(sx(n.pos[0]), sy(n.pos[1]) - 0.1 * s, 0.9 * s, 0.4 * s, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.globalAlpha = 1;
-    text(n.id, sx(n.pos[0]), sy(n.pos[1]) - 0.7 * s, { size: 10, align: "center", color: "#234" });
-    if (!ready && n.regrow_ticks) text(Math.ceil(n.regrow_ticks / 60) + "s", sx(n.pos[0]), sy(n.pos[1]) + 1.1 * s, { size: 10, align: "center", color: "#fff" });
-  });
-  // đàn cá
-  ([...(snap.fish || [])]).sort((a, b) => String(a.id).localeCompare(String(b.id), "en", { numeric: true })).forEach((f) => {
-    ctx.save(); ctx.translate(sx(f.pos[0]), sy(f.pos[1])); ctx.rotate(((f.heading_deg || 0) * Math.PI) / 180);
-    ctx.fillStyle = kc(f.kind);
-    ctx.beginPath(); ctx.ellipse(0, 0, 0.9 * s, 0.45 * s, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(-0.8 * s, 0); ctx.lineTo(-1.4 * s, -0.4 * s); ctx.lineTo(-1.4 * s, 0.4 * s); ctx.fill();
-    ctx.restore();
-    text(f.id, sx(f.pos[0]), sy(f.pos[1]) - 0.7 * s, { size: 10, align: "center", color: "rgba(255,255,255,.8)" });
-  });
-  // người chơi
-  const p = snap.player;
-  if (p) {
-    const px = sx(p.pos[0]), py = sy(p.pos[1]);
-    const underwater = p.at_surface === undefined ? p.pos[1] > 0.5 : !p.at_surface;
-    if (meta.catch_radius && underwater) { ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.beginPath(); ctx.arc(px, py, meta.catch_radius * s, 0, Math.PI * 2); ctx.stroke(); }
-    if (meta.interact_radius && !underwater) { ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.beginPath(); ctx.arc(px, py, meta.interact_radius * s, 0, Math.PI * 2); ctx.stroke(); }
-    if (!(p.invuln_ticks > 0 && Math.floor(snap.tick / 5) % 2)) {
-      ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.arc(px, py, 0.6 * s, 0, Math.PI * 2); ctx.fill();
-      const a = ((p.heading_deg || 0) * Math.PI) / 180;
-      ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * 0.9 * s, py + Math.sin(a) * 0.9 * s); ctx.stroke();
+    ctx.save();
+    ctx.globalAlpha = ready ? 1 : 0.38;
+    ctx.fillStyle = "#315d35";
+    ctx.beginPath(); ctx.ellipse(x, y + 2, scale * 0.82, scale * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = kc(n.kind);
+    for (let petal = 0; petal < 5; petal++) {
+      ctx.beginPath();
+      ctx.ellipse(x + Math.cos(petal * 1.25) * scale * 0.22, y - 2 + Math.sin(petal * 1.25) * scale * 0.13,
+        scale * 0.22, scale * 0.11, petal * 1.25, 0, Math.PI * 2);
+      ctx.fill();
     }
+    ctx.restore();
+    text(n.id, x, y - scale * 0.45, { size: 10, align: "center", color: "#fff2cf" });
+    if (!ready && n.regrow_ticks) text(Math.ceil(n.regrow_ticks / 60) + "s", x, y + scale * 0.55, { size: 10, align: "center", color: "#fff" });
+  });
+
+  // fish shoals: each marker remains the fish entity used by the catch contract
+  ([...(snap.fish || [])]).sort((a, b) => String(a.id).localeCompare(String(b.id), "en", { numeric: true })).forEach((f, index) => {
+    if (!f.pos) return;
+    const x = sx(f.pos[0]), y = sy(f.pos[1]);
+    const angle = (f.heading_deg || 0) * Math.PI / 180;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(angle);
+    if (f.kind === "ca_loc") {
+      drawLargeFish(0, 0, scale * 8.5, tick + index * 11);
+    } else {
+      for (let j = 0; j < 5; j++) {
+        drawSmallFish((j - 2) * scale * 0.82, Math.sin(j * 2.3 + tick / 18) * scale * 0.22,
+          scale * 0.55, "#e5d7a3", index * 2 + j, tick);
+      }
+    }
+    ctx.restore();
+    text(f.id, x, y - scale * 0.75, { size: 10, align: "center", color: "#fff3d4" });
+  });
+
+  // dock and interaction radius
+  const dp = meta.dock_pos, dr = meta.dock_radius;
+  if (dp && dr !== undefined) {
+    const dx = sx(dp[0]), dy = sy(dp[1]);
+    ctx.strokeStyle = "rgba(255,235,174,.65)";
+    ctx.setLineDash([5, 4]);
+    ctx.beginPath(); ctx.arc(dx, dy, dr * scale, 0, Math.PI * 2); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = "#795333";
+    ctx.fillRect(dx - scale * 1.7, dy - scale * 0.16, scale * 3.4, scale * 0.3);
+    ctx.fillStyle = "#c95c43";
+    ctx.beginPath();
+    ctx.moveTo(dx - scale * 0.55, dy - scale * 0.18);
+    ctx.lineTo(dx + scale * 0.55, dy - scale * 0.18);
+    ctx.lineTo(dx + scale * 0.82, dy - scale * 0.7);
+    ctx.lineTo(dx - scale * 0.82, dy - scale * 0.7);
+    ctx.closePath(); ctx.fill();
+    text("Bến · E", dx, dy - scale * 0.82, { size: 11, align: "center", color: "#442f20" });
   }
-  // HUD trên
+
+  // swimmer and gameplay interaction radius
+  const p = snap.player;
+  const px = sx(p.pos[0]), py = sy(p.pos[1]);
+  const underwater = p.at_surface === undefined ? p.pos[1] > 0.5 : !p.at_surface;
+  if (underwater && meta.catch_radius) {
+    ctx.strokeStyle = "rgba(245,232,193,.24)";
+    ctx.beginPath(); ctx.arc(px, py, meta.catch_radius * scale, 0, Math.PI * 2); ctx.stroke();
+  } else if (!underwater && meta.interact_radius) {
+    ctx.strokeStyle = "rgba(245,232,193,.3)";
+    ctx.beginPath(); ctx.arc(px, py, meta.interact_radius * scale, 0, Math.PI * 2); ctx.stroke();
+  }
+  drawDiver(px, py, Math.max(28, Math.min(88, scale * 4.4)), p.heading_deg || 0, tick, p.invuln_ticks > 0);
+
+  // HUD
+  ctx.fillStyle = "rgba(53,38,25,.34)";
+  ctx.fillRect(0, 0, 390, 64);
   text("⏱ " + fmtTime(snap.time_left_ticks), 14, 28, { size: 20 });
-  if (p && p.oxygen_ticks !== undefined && p.oxygen_max_ticks) {
+  if (p.oxygen_ticks !== undefined && p.oxygen_max_ticks) {
     const low = p.oxygen_ticks < p.oxygen_max_ticks * 0.25;
     bar(110, 12, 220, 18, p.oxygen_ticks / p.oxygen_max_ticks, low ? "#ef5350" : "#4fc3f7", "Oxy " + Math.ceil(p.oxygen_ticks / 60) + "s");
   }
-  if (p && p.hp !== undefined && p.hp_max) {
-    let hs = "";
-    for (let i = 0; i < p.hp_max; i++) hs += i < p.hp ? "♥" : "♡";
-    text(hs, 345, 29, { size: 22, color: "#ff6b81" });
+  if (p.hp !== undefined && p.hp_max) {
+    let hearts = "";
+    for (let i = 0; i < p.hp_max; i++) hearts += i < p.hp ? "♥" : "♡";
+    text(hearts, 345, 29, { size: 22, color: "#ff6b81" });
   }
-  if (p && p.pos) text(`x ${p.pos[0].toFixed(1)}  d ${p.pos[1].toFixed(1)}`, 14, 52, { size: 12, color: "#9fb3c0" });
-  if (p && p.catch_cd_ticks > 0) text("hồi chiêu bắt " + (p.catch_cd_ticks / 60).toFixed(1) + "s", 150, 52, { size: 12, color: "#9fb3c0" });
-  // giỏ (khoang) dưới
+  text(`x ${p.pos[0].toFixed(1)}  d ${p.pos[1].toFixed(1)}`, 14, 52, { size: 12, color: "#fff0d2" });
+  if (p.catch_cd_ticks > 0) text("Hồi chiêu " + (p.catch_cd_ticks / 60).toFixed(1) + "s", 150, 52, { size: 12, color: "#fff0d2" });
+
   if (snap.hold && snap.hold_capacity) {
-    const cap = snap.hold_capacity, sz = Math.min(30, (w - 260) / cap - 4), y0 = h - bottom + 8;
+    const cap = snap.hold_capacity, sz = Math.max(12, Math.min(28, (w - 300) / cap - 4)), y0 = h - 54;
     for (let i = 0; i < cap; i++) {
       const x0 = 14 + i * (sz + 4);
-      ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(x0, y0, sz, sz);
+      ctx.fillStyle = "rgba(20,25,24,.6)"; ctx.fillRect(x0, y0, sz, sz);
       if (snap.hold[i]) { ctx.fillStyle = kc(snap.hold[i]); ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6); }
     }
-    const names = {}; snap.hold.forEach((k) => (names[k] = (names[k] || 0) + 1));
-    text("Giỏ " + snap.hold.length + "/" + cap + "  " + Object.keys(names).map((k) => (KIND_NAME[k] || k) + "×" + names[k]).join(", "), 14, y0 + sz + 16, { size: 12, color: "#cfd8dc" });
+    const names = {};
+    snap.hold.forEach((kind) => (names[kind] = (names[kind] || 0) + 1));
+    const contents = Object.keys(names).sort().map((kind) => (KIND_NAME[kind] || kind) + "×" + names[kind]).join(", ");
+    const basketLabel = `Giỏ ${snap.hold_count ?? snap.hold.length}/${cap}${contents ? " · " + contents : ""}`;
+    ctx.font = "12px system-ui, sans-serif";
+    const maxLabelWidth = Math.max(80, w - 300);
+    let shownLabel = basketLabel;
+    while (ctx.measureText(shownLabel).width > maxLabelWidth && shownLabel.length > 12) shownLabel = shownLabel.slice(0, -2) + "…";
+    text(shownLabel, 14, h - 14, { size: 12, color: "#fff0d2" });
   }
-  text("WASD/mũi tên bơi · E hái / cập bến · Space bắt cá · R chơi lại", w - 10, h - 14, { size: 12, align: "right", color: "#9fb3c0" });
+  text("WASD / mũi tên · E hái / cập bến · Space bắt cá · R chơi lại", w - 10, h - 14, { size: 12, align: "right", color: "#fff0d2" });
 }
 
 // ----- cảnh QUÁN: nhìn từ trên xuống, x sang phải, z lên (bắc) -----
