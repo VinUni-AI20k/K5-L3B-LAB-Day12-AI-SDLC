@@ -59,6 +59,8 @@ class GatherSim:
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
         # v1.1: fish_initial là SỐ đàn đầu ca, sinh theo seed (TICKET-02 mục 1.1). Scenario `fish` thay thế.
+        self._random_fish = bool(scenario.get("random_fish", True))
+        self.phase_tick = 0
         src_fish = scenario["fish"] if "fish" in scenario else []
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
                       "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)}
@@ -66,7 +68,7 @@ class GatherSim:
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
-        if "fish" not in scenario and scenario.get("random_fish", True):
+        if "fish" not in scenario and self._random_fish:
             for _ in range(int(t["fish_initial"])):
                 school = self._spawn_school()
                 if school is None:
@@ -103,6 +105,7 @@ class GatherSim:
     def step(self, inp):
         events = []
         # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
+        self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
@@ -148,9 +151,13 @@ class GatherSim:
         # 4. bắt cá (AC-P1-21): chỉ khi hết hồi chiêu và đang dưới nước
         if inp.pressed("catch") and self.catch_cd_ticks == 0 and not self._at_surface():
             self._catch(events)
-        # 5. hết giờ
+        # 5. hết giờ; nếu còn giờ -> cá bơi và sinh theo lịch (TICKET-02 mục 4.5)
         if self.time_left_ticks <= 0:
             self._finish("time", events)
+            return events
+        if self._random_fish:
+            self._swim_fish()
+            self._maybe_spawn_fish(events)
         return events
 
     # --- tiện ích ---------------------------------------------------------------
@@ -184,6 +191,51 @@ class GatherSim:
         pos = valid[kind][rng.randrange(len(valid[kind]))]
         heading = rng.random() * 360.0
         return {"id": self.ids.new("F"), "kind": kind, "pos": pos, "heading_deg": heading, "age_ticks": 0}
+
+    @staticmethod
+    def _reflect_axis(val, comp, lo, hi):
+        """Phản xạ 1 trục qua [lo, hi]; trả (vị_trí_mới, thành_phần_hướng_mới)."""
+        while val < lo or val > hi:
+            if val < lo:
+                val = lo + (lo - val)
+                comp = -comp
+            elif val > hi:
+                val = hi - (val - hi)
+                comp = -comp
+        if (val == lo and comp < 0) or (val == hi and comp > 0):
+            comp = -comp
+        return val, comp
+
+    def _swim_fish(self):
+        """Cá bơi 1.5 m/s, đổi hướng tại bước bơi 120, 240… (age_ticks), phản xạ mép."""
+        t = self.t
+        speed = t["fish_speed"] / self.tick_hz
+        turn_ticks = t["fish_turn_ticks"]
+        x_lo, x_hi = t["fish_x"]
+        depths = t["fish_depths"]
+        rng = self.rng.get("fish_move")
+        for f in sort_by_id(self.fish):
+            f["age_ticks"] += 1
+            if f["age_ticks"] % turn_ticks == 0:
+                f["heading_deg"] = rng.random() * 360.0
+            rad = math.radians(f["heading_deg"])
+            vx, vd = math.cos(rad), math.sin(rad)
+            nx, vx = self._reflect_axis(f["pos"][0] + vx * speed, vx, x_lo, x_hi)
+            d_lo, d_hi = depths[f["kind"]]
+            nd, vd = self._reflect_axis(f["pos"][1] + vd * speed, vd, d_lo, d_hi)
+            f["pos"] = [nx, nd]
+            f["heading_deg"] = math.degrees(math.atan2(vd, vx)) % 360.0
+
+    def _maybe_spawn_fish(self, events):
+        """Tại phase_tick = 360·k (k ≥ 1), sinh tối đa 1 đàn nếu < fish_max; tham gia từ bước sau."""
+        if self.phase_tick % self.t["fish_spawn_ticks"] != 0:
+            return
+        if len(self.fish) >= self.t["fish_max"]:
+            return
+        school = self._spawn_school()
+        if school is not None:
+            self.fish.append(school)
+            events.append(("fish_spawned", {"id": school["id"], "kind": school["kind"], "pos": list(school["pos"])}))
 
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
