@@ -33,6 +33,7 @@ UI chỉ ĐỌC trạng thái và GỬI lệnh. UI không sửa trạng thái si
 - Trường nào chưa có thì UI bỏ qua, không báo lỗi. Sim thêm trường mới thì không được đổi tên hoặc ý nghĩa trường cũ.
 - Riêng cửa sổ `chonoi.live` (không có trong JSONL headless): `GET /state` trả thêm `meta` (tuning của chế độ đang chạy), `events` (tối đa 40 sự kiện gần nhất), `finished` (bool) và `error` (chuỗi lỗi luật hoặc `null`); `POST /input` nhận `{"move": [a, b], "interact": bool, "catch": bool}` (sai thì HTTP 400); `POST /restart` chơi lại cùng seed và scenario.
 - Từ P2-08 (v1.1): `POST /input` nhận thêm `pause`, `shop_done` (bool) và `buy` (chuỗi, một lần). Chạy `chonoi.live` không có `--mode` thì mở menu: `GET /state` trả `{"screen": "menu", "modes", "days_max", "seed"}`, `POST /start {"mode", "days"}` vào chơi, `POST /menu` về menu. Khi chơi, `GET /state` có thêm `screen: "game"`, `fixed_mode`, `days_total` (chỉ day); `meta` là tuning của pha đang chạy (`gather`, `quan` hoặc `shop`). UI chọn cảnh theo `phase` (rồi mới tới `mode`) và vẽ màn tạm dừng khi `state` là `paused`.
+- Từ P4-04: `GET /state` của `chonoi.live` có thêm `alerts` (mảng, có thể rỗng; không có trong JSONL headless): mỗi phần tử `{id, level, icon, text, ...}`, `id` thuộc `oxygen_low`, `monster_near`, `customer_angry`, `level` là `danger` hoặc `warning`, sắp `danger` trước. Tính ở `chonoi/alerts.py`, chỉ đọc snapshot.
 
 **UI gửi** (qua `chonoi.inputs.InputState`, mỗi tick một lần):
 

@@ -26,6 +26,7 @@ import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from . import alerts
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
@@ -134,6 +135,7 @@ class LiveGame:
             snap = self.session.snapshot()
             snap["screen"] = "game"
             snap["meta"] = self._meta(snap)
+            snap["alerts"] = alerts.compute(snap, self.tuning)  # AC-P4-04: chỉ có ở cửa sổ live
             snap["fixed_mode"] = self.fixed_mode
             if self.mode == "day":
                 snap["days_total"] = self.days

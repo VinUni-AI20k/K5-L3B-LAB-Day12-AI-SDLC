@@ -18,10 +18,25 @@
  * Trường nào snapshot chưa có thì bỏ qua (nhóm viết luật tới đâu, hình hiện tới đó). Hình khối tạm, thay bằng đồ họa của nhóm.
  * Phím: WASD / mũi tên = di chuyển · E = interact · Space = catch · P/Esc = pause · R = chơi lại · M = menu.
  * Shop (day): 1 = mua oxy · 2 = mua Máu · Enter = shop_done. Menu: ↑↓ chọn, ←→ số Ngày, Enter bắt đầu.
+ * H = bật/tắt tương phản cao (hoặc mở với ?hc=1). Cảnh báo (oxy sắp hết, Cá Sấu gần, khách sắp giận) đọc từ snap.alerts.
  */
 const cv = document.getElementById("c");
 const ctx = cv.getContext("2d");
 let snap = null, offline = false;
+
+// ---------- tương phản cao (AC-P4-04): phím H, hoặc ?hc=1 trên URL; nhớ trong trình duyệt nếu được ----------
+let HC = /[?&]hc=1\b/.test(location.search);
+try { if (localStorage.getItem("chonoi.hc") === "1") HC = true; } catch (e) { /* chế độ riêng tư: bỏ qua */ }
+function toggleHC() {
+  HC = !HC;
+  try { localStorage.setItem("chonoi.hc", HC ? "1" : "0"); } catch (e) { /* bỏ qua */ }
+}
+const C = (normal, high) => (HC ? high : normal);  // chọn màu theo chế độ
+const _fill = ctx.fill.bind(ctx);
+ctx.fill = function (...a) {  // tương phản cao: mọi hình tô đều có viền trắng để tách khỏi nền
+  _fill(...a);
+  if (HC) { ctx.save(); ctx.lineWidth = 2; ctx.strokeStyle = "#ffffff"; ctx.setLineDash([]); ctx.stroke(); ctx.restore(); }
+};
 
 // ---------- vào: phím ----------
 const down = new Set();
@@ -83,6 +98,7 @@ const SHOP_KEYS = { "1": "oxygen", "2": "hp" };
 addEventListener("keydown", (e) => {
   const k = keyName(e);
   if (e.repeat) { if (k === " " || k.startsWith("arrow")) e.preventDefault(); return; }
+  if (k === "h") { toggleHC(); return; }
   if (scene() === "menu") { if (menuKey(k)) e.preventDefault(); return; }
   const paused = snap && snap.state === "paused";
   if (k === "p" || k === "escape") { down.add("pause"); e.preventDefault(); }
@@ -131,16 +147,17 @@ function fit() {
   return [w, h];
 }
 function text(s, x, y, o = {}) {
-  ctx.font = (o.size || 14) + "px system-ui, sans-serif";
-  ctx.fillStyle = o.color || "#e8eef2";
+  const size = HC ? Math.max(13, o.size || 14) : (o.size || 14);
+  ctx.font = (HC ? "bold " : "") + size + "px system-ui, sans-serif";
+  ctx.fillStyle = HC ? (o.hcColor || "#ffffff") : (o.color || "#e8eef2");
   ctx.textAlign = o.align || "left";
   ctx.textBaseline = o.base || "alphabetic";
   ctx.fillText(s, x, y);
 }
 function bar(x, y, w, h, frac, color, label) {
-  ctx.fillStyle = "rgba(0,0,0,.45)"; ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = C("rgba(0,0,0,.45)", "#000000"); ctx.fillRect(x, y, w, h);
   ctx.fillStyle = color; ctx.fillRect(x, y, w * Math.max(0, Math.min(1, frac)), h);
-  ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
+  ctx.lineWidth = C(1, 2); ctx.strokeStyle = C("rgba(255,255,255,.5)", "#ffffff"); ctx.strokeRect(x + .5, y + .5, w - 1, h - 1); ctx.lineWidth = 1;
   if (label) text(label, x + w / 2, y + h - 3, { size: 11, align: "center" });
 }
 function fmtTime(ticks) {
@@ -171,6 +188,27 @@ function overlay(w, h) {
     text("⏸ Tạm dừng", w / 2, h / 2 - 10, { align: "center", size: 30 });
     text("P / Esc tiếp tục · " + again, w / 2, h / 2 + 22, { align: "center", color: "#cfd8dc" });
   }
+}
+
+// ----- CẢNH BÁO (AC-P4-04): đọc snap.alerts do máy chủ tính (chonoi/alerts.py); biểu tượng + chữ, không chỉ màu -----
+const LEVEL_ICON = { danger: "⛔", warning: "⚠" };
+function drawAlerts(w) {
+  const list = snap.alerts || [];
+  list.forEach((a, i) => {
+    const msg = `${LEVEL_ICON[a.level] || "⚠"} ${a.icon || ""} ${a.text}`;
+    ctx.font = "bold " + (HC ? 18 : 16) + "px system-ui, sans-serif";
+    const bw = Math.min(w - 20, ctx.measureText(msg).width + 36), bh = HC ? 34 : 30;
+    const x = (w - bw) / 2, y = 76 + i * (bh + 6);
+    const danger = a.level === "danger";
+    ctx.fillStyle = HC ? "#000000" : (danger ? "rgba(183,28,28,.92)" : "rgba(255,193,7,.95)");
+    ctx.fillRect(x, y, bw, bh);
+    ctx.lineWidth = HC ? 3 : 2; ctx.strokeStyle = HC ? "#ffff00" : (danger ? "#ffcdd2" : "#5d4037");
+    ctx.strokeRect(x + 1, y + 1, bw - 2, bh - 2); ctx.lineWidth = 1;
+    ctx.fillStyle = HC ? "#ffff00" : (danger ? "#ffffff" : "#1a1a1a");
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.fillText(msg, w / 2, y + bh / 2 + 1);
+    ctx.textBaseline = "alphabetic";
+  });
 }
 
 // ----- HUD chung của chế độ day: Ngày, pha, kế hoạch món, nâng cấp -----
@@ -234,7 +272,8 @@ function drawMenu(w, h) {
     text(label, w / 2, y, { size: 17, align: "center", color: sel ? "#fff" : "#cfd8dc" });
   });
   text("↑↓ chọn · ←→ số Ngày · Enter bắt đầu", w / 2, h / 2 + 100, { size: 13, align: "center", color: "#9fb3c0" });
-  text("Trong game: P/Esc tạm dừng · R chơi lại · M về menu", w / 2, h / 2 + 122, { size: 13, align: "center", color: "#9fb3c0" });
+  text("Trong game: P/Esc tạm dừng · R chơi lại · M về menu · H tương phản cao", w / 2, h / 2 + 122, { size: 13, align: "center", color: "#9fb3c0" });
+  text(HC ? "Tương phản cao: BẬT" : "", w / 2, h / 2 + 146, { size: 13, align: "center", hcColor: "#ffff00" });
 }
 
 // ----- cảnh GATHER: nhìn ngang, x sang phải, d xuống -----
@@ -247,10 +286,10 @@ function drawGather(w, h) {
   const ox = (w - s * (X + 4)) / 2 + 2 * s, oy = top + SKY * s;
   const sx = (x) => ox + x * s, sy = (d) => oy + d * s;
   // trời + nước
-  ctx.fillStyle = "#cfeaf5"; ctx.fillRect(0, top, w, SKY * s);
+  ctx.fillStyle = C("#cfeaf5", "#000000"); ctx.fillRect(0, top, w, SKY * s);
   const g = ctx.createLinearGradient(0, oy, 0, sy(D));
   g.addColorStop(0, "#49b0dc"); g.addColorStop(1, "#08243f");
-  ctx.fillStyle = g; ctx.fillRect(sx(0), oy, X * s, D * s);
+  ctx.fillStyle = C(g, "#00152b"); ctx.fillRect(sx(0), oy, X * s, D * s);
   ctx.strokeStyle = "#e9f7ff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(sx(0), oy); ctx.lineTo(sx(X), oy); ctx.stroke();
   // vạch độ sâu
   for (let d = 5; d <= D; d += 5) {
@@ -316,8 +355,6 @@ function drawGather(w, h) {
   if (p && p.pos) text(`x ${p.pos[0].toFixed(1)}  d ${p.pos[1].toFixed(1)}`, 14, 52, { size: 12, color: "#9fb3c0" });
   if (p && p.catch_cd_ticks > 0) text("hồi chiêu bắt " + (p.catch_cd_ticks / 60).toFixed(1) + "s", 150, 52, { size: 12, color: "#9fb3c0" });
   if (p && p.invuln_ticks > 0) text("🛡 bất tử " + (p.invuln_ticks / 60).toFixed(1) + "s", 270, 52, { size: 12, color: "#80deea" });
-  const chasing = (snap.monsters || []).filter((m) => m.state === "chase");
-  if (chasing.length) text("⚠ Cá Sấu đang đuổi: " + chasing.map((m) => m.id).join(", "), w / 2, 84, { size: 15, align: "center", color: "#ff8a80" });
   // giỏ (khoang) dưới
   if (snap.hold && snap.hold_capacity) {
     const cap = snap.hold_capacity, sz = Math.min(30, (w - 260) / cap - 4), y0 = h - bottom + 8;
@@ -340,7 +377,7 @@ function drawQuan(w, h) {
   const s = Math.max(1, Math.min((w - 40) / X, (h - top - bottom) / Z));
   const ox = (w - s * X) / 2, oy = top;
   const sx = (x) => ox + x * s, sy = (z) => oy + (Z - z) * s;
-  ctx.fillStyle = "#c9a36b"; ctx.fillRect(sx(0), sy(Z), X * s, Z * s);
+  ctx.fillStyle = C("#c9a36b", "#111111"); ctx.fillRect(sx(0), sy(Z), X * s, Z * s);
   ctx.strokeStyle = "#6b4a2b"; ctx.lineWidth = 4; ctx.strokeRect(sx(0), sy(Z), X * s, Z * s);
   // bếp
   (snap.stoves || []).forEach((st) => {
@@ -387,7 +424,7 @@ function drawQuan(w, h) {
 function frame() {
   requestAnimationFrame(frame);  // đặt trước để lỗi vẽ không làm dừng vòng lặp
   const [w, h] = fit();
-  ctx.fillStyle = "#10161c"; ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = C("#10161c", "#000000"); ctx.fillRect(0, 0, w, h);
   if (snap && scene() === "menu") {
     drawMenu(w, h);
     if (offline) text("Mất kết nối tới máy chủ (đã tắt chưa?)", w / 2, 30, { align: "center", color: "#ff8a80", size: 16 });
@@ -395,7 +432,9 @@ function frame() {
     const sc = scene();
     if (sc === "quan") drawQuan(w, h); else if (sc === "shop") drawShop(w, h); else drawGather(w, h);
     dayHud(w);
+    drawAlerts(w);
     eventLog(w, h);
+    text(HC ? "Tương phản cao: BẬT (H)" : "H: tương phản cao", w - 10, h - 32, { size: 11, align: "right", color: "#9fb3c0", hcColor: "#ffff00" });
     overlay(w, h);
   } else {
     text(offline ? "Không kết nối được máy chủ…" : "Đang tải…", w / 2, h / 2, { align: "center", size: 18 });
