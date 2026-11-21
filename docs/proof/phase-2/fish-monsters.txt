@@ -1,0 +1,28 @@
+# Cá bơi/sinh + Cá Sấu (TICKET-02 1.1–1.2) · code @ a676021
+
+## 1. gather trọn ca, cá mặc định theo seed (không điều khiển)
+$ python3 -m chonoi.headless --mode gather --seed 5 --ticks 10800 --out g.jsonl   (chạy 2 lần)
+tất định: giống từng byte
+tick 0: 8 đàn {'ca_linh': 3, 'ca_keo': 2, 'ca_loc': 3} · vị trí khác nhau: 8 · quái ['M1']
+fish_spawned: [(360, 'ca_linh'), (720, 'ca_linh'), (1080, 'ca_keo'), (1440, 'ca_linh')]
+số đàn tối đa trong ca: 12 (trần 12)
+cá ra ngoài fish_x / dải độ sâu loài: 0
+F1 heading tại tick 110/120/130/240/250: [(110, 317.824), (120, 357.174), (130, 357.174), (240, 12.81), (250, 12.81)] (đổi ở age 120, 240)
+end: {'type': 'end', 'ticks': 10800, 'sim_tick': 10800, 'mode': 'gather', 'state': 'finished', 'reason': 'time', 'money': 0, 'earned': 0, 'reputation': 3.0, 'score': 300}
+
+## 2. Cá Sấu chạm người chơi: mất Máu, mất floor(n/2) hàng LIFO, bất tử 90, recoil; lần 3 -> ngất
+$ cat m.json
+{"gather":{"player":{"pos":[60,24],"oxygen_ticks":1800},"hold":["ca_loc","bong_sung","ca_linh","ca_linh","ca_linh"],"random_fish":false,"monsters":[{"id":"M1","kind":"ca_sau","pos":[61,24],"waypoints":[[60,24],[64,24]]}]}}
+$ python3 -m chonoi.headless --mode gather --seed 1 --scenario m.json --ticks 600 --out m.jsonl
+exit=0
+1 monster_hit {"monster_id": "M1", "hp": 2, "lost": ["ca_linh", "ca_linh"], "pos": [60.0, 24.0]}
+91 monster_hit {"monster_id": "M1", "hp": 1, "lost": ["ca_linh"], "pos": [60.0, 24.0]}
+190 monster_hit {"monster_id": "M1", "hp": 0, "lost": ["bong_sung"], "pos": [60.0, 24.0]}
+190 faint {"cause": "monster", "lost": ["ca_loc"], "hp": 0}
+190 gather_end {"reason": "fainted", "inventory": {"items": {}}}
+snapshot tick 10: invuln_ticks = 81 · M1 {'state': 'recoil', 'state_ticks_left': 51, 'recoil_dir': [1.0, 0.0]}
+end: {'type': 'end', 'ticks': 190, 'sim_tick': 190, 'mode': 'gather', 'state': 'finished', 'reason': 'fainted', 'money': 0, 'earned': 0, 'reputation': 3.0, 'score': 300}
+
+## 3. day --days 3: bố trí quái theo Ngày (M2 từ Ngày 3) -> test_day.MonstersByDay
+test_m2_appears_from_day_3 (test_day.MonstersByDay.test_m2_appears_from_day_3)
+Bố trí Cá Sấu theo Ngày: M1 từ Ngày 1, M2 từ Ngày 3 (spawns.from_day). ... ok

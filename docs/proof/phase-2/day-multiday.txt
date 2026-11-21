@@ -1,0 +1,50 @@
+# Smoke day --days 2: mua nâng cấp, hiệu lực từ Ngày kế · code @ a676021
+$ cat d.json
+{"day":{"money":1000,"earned":1000},"gather":{"hold":["ca_loc","bong_sung","bong_sung"],"random_fish":false}}
+$ cat di.json
+{"frames":[{"tick":0,"interact":true},{"tick":1,"interact":false},{"tick":10801,"buy":"oxygen"},{"tick":10802,"buy":"hp"},{"tick":10803,"shop_done":true},{"tick":10804,"interact":true,"shop_done":false},{"tick":10805,"interact":false},{"tick":21605,"buy":"oxygen"},{"tick":21606,"buy":"hp"},{"tick":21607,"buy":"weapon"},{"tick":21608,"shop_done":true}]}
+$ python3 -m chonoi.headless --mode day --days 2 --seed 3 --scenario d.json --inputs di.json --ticks 50000 --out day2.jsonl
+exit=0 · thời gian chạy 0.41 s
+     0 D1 gather day_start   {}
+     0 D1 gather day_plan    {"dishes": {"ca_loc_nuong_trui": 3, "goi_bong_sung": 3}}
+     0 D1 gather phase_start {}
+     1 D1 gather gather_end  {"reason": "docked"}
+     1 D1 quan   phase_start {}
+ 10801 D1 quan   quan_end    {"reason": "time", "money": 1000, "earned": 1000, "shift_earned": 0, "reputation": 1.0}
+ 10801 D1 shop   phase_start {}
+ 10802 D1 shop   bought      {"upgrade": "oxygen", "level": 1, "price": 200, "money": 800}
+ 10803 D1 shop   bought      {"upgrade": "hp", "level": 1, "price": 250, "money": 550}
+ 10804 D1 shop   shop_end    {"reason": "done"}
+ 10804 D2 gather day_start   {}
+ 10804 D2 gather day_plan    {"dishes": {"ca_loc_nuong_trui": 2, "lau_ca_linh_dien_dien": 2}}
+ 10804 D2 gather phase_start {}
+ 10805 D2 gather gather_end  {"reason": "docked"}
+ 10805 D2 quan   phase_start {}
+ 21605 D2 quan   quan_end    {"reason": "time", "money": 550, "earned": 1000, "shift_earned": 0, "reputation": 0}
+ 21605 D2 shop   phase_start {}
+ 21606 D2 shop   bought      {"upgrade": "oxygen", "level": 2, "price": 400, "money": 150}
+ 21607 D2 shop   buy_failed  {"action": "hp", "reason": "funds"}
+ 21608 D2 shop   buy_failed  {"action": "weapon", "reason": "unknown"}
+ 21609 D2 shop   shop_end    {"reason": "done"}
+--- snapshot đầu mỗi pha gather:
+tick 0: day 1 upgrades={'oxygen': 0, 'hp': 0} active={'oxygen': 0, 'hp': 0} oxygen_max_ticks=1800 hp=3/3 money=1000 quái=['M1']
+tick 10804: day 2 upgrades={'oxygen': 1, 'hp': 1} active={'oxygen': 1, 'hp': 1} oxygen_max_ticks=2700 hp=4/4 money=550 quái=['M1']
+--- end: {'type': 'end', 'ticks': 21609, 'sim_tick': 21609, 'mode': 'day', 'state': 'finished', 'reason': 'days_complete', 'money': 150, 'earned': 1000, 'reputation': 0, 'score': 1000, 'days_completed': 2}
+
+# Kiểm thêm (--snapshot-every 1): cấp vừa mua hiện ngay trong Shop + pause trong Shop
+$ cat di1.json
+{"frames":[{"tick":0,"interact":true},{"tick":10801,"buy":"oxygen"},{"tick":10802,"pause":true},{"tick":10803,"pause":false},{"tick":10805,"pause":true}]}
+event    tick 10801 quan_end {"reason": "time", "money": 1000, "earned": 1000, "shift_earned": 0, "reputation": 3.0}
+event    tick 10801 phase_start {}
+snapshot tick 10801 phase=shop state=playing phase_tick=0 time_left=600 upgrades={'oxygen': 0, 'hp': 0} active={'oxygen': 0, 'hp': 0} money=1000
+event    tick 10802 bought {"upgrade": "oxygen", "level": 1, "price": 200, "money": 800}
+snapshot tick 10802 phase=shop state=playing phase_tick=1 time_left=599 upgrades={'oxygen': 1, 'hp': 0} active={'oxygen': 0, 'hp': 0} money=800
+event    tick 10803 paused {}
+snapshot tick 10803 phase=shop state=paused phase_tick=1 time_left=599 upgrades={'oxygen': 1, 'hp': 0} active={'oxygen': 0, 'hp': 0} money=800
+snapshot tick 10804 phase=shop state=paused phase_tick=1 time_left=599 upgrades={'oxygen': 1, 'hp': 0} active={'oxygen': 0, 'hp': 0} money=800
+snapshot tick 10805 phase=shop state=paused phase_tick=1 time_left=599 upgrades={'oxygen': 1, 'hp': 0} active={'oxygen': 0, 'hp': 0} money=800
+event    tick 10806 resumed {}
+snapshot tick 10806 phase=shop state=playing phase_tick=2 time_left=598 upgrades={'oxygen': 1, 'hp': 0} active={'oxygen': 0, 'hp': 0} money=800
+snapshot tick 10807 phase=shop state=playing phase_tick=3 time_left=597 upgrades={'oxygen': 1, 'hp': 0} active={'oxygen': 0, 'hp': 0} money=800
+snapshot tick 10808 phase=shop state=playing phase_tick=4 time_left=596 upgrades={'oxygen': 1, 'hp': 0} active={'oxygen': 0, 'hp': 0} money=800
+=> upgrades đổi ngay khi mua, active_upgrades giữ tới Ngày kế; khi pause phase_tick và time_left của Shop đứng yên
