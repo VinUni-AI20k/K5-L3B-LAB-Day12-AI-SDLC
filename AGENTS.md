@@ -8,7 +8,7 @@
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 - Kiểm chứng P1-04 và lưu bằng chứng: `python3 tools/verify_p1_04.py` (cần `python3` trên PATH).
 
-- Preview UI Phase 2: `python docs/proof/phase-2/day_fixture.py --days 5 --port 8782` (fixture web; không dùng để xác nhận luật v1.1).
+- Preview UI Phase 2: `python docs/proof/phase-2/day_fixture.py --real-scenes --days 5 --port 8782` (Gather/Quán v1.0 thật; bỏ `--real-scenes` để kiểm fixture UI v1.1).
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
@@ -17,6 +17,7 @@
 - Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.
 - P1-03/P1-04 đã tích hợp: helper `chonoi/sim/kitchen.py`; `dish.order_id == customer.id`. Timer, validation và cleanup chạy qua helper một lần; lịch khách trong `quan.py` chạy sau settlement khi chưa đóng ca. Regression: `tests/test_quan_integration.py`. Xem `docs/notes/P1-04.md`.
+- UI Phase 2 đọc cá sấu từ `snapshot.monsters`, lấy ảnh món theo `dish_id`. Ảnh WebP dùng chung giữa `chonoi.live` và fixture Day, nguồn ghi trong `CREDITS.md`.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).

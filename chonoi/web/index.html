@@ -3,177 +3,217 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="theme-color" content="#162b26">
+<meta name="theme-color" content="#161c1a">
 <meta name="page-type" content="software">
 <meta name="site-kind" content="gaming">
-<meta name="description" content="Cùng Út Sen lặn hái buổi sáng và mở quán trên bè buổi tối.">
+<meta name="description" content="Theo chân Bà Út lặn bắt cá, hái rau buổi sáng và mở quán trên bè buổi tối.">
+<meta property="og:title" content="Quán Ăn Chợ Nổi">
+<meta property="og:description" content="Một ngày theo chân Bà Út, từ bến sông đến căn bếp trên bè.">
+<meta property="og:image" content="/art/gather.webp">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23203b35'/%3E%3Cpath d='M5 20h22l-5 6H10zM15 5l-6 12h6zM18 8v9h6z' fill='%23e7ba56'/%3E%3C/svg%3E">
 <title>Quán Ăn Chợ Nổi</title>
 <style>
   :root {
     color-scheme: dark;
-    --bg: #1c3026; --panel: #f5e4bb; --inset: #e8d09a;
-    --ink: #38271c; --cream: #fff0cc; --muted: #664b35; --gold: #f1c46a;
-    --edge: #bd9862; --wood: #61422a; --warning: #962e27;
+    --bg: #161c1a;
+    --surface: #1f2725;
+    --ink: #f4ead4;
+    --soft: #b9c8bc;
+    --line: #46584e;
+    --gold: #f1c77d;
+    --paper: #f3e5c7;
+    --paper-ink: #30281e;
+    --paper-soft: #5d4c36;
+    --paper-line: #cdbd9f;
+    --title: Cambria, "Times New Roman", serif;
     font: 16px/1.45 system-ui, sans-serif;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  body { margin: 0; background: radial-gradient(ellipse at top, #304737, var(--bg) 55%); color: var(--cream); }
-  .shell { width: min(1280px, calc(100% - 64px)); margin: 0 auto; padding: 20px 0; }
-  .top, .hud, .metrics, .brand, .supplies, .keys, .stock, .orders, .slots {
-    display: flex; align-items: center; flex-wrap: wrap;
-  }
-  .top { justify-content: space-between; gap: 12px; margin: 0 0 14px; }
-  .brand { flex-wrap: nowrap; gap: 12px; }
-  .brand svg { flex: none; width: 44px; height: 44px; }
+  body { margin: 0; color: var(--ink); background: radial-gradient(ellipse at 50% 0, #2a3a33 0, var(--bg) 62%); }
   h1, h2, p { margin: 0; }
-  h1 { font: bold clamp(23px, 3vw, 34px)/1.05 Cambria, "Times New Roman", serif; text-shadow: 0 2px #182319; }
+  h2 { font: 700 1.2rem/1.15 var(--title); }
+  .shell { width: min(1280px, calc(100% - 64px)); margin: auto; padding: clamp(22px, 4vh, 44px) 0 28px; }
+  .skip-link { position: absolute; left: 12px; top: 12px; z-index: 2; padding: 12px; color: var(--paper-ink); background: var(--paper); }
+  .skip-link:not(:focus) { clip-path: inset(50%); }
+  :focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  .top { display: flex; justify-content: space-between; align-items: center; gap: 12px 24px; margin-bottom: 22px; }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand svg { flex: none; width: 50px; height: 50px; }
+  h1 { font: 700 clamp(1.7rem, 4vw, 3.25rem)/1.06 var(--title); letter-spacing: -.035em; }
   button {
-    color: var(--ink); background: #eccb87; border: 2px solid #865634;
-    border-radius: 4px; box-shadow: inset 0 2px #ffe8aa, 0 3px #3c2b20;
-    font: 700 15px system-ui, sans-serif;
-    padding: 8px 14px; min-height: 44px; cursor: pointer;
-    transition: background-color 120ms, transform 120ms;
+    min-height: 44px; padding: 8px 16px;
+    font: 650 .92rem/1.2 system-ui, sans-serif;
+    color: #251a0d; background: var(--gold); border: 1px solid #f9d79c; border-radius: 6px;
+    cursor: pointer; transition: background-color .16s, transform .16s;
   }
-  button:hover { background: #f8dc9a; }
-  button:active { transform: translateY(2px); box-shadow: inset 0 2px #ffe8aa, 0 1px #3c2b20; }
-  button:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  @media (hover: hover) { button:hover { background: #ffda9b; transform: translateY(-1px); } }
+  button:active { transform: translateY(1px); }
   button:disabled { cursor: wait; opacity: .65; }
-  .game {
-    color: var(--ink); background: var(--panel); border: 4px solid var(--wood);
-    border-radius: 5px; box-shadow: 0 0 0 2px #2c2119, 0 5px #2c2119;
-  }
-  .hud {
-    gap: 10px 24px; justify-content: space-between; padding: 10px 16px;
-    background: linear-gradient(#faebc9, #efdbad); box-shadow: inset 0 2px #fff3d1;
-  }
-  .season { display: flex; align-items: center; gap: 11px; }
+  .game { display: grid; grid-template-columns: minmax(0, 1fr) minmax(244px, 24%); align-items: start; gap: 16px; }
+  .playfield, .ledger { min-width: 0; border-radius: 9px; overflow: hidden; }
+  .playfield { border: 1px solid var(--line); background: var(--surface); }
+  .hud { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px 24px; padding: 14px 18px; }
+  .season, .metrics, .meter-line { display: flex; align-items: center; }
+  .season { gap: 10px; }
   .season-mark {
-    width: 32px; height: 32px; display: grid; place-items: center; flex: none;
-    background: #f1d398; color: #63411f; border: 2px solid #bc9055; border-radius: 4px; font-size: 22px;
+    display: grid; place-items: center; flex: none; width: 38px; height: 38px;
+    border: 1px solid #b48848; border-radius: 50%; color: var(--gold); background: #423524; font-size: 24px;
   }
-  [data-mode="quan"] .season-mark { background: #374c54; color: #ffe1a4; border-color: #686754; }
-  .season h2 { font: bold 21px/1.2 Cambria, "Times New Roman", serif; }
-  .season p { color: var(--muted); font-size: 14px; }
-  .metrics { gap: 10px 22px; }
-  .metric { min-width: 67px; padding-left: 12px; border-left: 1px solid #c9a673; font-variant-numeric: tabular-nums; }
-  .metric span { display: block; font-size: 14px; color: var(--muted); }
-  .metric strong { font-size: 18px; }
-  .meter-line { display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+  [data-mode="quan"] .season-mark { background: #263b42; border-color: #5f7a7d; color: #c7e0de; }
+  .season p, .metric span { font-size: .83rem; color: var(--soft); }
+  .metrics { flex-wrap: wrap; gap: 8px 16px; font-variant-numeric: tabular-nums; }
+  .metric { border-left: 1px solid var(--line); padding-left: 12px; }
+  .metric span { display: block; }
+  .metric strong { font-size: 1rem; color: var(--ink); }
+  .meter-line { gap: 7px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
   progress {
-    display: block; width: 92px; height: 8px; appearance: none;
-    border: 0; border-radius: 2px; background: #655545; --fill: #71a56e;
+    display: block; width: clamp(30px, 7vw, 82px); height: 6px; appearance: none;
+    border: 0; border-radius: 4px; background: #4c5a50; --fill: #a4c9a1;
   }
-  progress::-webkit-progress-bar { border-radius: 2px; background: #655545; }
-  progress::-webkit-progress-value { border-radius: 2px; background: var(--fill); }
-  progress::-moz-progress-bar { border-radius: 2px; background: var(--fill); }
-  .danger, .metric .danger { color: var(--warning); }
-  .danger progress { --fill: #d75849; }
-  .scene { position: relative; background: #243b32; border-block: 3px solid var(--wood); }
-  canvas { display: block; width: 100%; height: clamp(320px, calc(100svh - 290px), 620px); }
-  [data-mode="quan"] canvas { height: clamp(310px, calc(100svh - 322px), 585px); }
-  .overlay {
-    position: absolute; inset: 0; display: grid; place-items: center;
-    padding: 14px; background: #101e19b3;
+  progress::-webkit-progress-bar { border-radius: 4px; background: #4c5a50; }
+  progress::-webkit-progress-value { border-radius: 4px; background: var(--fill); }
+  progress::-moz-progress-bar { border-radius: 4px; background: var(--fill); }
+  .danger, .metric .danger { color: #ffc4a9; }
+  .danger progress { --fill: #ef8d69; }
+  .scene {
+    position: relative; aspect-ratio: 1672 / 941; background: #29443b center / 100% 100%;
+    box-shadow: inset 0 0 0 1px #1b261d66;
   }
+  [data-mode="gather"] .scene { background-image: url("art/gather.webp"); }
+  [data-mode="quan"] .scene { background-image: url("art/quan.webp"); }
+  canvas { display: block; width: 100%; height: 100%; }
+  .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; background: #15241cc2; }
   .result {
-    width: min(100%, 400px); padding: 19px; text-align: center;
-    background: var(--panel); border: 3px solid var(--wood); border-radius: 5px;
-    box-shadow: 0 4px #241914;
+    width: min(100%, 410px); padding: 14px; text-align: center;
+    color: var(--paper-ink); background: var(--paper); border: 1px solid #b99b66; border-radius: 8px;
   }
-  .result h2 { font: bold 27px Cambria, "Times New Roman", serif; color: var(--ink); }
   .result p { margin: 8px 0; }
-  .result button { margin-top: 7px; }
-  .status {
-    display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
-    gap: 4px 20px; min-height: 35px; padding: 6px 16px;
-    background: #344436; border-bottom: 2px solid var(--wood); font-size: 15px;
+  .result button { margin-top: 5px; }
+  .status { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 16px; min-height: 42px; padding: 9px 18px; font-size: .88rem; }
+  #hint { color: var(--gold); }
+  #notice { color: var(--ink); }
+  .keys {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 7px 14px;
+    border-top: 1px solid var(--line); padding: 10px 18px; color: var(--soft); font-size: .82rem;
   }
-  .status #hint { color: var(--gold); }
-  .status #notice { color: var(--cream); }
-  .tray { padding: 10px 16px 12px; }
-  .supplies { justify-content: space-between; gap: 8px 24px; }
-  .supplies h2, .orders h2 { font-size: 16px; }
-  .basket { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; }
-  .slots { gap: 4px; min-width: 0; max-width: 100%; }
-  .slot {
-    display: grid; place-items: center; width: 22px; height: 22px; border-radius: 2px;
-    border: 1px solid #a98451; background: #e1c692; color: var(--ink);
-    box-shadow: inset 0 1px #b99863;
-    font: bold 10px system-ui, sans-serif;
-  }
-  .slot.filled { background: #fff0ca; }
-  .slot img { display: block; width: 18px; height: 18px; object-fit: contain; image-rendering: pixelated; }
-  #hold-summary { margin-top: 4px; font-size: 14px; color: var(--muted); }
-  .keys { gap: 6px 13px; color: var(--muted); font-size: 14px; }
-  .keys span { white-space: nowrap; }
+  .keys > span { display: inline-flex; align-items: center; gap: 4px; }
   kbd {
-    display: inline-block; margin-right: 3px; padding: 1px 5px; border: 1px solid #a68154;
-    border-radius: 2px; font: 700 13px system-ui, sans-serif; color: var(--ink); background: var(--inset);
+    border: 1px solid #657467; border-radius: 4px; padding: 2px 5px;
+    color: var(--ink); font: 700 .74rem/1.1 system-ui, sans-serif; background: #313b34;
   }
-  .stock { gap: 5px 16px; color: var(--muted); font-size: 15px; }
-  .stock b { color: var(--ink); padding-left: 4px; }
-  .stock i {
-    display: inline-block; width: 8px; height: 8px; border: 1px solid #84654e; margin-right: 6px;
-    background: var(--item); vertical-align: 2px;
+  .ledger { color: var(--paper-ink); background: var(--paper); color-scheme: light; border: 1px solid #d2b789; }
+  .profile {
+    display: grid; grid-template-columns: 1fr auto; align-items: center;
+    padding: 10px 16px 0; min-height: 140px; gap: 8px;
+    background: radial-gradient(circle at 76% 58%, #aeb79b 0 31%, transparent 31.5%), #d7d5b5;
   }
-  .stock span { white-space: nowrap; }
-  .orders {
-    align-items: start; gap: 8px 24px; border-top: 1px solid var(--edge);
-    padding-top: 8px; margin-top: 8px; font-size: 15px;
+  .profile h2 { font-size: clamp(1.8rem, 3vw, 2.65rem); letter-spacing: -.04em; }
+  .profile img { width: auto; height: 157px; max-width: 100%; object-fit: contain; align-self: end; }
+  .tray { padding: 14px 16px; border-top: 1px solid var(--paper-line); }
+  .slots { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin-top: 9px; }
+  .slot {
+    display: grid; place-items: center; aspect-ratio: 1; max-height: 40px;
+    border: 1px solid #bba17b; border-radius: 4px; background: #e9d8b6; font-size: .75rem;
   }
-  #tickets, #kitchen { flex: 1 1 230px; min-width: 0; }
-  .ticket, .stove { color: var(--muted); }
-  .ticket b, .stove b { color: var(--ink); }
-  .ticket .meter-line { display: inline-flex; margin-left: 6px; }
-  #hand { color: #784320; }
+  .slot.filled { background: #fff6e3; }
+  .slot img, .stock img { display: block; width: 75%; height: 75%; object-fit: contain; }
+  #hold-summary, .ticket, .stove, #hand { color: var(--paper-soft); font-size: .88rem; }
+  #hold-summary { margin-top: 8px; }
+  .stock h2, .orders h2 { margin-bottom: 6px; }
+  .stock-row {
+    display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center;
+    gap: 6px; padding-block: 3px; color: var(--paper-soft); font-size: .88rem;
+  }
+  .stock img { width: 21px; height: 17px; }
+  .stock b, .ticket b, .stove b { color: var(--paper-ink); }
+  .orders > * { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--paper-line); }
+  .ticket + .ticket, .stove + .stove { margin-top: 5px; }
+  .ticket .meter-line { display: flex; margin-top: 3px; }
+  .ticket .danger { color: #942f19; }
+  .ticket progress { background: #6f6049; --fill: #b7cc93; }
+  .ticket progress::-webkit-progress-bar { background: #6f6049; }
+  .ticket .danger progress { --fill: #ee9368; }
+  @media (max-width: 940px) {
+    .shell { width: calc(100% - 36px); }
+    .game { grid-template-columns: minmax(0, 1fr); }
+    .ledger { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
+    .tray { border-top: 0; border-left: 1px solid var(--paper-line); }
+    .slots { max-width: 280px; }
+  }
+  @media (max-width: 540px) {
+    .shell { width: calc(100% - 24px); padding-top: 16px; }
+    .top { gap: 10px; margin-bottom: 14px; }
+    .brand { gap: 8px; }
+    .brand svg { width: 30px; height: 30px; }
+    .top button { flex: none; padding-inline: 10px; }
+    .hud { gap: 10px; }
+    .hud, .status, .keys { padding-inline: 12px; }
+    .metric { padding-left: 8px; }
+    .metrics { gap: 8px 10px; }
+    .ledger { grid-template-columns: minmax(0, 1fr); }
+    .profile img { height: 125px; margin-right: 16px; }
+    .tray { border-top: 1px solid var(--paper-line); border-left: 0; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    [data-enter] { animation: enter .45s ease-out both; }
+    @keyframes enter { from { opacity: .6; transform: translateY(5px); } }
+  }
+  @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+  .dish-preview { width: 38px; height: 30px; object-fit: contain; vertical-align: middle; margin-right: 7px; }
+  .ticket + .ticket, .stove + .stove { margin-top: 4px; }
   .flow {
-    color: var(--ink); background: var(--panel); border: 4px solid var(--wood);
-    border-radius: 5px; box-shadow: 0 4px #221b16;
+    color: var(--paper-ink); background: var(--paper); border: 1px solid var(--paper-line);
+    border-radius: 9px; color-scheme: light;
     padding: clamp(16px, 4vw, 44px); max-width: 760px; margin-inline: auto;
   }
   .flow h2 { font: bold clamp(26px, 5vw, 42px)/1.1 Cambria, serif; margin: 4px 0 12px; }
   .flow h3 { font-size: 17px; margin: 0 0 6px; }
   .flow section { margin-block: 14px; }
   .flow ul { padding-left: 22px; margin: 4px 0; }
-  .flow .subtle { color: var(--muted); }
+  .flow .dish-list {
+    display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0;
+    padding: 0; list-style: none;
+  }
+  .dish-card {
+    display: flex; flex-direction: column; gap: 4px; padding: 10px;
+    background: #ffefc8; border: 1px solid var(--paper-line); border-radius: 5px;
+  }
+  .dish-card b { line-height: 1.25; }
+  .dish-card small { color: var(--paper-soft); }
+  .dish-illustration { display: block; width: 100%; aspect-ratio: 4 / 3; object-fit: contain; margin-top: auto; }
+  @media (max-width: 580px) {
+    .flow .dish-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  @media (min-width: 581px) {
+    .ingredient-goal ul { columns: 2; }
+  }
+  .flow .subtle { color: var(--paper-soft); }
   .flow .actions, .pause-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 16px; }
+  .flow .intro-actions { margin: 0 0 14px; }
   .flow .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(130px, 100%), 1fr)); gap: 8px; }
-  .fact, .upgrade { border: 1px solid var(--edge); background: #ffefc8; padding: 9px 11px; }
+  .fact, .upgrade { border: 1px solid var(--paper-line); background: #ffefc8; padding: 9px 11px; }
   .fact b, .upgrade b { display: block; }
   .upgrade { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
   .shop-options { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(238px, 100%), 1fr)); gap: 9px; margin-block: 14px; }
-  @media (min-width: 741px) {
-    [data-day][data-mode="gather"] canvas { height: clamp(300px, calc(100svh - 310px), 620px); }
-    [data-day][data-mode="quan"] canvas { height: clamp(282px, calc(100svh - 408px), 585px); }
-  }
   .pause-actions { justify-content: center; }
-  #action-status, #overlay-status { color: var(--warning); }
-  #goal-line { margin-top: 4px; color: var(--muted); font-size: 14px; }
+  .result .pause-actions button { margin-top: 0; }
+  #action-status, #overlay-status { color: #942f19; }
+  #overlay-status:empty, #action-status:empty { display: none; }
+  #goal-line { margin-top: 8px; color: var(--paper-soft); font-size: .83rem; }
   .hit-feedback { box-shadow: inset 0 0 0 4px #b93c31; position: absolute; inset: 0; pointer-events: none; }
   .hit-feedback[hidden] { display: none; }
-  @media (min-width: 1120px) {
-    [data-day][data-mode="quan"] #tickets { flex: 2 1 435px; }
+  @media (max-width: 540px) {
+    .overlay { padding: 6px; overflow: auto; place-items: safe center; }
+    .result { padding: 8px; }
+    .pause-actions { gap: 6px; margin-top: 8px; }
   }
-  @media (741px <= width <= 1100px) {
-    [data-mode="quan"] canvas { height: clamp(310px, calc(100svh - 364px), 585px); }
-  }
-  @media (max-width: 740px) {
-    .shell { width: calc(100% - 24px); padding: 12px 0; }
-    .hud, .tray, .status { padding-inline: 12px; }
-    .metrics { gap: 9px 12px; }
-    .metric { min-width: 55px; padding-left: 0; border-left: 0; }
-    .brand { gap: 8px; }
-    .brand svg { width: 33px; height: 33px; }
-    canvas, [data-mode="quan"] canvas { height: clamp(230px, 54vw, 360px); }
-  }
-  @media (prefers-reduced-motion: reduce) { button { transition: none; } }
 </style>
 </head>
 <body>
+<a class="skip-link" id="skip" href="#playfield">Đến màn chơi</a>
 <main class="shell">
-  <header class="top">
+  <header class="top" data-enter>
     <div class="brand">
       <svg viewBox="0 0 22 22" shape-rendering="crispEdges" aria-hidden="true">
         <path d="M2 0h18v2h2v18h-2v2H2v-2H0V2h2z" fill="#17281e"/>
@@ -191,53 +231,60 @@
   <section id="flow" class="flow" aria-labelledby="flow-title" hidden>
     <div id="flow-content"></div><p role="status" id="action-status"></p>
   </section>
+
   <div class="game" id="game">
-    <header class="hud">
-      <div class="season">
-        <span class="season-mark" id="season-mark" aria-hidden="true">·</span>
-        <div><h2 id="season">Chợ Nổi</h2><p id="activity">Đang kết nối</p></div>
-      </div>
-      <div class="metrics" id="metrics"></div>
-    </header>
-    <div class="scene">
-      <canvas id="world" aria-label="Cảnh chơi của Út Sen">Cảnh chơi cần trình duyệt hỗ trợ Canvas.</canvas>
-      <span class="hit-feedback" id="hit-feedback" aria-hidden="true" hidden></span>
-      <div class="overlay" id="overlay">
-        <div class="result">
-          <h2 id="result-title" role="status">Đang tải…</h2>
-          <p id="result-text">Đang lấy trạng thái buổi chơi.</p>
-          <div class="pause-actions" id="pause-actions" hidden>
-            <button type="button" data-action="resume">Tiếp tục</button>
-            <button type="button" data-action="menu">Về menu</button>
+    <section class="playfield" id="playfield" aria-labelledby="season" tabindex="-1">
+      <header class="hud">
+        <div class="season">
+          <span class="season-mark" id="season-mark" aria-hidden="true">·</span>
+          <div><h2 id="season">Chợ Nổi</h2><p id="activity">Đang kết nối</p></div>
+        </div>
+        <div class="metrics" id="metrics"></div>
+      </header>
+      <div class="scene" data-visual>
+        <canvas id="world" aria-label="Cảnh chơi của Bà Út">Cảnh chơi cần trình duyệt hỗ trợ Canvas.</canvas>
+        <span class="hit-feedback" id="hit-feedback" aria-hidden="true" hidden></span>
+        <div class="overlay" id="overlay">
+          <div class="result">
+            <h2 id="result-title" role="status">Đang tải…</h2>
+            <p id="result-text">Đang lấy trạng thái buổi chơi.</p>
+            <div class="pause-actions" id="pause-actions" hidden>
+              <button type="button" data-action="resume">Tiếp tục</button>
+              <button type="button" data-action="menu">Về menu</button>
+            </div>
+            <p id="overlay-status" role="status"></p>
+            <button id="result-restart" type="button" hidden>Chơi lại</button>
           </div>
-          <p id="overlay-status" role="status"></p>
-          <button id="result-restart" type="button" hidden>Chơi lại</button>
         </div>
       </div>
-    </div>
-    <div class="status">
-      <span id="hint"></span><span id="notice" role="status"></span>
-    </div>
-    <div class="tray">
-      <div class="supplies">
-        <div class="basket" id="basket" hidden>
+      <div class="status">
+        <span id="hint"></span><span id="notice" role="status"></span>
+      </div>
+      <div class="keys" aria-label="Điều khiển">
+        <span><kbd>WASD</kbd><kbd>↑↓←→</kbd> Di chuyển</span>
+        <span><kbd>E</kbd> <span id="interact-key">Tương tác</span></span>
+        <span id="catch-key" hidden><kbd>Space</kbd> Bắt cá</span>
+        <span id="restart-key"><kbd>R</kbd> Chơi lại</span>
+        <span id="pause-key" hidden><kbd>P</kbd><kbd>Esc</kbd> Tạm dừng</span>
+      </div>
+    </section>
+    <aside class="ledger" aria-labelledby="character">
+      <div class="profile">
+        <h2 id="character">Bà Út</h2>
+        <img id="portrait" src="art/ba-ut.webp" width="300" height="520" alt="">
+      </div>
+      <div class="tray">
+        <div id="basket" hidden>
           <h2 id="hold-title">Giỏ</h2><div class="slots" id="slots" aria-hidden="true"></div>
+          <p id="hold-summary" hidden></p>
+          <p id="goal-line" hidden></p>
         </div>
         <div class="stock" id="stock" aria-label="Kho khả dụng" hidden></div>
-        <div class="keys" aria-label="Điều khiển">
-          <span><kbd>WASD</kbd><kbd>↑↓←→</kbd> Di chuyển</span>
-          <span><kbd>E</kbd> <span id="interact-key">Tương tác</span></span>
-          <span id="catch-key" hidden><kbd>Space</kbd> Bắt cá</span>
-          <span id="restart-key"><kbd>R</kbd> Chơi lại</span>
-          <span id="pause-key" hidden><kbd>P</kbd><kbd>Esc</kbd> Tạm dừng</span>
+        <div class="orders" id="orders" hidden>
+          <div id="tickets"></div><div id="kitchen"></div><p id="hand"></p>
         </div>
       </div>
-      <p id="hold-summary" hidden></p>
-      <p id="goal-line" hidden></p>
-      <div class="orders" id="orders" hidden>
-        <div id="tickets"></div><div id="kitchen"></div><p id="hand"></p>
-      </div>
-    </div>
+    </aside>
   </div>
 </main>
 <script>
@@ -245,19 +292,12 @@
 
 const $ = id => document.getElementById(id);
 const canvas = $("world");
-const screen = canvas.getContext("2d", { alpha: false });
-const art = document.createElement("canvas");
-let ctx = art.getContext("2d", { alpha: false });
-const terrain = document.createElement("canvas");
-let terrainKey = "", paintPending = true;
+const ctx = canvas.getContext("2d");
+let paintPending = true;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
-const stamps = [];
 const labels = [];
 const itemNames = {
   ca_loc: "cá lóc", ca_linh: "cá linh", bong_sung: "bông súng", bong_dien_dien: "bông điên điển", ca_keo: "cá kèo", keo_neo: "kèo nèo"
-};
-const itemColors = {
-  ca_loc: "#a9be86", ca_linh: "#d8dfce", bong_sung: "#eda0aa", bong_dien_dien: "#f4cf62", ca_keo: "#b6a580", keo_neo: "#9ac48e"
 };
 const dishes = {
   ca_loc_nuong_trui: "Cá lóc nướng trui",
@@ -267,13 +307,19 @@ const dishes = {
   ca_keo_nuong_muoi_ot: "Cá kèo nướng muối ớt",
   lau_mam_mien_tay: "Lẩu mắm miền Tây"
 };
-const reasons = { docked: "Đã cập bến", time: "Hết giờ", fainted: "Út Sen bị ngất" };
+const reasons = { docked: "Đã cập bến", time: "Hết giờ", fainted: "Bà Út bị ngất" };
 const known = (map, key) => Object.hasOwn(map, key) ? map[key] : undefined;
 const itemName = key => known(itemNames, key) ?? key;
+const dishId = value => typeof value === "string" ? value : value?.dish_id;
 const dishName = value => {
-  const id = typeof value === "string" ? value : value?.dish_id;
+  const id = dishId(value);
   return (record(value) ? value.label : null) ?? known(dishes, id) ?? (typeof id === "string" ? id : "Chưa rõ món");
 };
+function dishArt(value, className) {
+  const id = dishId(value);
+  return typeof id === "string" && known(dishes, id) ?
+    `<img class="${className}" src="art/${id.replaceAll("_", "-")}.webp" alt="">` : "";
+}
 const num = Number.isFinite;
 const position = p => Array.isArray(p) && p.length === 2 && p.every(num);
 const list = value => Array.isArray(value) ? value : [];
@@ -578,7 +624,10 @@ function gatherHint(s) {
   const free = Array.isArray(s.hold) && num(s.hold_capacity) ? s.hold_capacity - s.hold.length : null;
   const surface = typeof p.at_surface === "boolean" ? p.at_surface :
     num(m.surface_depth) ? p.pos[1] <= m.surface_depth : null;
-  if (near(p.pos, m.dock_pos, m.dock_radius)) return withCooldown("E · Cập bến");
+  if (near(p.pos, m.dock_pos, m.dock_radius)) {
+    return withCooldown(day?.live_scenes && Array.isArray(s.hold) && !s.hold.length ?
+      "Giỏ trống · Bơi ra xa bến để thu nguyên liệu, hoặc E để cập bến" : "E · Cập bến");
+  }
   if (surface === true) {
     const plants = list(s.nodes).filter(n => n.ready === true && near(p.pos, n.pos, m.interact_radius));
     plants.sort((a, b) => Math.hypot(a.pos[0] - p.pos[0], a.pos[1] - p.pos[1]) -
@@ -646,12 +695,12 @@ function renderQuan(s) {
   const customers = list(s.customers);
   const stockKnown = record(s.stock) && Array.isArray(s.customers) && customers.every(c => record(c.reserved));
   setHTML("stock", "<h2>Kho khả dụng</h2>" + Object.entries(itemNames).filter(([id]) =>
-    day || !["ca_keo", "keo_neo"].includes(id) || Object.hasOwn(s.stock ?? {}, id)).map(([id, label]) => {
+    (day && !day.live_scenes) || !["ca_keo", "keo_neo"].includes(id) || Object.hasOwn(s.stock ?? {}, id)).map(([id, label]) => {
     const reserved = customers.map(c => c.reserved?.[id] ?? 0);
     const total = Object.hasOwn(s.stock ?? {}, id) ? s.stock[id] : 0;
     const available = stockKnown && num(total) && reserved.every(num) ?
       total - reserved.reduce((sum, quantity) => sum + quantity, 0) : null;
-    return `<span id="stock-${id}"><i aria-hidden="true" style="--item:${itemColors[id]}"></i>${capitalize(label)} <b>${number(available)}</b></span>`;
+    return `<div class="stock-row" id="stock-${id}"><img alt="" src="${itemIcons[id]}"><span>${capitalize(label)}</span> <b>${number(available)}</b></div>`;
   }).join(""));
   setHTML("tickets", "<h2>Đơn hàng</h2>" + (customers.length ? customers.map(c => {
     const state = c.state === "eating" ? "Đang ăn" : known({
@@ -662,7 +711,7 @@ function renderQuan(s) {
     const patience = waiting && num(c.patience_ticks_left) ?
       `<span class="meter-line${patienceMax > 0 && c.patience_ticks_left <= patienceMax / 4 ? " danger" : ""}">
         ${meter(c.patience_ticks_left, patienceMax, "Kiên nhẫn")}${countdown(c.patience_ticks_left)}</span>` : "";
-    return `<p class="ticket"><b>${escapeHTML(dishName(c.dish_id))}</b> · Bàn ${escapeHTML(c.table_id ?? "—")} · ${state}${patience}</p>`;
+    return `<p class="ticket">${dishArt(c.dish_id, "dish-preview")}<b>${escapeHTML(dishName(c.dish_id))}</b> · Bàn ${escapeHTML(c.table_id ?? "—")} · ${state}${patience}</p>`;
   }).join("") : `<p class="ticket">${Array.isArray(s.customers) ? "Chưa có khách gọi món" : "Đang chờ dữ liệu đơn hàng"}</p>`));
   setHTML("kitchen", "<h2>Bếp</h2>" + (list(s.stoves).map(stove => {
     const state = known({
@@ -671,10 +720,12 @@ function renderQuan(s) {
       ready: "Món đã xong"
     }, stove.state) ?? "Chưa rõ trạng thái";
     const dish = stove.dish ? " · " + escapeHTML(dishName(stove.dish)) : "";
-    return `<p class="stove"><b>${escapeHTML(stove.id ?? "—")}</b> · ${state}${dish}</p>`;
+    return `<p class="stove">${dishArt(stove.dish, "dish-preview")}<b>${escapeHTML(stove.id ?? "—")}</b> · ${state}${dish}</p>`;
   }).join("") || '<p class="stove">Đang chờ dữ liệu bếp</p>'));
-  setText("hand", s.hand === null ? "Tay trống" : s.hand === undefined ? "Món đang cầm · —" : "Đang cầm · " + dishName(s.hand));
-  setText("hint", canPlay() && day?.fixture ? "Bản thử · E kết thúc ca" : "");
+  setHTML("hand", s.hand === null ? "Tay trống" : s.hand === undefined ? "Món đang cầm · —" :
+    dishArt(s.hand, "dish-preview") + "Đang cầm · " + escapeHTML(dishName(s.hand)));
+  setText("hint", !canPlay() ? "" : day?.fixture ? "Bản thử · E kết thúc ca" :
+    "E · Tương tác với bếp hoặc bàn");
 }
 const flowTitles = {
   menu: "Bắt đầu chuyến chợ", day_intro: "Thực đơn Má Tư", evening_intro: "Chuẩn bị mở quán",
@@ -694,8 +745,11 @@ function resultFacts(result) {
 }
 function dishesList(items, empty) {
   if (!Array.isArray(items)) return "<p>Đang chờ dữ liệu.</p>";
-  return items.length ? "<ul>" + items.map(d =>
-    `<li>${escapeHTML(dishName(d))}${num(d?.servings) ? " · " + number(d.servings) + " suất" : ""}</li>`).join("") + "</ul>" : `<p>${empty}</p>`;
+  if (!items.length) return `<p>${empty}</p>`;
+  return '<ul class="dish-list" role="list">' + items.map(d =>
+    `<li class="dish-card"><b>${escapeHTML(dishName(d))}</b>
+      ${num(d?.servings) ? "<small>" + number(d.servings) + " suất</small>" : ""}
+      ${dishArt(d, "dish-illustration")}</li>`).join("") + "</ul>";
 }
 function renderDay() {
   const stage = exited ? "exited" : day.screen;
@@ -706,23 +760,28 @@ function renderDay() {
     body = "<p>Đồng hồ sẽ chạy lại khi bạn tiếp tục.</p>";
     buttons = flowButton("resume", "Tiếp tục") + flowButton("menu", "Về menu");
   } else if (stage === "menu") {
-    body = "<p>Thu nguyên liệu buổi sáng, mở quán khi trời tối.</p>";
+    body = "<p>Thu nguyên liệu buổi sáng, mở quán khi trời tối.</p>" +
+      (day.live_scenes ? '<p class="subtle">Gather và Quán dùng backend v1.0. Shop v1.1 chưa kết nối.</p>' : "");
     buttons = flowButton("start", "Chơi") + flowButton("exit", "Thoát");
   } else if (stage === "exited") {
     body = "<p>Bạn có thể đóng tab này hoặc quay lại menu.</p>";
     buttons = flowButton("return", "Mở menu");
   } else if (stage === "day_intro") {
     body = dishesList(day.menu, "Chưa có món trong kế hoạch.") +
-      '<section><h3>Nguyên liệu cần thu</h3>' + itemList(day.needed, "Chưa có mục tiêu nguyên liệu.") + "</section>";
+      (day.live_scenes ? "<p>Hái hoặc bắt nguyên liệu, sau đó quay về bến và nhấn E để chốt giỏ.</p>" :
+      '<section class="ingredient-goal"><h3>Nguyên liệu cần thu</h3>' + itemList(day.needed, "Chưa có mục tiêu nguyên liệu.") + "</section>");
     buttons = flowButton("continue", "Ra bến");
   } else if (stage === "evening_intro") {
-    body = (day.gather_reason === "fainted" ? "<p>Út Sen bị ngất. Giỏ đã rỗng.</p>" : "") +
+    body = (day.gather_reason === "fainted" ? "<p>Bà Út bị ngất. Giỏ đã rỗng.</p>" : "") +
       '<section><h3>Kho mang về</h3>' + itemList(day.inventory, "Kho trống.") + "</section>" +
       '<section><h3>Món có thể nấu</h3>' + dishesList(day.cookable, "Chưa đủ nguyên liệu.") + "</section>";
     buttons = flowButton("continue", "Mở quán");
   } else if (stage === "day_result" || stage === "summary") {
     body = resultFacts(day.result);
     buttons = stage === "summary" ? flowButton("menu", "Về menu") : flowButton("continue", "Ghé cửa hàng");
+  } else if (stage === "shop" && day.shop_unavailable) {
+    body = "<p>Shop v1.1 chưa kết nối. Bạn có thể tiếp tục với số tiền đã kiếm.</p>";
+    buttons = flowButton("shop_done", day.day === day.days ? "Xem tổng kết" : "Sang ngày kế tiếp");
   } else if (stage === "shop") {
     const shop = day.shop ?? {};
     body = `<p>Có ${number(shop.money)} nghìn đồng · Còn <span id="shop-clock"></span></p>
@@ -735,8 +794,10 @@ function renderDay() {
     buttons = flowButton("shop_done", "Rời cửa hàng");
   }
   setText("action-status", status);
-  setHTML("flow-content", `<p class="subtle">${day.fixture ? "Bản thử giao diện · " : ""}Ngày ${number(day.day)}/${number(day.days)}</p>
-    <h2 id="flow-title" tabindex="-1">${title}</h2>${body}<div class="actions">${buttons}</div>`);
+  const intro = stage === "day_intro" && !day.paused;
+  const actions = `<div class="actions${intro ? " intro-actions" : ""}">${buttons}</div>`;
+  setHTML("flow-content", `<p class="subtle">${day.live_scenes ? "Gather/Quán thật · " : day.fixture ? "Bản thử giao diện · " : ""}Ngày ${number(day.day)}/${number(day.days)}</p>
+    <h2 id="flow-title" tabindex="-1">${title}</h2>${intro ? actions + body : body + actions}`);
   if ($("shop-clock")) setText("shop-clock", countdown(day.shop?.time_left_ticks));
   const view = day.paused ? "pause" : stage;
   if (lastFlow !== view) $("flow-title")?.focus();
@@ -746,6 +807,8 @@ function render() {
   const mode = snap?.mode;
   const gather = mode === "gather";
   const flow = day && !["gather", "quan"].includes(day.screen);
+  $("skip").href = flow ? "#flow-title" : "#playfield";
+  setText("skip", flow ? "Đến nội dung" : "Đến màn chơi");
   $("flow").hidden = !flow;
   $("game").hidden = Boolean(flow);
   $("restart").hidden = Boolean(day);
@@ -760,13 +823,12 @@ function render() {
   lastFlow = "";
   $("goal-line").hidden = true;
   $("game").dataset.mode = mode ?? "";
-  $("game").toggleAttribute("data-day", Boolean(day));
   $("basket").hidden = $("hold-summary").hidden = $("catch-key").hidden = !gather;
   $("stock").hidden = $("orders").hidden = mode !== "quan";
   $("restart").disabled = $("result-restart").disabled = restartPending;
   setText("season-mark", gather ? "☀" : mode === "quan" ? "☾" : "·");
   setText("season", gather ? "Buổi sáng" : mode === "quan" ? "Buổi tối" : "Chợ Nổi");
-  const activity = gather ? "Lặn và hái" : mode === "quan" ? "Mở quán trên bè" : "Đang kết nối";
+  const activity = gather ? "Lặn bắt cá và hái rau" : mode === "quan" ? "Mở quán trên bè" : "Đang kết nối";
   setText("activity", day ? `Ngày ${number(day.day)}/${number(day.days)} · ${activity}` : activity);
   setText("interact-key", gather ? "Hái / cập bến" : mode === "quan" ? "Bếp / bàn" : "Tương tác");
   if (gather) renderGather(snap);
@@ -806,71 +868,26 @@ function render() {
   paintPending = true;
 }
 
-function ellipse(x, y, rx, ry, color, angle = 0) {
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.ellipse(x, y, rx, ry, angle, 0, 2 * Math.PI);
-  ctx.fill();
-}
-function path(points, color, width = 0) {
-  ctx.beginPath();
-  ctx.moveTo(...points[0]);
-  for (const point of points.slice(1)) ctx.lineTo(...point);
-  if (width) {
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    ctx.stroke();
-  } else {
-    ctx.closePath();
-    ctx.fillStyle = color;
-    ctx.fill();
-  }
-}
-function rect(x, y, w, h, color, radius = 0) {
-  ctx.fillStyle = color;
-  if (!radius) { ctx.fillRect(x, y, w, h); return; }
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, radius);
-  ctx.fill();
-}
-function gradient(y1, y2, stops) {
-  const gradient = ctx.createLinearGradient(0, y1, 0, y2);
-  stops.forEach(([at, color]) => gradient.addColorStop(at, color));
-  return gradient;
-}
-function bands(w, start, end, colors) {
-  for (let i = 0; i < colors.length; i++) {
-    const y = start + (end - start) * i / colors.length;
-    rect(0, y, w, end - y, colors[i]);
-  }
-}
-function label(text, x, y) {
-  labels.push({ text, x, y });
+function label(text, x, y, player = false) {
+  labels.push({ text, x, y, player });
 }
 function drawLabels(w, h) {
-  screen.font = "600 13px system-ui, sans-serif";
-  screen.textAlign = "center";
-  screen.textBaseline = "middle";
-  for (const label of labels) {
-    const width = Math.min(w - 4, Math.ceil(screen.measureText(label.text).width) + 12);
-    const x = Math.max(width / 2 + 2, Math.min(w - width / 2 - 2, label.x));
-    const y = Math.max(11, Math.min(h - 11, label.y));
-    const left = Math.round(x - width / 2), top = Math.round(y - 10);
-    screen.fillStyle = "#20352f";
-    screen.fillRect(left + 2, top, width - 4, 20);
-    screen.fillRect(left, top + 2, width, 16);
-    screen.fillStyle = "#fff4da";
-    screen.fillText(label.text, x, y, width - 8);
+  const fontSize = w < 500 ? 11 : 13;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (const { text, x, y, player } of labels) {
+    ctx.font = `700 ${fontSize}px system-ui, sans-serif`;
+    const width = Math.min(w - 6, Math.ceil(ctx.measureText(text).width) + 12);
+    const height = fontSize + 8;
+    const left = Math.max(3, Math.min(w - width - 3, x - width / 2));
+    const top = Math.max(3, Math.min(h - height - 3, y - height / 2));
+    ctx.fillStyle = player ? "#f5d295" : "#172623ed";
+    ctx.beginPath();
+    ctx.roundRect(left, top, width, height, 4);
+    ctx.fill();
+    ctx.fillStyle = player ? "#38291a" : "#fff1d4";
+    ctx.fillText(text, left + width / 2, top + height / 2, width - 8);
   }
-}
-function sprite(at, size, paint) {
-  ctx.save();
-  ctx.translate(...at);
-  ctx.scale(size, size);
-  paint();
-  ctx.restore();
 }
 const tileColors = {
   k: "#293334", h: "#4d3332", t: "#754334", r: "#ac4a39", a: "#e5784c",
@@ -894,33 +911,16 @@ function tile(rows) {
   });
   return bitmap;
 }
-const tiles = {
-  ca_loc: tile([
-    "......ddddd.......",
-    "d...ddggggffdkk...",
-    "dd.ddgfgfgfgfBfdk.",
-    ".ddddgfgfgfgfgfkdk",
-    "dd.ddfflgllgggffk.",
-    "d....ddfffffffdk..",
-    "......kkkkkkkk...."
-  ]),
-  ca_linh: tile([
-    "....bb....",
-    "b..bAAAb..",
-    "bbAAlAAAk.",
-    ".bAAAwkAwk",
-    "bbBwwAwwA.",
-    "b..bbAAAb.",
-    ".....bb..."
-  ]),
-  ca_keo: tile([
+
+const fishKeo = tile([
     ".....hhhh............",
     "..h.hhsyyyysshhhh....",
     ".hshtysynyysyywwkhh..",
     "hhssyysysytyyynwskhh.",
     ".hh.hhtsssssyyshhhh..",
     ".......hhhhhhhh......"
-  ]),
+  ]);
+const plants = {
   keo_neo: tile([
     ".......A.......",
     "......AgA......",
@@ -932,21 +932,7 @@ const tiles = {
     "...ddddfdddd...",
     "......ddd......"
   ]),
-  crocodile: tile([
-    "...........d.d.d...............",
-    "..........ddfdffdd.............",
-    "d......dddfgfgfgfddd.ddd.......",
-    "dd...dddfffgfgfgfffddYfddddddd.",
-    ".ddddddfggffffggfffgfffgfffffk.",
-    "..ddddfffffggfgffgffffffwwwfwd.",
-    ".....ddddddddddddddddddddddddd.",
-    "..........ddd..ddd............."
-  ]),
-  fry: tile([
-    "B..AA..",
-    ".BAlAwk",
-    "B..bA.."
-  ]),
+
   bong_sung: tile([
     "......P..L......",
     ".....pPLLP......",
@@ -970,457 +956,151 @@ const tiles = {
     "....ff.f..ff....",
     ".....fff.ff.....",
     ".......fff......"
-  ]),
-  diver: tile([
-    "...............hhhh....",
-    "..............hhttth...",
-    ".............hhhtcchh..",
-    "...........w.hhccbbAbk.",
-    "..........wnwhccsBbbbk.",
-    "........hwnwhrccssccs..",
-    "...kkk.haawrrarhsscsh..",
-    "..kbbkkarrraaarhssss...",
-    ".kbbkkkrraaraarrccc....",
-    "kk..k..trrrraccscch....",
-    "........htt.rsch.......",
-    ".......y..y.h..........",
-    ".....tYyyyyYyt.........",
-    ".....tYtyttyYt.........",
-    "......tyyYyYt..........",
-    ".......ttttt..........."
-  ]),
-  sen: tile([
-    ".....hhhhh.....",
-    "....htttthh....",
-    "...hthttthhh...",
-    "...hhhhhhhhh...",
-    "...wnwwnnwwh...",
-    "..hhccsccchh...",
-    "..hcscccssch...",
-    "...csccsccs....",
-    "..hrwwnnwrh....",
-    ".hrrarwrrarh...",
-    ".hraawrrrrrh...",
-    "hsraarrraarsh..",
-    "csrrarrrarrsc..",
-    "..trrarrarrt...",
-    "..htrrarrth....",
-    "..kbbkkbbk.....",
-    "..kbb..bbk.....",
-    "..kkk..kkk....."
-  ]),
-  guest: tile([
-    ".....nnn.....",
-    "...nYYYyn....",
-    "..nYYYYYyn...",
-    ".nYYYnYYyyn..",
-    "nYYYYnYyyyyy.",
-    ".yyyyyyyyyy..",
-    "..tcsccsst...",
-    "...cscccst...",
-    "..dbBBbbbd...",
-    ".dbBAbBBbbd..",
-    ".dbBBAbbbbd..",
-    ".cbBBbbBbbc..",
-    "..dbbbBbbd...",
-    "...dkkkkd...."
   ])
 };
-const itemIcons = Object.fromEntries(Object.keys(itemColors).map(id => [id, tiles[id].toDataURL()]));
-function stamp(bitmap, x, y, angle = 0, facing = 1) {
-  stamps.push({ bitmap, x, y, angle, facing });
+function loadSprite(name) {
+  const image = new Image();
+  image.addEventListener("load", invalidate);
+  image.src = `art/${name}.webp`;
+  return image;
 }
-function drawStamps(sx, sy, block) {
-  for (const { bitmap, x, y, angle, facing } of stamps) {
-    screen.setTransform(1, 0, 0, 1, Math.round(x * sx), Math.round(y * sy));
-    screen.rotate(angle);
-    screen.scale(facing, 1);
-    const width = bitmap.width * block, height = bitmap.height * block;
-    screen.drawImage(bitmap, -Math.floor(width / 2), -Math.floor(height / 2), width, height);
-  }
+const protagonist = $("portrait");
+protagonist.addEventListener("load", invalidate);
+const swimmer = loadSprite("ba-ut-boi");
+const guests = [loadSprite("khach-nam"), loadSprite("khach-nu")];
+const fishSprites = { ca_linh: loadSprite("ca-linh"), ca_loc: loadSprite("ca-loc") };
+const crocodileArt = loadSprite("ca-sau");
+const itemIcons = {
+  ca_keo: fishKeo.toDataURL(),
+  keo_neo: plants.keo_neo.toDataURL(),
+  ca_linh: fishSprites.ca_linh.src,
+  ca_loc: fishSprites.ca_loc.src,
+  bong_sung: plants.bong_sung.toDataURL(),
+  bong_dien_dien: plants.bong_dien_dien.toDataURL()
+};
+
+function drawSprite(image, x, y, size, angle = 0, facing = 1, anchor = .5) {
+  const pixelArt = image instanceof HTMLCanvasElement;
+  const iw = pixelArt ? image.width : image.naturalWidth;
+  const ih = pixelArt ? image.height : image.naturalHeight;
+  if (!iw || !ih) return;
+  const scale = size / Math.max(iw, ih);
+  const width = iw * scale, height = ih * scale;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  ctx.scale(facing, 1);
+  ctx.imageSmoothingEnabled = !pixelArt;
+  ctx.drawImage(image, -width / 2, -height * anchor, width, height);
+  ctx.restore();
 }
-function unitSize(w) { return Math.max(.74, Math.min(1.22, w / 850)); }
-function project(bounds, axis, w, h, above, margin) {
-  const x = bounds?.x, y = bounds?.[axis];
+function ellipse(x, y, rx, ry, fill) {
+  ctx.beginPath();
+  ctx.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+}
+function pin(x, y, text, active = false) {
+  ellipse(x, y, 6, 4, "#172623");
+  ellipse(x, y, 4, 2, active ? "#ffe6a4" : "#cfab75");
+  label(text, x, y + 14, active);
+}
+function project(bounds, gather, w, h) {
+  const x = bounds?.x, y = bounds?.[gather ? "d" : "z"];
   if (!position(x) || !position(y) || x[1] <= x[0] || y[1] <= y[0]) return null;
-  const wide = x[1] - x[0], tall = y[1] - y[0];
-  const scale = Math.min((w - margin * 2) / wide, (h - above - margin) / tall);
-  if (!(scale > 0)) return null;
-  const width = wide * scale, height = tall * scale;
-  const left = (w - width) / 2, top = above + (h - above - margin - height) / 2;
-  return {
-    left, top, width, height, scale,
-    at: ([a, b]) => [left + (a - x[0]) * scale, top + (axis === "d" ? b - y[0] : y[1] - b) * scale]
-  };
+  // Artist coordinates anchor the river surface and the deck to their respective backgrounds.
+  const [left, top, right, bottom] = gather ? [.30, .245, .96, .89] : [.13, .10, .85, .85];
+  return ([a, b]) => [
+    w * (left + (right - left) * (a - x[0]) / (x[1] - x[0])),
+    h * (top + (bottom - top) * (gather ? b - y[0] : y[1] - b) / (y[1] - y[0]))
+  ];
 }
-function scatter(i, salt) {
-  // Reproducible placement for the painted scenery only.
-  const n = Math.sin(i * 79.7 + salt * 21.3) * 43758.5453;
-  return n - Math.floor(n);
-}
-function ripples(w, top, bottom, count, color, salt) {
-  const cell = 1 / ctx.getTransform().d;
-  for (let i = 0; i < count; i++) {
-    const x = scatter(i, salt) * w;
-    const y = top + scatter(i, salt + 1) * (bottom - top);
-    const length = 5 + scatter(i, salt + 2) * w * .053;
-    rect(x, Math.round(y / cell) * cell, length, cell, color);
-  }
-}
-function palm(x, y, size, mirror, color) {
-  sprite([x, y], size, () => {
-    ctx.scale(mirror, 1);
-    path([[-5, 1], [2, -27], [14, -56], [10, -56], [-4, -34], [-10, 1]], color);
-    for (const [dx, dy] of [[-41, -7], [-37, -29], [-14, -41], [19, -37], [41, -20], [43, 3], [25, 17]]) {
-      path([[12, -55], [12 + dx * .28, -65 + dy * .28], [12 + dx * .60, -65 + dy * .70],
-        [12 + dx, -55 + dy], [12 + dx * .55, -58 + dy * .76], [12 + dx * .27, -55 + dy * .48]], color);
-    }
-  });
-}
-function house(x, y, size, night = false) {
-  sprite([x, y], size, () => {
-    rect(-42, -33, 84, 22, night ? "#635447" : "#ce9860");
-    for (const dx of [-36, -16, 8, 34]) rect(dx, -32, 2, 18, night ? "#785f4d" : "#aa754b");
-    for (const p of [-36, -22, 25, 37]) rect(p, -14, 4, 17, night ? "#263536" : "#624336");
-    path([[-52, -33], [-25, -52], [25, -52], [54, -33]], night ? "#26423d" : "#864f43");
-    path([[-39, -34], [-22, -48], [22, -48], [42, -34]], night ? "#45645b" : "#b96c51");
-    path([[-41, -39], [43, -39]], night ? "#384e46" : "#995947", 2);
-    rect(-30, -29, 16, 11, night ? "#ffe0a2" : "#f4cb86");
-    rect(0, -29, 13, 18, night ? "#282f33" : "#6d4640");
-    rect(22, -29, 12, 11, night ? "#e1a761" : "#e2b37b");
-    rect(-45, -12, 90, 4, night ? "#685545" : "#76503e");
-  });
-}
-function reeds(x, y, size, night = false) {
-  sprite([x, y], size, () => {
-    const shade = night ? "#152e31" : "#314b3c";
-    const leaf = night ? "#294c48" : "#58704b";
-    for (const [dx, dy, bend] of [[-21,-15,-6],[-12,-28,-7],[-3,-21,7],[6,-34,-4],[12,-24,9],[22,-14,6]]) {
-      path([[dx, 4], [dx, dy * .48], [dx + bend, dy]], shade, 4);
-      path([[dx, dy * .28], [dx + bend * .5, dy * .70], [dx + bend * 1.6, dy * .84]], leaf, 3);
-      rect(dx + bend - 2, dy - 4, 5, 8, night ? "#59644e" : "#8b884e");
-    }
-  });
-}
-function gatherLandscape(w, h, surface, floor) {
-  bands(w, 0, surface, ["#d1817c", "#e49985", "#f0b08b", "#f6c694", "#fbe0ac"]);
-  const size = Math.min(surface * .35, w / 14);
-  ellipse(w * .72, surface * .47, size * 1.24, size * 1.24, "#f7c08d");
-  ellipse(w * .72, surface * .47, size * .88, size * .88, "#ffe5a7");
-  for (let i = 0; i < 9; i++) {
-    const x = scatter(i, 11) * w, y = surface * (.15 + scatter(i, 12) * .49);
-    const stretch = w * (.03 + scatter(i, 13) * .052);
-    rect(x, y, stretch, 3, "#ffe0ae60");
-    rect(x + stretch * .38, y - 3, stretch * .69, 3, "#ffe0ae44");
-  }
-  path([[0, surface], [0, surface * .81], [w * .1, surface * .70], [w * .26, surface * .85],
-    [w * .44, surface * .72], [w * .62, surface * .91], [w * .83, surface * .76], [w, surface * .68], [w, surface]], "#b69872");
-  const art = Math.min(1.1, Math.max(.58, surface / 118));
-  for (let i = 0; i < 24; i++) {
-    const x = i * w / 23;
-    if (x > w * .54 && x < w * .80) continue;
-    ellipse(x, surface - 6, 19 * art, (6 + scatter(i, 25) * 17) * art, i % 2 ? "#62704b" : "#7e8253");
-  }
-  house(w * .30, surface - 4, art * .93);
-  house(w * .42, surface - 2, art * .58);
-  for (const [x, scale, direction] of [[.04, 1.05, 1], [.09, .72, -1], [.18, .86, 1], [.22, .56, -1], [.49, .62, -1], [.83, .55, 1], [.91, .9, -1], [.97, 1.22, -1]]) {
-    palm(w * x, surface - 1, art * scale, direction, "#35604c");
-  }
-  rect(0, surface, w, h - surface, gradient(surface, h,
-    [[0, "#ac8a58"], [.28, "#88784f"], [.63, "#556850"], [1, "#314a41"]]));
-  const rayEnd = surface + (h - surface) * .8;
-  const ray = gradient(surface, rayEnd, [[0, "#f8d79a23"], [1, "#f8d79a00"]]);
-  for (const x of [.12, .30, .53, .76, .90]) {
-    path([[w * x, surface], [w * (x + .018), surface],
-      [w * (x + .13), rayEnd], [w * (x + .095), rayEnd]], ray);
-  }
-  ripples(w, surface + 5, floor, 86, "#ffdb9b30", 17);
-  ripples(w, surface + 1, surface + 29, 28, "#ffdfaa55", 27);
-  path([[0, floor], [w * .14, floor - 5], [w * .35, floor + 3], [w * .52, floor - 2],
-    [w * .69, floor + 4], [w * .86, floor - 7], [w, floor], [w, h], [0, h]], "#373d32");
-  for (let i = 0; i < 35; i++) {
-    const x = scatter(i, 5) * w, y = floor + scatter(i, 6) * (h - floor);
-    ellipse(x, y, 2 + 8 * scatter(i, 7), 1.5 + 2 * scatter(i, 8), i % 2 ? "#4b4937" : "#5c523d");
-  }
-  for (const [x, scale] of [[.035, 1], [.081, .55], [.92, .67], [.975, .95]]) {
-    reeds(w * x, Math.min(h - 3, floor + 13), art * scale);
-  }
-  path([[0, surface], [w, surface]], "#f6d6a1", 2);
-}
-function dock(at, size) {
-  sprite(at, size, () => {
-    for (const x of [-21, 14]) {
-      rect(x, -19, 4, 32, "#583c2b", 1);
-      rect(x, -19, 4, 4, "#c78d58", 1);
-    }
-    rect(-25, -9, 49, 7, "#573927", 2);
-    rect(-25, -10, 49, 4, "#d1a06b", 2);
-    path([[-17, 1], [4, 5], [32, 4], [43, -3], [36, 9], [6, 12], [-12, 8]], "#603c29");
-    path([[-17, 1], [4, 5], [32, 4], [43, -3]], "#edbb76", 2);
-  });
-}
-function plant(at, size, node) {
-  if (node.ready === true && known(tiles, node.kind)) {
-    stamp(tiles[node.kind], at[0], at[1] - 8 * size);
-    return;
-  }
-  sprite(at, size, () => {
-    path([[-8, 1], [-5, -5], [-9, -9]], "#5c5337", 3);
-    path([[4, 1], [3, -6], [7, -10]], "#5c5337", 3);
-    rect(-10, 0, 18, 4, "#6f7547");
-  });
-}
+
 let visualBlend = 1;
 function visualPos(entity, key) {
   if (visualBlend === 1) return entity.pos;
   const earlier = list(previousPose?.[key]).find(old => old.id === entity.id);
   return position(earlier?.pos) ? earlier.pos.map((v, i) => v + (entity.pos[i] - v) * visualBlend) : entity.pos;
 }
-function paintFish(fish, x, y, size) {
-  const heading = num(fish.heading_deg) ? fish.heading_deg : 0;
-  const angle = Math.round(heading / 90) * Math.PI / 2;
-  if (fish.kind === "ca_linh") {
-    const a = Math.cos(angle), b = Math.sin(angle);
-    for (const offset of [-1, 1]) {
-      stamp(tiles.fry, x + (-19 * a - offset * 10 * b) * size, y + (-19 * b + offset * 10 * a) * size, angle);
+
+function drawGather(at, size) {
+  if (position(snap.meta.dock_pos)) pin(...at(snap.meta.dock_pos), "Bến");
+  for (const node of list(snap.nodes)) {
+    if (!position(node.pos)) continue;
+    const [x, y] = at(node.pos);
+    const image = known(plants, node.kind);
+    if (node.ready === true && image) drawSprite(image, x, y, size * .47, 0, 1, .75);
+    else if (node.ready === false && num(node.regrow_ticks)) {
+      ellipse(x, y, 6, 3, "#334833");
+      label(countdown(node.regrow_ticks), x, y + 15);
     }
   }
-  const bitmap = known(tiles, fish.kind) ?? tiles.ca_linh;
-  stamp(bitmap, x, y, angle);
-}
-function drawGather(w, h, map, spriteCellHeight) {
-  const { at, top, height } = map;
-  const m = snap.meta;
-  const size = unitSize(w);
-  const surface = at([m.bounds.x[0], 0])[1];
-  const horizon = Math.min(h - 12, Math.max(1, surface));
-  paintTerrain(w, h, map, horizon, () => gatherLandscape(w, h, horizon, top + height));
-  if (position(m.dock_pos)) {
-    const pt = at(m.dock_pos);
-    dock(pt, size);
-    label("Bến", pt[0], pt[1] - 29 * size);
-  }
-  for (const n of list(snap.nodes)) {
-    if (!position(n.pos)) continue;
-    const pt = at(n.pos);
-    plant(pt, size, n);
-    if (n.ready === false && num(n.regrow_ticks)) label(countdown(n.regrow_ticks), pt[0], pt[1] + 14 * size);
-  }
-  for (const f of list(snap.fish)) {
-    if (!position(f.pos)) continue;
-    const [x, y] = at(visualPos(f, "fish"));
-    paintFish(f, x, y, size);
+  for (const fish of list(snap.fish)) {
+    const image = fish.kind === "ca_keo" ? fishKeo : known(fishSprites, fish.kind);
+    if (!image || !position(fish.pos)) continue;
+    const [x, y] = at(visualPos(fish, "fish"));
+    const heading = num(fish.heading_deg) ? fish.heading_deg * Math.PI / 180 : 0;
+    const facing = (Math.cos(heading) < 0 ? 1 : -1) * (fish.kind === "ca_keo" ? -1 : 1);
+    const bank = Math.sin(heading) * facing * -.34;
+    drawSprite(image, x, y, size * (fish.kind === "ca_loc" ? 1.05 : .72), bank, facing);
   }
   for (const monster of list(snap.monsters)) {
     if (!position(monster.pos)) continue;
     const [x, y] = at(visualPos(monster, "monsters"));
-    const angle = num(monster.heading_deg) ? Math.round(monster.heading_deg / 90) * Math.PI / 2 : 0;
-    stamp(tiles.crocodile, x, y, angle);
+    const heading = num(monster.heading_deg) ? monster.heading_deg * Math.PI / 180 : Math.PI;
+    const facing = Math.cos(heading) < 0 ? 1 : -1;
+    drawSprite(crocodileArt, x, y, size * 1.7, Math.sin(heading) * facing * -.34, facing);
     const state = known({ chase: "Đang đuổi", patrol: "Tuần tra", recoil: "Lùi lại" }, monster.state);
-    const height = (Math.abs(Math.sin(angle)) > .5 ? tiles.crocodile.width : tiles.crocodile.height) * spriteCellHeight;
-    label(state ? "Cá sấu · " + state : "Cá sấu", x, y + height / 2 + 13);
+    label(state ? "Cá sấu · " + state : "Cá sấu", x, y + size * .22 + 12);
   }
-  const p = snap.player;
-  if (position(p?.pos)) {
-    const pt = at(p.pos);
-    const heading = num(p.heading_deg) ? p.heading_deg * Math.PI / 180 : 0;
-    const vertical = !p.at_surface && Math.abs(Math.sin(heading)) > Math.SQRT1_2;
-    const turn = vertical ? Math.sign(Math.sin(heading)) * Math.PI / 2 : 0;
-    const facing = !vertical && Math.cos(heading) < 0 ? -1 : 1;
-    stamp(tiles.diver, pt[0], pt[1], turn, facing);
-    const halfHeight = (vertical ? tiles.diver.width : tiles.diver.height) * spriteCellHeight / 2;
-    label("Út Sen", pt[0], pt[1] + halfHeight + 13);
-  }
-}
-function lanternLine(a, b, count) {
-  const sag = 10;
-  ctx.beginPath();
-  ctx.moveTo(...a);
-  ctx.quadraticCurveTo((a[0] + b[0]) / 2, a[1] + sag * 2, ...b);
-  ctx.strokeStyle = "#3e382c";
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-  for (let i = 1; i <= count; i++) {
-    const t = i / (count + 1);
-    const x = a[0] + (b[0] - a[0]) * t, y = a[1] + sag * 4 * t * (1 - t);
-    ellipse(x, y + 4, 13, 10, "#facf6b28");
-    rect(x - 5, y + 1, 10, 9, "#b37e4f");
-    rect(x - 3, y + 1, 6, 7, "#ffd17c");
-    rect(x - 1.5, y + 2, 3, 4, "#ffefb6");
+  const player = snap.player;
+  if (!position(player?.pos)) return;
+  const [x, y] = at(player.pos);
+  const heading = num(player.heading_deg) ? player.heading_deg * Math.PI / 180 : 0;
+  const facing = Math.cos(heading) < 0 ? -1 : 1;
+  const standing = player.at_surface !== false && near(player.pos, snap.meta.dock_pos, snap.meta.dock_radius);
+  if (standing) {
+    drawSprite(protagonist, x, y, size, 0, facing, .8);
+    label("Bà Út", x, y - size * .8 - 10, true);
+  } else {
+    // The swimming artwork faces left at rest.
+    const tilt = player.at_surface === false ? Math.atan2(Math.sin(heading) * facing, Math.abs(Math.cos(heading))) : 0;
+    if (swimmer.naturalWidth) drawSprite(swimmer, x, y, size, tilt, -facing);
+    else drawSprite(protagonist, x, y, size, facing * .53, facing);
+    label("Bà Út", x, y + size * .45 + 11, true);
   }
 }
-function nightRiver(w, h, map) {
-  const shore = map.top - 19;
-  const sky = "#182a41";
-  rect(0, 0, w, shore, sky);
-  rect(0, shore * .57, w, shore * .43, "#1d3548");
-  const moonX = (map.left + map.width + w) / 2;
-  const moonY = shore * .31;
-  const moon = Math.min(20, shore * .24);
-  ellipse(moonX, moonY, moon, moon, "#f1deb0");
-  ellipse(moonX + moon * .48, moonY - moon * .23, moon * .83, moon * .83, sky);
-  for (let i = 0; i < 34; i++) {
-    const x = w * scatter(i, 41);
-    const y = shore * (.09 + .47 * scatter(i, 42));
-    if (Math.hypot(x - moonX, y - moonY) < moon * 2) continue;
-    rect(x, y, 2 + i % 2, 2 + i % 2, i % 4 ? "#7d9b9e" : "#eddfb5");
-    if (i % 11 === 0) {
-      rect(x - 3, y + 1, 9, 1, "#a0b3aa");
-      rect(x + 1, y - 3, 1, 9, "#a0b3aa");
-    }
-  }
-  path([[0, shore], [0, shore * .69], [w * .14, shore * .56], [w * .28, shore * .78],
-    [w * .43, shore * .74], [w * .54, shore * .92], [w * .71, shore * .67],
-    [w * .82, shore * .68], [w, shore * .58], [w, shore]], "#293e4b");
-  const scenerySize = Math.min(.93, Math.max(.38, shore / 106));
-  const village = [[.116, .85], [.23, .57], [.72, .62], [.84, .88]];
-  for (let i = 0; i < 32; i++) {
-    const x = w * i / 31;
-    if (x > w * .33 && x < w * .66) continue;
-    ellipse(x, shore - 5, w / 34, (8 + 14 * scatter(i, 36)) * scenerySize, i % 3 ? "#1a3038" : "#233a3b");
-  }
-  for (const [x, scale] of village) house(w * x, shore - 3, scenerySize * scale, true);
-  for (const [x, scale, mirror] of [[.034, .8, 1], [.18, .55, -1], [.31, .56, -1], [.65, .48, 1], [.92, .7, 1], [.988, 1, -1]]) {
-    palm(w * x, shore - 2, scenerySize * scale, mirror, "#182e35");
-  }
-
-  bands(w, shore, h, ["#28535b", "#234954", "#1e414e", "#1c3948", "#182f41"]);
-  rect(0, shore, w, 3, "#547271");
-  ripples(w, shore + 5, h, 112, "#91a9a633", 4);
-  for (let i = 0; i < 28; i++) {
-    const t = scatter(i, 56);
-    const width = (8 + 37 * t) * scenerySize;
-    const x = moonX - width / 2 + (scatter(i, 57) - .5) * (16 + 46 * t) * scenerySize;
-    const y = shore + t * (h - shore) * .8;
-    rect(x, y, width, 2 + 2 * t, i % 4 ? "#a0b2a54d" : "#ceb9818c");
-  }
-  for (const [x] of village) for (let i = 0; i < 4; i++) {
-    const twinkle = 4 + 8 * scatter(i, 66);
-    rect(w * x - twinkle / 2, shore + 5 + i * 6, twinkle, 2, i < 2 ? "#c39a6290" : "#c39a6240");
-  }
-  if (map.left > 65) {
-    sprite([map.left * .47, h * .64], scenerySize, () => {
-      path([[-33, 1], [-21, 9], [21, 8], [35, -2], [24, 2], [-24, 3]], "#152633");
-      path([[-29, 1], [-16, 4], [21, 4], [32, -1]], "#947454", 2);
-      rect(-15, -1, 8, 5, "#7a674f");
-      rect(11, -6, 6, 8, "#a98157");
-      rect(12, -5, 4, 4, "#f1cd88");
-      rect(8, 12, 15, 2, "#a78d5d6e");
-    });
-    reeds(map.left * .23, h * .94, scenerySize * .9, true);
-    reeds(w - map.left * .21, h * .81, scenerySize * .85, true);
-  }
-}
-function raft(map) {
-  const { left: x, top: y, width, height } = map;
-  rect(x - 12, y - 8, width + 24, height + 25, "#101f1dbb", 9);
-  for (const a of [x - 7, x + width + 7]) {
-    for (const offset of [-2, 3]) path([[a + offset, y - 3], [a + offset, y + height + 7]], offset < 0 ? "#6e5336" : "#aa7e4b", 4);
-  }
-  rect(x - 3, y - 3, width + 6, height + 6, "#66432e", 3);
-  const planks = ["#a57448", "#b38153", "#9a6747", "#ba8658", "#976744", "#aa794a"];
-  const plankCount = Math.max(14, Math.round(height / 14));
-  for (let i = 0; i < plankCount; i++) {
-    const dy = y + i * height / plankCount, rh = height / plankCount;
-    const k = x + width * (.16 + scatter(i, 21) * .68);
-    rect(x, dy, k - x, rh - 1, planks[i % planks.length]);
-    rect(k, dy, x + width - k, rh - 1, planks[(i + 3) % planks.length]);
-    rect(k, dy, 2, rh - 1, "#745136");
-    rect(x, dy, width, 2, "#f6c78c27");
-    for (const ax of [x + 6, k - 3, k + 3, x + width - 6]) ellipse(ax, dy + rh / 2, 1, 1, "#62412e");
-    const gx = x + width * scatter(i, 23) * .68;
-    path([[gx, dy + rh * .64], [gx + width * .12, dy + rh * .64]], "#e5a87737", 1);
-  }
-  rect(x, y, width, height, gradient(y, y + height, [[0, "#ffd48a39"], [.44, "#ffd48a05"], [1, "#432f2329"]]));
-  for (const ax of [x - 5, x + width + 5]) for (const ay of [y - 3, y + height + 1]) {
-    ellipse(ax, ay, 5, 6, "#5c422f");
-    ellipse(ax, ay - 2, 4, 4, "#bc8f59");
-  }
-  lanternLine([x - 4, y - 11], [x + width + 4, y - 11], Math.max(6, Math.floor(width / 45)));
-}
-function bowl(x, y, filled) {
-  ellipse(x, y + 2, 12, 8, "#47372878");
-  ellipse(x, y, 11, 7, "#eee3bf");
-  ellipse(x, y, 8, 5, filled ? "#b0844d" : "#719291");
-  if (filled) {
-    path([[x - 5, y + 1], [x, y - 2], [x + 4, y]], "#ecd293", 2.4);
-    ellipse(x + 4, y + 2, 2.8, 1.5, "#728651");
-  }
-}
-function stovePaint(stove) {
-  rect(-24, -19, 48, 39, "#583c2c", 5);
-  rect(-24, -21, 48, 34, "#c2a078", 4);
-  rect(-21, -18, 42, 27, "#7d6550", 3);
-  ellipse(0, -5, 15, 11, stove.state === "cooking" ? "#cf793e" : "#4a4339");
-  if (stove.state === "cooking" || stove.state === "ready") {
-    bowl(0, -6, true);
-    if (stove.state === "cooking") {
-      path([[-6, -14], [-9, -19], [-6, -25]], "#f7ddad", 1.5);
-      path([[2, -15], [0, -20], [4, -25]], "#f7ddad", 1.5);
-    }
-  }
-}
-function drawQuan(w, h, map, spriteCellHeight) {
-  paintTerrain(w, h, map, null, () => { nightRiver(w, h, map); raft(map); });
-  const size = unitSize(w);
-  const { at } = map;
-  const customers = list(snap.customers);
+function drawQuan(at, size, w) {
   for (const stove of list(snap.stoves)) {
     if (!position(stove.pos)) continue;
-    const [x, y] = at(stove.pos);
-    sprite([x, y], size, () => stovePaint(stove));
-    label(stove.id ?? "Bếp", x, y + 30 * size);
+    const active = stove.state === "cooking" || stove.state === "ready";
+    pin(...at(stove.pos), stove.id ?? "Bếp", active);
   }
+  const customers = list(snap.customers);
   for (const table of list(snap.tables)) {
     if (!position(table.pos)) continue;
     const [x, y] = at(table.pos);
     const customer = customers.find(c => c.table_id === table.id);
-    sprite([x, y], size, () => {
-      for (const px of [-30, 30]) {
-        ellipse(px, 1, 9, 8, "#684832");
-        ellipse(px, -1, 8, 6, "#c49560");
-      }
-      ellipse(0, 4, 26, 20, "#60412b");
-      ellipse(0, 0, 26, 19, "#d2a472");
-      ellipse(0, 0, 21, 15, "#ae7c51");
-      bowl(-10, -4, customer?.state === "eating");
-      path([[1, -6], [12, -3]], "#6d5038", 1.5);
-      path([[1, -3], [12, 0]], "#6d5038", 1.5);
-    });
     if (customer) {
-      const seat = x + (x > map.left + map.width - 32 * size ? -30 : 30) * size;
-      stamp(tiles.guest, seat, y - 9 * size);
+      const offset = x > w / 2 ? size * -.34 : size * .34;
+      const id = Number(String(customer.id).match(/\d+$/)?.[0] ?? 0);
+      ellipse(x + offset, y + 4, size * .19, 5, "#211d17a0");
+      drawSprite(guests[id % guests.length], x + offset, y + 4, size * .74, 0, 1, 1);
     }
-    label(table.id ?? "Bàn", x, y + 30 * size);
+    pin(x, y, table.id ?? "Bàn", Boolean(customer));
   }
-  if (position(snap.player?.pos)) {
-    const [x, y] = at(snap.player.pos);
-    ellipse(x, y + 18 * size, 17 * size, 6 * size, "#49342e66");
-    stamp(tiles.sen, x, y);
-    if (snap.hand) sprite([x + 20 * size, y + 8 * size], .8 * size, () => bowl(0, 0, true));
-    label("Út Sen", x, y - tiles.sen.height * spriteCellHeight / 2 - 13);
+  if (!position(snap.player?.pos)) return;
+  const [x, y] = at(snap.player.pos);
+  ellipse(x, y, size * .25, size * .09, "#211b14a8");
+  ellipse(x, y, size * .19, size * .06, "#f7cf86");
+  drawSprite(protagonist, x, y, size, 0, 1, 1);
+  if (snap.hand) {
+    ellipse(x + size * .33, y - size * .38, size * .14, size * .09, "#fff0d5");
+    ellipse(x + size * .33, y - size * .39, size * .09, size * .05, "#ac6940");
   }
+  label("Bà Út", x, w < 500 ? y + 13 : y - size - 11, true);
 }
-function paintTerrain(w, h, map, horizon, paint) {
-  const key = JSON.stringify([snap.mode, w, h, art.width, art.height, map.left, map.top, map.width, map.height, horizon]);
-  if (key !== terrainKey) {
-    if (terrain.width !== art.width) terrain.width = art.width;
-    if (terrain.height !== art.height) terrain.height = art.height;
-    const scene = ctx;
-    ctx = terrain.getContext("2d", { alpha: false });
-    ctx.setTransform(scene.getTransform());
-    try {
-      paint();
-      terrainKey = key;
-    } finally {
-      ctx = scene;
-    }
-  }
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, 0, 0);
-  ctx.drawImage(terrain, 0, 0);
-  ctx.restore();
-}
+
 function draw() {
   const w = canvas.clientWidth, h = canvas.clientHeight;
   if (!w || !h) return;
@@ -1428,29 +1108,18 @@ function draw() {
   const pixelWidth = Math.round(w * dpr), pixelHeight = Math.round(h * dpr);
   if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
   if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
-  // Finer scenery, whole-pixel sprites, and full-resolution labels share the same map.
-  const block = Math.max(1, Math.round(dpr * (w < 741 ? 1 : 2)));
-  const spriteBlock = Math.max(1, Math.round(dpr * (w < 741 ? 2 : 3)));
-  const spriteCellHeight = spriteBlock * h / pixelHeight;
-  const artWidth = Math.ceil(pixelWidth / block), artHeight = Math.ceil(pixelHeight / block);
-  if (art.width !== artWidth) art.width = artWidth;
-  if (art.height !== artHeight) art.height = artHeight;
-  ctx.setTransform(pixelWidth / w / block, 0, 0, pixelHeight / h / block, 0, 0);
-  stamps.length = 0;
+  ctx.setTransform(pixelWidth / w, 0, 0, pixelHeight / h, 0, 0);
+  ctx.clearRect(0, 0, w, h);
   labels.length = 0;
   const gather = snap?.mode === "gather";
-  const above = gather ? h * .28 : Math.max(62, h * .205);
-  const map = project(snap?.meta?.bounds, gather ? "d" : "z", w, h, above, 26);
-  if (!map) rect(0, 0, w, h, "#243b32");
-  else if (gather) drawGather(w, h, map, spriteCellHeight);
-  else drawQuan(w, h, map, spriteCellHeight);
-  screen.setTransform(1, 0, 0, 1, 0, 0);
-  screen.imageSmoothingEnabled = false;
-  screen.drawImage(art, 0, 0, artWidth * block, artHeight * block);
-  drawStamps(pixelWidth / w, pixelHeight / h, spriteBlock);
-  screen.setTransform(pixelWidth / w, 0, 0, pixelHeight / h, 0, 0);
+  const at = project(snap?.meta?.bounds, gather, w, h);
+  if (!at) return;
+  const size = Math.min(76, Math.max(33, w * .085));
+  if (gather) drawGather(at, size);
+  else drawQuan(at, size, w);
   drawLabels(w, h);
 }
+
 
 function invalidate() { paintPending = true; }
 function frame(now) {

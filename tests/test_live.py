@@ -27,6 +27,24 @@ def _post(url, obj):
 
 
 class LiveServerTest(unittest.TestCase):
+    def test_serves_phase_two_art(self):
+        server = LiveServer(LiveGame("gather", load_contract()["tuning"], {}, 1), port=0)
+        server.start()
+        self.addCleanup(server.stop)
+        for name in ("gather", "quan", "ba-ut", "ba-ut-boi", "khach-nam", "khach-nu", "ca-linh", "ca-loc",
+                     "ca-sau", "ca-loc-nuong-trui", "goi-bong-sung",
+                     "lau-ca-linh-dien-dien", "canh-chua-ca-loc-bong-dien-dien",
+                     "ca-keo-nuong-muoi-ot", "lau-mam-mien-tay"):
+            with self.subTest(name=name):
+                with urllib.request.urlopen(server.url + f"art/{name}.webp", timeout=5) as response:
+                    self.assertEqual(response.headers.get_content_type(), "image/webp")
+                    self.assertEqual(response.read()[8:12], b"WEBP")
+        for path in ("art/missing.webp", "art/../index.html"):
+            with self.assertRaises(urllib.error.HTTPError) as error:
+                _get(server.url + path)
+            self.assertEqual(error.exception.code, 404)
+            error.exception.close()
+
     def test_state_input_and_clean_stop(self):
         tuning = load_contract()["tuning"]
         server = LiveServer(LiveGame("gather", tuning, {}, 1), port=0)  # cổng ngẫu nhiên

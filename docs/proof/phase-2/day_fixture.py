@@ -2,13 +2,21 @@
 import argparse
 import json
 import math
+import sys
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from threading import Lock
 from time import monotonic
 
 ROOT = Path(__file__).resolve().parents[3]
-TUNING = json.loads((ROOT / "game.contract.json").read_text(encoding="utf-8"))["tuning"]
+sys.path.insert(0, str(ROOT))
+from chonoi.contract import load_contract
+from chonoi.inputs import InputState, LiveInputs, normalize
+from chonoi.live import LiveGame, read_web_art
+from chonoi.runner import build_sim
+
+TUNING = load_contract()["tuning"]
+SPAWN = {"gather": [34, 8], "quan": [8, 5]}
 DISHES = [
     "ca_loc_nuong_trui", "goi_bong_sung", "lau_ca_linh_dien_dien",
     "canh_chua_ca_loc_bong_dien_dien", "ca_keo_nuong_muoi_ot", "lau_mam_mien_tay",
@@ -25,6 +33,8 @@ OPTIONS = [
 
 
 class Preview:
+    live_scenes = False
+
     def __init__(self, days, faint):
         self.days, self.faint = days, faint
         self.set_screen("menu")
@@ -38,6 +48,20 @@ class Preview:
         self.started = monotonic()
         self.interact = False
         self.message = ""
+        self.move = (0, 0)
+        self.move_tick = 0
+        self.mover = (build_sim(screen, TUNING, {"player": {"pos": SPAWN[screen]}}, 1, None)
+                      if screen in SPAWN and not self.live_scenes else None)
+
+    def advance_movement(self, tick):
+        if not self.mover or self.paused:
+            return
+        inp = InputState(self.move, {}, set())
+        for _ in range(self.move_tick, tick):
+            self.mover._move(inp)
+            if self.mover._ramp_left == 0 and not any(self.mover.vel):
+                break
+        self.move_tick = tick
 
     def tick(self):
         return int((self.elapsed + (0 if self.paused else monotonic() - self.started)) * 60)
@@ -49,7 +73,9 @@ class Preview:
         elif action == "menu":
             self.set_screen("menu")
         elif action == "pause" and self.screen in ("gather", "quan", "shop") and not self.paused:
+            self.advance_movement(self.tick())
             self.elapsed += monotonic() - self.started
+            self.move = (0, 0)
             self.paused = True
         elif action == "resume" and self.paused:
             self.paused, self.started = False, monotonic()
@@ -75,6 +101,14 @@ class Preview:
         return True
 
     def keys(self, data):
+        if "move" in data:
+            move = data["move"]
+            if not (isinstance(move, list) and len(move) == 2 and
+                    all(type(value) in (int, float) and -1 <= value <= 1 for value in move)):
+                return False
+            if self.mover and not self.paused:
+                self.advance_movement(self.tick())
+                self.move = normalize(move)
         pressed = data.get("interact") is True
         if pressed and not self.interact and not self.paused:
             if self.screen == "gather":
@@ -82,6 +116,7 @@ class Preview:
             elif self.screen == "quan":
                 self.set_screen("day_result")
         self.interact = pressed
+        return True
 
     def expire_shop(self):
         if self.screen == "shop" and not self.paused and self.tick() >= 600:
@@ -90,6 +125,7 @@ class Preview:
     def snapshot(self):
         self.expire_shop()
         tick = self.tick()
+        self.advance_movement(tick)
         inventory = {} if self.faint else STOCK
         served = 0 if self.faint else 2
         covered_days = self.days if self.screen == "summary" else 1
@@ -113,21 +149,123 @@ class Preview:
                 monsters.append({"id": "M2", "pos": [76, 21], "state": "patrol"})
             state["snapshot"] = dict(tick=tick, meta=TUNING["gather"], hold=["ca_keo","bong_sung","keo_neo"],
                 hold_capacity=12, time_left_ticks=max(0, 10800-tick), fish=fish, nodes=nodes, monsters=monsters,
-                player={"pos": [34, 8], "at_surface": False, "heading_deg": 0, "hp": 2, "hp_max": 3,
+                player={"pos": list(self.mover.pos), "at_surface": self.mover._at_surface(),
+                        "heading_deg": self.mover.heading, "hp": 2, "hp_max": 3,
                         "oxygen_ticks": max(0, oxygen-tick), "oxygen_max_ticks": oxygen, "catch_cd_ticks": 0})
             if tick >= 120:
                 state["events"] = [{"name": "crocodile_hit", "tick": 120, "data": {"damage": 1}}]
         elif self.screen == "quan":
-            stoves = [{"id": f"B{i+1}", "pos": [3+i*4, 8], "state": "cooking" if served else "idle",
+            # Keep fixture markers on the fixtures painted in the Quán background.
+            stoves = [{"id": f"B{i+1}", "pos": [3+i*6, 8], "state": "cooking" if served else "idle",
                        "cook_ticks_left": 180+i*60, "dish": {"dish_id": DISHES[i]} if served else None}
                       for i in range(2)]
-            tables = [{"id": f"T{i+1}", "pos": pos} for i, pos in enumerate([[3, 3], [7, 3], [11, 3], [13, 7]])]
+            tables = [{"id": f"T{i+1}", "pos": pos} for i, pos in enumerate([[4, 6], [10, 6], [4, 2], [10, 2]])]
             customers = [{"id": f"C{i+1}", "table_id": t["id"], "state": "waiting", "order_status": "reserved",
                           "dish_id": DISHES[i+2], "reserved": {ITEMS[i]: 1},
                           "patience_ticks_left": max(0, 3600-i*280-tick)} for i, t in enumerate(tables)] if served else []
             state["snapshot"] = dict(tick=tick, meta=TUNING["quan"], time_left_ticks=max(0, 10800-tick),
-                player={"pos": [8, 5]}, money=self.money, reputation=3, hand=None,
+                player={"pos": list(self.mover.pos)}, money=self.money, reputation=3, hand=None,
                 stock=inventory, stoves=stoves, tables=tables, customers=customers)
+        return state
+
+
+class LiveScenesPreview(Preview):
+    """Local day screen flow backed by full Phase 1 simulation for both shifts."""
+    live_scenes = True
+
+    def __init__(self, days, faint):
+        self.inventory = {}
+        self.gather_reason = None
+        self.results = []
+        super().__init__(days, faint)
+        self.money = 0
+
+    def set_screen(self, screen):
+        super().set_screen(screen)
+        self.game = None
+        self.served, self.left, self.tips = 0, 0, 0
+        if screen == "gather":
+            scenario = {"player": {"pos": [50, 10], "hp": 1, "oxygen_ticks": 0, "zero_oxy_ticks": 59}} if self.faint else {}
+            self.game = LiveGame(screen, TUNING, scenario, self.day)
+        elif screen == "quan":
+            scenario = {"reputation": self.results[-1]["reputation"]} if self.results else {}
+            self.game = LiveGame(screen, TUNING, scenario, self.day, inventory=self.inventory)
+
+    def update_scene(self):
+        game = self.game
+        if not game or self.paused:
+            return
+        target = self.tick()
+        # No sim thread in this preview: the HTTP handler lock orders ticks and input changes.
+        while game.session.tick < target and not game.session.done:
+            game._tick_once()
+            for event in reversed(game.events):
+                if event["tick"] != game.session.tick:
+                    break
+                if event["name"] == "served":
+                    self.served += 1
+                elif event["name"] == "customer_left":
+                    self.left += 1
+                elif event["name"] == "paid":
+                    self.tips += event["data"]["tip"]
+        if not game.session.done:
+            return
+        sim = game.session.sim
+        if self.screen == "gather":
+            self.inventory = sim.inventory_items()
+            self.gather_reason = sim.reason
+            self.set_screen("evening_intro")
+        else:
+            self.money += sim.money
+            self.results.append(dict(served=self.served, left=self.left, earned=sim.shift_earned,
+                                     tips=self.tips, money=self.money, reputation=sim.reputation))
+            self.set_screen("day_result")
+
+    def keys(self, data):
+        self.update_scene()
+        if self.game and not self.paused:
+            try:
+                self.game.set_input(data)
+            except ValueError:
+                return False
+        return True
+
+    def action(self, action, data):
+        if action == "buy" or (action == "pause" and self.screen not in SPAWN):
+            return False
+        self.update_scene()
+        if action == "pause":
+            if not self.game:
+                return False
+            self.game.inputs = LiveInputs()
+        return super().action(action, data)
+
+    def expire_shop(self):
+        # This preview does not run the Phase 2 shop engine.
+        pass
+
+    def snapshot(self):
+        self.update_scene()
+        state = dict(mode="day", screen=self.screen, day=self.day, days=self.days, live_scenes=True,
+                     paused=self.paused, can_pause=self.game is not None, tick_hz=TUNING["tick_hz"], events=[])
+        if self.game:
+            snapshot = json.loads(self.game.state_json())
+            snapshot["money"] += self.money
+            state.update(snapshot=snapshot, events=snapshot["events"])
+        elif self.screen == "day_intro":
+            state["menu"] = list(TUNING["menu"])
+        elif self.screen == "evening_intro":
+            state.update(inventory=self.inventory, gather_reason=self.gather_reason,
+                         cookable=[name for name, dish in TUNING["menu"].items()
+                                   if all(self.inventory.get(k, 0) >= v for k, v in dish["recipe"].items())])
+        elif self.screen in ("day_result", "summary"):
+            result = self.results[-1].copy()
+            if self.screen == "summary":
+                for key in ("served", "left", "earned", "tips"):
+                    result[key] = sum(row[key] for row in self.results)
+            state["result"] = result
+        elif self.screen == "shop":
+            state["shop_unavailable"] = True
         return state
 
 
@@ -136,28 +274,33 @@ def main():
     parser.add_argument("--days", type=int, choices=range(1, 6), default=1)
     parser.add_argument("--port", type=int, default=8782)
     parser.add_argument("--faint", action="store_true")
+    parser.add_argument("--real-scenes", action="store_true", help="Use the real Gather and Quán simulations")
     args = parser.parse_args()
-    preview, lock = Preview(args.days, args.faint), Lock()
+    preview_type = LiveScenesPreview if args.real_scenes else Preview
+    preview, lock = preview_type(args.days, args.faint), Lock()
 
     class Handler(BaseHTTPRequestHandler):
         def log_message(self, *args):
             pass
 
-        def reply(self, code, body, kind="application/json"):
+        def reply(self, code, body, kind="application/json; charset=utf-8"):
             payload = body if isinstance(body, bytes) else json.dumps(body).encode("utf-8")
             self.send_response(code)
-            self.send_header("Content-Type", f"{kind}; charset=utf-8")
+            self.send_header("Content-Type", kind)
             self.send_header("Content-Length", str(len(payload)))
-            self.send_header("Cache-Control", "no-store")
+            self.send_header("Cache-Control", "public, max-age=300" if kind == "image/webp" else "no-store")
             self.end_headers()
             self.wfile.write(payload)
 
         def do_GET(self):
-            if self.path in ("/", "/index.html"):
-                self.reply(200, (ROOT / "chonoi/web/index.html").read_bytes(), "text/html")
-            elif self.path == "/state":
+            path = self.path.split("?", 1)[0]
+            if path in ("/", "/index.html"):
+                self.reply(200, (ROOT / "chonoi/web/index.html").read_bytes(), "text/html; charset=utf-8")
+            elif path == "/state":
                 with lock:
                     self.reply(200, preview.snapshot())
+            elif (art := read_web_art(path)) is not None:
+                self.reply(200, art, "image/webp")
             else:
                 self.reply(404, {"ok": False})
 
@@ -175,8 +318,8 @@ def main():
             with lock:
                 preview.expire_shop()
                 if self.path == "/input":
-                    preview.keys(data)
-                    self.reply(200, {"ok": True})
+                    ok = preview.keys(data)
+                    self.reply(200 if ok else 400, {"ok": ok})
                 elif self.path == "/action":
                     ok = preview.action(data.get("action"), data)
                     self.reply(200 if ok else 409, {"ok": ok})
@@ -184,7 +327,8 @@ def main():
                     self.reply(404, {"ok": False})
 
     with ThreadingHTTPServer(("127.0.0.1", args.port), Handler) as server:
-        print(f"Fixture Phase 2 tại http://127.0.0.1:{server.server_port}/", flush=True)
+        label = "Gather/Quán thật trong UI Phase 2" if args.real_scenes else "Fixture Phase 2"
+        print(f"{label} tại http://127.0.0.1:{server.server_port}/", flush=True)
         server.serve_forever()
 
 
