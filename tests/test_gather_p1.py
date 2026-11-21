@@ -29,6 +29,15 @@ def snap_at(rows, tick):
 BASE = {"nodes": [], "random_fish": False}
 
 
+def H(*kinds, fresh=100):
+    """v1.2 (TICKET-03 §1): giỏ là mảng cá thể; fixture cũ (mảng kind) đổi sang I1, I2,… fresh 100."""
+    return [{"id": f"I{i}", "kind": k, "fresh": fresh} for i, k in enumerate(kinds, start=1)]
+
+
+def K(items):
+    return [it["kind"] for it in items]
+
+
 class Lat1BoiOxyBienGio(unittest.TestCase):
     def test_ac_p1_01_dive_and_surface_events(self):
         with Workdir() as w:
@@ -60,20 +69,23 @@ class Lat1BoiOxyBienGio(unittest.TestCase):
             self.assertEqual([e["data"]["hp"] for e in chokes], [2, 1])
 
     def test_ac_p1_04_faint_drops_hold_lifo_and_empty_inventory(self):
+        """v1.2: hold/lost là mảng cá thể (lost theo LIFO), kho rỗng là {"items": []}."""
         with Workdir() as w:
             sc = dict(BASE, player={"pos": [50, 10], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
-                      hold=["ca_loc", "bong_sung", "ca_linh"])
+                      hold=H("ca_loc", "bong_sung", "ca_linh"))
             rows = run_gather(w, sc, ticks=10, inv_out=True)
             faint = events(rows, "faint")
             self.assertEqual(len(faint), 1)
-            self.assertEqual(faint[0]["data"], {"cause": "choke", "lost": ["ca_linh", "bong_sung", "ca_loc"], "hp": 0})
+            self.assertEqual(faint[0]["data"]["cause"], "choke")
+            self.assertEqual([it["id"] for it in faint[0]["data"]["lost"]], ["I3", "I2", "I1"])
+            self.assertEqual(K(faint[0]["data"]["lost"]), ["ca_linh", "bong_sung", "ca_loc"])
             names = [e["name"] for e in events(rows)]
             self.assertEqual(names, ["choke", "faint", "gather_end"])
             end = events(rows, "gather_end")[0]["data"]
-            self.assertEqual(end, {"reason": "fainted", "inventory": {"items": {}}})
+            self.assertEqual(end, {"reason": "fainted", "inventory": {"items": []}})
             self.assertEqual(rows[-1]["reason"], "fainted")
             with open(w.path("kho.json"), encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
     def test_ac_p1_05_surfacing_on_choke_tick_avoids_choke(self):
         with Workdir() as w:
@@ -93,8 +105,9 @@ class Lat1BoiOxyBienGio(unittest.TestCase):
 
 class Lat2HaiBatBenKho(unittest.TestCase):
     def test_ac_p1_07_gather_at_exact_radius_edge(self):
+        """v1.2: hold là mảng cá thể; hàng hái mới nhận id kế tiếp I3."""
         with Workdir() as w:
-            sc = {"player": {"pos": [20, 0], "heading_deg": 0}, "hold": ["ca_loc", "bong_sung"],
+            sc = {"player": {"pos": [20, 0], "heading_deg": 0}, "hold": H("ca_loc", "bong_sung"),
                   "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [22, 0]}], "fish": [], "random_fish": False,
                   "time_left_ticks": 120}
             rows = run_gather(w, sc, [{"tick": 0, "interact": True}], ticks=2)
@@ -103,7 +116,8 @@ class Lat2HaiBatBenKho(unittest.TestCase):
             self.assertEqual(ev[0]["tick"], 1)
             self.assertEqual(ev[0]["data"], {"node_id": "N1", "kind": "bong_dien_dien", "amount": 1})
             s = snap_at(rows, 1)
-            self.assertEqual(s["hold"], ["ca_loc", "bong_sung", "bong_dien_dien"])
+            self.assertEqual(K(s["hold"]), ["ca_loc", "bong_sung", "bong_dien_dien"])
+            self.assertEqual(s["hold"][2], {"id": "I3", "kind": "bong_dien_dien", "fresh": 100})
             self.assertEqual(s["nodes"][0]["regrow_ticks"], 1200)
             self.assertFalse(s["nodes"][0]["ready"])
 
@@ -121,7 +135,7 @@ class Lat2HaiBatBenKho(unittest.TestCase):
             rows = run_gather(w, dict(BASE, player={"pos": [20, 1]}, nodes=node), [{"tick": 0, "interact": True}], ticks=1)
             self.assertEqual(events(rows, "gather") + events(rows, "hold_full"), [])
         with Workdir() as w:
-            rows = run_gather(w, dict(BASE, player={"pos": [20, 0]}, nodes=node, hold=["ca_loc"] * 12),
+            rows = run_gather(w, dict(BASE, player={"pos": [20, 0]}, nodes=node, hold=H(*["ca_loc"] * 12)),
                               [{"tick": 0, "interact": True}], ticks=1)
             self.assertEqual(events(rows, "hold_full")[0]["data"],
                              {"action": "gather", "node_id": "N1", "required": 1, "free": 0})
@@ -140,7 +154,7 @@ class Lat2HaiBatBenKho(unittest.TestCase):
             ev = events(rows, "fish_caught")
             self.assertEqual(ev[0]["data"], {"fish_id": "F1", "kind": "ca_linh", "yield": 3})
             s = snap_at(rows, 1)
-            self.assertEqual(s["hold"], ["ca_linh"] * 3)
+            self.assertEqual(K(s["hold"]), ["ca_linh"] * 3)  # v1.2: cá thể
             self.assertEqual(s["fish"], [])
             self.assertEqual(s["player"]["catch_cd_ticks"], 30)
 
@@ -158,7 +172,7 @@ class Lat2HaiBatBenKho(unittest.TestCase):
 
     def test_ac_p1_13_catch_hold_full_keeps_school_and_no_cooldown(self):
         with Workdir() as w:
-            sc = dict(BASE, player={"pos": [30, 10]}, hold=["ca_loc"] * 10,
+            sc = dict(BASE, player={"pos": [30, 10]}, hold=H(*["ca_loc"] * 10),
                       fish=[{"id": "F1", "kind": "ca_linh", "pos": [31, 10]}])
             rows = run_gather(w, sc, [{"tick": 0, "catch": True}], ticks=1)
             self.assertEqual(events(rows, "hold_full")[0]["data"],
@@ -179,16 +193,23 @@ class Lat2HaiBatBenKho(unittest.TestCase):
             self.assertEqual(snap_at(rows, 1)["player"]["catch_cd_ticks"], 0)
 
     def test_ac_p1_15_time_end_keeps_hold_and_writes_inventory(self):
+        """v1.2: kho cá thể sắp theo id; 5 bước hao 0.5/s → fresh 100 − 5/120."""
         with Workdir() as w:
-            sc = dict(BASE, player={"pos": [60, 12]}, hold=["ca_loc", "ca_linh"], time_left_ticks=5)
+            sc = dict(BASE, player={"pos": [60, 12]}, hold=H("ca_loc", "ca_linh"), time_left_ticks=5)
             rows = run_gather(w, sc, ticks=100, inv_out=True)
             end = events(rows, "gather_end")
             self.assertEqual(end[0]["tick"], 5)
             self.assertEqual(end[0]["data"]["reason"], "time")
-            self.assertEqual(end[0]["data"]["inventory"], {"items": {"ca_linh": 1, "ca_loc": 1}})
+            inv = end[0]["data"]["inventory"]["items"]
+            self.assertEqual([(i["id"], i["kind"]) for i in inv], [("I1", "ca_loc"), ("I2", "ca_linh")])
+            for i in inv:  # JSONL làm tròn 3 chữ số (dung sai ±0.01)
+                self.assertAlmostEqual(i["fresh"], 100 - 5 / 120, delta=0.01)
             self.assertEqual(rows[-1]["reason"], "time")
             with open(w.path("kho.json"), encoding="utf-8") as f:
-                self.assertEqual(json.load(f), end[0]["data"]["inventory"])
+                saved = json.load(f)["items"]
+            self.assertEqual([(i["id"], i["kind"]) for i in saved], [(i["id"], i["kind"]) for i in inv])
+            for i in saved:  # file kho giữ đủ chính xác
+                self.assertAlmostEqual(i["fresh"], 100 - 5 / 120, places=9)
 
     def test_ac_p1_16_tick_limit_does_not_write_inventory(self):
         with Workdir() as w:
@@ -198,7 +219,7 @@ class Lat2HaiBatBenKho(unittest.TestCase):
 
     def test_ac_p1_17_dock_at_any_depth_inside_radius(self):
         with Workdir() as w:
-            rows = run_gather(w, dict(BASE, player={"pos": [2, 3]}, hold=["bong_sung"]),
+            rows = run_gather(w, dict(BASE, player={"pos": [2, 3]}, hold=H("bong_sung")),
                               [{"tick": 0, "interact": True}], ticks=5, inv_out=True)
             self.assertEqual(events(rows, "gather_end")[0]["data"]["reason"], "docked")
             self.assertTrue(close(snapshots(rows)[-1]["player"]["pos"][1], 3))

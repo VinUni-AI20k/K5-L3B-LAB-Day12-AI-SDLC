@@ -9,6 +9,7 @@ import time
 import unittest
 
 from helpers import ROOT, Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from v12_compat import read_jsonl, write_json  # v1.2: fixture kho đếm -> kho cá thể (lý do: tests/v12_compat.py)
 
 # Ngày ngắn: gather và quán hết giờ sau 1 bước -> Shop mở ở tick 2 (time_left_ticks tối thiểu là 1)
 SHORT = {"gather": {"time_left_ticks": 1}, "quan": {"time_left_ticks": 1}}

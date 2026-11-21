@@ -8,6 +8,7 @@ import os
 import unittest
 
 from helpers import ROOT, Workdir, events, read_jsonl, snapshots
+from v12_compat import read_jsonl  # v1.2: fixture kho đếm -> kho cá thể (lý do: tests/v12_compat.py)
 from test_quan_p1 import customer, run_quan
 
 FULL = {"ca_loc": 9, "ca_linh": 9, "ca_keo": 9, "keo_neo": 9, "bong_dien_dien": 9, "bong_sung": 9}
@@ -21,7 +22,7 @@ def contract():
 class QuanV11(unittest.TestCase):
     def test_ac_p2_30_two_stoves_four_tables_six_dishes_from_contract(self):
         c = contract()
-        self.assertEqual(c["contract_version"], "1.1")
+        self.assertEqual(c["contract_version"], "1.2")  # v1.2 (TICKET-03) thay 1.1; dữ liệu 2 bếp/4 bàn/6 món giữ
         self.assertEqual(len(c["tuning"]["menu"]), 6)
         with Workdir() as w:
             s = snapshots(run_quan(w, None, ticks=0))[0]
@@ -58,7 +59,7 @@ class QuanV11(unittest.TestCase):
             rows = run_quan(w, sc, [{"tick": 0, "interact": True}], ticks=722, every=1000)
             cs = events(rows, "cook_started")[0]["data"]
             self.assertEqual(cs["items"], ["bong_dien_dien", "ca_keo", "ca_linh", "ca_linh", "keo_neo"])
-            self.assertEqual(cs["base_price"], 200)
+            self.assertEqual(cs["base_price"], 199)  # v1.2: floor(200 × 99.9958/100), giá chốt theo fresh
             self.assertEqual(events(rows, "dish_ready")[0]["tick"], 1 + 12 * 60)
             self.assertEqual(snapshots(rows)[-1]["stock"], {})
 

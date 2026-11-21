@@ -59,6 +59,15 @@ SPAWN_POINTS = {k: {(float(x), float(d)) for x in G["fish_spawn_x"] for d in G["
                 for k in G["fish_weights"]}
 
 
+def H(*kinds, fresh=100):
+    """v1.2 (TICKET-03 §1): giỏ là mảng cá thể; fixture cũ (mảng kind) đổi sang I1, I2,… fresh 100."""
+    return [{"id": f"I{i}", "kind": k, "fresh": fresh} for i, k in enumerate(kinds, start=1)]
+
+
+def K(items):
+    return [it["kind"] for it in items]
+
+
 def croc(mid="M1", pos=(60, 24), **kw):
     m = {"id": mid, "kind": "ca_sau", "pos": list(pos), "waypoints": [list(pos), [pos[0] + 4, pos[1]]]}
     m.update(kw)
@@ -67,8 +76,9 @@ def croc(mid="M1", pos=(60, 24), **kw):
 
 class SoLieuChuan(unittest.TestCase):
     def test_ac_p2_01_contract_v11_standard_data(self):
+        """v1.2 (TICKET-03): contract_version đổi thành "1.2"; số liệu v1.1 còn lại giữ nguyên."""
         c = load_contract()
-        self.assertEqual(c["contract_version"], "1.1")
+        self.assertEqual(c["contract_version"], "1.2")
         self.assertEqual((c["team"], c["team_size"]), ("Nhom001", 3))
         self.assertEqual(G["fish_yield"], {"ca_linh": 3, "ca_loc": 1, "ca_keo": 2})
         self.assertEqual(G["fish_initial"], 8)
@@ -238,11 +248,11 @@ class BatCa(unittest.TestCase):
         s = make(dict(NO_FISH, player={"pos": [30, 25]}, fish=[{"id": "F1", "kind": "ca_keo", "pos": [31, 25]}]))
         evs = run(s, 1, Inp(edges={"catch"}))
         self.assertEqual(names(evs, "fish_caught")[0][2], {"fish_id": "F1", "kind": "ca_keo", "yield": 2})
-        self.assertEqual(s.hold, ["ca_keo", "ca_keo"])
+        self.assertEqual(K(s.hold), ["ca_keo", "ca_keo"])  # v1.2: giỏ là cá thể
         s = make({"random_fish": False, "monsters": [], "player": {"pos": [76, 0]}})
         evs = run(s, 1, Inp(edges={"interact"}))
         self.assertEqual(names(evs, "gather")[0][2], {"node_id": "N5", "kind": "keo_neo", "amount": 1})
-        self.assertEqual(s.inventory_items(), {"keo_neo": 1})
+        self.assertEqual(K(s.inventory_items()), ["keo_neo"])
 
 
 class CaSau(unittest.TestCase):
@@ -282,13 +292,17 @@ class CaSau(unittest.TestCase):
         self.assertEqual(s.monsters[0]["state"], "patrol")
 
     def test_ac_p2_19_hit_lifo_invuln_and_recoil(self):
-        hold = ["ca_loc", "bong_sung", "ca_linh", "keo_neo", "ca_keo"]
+        """v1.2: lost/hold là mảng cá thể (lost theo thứ tự bỏ LIFO)."""
+        hold = H("ca_loc", "bong_sung", "ca_linh", "keo_neo", "ca_keo")
         s = make(dict(NO_FISH, monsters=[croc(pos=(61, 24))], player={"pos": [60, 24]}, hold=hold))
         evs = run(s, 1)
         self.assertEqual([e[1] for e in evs], ["monster_hit"])
-        self.assertEqual(evs[0][2], {"monster_id": "M1", "hp": 2, "lost": ["ca_keo", "keo_neo"], "pos": [60.0, 24.0]})
+        d = dict(evs[0][2])
+        lost = d.pop("lost")
+        self.assertEqual(d, {"monster_id": "M1", "hp": 2, "pos": [60.0, 24.0]})
+        self.assertEqual([(i["id"], i["kind"]) for i in lost], [("I5", "ca_keo"), ("I4", "keo_neo")])
         snap = s.snapshot()
-        self.assertEqual(snap["hold"], ["ca_loc", "bong_sung", "ca_linh"])
+        self.assertEqual(K(snap["hold"]), ["ca_loc", "bong_sung", "ca_linh"])
         self.assertEqual(snap["player"]["invuln_ticks"], 90)
         m = snap["monsters"][0]
         self.assertEqual((m["state"], m["state_ticks_left"], m["recoil_dir"]), ("recoil", 60, [1.0, 0.0]))
@@ -337,21 +351,22 @@ class CaSau(unittest.TestCase):
 
     def test_ac_p2_24_monster_faint_lifo_and_empty_handover(self):
         s = make(dict(NO_FISH, monsters=[croc(pos=(60.5, 24))], player={"pos": [60, 24], "hp": 1},
-                      hold=["ca_loc", "bong_sung", "ca_linh"]))
+                      hold=H("ca_loc", "bong_sung", "ca_linh")))
         evs = run(s, 3)
         self.assertEqual([e[1] for e in evs], ["monster_hit", "faint", "gather_end"])
-        self.assertEqual(evs[0][2]["lost"], ["ca_linh"])
+        self.assertEqual([i["id"] for i in evs[0][2]["lost"]], ["I3"])  # v1.2: cá thể
         self.assertEqual(evs[0][2]["hp"], 0)
-        self.assertEqual(evs[1][2], {"cause": "monster", "lost": ["bong_sung", "ca_loc"], "hp": 0})
-        self.assertEqual(evs[2][2], {"reason": "fainted", "inventory": {"items": {}}})
-        self.assertEqual(s.inventory_items(), {})
+        self.assertEqual(evs[1][2]["cause"], "monster")
+        self.assertEqual([i["id"] for i in evs[1][2]["lost"]], ["I2", "I1"])
+        self.assertEqual(evs[2][2], {"reason": "fainted", "inventory": {"items": []}})
+        self.assertEqual(s.inventory_items(), [])
 
     def test_ac_p2_25_choke_passes_invuln_and_drops_nothing(self):
         s = make(dict(NO_FISH, player={"pos": [30, 10], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 2,
-                                       "invuln_ticks": 50}, hold=["ca_loc", "ca_linh"]))
+                                       "invuln_ticks": 50}, hold=H("ca_loc", "ca_linh")))
         evs = run(s, 1)
         self.assertEqual([e[1] for e in evs], ["choke"])
-        self.assertEqual((s.hp, s.hold), (1, ["ca_loc", "ca_linh"]))
+        self.assertEqual((s.hp, K(s.hold)), (1, ["ca_loc", "ca_linh"]))  # v1.2: cá thể
 
     def test_ac_p2_26_m2_only_from_day_3(self):
         for day, ids in ((1, ["M1"]), (2, ["M1"]), (3, ["M1", "M2"]), (5, ["M1", "M2"])):
@@ -382,14 +397,15 @@ class DayVaScenario(unittest.TestCase):
             {"fish": [{"id": "F1", "kind": "ca_keo", "pos": [30, 25], "age_ticks": -1}]},
             {"fish": [{"id": "F1", "kind": "ca_keo", "pos": [30, 10]}]},  # đàn bơi ngoài dải loài
             {"player": {"invuln_ticks": -1}},
-            {"hold": ["ca_ho"]},
+            {"hold": H("ca_ho")},
+            {"hold": ["ca_loc"]},  # v1.2: mảng kind (schema đếm cũ) bị từ chối
         ]
         for sc in bad:
             with self.assertRaises(BadInput, msg=sc):
                 make(sc)
         ok = make({"monsters": [croc(state="recoil", state_ticks_left=5, recoil_dir=[0, -1], target_idx=0)],
                    "fish": [{"id": "F1", "kind": "ca_keo", "pos": [30, 10]}], "random_fish": False,
-                   "player": {"invuln_ticks": 90}, "hold": ["ca_keo", "keo_neo"]})
+                   "player": {"invuln_ticks": 90}, "hold": H("ca_keo", "keo_neo")})
         self.assertEqual(ok.snapshot()["monsters"][0]["state"], "recoil")
         self.assertEqual(make({"monsters": []}).snapshot()["monsters"], [])
 

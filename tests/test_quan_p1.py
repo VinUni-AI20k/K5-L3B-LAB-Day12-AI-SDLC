@@ -7,6 +7,7 @@ import os
 import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from v12_compat import counts, read_jsonl, write_json  # v1.2: fixture kho đếm -> kho cá thể (lý do: tests/v12_compat.py)
 
 AT_STOVE = [2, 8]
 AT_TABLE = [9, 2]
@@ -113,12 +114,13 @@ class Lat4BepBungPhucVuTien(unittest.TestCase):
             cs = events(rows, "cook_started")[0]
             self.assertEqual(cs["tick"], 1)
             self.assertEqual(cs["data"], {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui",
-                                          "items": ["ca_loc"], "base_price": 60})
+                                          "items": ["ca_loc"], "base_price": 59})
+            # v1.2 thay luật giá: chốt floor(60 × 99.9958/100) = 59 (hàng fresh 100 đã hao 1 tick ở quán)
             self.assertEqual(events(rows, "dish_ready")[0]["tick"], 361)
             picked = events(rows, "dish_picked")[0]
             self.assertEqual(picked["tick"], 362)
             s = snapshots(rows)[-1]
-            self.assertEqual(s["hand"], PAY60)
+            self.assertEqual(s["hand"], dict(PAY60, base_price=59))
             self.assertEqual(s["stock"], {"ca_loc": 1})
             self.assertEqual(s["stoves"][0]["state"], "idle")
             self.assertEqual(s["customers"][0]["order_status"], "assigned")
@@ -249,7 +251,8 @@ class HaiTienTrinh(unittest.TestCase):
                                      "--ticks", "1", "--out", w.path("g.jsonl"), "--inventory-out", w.path("catch.json"))
             self.assertEqual(code, 0, err)
             with open(w.path("catch.json"), encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"bong_sung": 2, "ca_loc": 1}})
+                # v1.2: file kho là mảng cá thể; so số lượng theo loại qua v12_compat.counts
+                self.assertEqual(counts(json.load(f)["items"]), {"bong_sung": 2, "ca_loc": 1})
             code, err = run_headless("--mode", "quan", "--seed", "42", "--inventory", w.path("catch.json"),
                                      "--ticks", "0", "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)

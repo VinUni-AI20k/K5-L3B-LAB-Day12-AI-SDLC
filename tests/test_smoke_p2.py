@@ -6,6 +6,7 @@ import json
 import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from v12_compat import counts, read_jsonl, write_json  # v1.2: fixture kho đếm -> kho cá thể (lý do: tests/v12_compat.py)
 
 
 class SmokeP2(unittest.TestCase):
@@ -19,7 +20,8 @@ class SmokeP2(unittest.TestCase):
             self.assertEqual(code, 0, err)
             want = {"bong_sung": 2, "ca_keo": 2, "ca_linh": 1, "ca_loc": 1, "keo_neo": 1}
             with open(w.path("kho.json"), encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": want})
+                # v1.2: file kho là mảng cá thể; so số lượng theo loại
+                self.assertEqual(counts(json.load(f)["items"]), want)
             g_end = events(read_jsonl(w.path("g.jsonl")), "gather_end")[0]["data"]
             self.assertEqual(g_end["inventory"], {"items": want})
             code, err = run_headless("--mode", "quan", "--seed", "42", "--inventory", w.path("kho.json"),
