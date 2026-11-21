@@ -66,7 +66,8 @@ class ReserveById(unittest.TestCase):
         self.assertEqual([n for n, _ in run(sim, 120)], ["no_dish"])
 
     def test_dung_nguong_30_van_dung_duoc(self):
-        sim = quan([item("I1", f=30)], plan=["ca_loc_nuong_trui"])
+        # Kho quán hao 0.25 điểm/giây: 120 tick làm mất 0.5 điểm, nên cá thể phải bắt đầu ở 31 để còn tươi lúc khách đến.
+        sim = quan([item("I1", f=31)], plan=["ca_loc_nuong_trui"])
         run(sim, 120)
         self.assertEqual(sim.customers[0]["reserved"], ["I1"])
 
