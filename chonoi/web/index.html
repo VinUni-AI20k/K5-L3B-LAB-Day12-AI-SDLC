@@ -9,13 +9,14 @@
 </head>
 <body>
   <div class="shell">
-    <header class="topbar">
+    <header class="topbar" id="page-topbar">
       <a class="brand" id="home-link" href="./" aria-label="Quán Ăn Chợ Nổi, về menu">
         <span class="brand-mark" aria-hidden="true"><i></i></span>
         <span>Quán Ăn Chợ Nổi</span>
       </a>
       <div class="top-actions">
         <span id="preview-label" class="preview-label" hidden>Đang xem snapshot mẫu</span>
+        <button type="button" class="button quiet" id="pause" hidden>Tạm dừng <kbd>Esc</kbd></button>
         <button type="button" class="button plain" id="to-menu" hidden>Về menu</button>
         <button type="button" class="button quiet" id="restart" hidden>Chơi lại <kbd>R</kbd></button>
       </div>
@@ -23,14 +24,17 @@
 
     <div id="notice" class="notice" role="alert" hidden></div>
 
-    <main>
+    <main id="main-content">
       <section id="menu" class="menu" aria-labelledby="menu-title">
         <div class="menu-copy">
           <p class="eyebrow">Sông Chín Khúc</p>
           <h1 id="menu-title" tabindex="-1">Một ngày<br>của Út Sen</h1>
           <p class="intro">Sáng theo con nước bắt cá, hái rau. Tối nhóm bếp trên nhà bè Má Tư, đem mẻ thu hoạch đãi khách.</p>
           <div class="mode-list">
-            <button type="button" class="mode primary" data-play="day" disabled>
+            <button type="button" class="mode primary" data-play="campaign" disabled>
+              <span><strong>Chơi</strong><small id="campaign-note">Năm ngày ở chợ nổi</small></span><span aria-hidden="true">→</span>
+            </button>
+            <button type="button" class="mode" id="phase-one-day" data-play="day" disabled>
               <span><strong>Chơi trọn ngày</strong><small>Từ giỏ buổi sáng đến mâm cơm buổi tối</small></span><span aria-hidden="true">→</span>
             </button>
             <div class="single-modes">
@@ -41,11 +45,13 @@
                 <span><strong>Chỉ chơi buổi tối</strong><small>Mở quán với kho có sẵn</small></span>
               </button>
             </div>
+            <button type="button" class="button plain" id="exit">Thoát</button>
           </div>
           <div class="controls menu-controls" aria-label="Điều khiển">
             <span><kbd>WASD</kbd> <kbd>↑↓←→</kbd> Di chuyển</span>
             <span><kbd>E</kbd> Tương tác</span>
             <span><kbd>Space</kbd> Bắt cá</span>
+            <span><kbd>Esc</kbd> / <kbd>P</kbd> Tạm dừng</span>
           </div>
         </div>
         <div class="menu-art"><canvas id="cover" aria-hidden="true"></canvas></div>
@@ -65,6 +71,7 @@
             </div>
             <div class="stat morning"><span>Máu</span><strong class="hearts" id="health"></strong></div>
             <div class="stat evening"><span>Tiền</span><strong id="money"></strong></div>
+            <div class="stat evening" id="shift-stat" hidden><span>Thu ca</span><strong id="shift-money"></strong></div>
             <div class="stat evening"><span>Uy tín</span><strong id="reputation"></strong></div>
             <div class="stat evening"><span>Điểm</span><strong id="score"></strong></div>
           </div>
@@ -74,6 +81,7 @@
             <div id="stage" class="stage">
               <canvas id="world" tabindex="-1" aria-label="Cảnh chơi"></canvas>
               <div id="world-label" class="world-label" aria-hidden="true"></div>
+              <strong id="monster-alert" class="monster-alert morning" role="status" hidden>Thủy quái!</strong>
               <div class="toasts" id="toasts" role="status" aria-live="polite" aria-atomic="true"></div>
               <div class="prompt" id="prompt" hidden><kbd id="prompt-key"></kbd><strong id="prompt-text"></strong></div>
             </div>
@@ -90,6 +98,10 @@
             <section class="panel">
               <div class="panel-title"><h2>Bắt cá</h2><span id="catch-status"></span></div>
               <div class="meter"><i id="catch-bar"></i></div>
+            </section>
+            <section class="panel" id="harvest-plan" hidden>
+              <div class="panel-title"><h2>Cần lấy</h2><span>Đã lấy / cần</span></div>
+              <dl class="ingredients" id="goal-items"></dl>
             </section>
           </aside>
 
@@ -114,6 +126,7 @@
           <span class="morning"><kbd>Space</kbd> Bắt cá</span>
           <span class="evening"><kbd>E</kbd> Nấu / Bưng / Phục vụ</span>
           <span id="preview-help" hidden>Trong bản xem, nhấn <kbd>E</kbd> hoặc <kbd>Space</kbd> để qua snapshot kế tiếp.</span>
+          <span id="campaign-help" hidden><kbd>E</kbd> Duyệt tình huống mẫu</span>
         </div>
       </section>
 
@@ -142,8 +155,56 @@
           </div>
         </div>
       </section>
+
+      <section id="journey" class="journey" aria-labelledby="journey-title" hidden>
+        <div class="journey-card">
+          <header class="journey-head">
+            <p class="eyebrow" id="journey-day"></p>
+            <h1 id="journey-title" tabindex="-1"></h1>
+            <p class="intro" id="journey-copy"></p>
+          </header>
+          <div id="journey-toast-anchor"></div>
+          <dl class="journey-stats" id="journey-stats" hidden></dl>
+          <div class="journey-columns">
+            <section class="panel" id="journey-stock-panel" hidden>
+              <h2 id="journey-stock-title"></h2>
+              <dl class="ingredients" id="journey-items"></dl>
+              <p id="journey-empty" class="intro" hidden>Kho rỗng</p>
+            </section>
+            <section class="panel" id="journey-menu-panel" hidden>
+              <h2 id="journey-menu-title"></h2>
+              <ul id="journey-menu" class="journey-list"></ul>
+            </section>
+          </div>
+          <div id="shop-upgrades" class="journey-columns" hidden></div>
+          <div class="result-actions">
+            <button type="button" class="button primary" id="journey-next"></button>
+            <div class="result-end" id="journey-end" hidden>
+              <button type="button" class="button primary" id="journey-replay">Chơi lại</button>
+              <button type="button" class="button quiet" id="journey-menu-button">Về menu</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="exit-screen" class="result" aria-labelledby="exit-title" hidden>
+        <div class="result-card">
+          <h1 id="exit-title" tabindex="-1">Đã thoát phiên chơi</h1>
+          <button type="button" class="button quiet" id="exit-back">Về menu</button>
+        </div>
+      </section>
     </main>
   </div>
+  <section id="pause-overlay" class="pause-overlay" role="dialog" aria-modal="true" aria-labelledby="pause-title" hidden>
+    <div class="result-card">
+      <p class="eyebrow" id="pause-phase"></p>
+      <h1 id="pause-title">Đang tạm dừng</h1>
+      <div class="result-actions">
+        <button type="button" class="button primary" id="resume">Tiếp tục <kbd>Esc</kbd></button>
+        <button type="button" class="button quiet" id="pause-menu">Về menu</button>
+      </div>
+    </div>
+  </section>
   <script type="module" src="./app.js"></script>
 </body>
 </html>
