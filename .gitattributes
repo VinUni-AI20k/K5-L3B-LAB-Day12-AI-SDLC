@@ -1,0 +1,3 @@
+# Giữ nguyên xuống dòng của bằng chứng để hash không đổi khi checkout trên Windows.
+docs/proof/**/*.jsonl text eol=lf
+docs/proof/**/*.inventory.json text eol=lf

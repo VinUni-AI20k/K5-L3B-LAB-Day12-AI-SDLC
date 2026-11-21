@@ -11,7 +11,7 @@
   - Commit 1: Setup `TEAM.md` (khởi tạo vị trí Thành viên 1, placeholder các thành viên khác) và `game.contract.json` (`team_size = 6`).
   - Commit 2: Chốt hợp đồng tích hợp `docs/contracts/` và giải định `docs/clarify.md`.
   - Commit 3: Thiết lập 2 custom skills trong `.agents/skills/` và quy chuẩn `AGENTS.md`.
-- **Thành viên 2 (`<github-handle-2>` - Dev Lead Gather):**
+- **Thành viên 2 (Phạm Lý Ngọc Đức, `Ducbaynao` - Dev Lead Gather):**
   - Commit 4: Cơ chế lặn/nổi (`dive`/`surface`) và tiêu hao/hồi phục oxy. *(Phụ thuộc Commit 3)*
   - Commit 5: Cơ chế ngạt nước (`choke`), trừ máu và ngất (`faint`/`fainted`). *(Phụ thuộc Commit 4)*
   - Commit 6: Tích hợp giỏ hàng `hold` cơ chế LIFO, sức chứa 12 và đồng bộ snapshot. *(Phụ thuộc Commit 5)*
@@ -24,3 +24,9 @@
 - **Rủi ro xung đột mã nguồn:** Áp dụng nghiêm ngặt mô hình chuyền đuốc (Relay pipeline tuần tự 100%), không ai làm việc song song trên cùng nhánh `main`.
 - **Rủi ro sai lệch dữ liệu tuning:** Mọi thông số đọc trực tiếp từ `tuning` trong contract, tuyệt đối không hardcode.
 - **Rủi ro ngẫu nhiên không tất định:** Bắt buộc sử dụng bộ sinh ngẫu nhiên `Streams` được khởi tạo từ `seed`.
+
+## 4. Kết quả phần việc của tôi — Thành viên 2
+- Tôi đã hoàn thành phần triển khai tương ứng commit 4–6: chuyển vùng, oxy, ngạt/ngất, giỏ có giới hạn và snapshot.
+- Tôi bổ sung 13 test Gather Core; toàn bộ 45 test hiện có đều qua. Tôi lưu lệnh chạy, fixture và kết quả tại [bằng chứng thành viên 2](../proof/phase-1/member-2/README.md).
+- Tôi bàn giao `_store_in_hold(kind, count)` cho thành viên 3 tích hợp hái/bắt cá. Các tính năng thu hoạch và tag `phase-1` vẫn thuộc lượt tiếp theo.
+- Tôi ghi nhận `check_team.py` chưa đạt vì thành viên 3–6 còn placeholder; kết quả này không được tính là đã hoàn tất hồ sơ cả nhóm.

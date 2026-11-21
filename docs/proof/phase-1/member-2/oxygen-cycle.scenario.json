@@ -1,0 +1,17 @@
+{
+  "gather": {
+    "player": {
+      "pos": [
+        20,
+        0.5
+      ],
+      "oxygen_ticks": 3
+    },
+    "hold": [
+      "ca_loc",
+      "bong_sung"
+    ],
+    "nodes": [],
+    "random_fish": false
+  }
+}

@@ -1,0 +1,130 @@
+{
+  "deterministic_faint_bytes": true,
+  "faint_inventory_empty": true,
+  "team_check": "chưa đạt: TV3–6 còn placeholder",
+  "runs": {
+    "gather_run": {
+      "sha256": "72c30e63f0ca4f4d15de11305be5fae1a967aa6bcd9e00f3deef7d301e1c7ae3",
+      "end": {
+        "type": "end",
+        "ticks": 600,
+        "sim_tick": 600,
+        "mode": "gather",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      },
+      "events": []
+    },
+    "quan_run": {
+      "sha256": "27c95215d88839fdc75af48fbfe1366a276f8d19cec66e4c5cf061c50ee5bdab",
+      "end": {
+        "type": "end",
+        "ticks": 600,
+        "sim_tick": 600,
+        "mode": "quan",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      },
+      "events": []
+    },
+    "oxygen-cycle": {
+      "sha256": "556c2b513a04517fd6d544216420fc3c48f3bff63f6eeea9e798c1b720528918",
+      "end": {
+        "type": "end",
+        "ticks": 32,
+        "sim_tick": 32,
+        "mode": "gather",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      },
+      "events": [
+        {
+          "tick": 1,
+          "name": "dive"
+        },
+        {
+          "tick": 3,
+          "name": "oxygen_empty"
+        },
+        {
+          "tick": 10,
+          "name": "surface"
+        }
+      ]
+    },
+    "faint": {
+      "sha256": "207ca39193b02de61a09a77d4b7ad92d3a1130b584caa7f04eba4bdf87bf5c8e",
+      "end": {
+        "type": "end",
+        "ticks": 180,
+        "sim_tick": 180,
+        "mode": "gather",
+        "state": "finished",
+        "reason": "fainted",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      },
+      "events": [
+        {
+          "tick": 1,
+          "name": "oxygen_empty"
+        },
+        {
+          "tick": 60,
+          "name": "choke"
+        },
+        {
+          "tick": 120,
+          "name": "choke"
+        },
+        {
+          "tick": 180,
+          "name": "choke"
+        },
+        {
+          "tick": 180,
+          "name": "faint"
+        },
+        {
+          "tick": 180,
+          "name": "gather_end"
+        }
+      ]
+    },
+    "dock": {
+      "sha256": "6bc3a907bb1c941be656463f91009d0644398b32057bef98ba04103b2eaed8f9",
+      "end": {
+        "type": "end",
+        "ticks": 1,
+        "sim_tick": 1,
+        "mode": "gather",
+        "state": "finished",
+        "reason": "docked",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      },
+      "events": [
+        {
+          "tick": 1,
+          "name": "gather_end"
+        }
+      ]
+    }
+  }
+}

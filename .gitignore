@@ -1,5 +1,6 @@
 __pycache__/
 *.pyc
 *.jsonl
+!docs/proof/**/*.jsonl
 !tests/fixtures/*.jsonl
 .DS_Store
