@@ -1,21 +1,24 @@
 # TEAM
 
-**Tên nhóm:** …  **Số người:** …  (khớp `team_size` trong `game.contract.json`)
+**Tên nhóm:** DoAnhBatDuocEm  **Số người:** 6  (khớp `team_size` trong `game.contract.json`)
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
-| | | `sim/gather` | | |
-| | | `sim/quan` | | |
-| | | `client/ui` | | |
-| | | `qa` | | |
+| Vũ Huy Hiệu | hieunhangia | governance/contracts | Integrator | Thành viên 2 |
+| [Chưa điền] | <github-handle-2> | sim/gather | Dev Lead Gather | Thành viên 3 |
+| [Chưa điền] | <github-handle-3> | sim/gather | Dev Gather Items | Thành viên 4 |
+| [Chưa điền] | <github-handle-4> | sim/quan | PO | Thành viên 5 |
+| [Chưa điền] | <github-handle-5> | sim/quan | Dev Lead Quán | Thành viên 6 |
+| [Chưa điền] | <github-handle-6> | qa/verification | QA Lead & Release | Thành viên 1 |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 
 ## Thỏa thuận làm việc nhóm (điền trong 15 phút kickoff, ≤ 10 dòng)
 
-- Kênh liên lạc: …
-- Khi bất đồng về thiết kế: … (ví dụ: nói 2 phút, không xong thì Integrator quyết và ghi lại lý do)
-- Khi ai đó trễ hoặc vướng quá 10 phút: … (ví dụ: nói ngay trong kênh, người dự phòng nhận việc)
-- Giờ standup giữa phase: …
-- Cách đọc code của nhau (tùy chọn): … (ví dụ: mỗi người đọc lát kế bên; PR hoặc xem trực tiếp)
-- Cách làm việc với Git: … (ví dụ: push thẳng nhánh chính / nhánh ngắn rồi gộp; thống nhất ai gắn tag)
+- Kênh liên lạc: Discord và Zalo nhóm DoAnhBatDuocEm.
+- Quy trình phát triển: Thực hiện theo cơ chế chuyền đuốc (Relay pipeline) tuần tự, mỗi người đúng 3 commit, không làm song song.
+- Bất đồng thiết kế: Thảo luận tối đa 3 phút; nếu chưa thống nhất thì Integrator quyết định cuối cùng và ghi rõ lý do.
+- Xử lý chậm trễ: Ai vướng quá 10 phút phải thông báo ngay lên kênh chat, người dự phòng nhận bàn giao ngay lập tức.
+- Giờ standup: Đứng ngắn 3 phút ngay khi kết thúc mỗi phase trước thời hạn gắn tag.
+- Quy chuẩn code review: Người kế tiếp pull code về, chạy test kiểm tra 3 commit của người đi trước trước khi bắt đầu lượt.
+- Quy chuẩn Git: Làm việc tuần tự trên nhánh `main`, đảm bảo test xanh 100% trước khi push, Integrator gắn tag phase.
