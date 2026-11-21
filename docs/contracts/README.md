@@ -16,6 +16,7 @@ File kho do `gather` ghi một lần khi có `gather_end`, `quan` đọc khi m�
 - Giá trị là số nguyên `>= 0`; mục bằng 0 không ghi ra file.
 - Ghi qua file tạm rồi thay thế, khóa sắp theo thứ tự chữ cái, kết thúc bằng một dòng mới.
 - Ngất (`gather_end` với `reason: "fainted"`) ghi kho rỗng `{"items": {}}`.
+- Từ contract v1.1 (Phase 2) có thêm hai nguyên liệu `ca_keo` và `keo_neo`; schema file kho không đổi.
 - Mẫu hợp lệ: `docs/contracts/inventory.sample.json`. Code: `chonoi/inventory.py`.
 
 ## 2. Giao diện giữa `sim/*` và `client/ui`
