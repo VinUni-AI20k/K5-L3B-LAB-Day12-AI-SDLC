@@ -10,6 +10,7 @@ Móc nối với M4: `_pay_customer` và `_release_order` dưới đây là bả
 được; M4 có thể thay bằng bản đầy đủ (cùng chữ ký) mà không phải sửa phần còn lại.
 """
 
+from ..errors import BadInput
 from ..ids import sort_by_id
 
 CUSTOMER_FIELDS = ("id", "table_id", "dish_id", "order_tick", "state", "patience_ticks_left",
@@ -19,7 +20,10 @@ CUSTOMER_PREFIX = "K"
 
 class CustomerMixin:
     # ---- dựng khách ---------------------------------------------------------------------------
-    def _init_customers(self, scenario):
+    def _init_customers(self, scenario, allowed_dishes=None):
+        """`allowed_dishes`: tập id món khách được gọi khi tự sinh (chế độ `day` truyền món của kế hoạch ngày);
+        None = dùng cả menu (quán chạy riêng). Khách dựng sẵn từ scenario không bị lọc."""
+        self.allowed_dishes = self._check_allowed_dishes(allowed_dishes)
         self.phase_tick = 0
         self.random_customers = scenario.get("random_customers", True)
         self._patience_max = int(round(self.t["patience_s"] * 60))
@@ -54,10 +58,22 @@ class CustomerMixin:
                 avail[k] = avail.get(k, 0) - q
         return avail
 
+    def _check_allowed_dishes(self, allowed):
+        if allowed is None:
+            return None
+        allowed = set(allowed)
+        unknown = sorted(allowed - set(self.menu))
+        if unknown:
+            raise BadInput(f"allowed_dishes có món ngoài menu: {unknown}")
+        return allowed
+
     def _cookable_dishes(self):
-        """Món đủ nguyên liệu khả dụng, sắp theo id (mã Unicode) để duyệt cố định."""
+        """Món khách được gọi (lọc theo kế hoạch ngày trước) và đủ nguyên liệu khả dụng,
+        sắp theo id (mã Unicode) để duyệt cố định. Không đếm số suất: gọi tiếp món đủ nguyên liệu
+        vẫn được kể cả khi đã bán đủ số suất dự kiến."""
         avail = self._available_stock()
-        return [d for d in sorted(self.menu)
+        pool = sorted(self.menu if self.allowed_dishes is None else self.allowed_dishes)
+        return [d for d in pool
                 if all(avail.get(k, 0) >= q for k, q in self.menu[d]["recipe"].items())]
 
     # ---- snapshot ---------------------------------------------------------------------------------

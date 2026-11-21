@@ -24,6 +24,13 @@ from .ramp import ramp_velocity
 
 TICK = 60.0
 AXES = ("x", "d")
+FISH_SWIM_SPEED = 1.5
+FISH_X_BOUNDS = (4.0, 96.0)
+FISH_DEPTH_BANDS = {
+    "ca_linh": (3.0, 12.0),
+    "ca_loc": (8.0, 20.0),
+    "ca_keo": (22.0, 28.0),
+}
 
 DEFAULT_FISH_SPEED = 1.5
 DEFAULT_FISH_TURN_TICKS = 120
@@ -84,6 +91,7 @@ class GatherSim:
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
+        self.random_fish = scenario.get("random_fish", True)
         if "fish" in scenario:
             src_fish = scenario["fish"]
         elif scenario.get("random_fish", True):
@@ -256,10 +264,51 @@ class GatherSim:
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
-        if not self.done:
+            return events
+        # 6. đàn cá bơi & sinh thêm (tắt khi random_fish=False)
+        if "fish_speed" in self.t:
             self._update_fish_swim()
             self._update_fish_spawn(events)
+        elif self.random_fish:
+            self._move_fish()
         return events
+
+    def _move_fish(self):
+        b = self.t["bounds"]
+        x_lo, x_hi = max(float(b["x"][0]), FISH_X_BOUNDS[0]), min(float(b["x"][1]), FISH_X_BOUNDS[1])
+        d_map_lo, d_map_hi = float(b["d"][0]), float(b["d"][1])
+        rng = self.rng.get("fish_move")
+        step_dist = FISH_SWIM_SPEED / TICK
+        for f in sort_by_id(self.fish):
+            f["age_ticks"] += 1
+            if f["age_ticks"] % 120 == 0:
+                f["heading_deg"] = rng.uniform(0.0, 360.0)
+            rad = math.radians(f["heading_deg"])
+            dx, dd = math.cos(rad) * step_dist, math.sin(rad) * step_dist
+            nx = f["pos"][0] + dx
+            nd = f["pos"][1] + dd
+            d_lo, d_hi = FISH_DEPTH_BANDS.get(f["kind"], (3.0, 20.0))
+            d_lo, d_hi = max(d_map_lo, d_lo), min(d_map_hi, d_hi)
+            flip_x = False
+            flip_d = False
+            if nx < x_lo:
+                nx = x_lo + (x_lo - nx)
+                flip_x = True
+            elif nx > x_hi:
+                nx = x_hi - (nx - x_hi)
+                flip_x = True
+            if nd < d_lo:
+                nd = d_lo + (d_lo - nd)
+                flip_d = True
+            elif nd > d_hi:
+                nd = d_hi - (nd - d_hi)
+                flip_d = True
+            f["pos"][0] = max(x_lo, min(x_hi, nx))
+            f["pos"][1] = max(d_lo, min(d_hi, nd))
+            if flip_x or flip_d:
+                vx = -math.cos(rad) if flip_x else math.cos(rad)
+                vd = -math.sin(rad) if flip_d else math.sin(rad)
+                f["heading_deg"] = math.degrees(math.atan2(vd, vx)) % 360.0
 
     # --- cá bơi & sinh cá (Phase 2) ---------------------------------------------
     def _update_fish_swim(self):
