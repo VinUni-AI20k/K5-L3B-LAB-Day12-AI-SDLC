@@ -6,6 +6,12 @@ from ..errors import BadInput
 GATHER_FIELDS = {"oxygen": "oxygen_max_s", "hp": "hp_max"}
 
 
+def _copy_stock(stock):
+    if isinstance(stock, list):
+        return [item.copy() for item in stock]
+    return dict(stock or {})
+
+
 def apply_gather_upgrades(tuning, active_upgrades):
     """Tạo tuning của ngày mới sau khi day chốt các cấp đang có hiệu lực."""
     gather = tuning["gather"].copy()
@@ -27,7 +33,7 @@ class ShopSim:
         self.money = money
         self.earned = earned
         self.reputation = reputation
-        self.stock = dict(stock or {})
+        self.stock = _copy_stock(stock)
         self.upgrades = dict(upgrades or {})
         self.time_left_ticks = tuning["shop"]["max_ticks"]
         self._levels = tuning["shop"]["upgrades"]
@@ -37,7 +43,7 @@ class ShopSim:
     def snapshot(self):
         return {
             "money": self.money, "earned": self.earned, "reputation": self.reputation,
-            "time_left_ticks": self.time_left_ticks, "stock": self.stock.copy(),
+            "time_left_ticks": self.time_left_ticks, "stock": _copy_stock(self.stock),
             "upgrades": self.upgrades.copy(),
         }
 
