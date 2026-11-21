@@ -23,6 +23,16 @@ python3 -m chonoi.live --mode gather                                # chơi th�
 
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
+## Bàn giao kho Phase 1
+
+File kho có duy nhất khóa `items`, ánh xạ bốn ID nguyên liệu hợp lệ (`ca_loc`, `ca_linh`, `bong_sung`, `bong_dien_dien`) tới số nguyên không âm. Khóa vắng tính là 0 và bên ghi bỏ các mục bằng 0. Kho rỗng là `{"items":{}}`. Schema và thời điểm ghi theo [PRD-0 mục G](PHASE1.md#g-file-kho-hợp-đồng-tích-hợp-lặn--hái--mở-quán).
+
+```json
+{"items":{"bong_sung":2,"ca_loc":1}}
+```
+
+`gather --inventory-out` ghi kho một lần khi có `gather_end`. `quan --inventory` đọc file này ở tiến trình riêng. Khi cần phát triển Quán độc lập, dùng [kho mẫu](docs/contracts/inventory.sample.json). Xem [kế hoạch chia việc](docs/plan/phase-1.md) và [giao diện tích hợp](docs/plan/phase-1-integration.md).
+
 ## Tự do sáng tạo
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
