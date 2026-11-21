@@ -42,7 +42,10 @@ class Contract(unittest.TestCase):
             for key in ("oxygen_ticks", "hp", "oxygen_max_ticks", "hp_max", "at_surface"):
                 self.assertIn(key, s["player"])
             self.assertEqual(s["hold_capacity"], tuning_gather()["hold_capacity"])
-            self.assertEqual(len(s["fish"]), len(tuning_gather()["fish_initial"]))  # P2: số đàn đổi 6 → 8, đọc từ preset
+            # Lý do đổi test (v1.1, TICKET-02 mục 1.1/4.1): fish_initial tăng 6 -> 8 đàn,
+            # thêm loài ca_keo và nút keo_neo N5/N6 theo số chuẩn Phase 2.
+            # Số đàn đọc từ preset (không hard-code); test_p2_contract.py kiểm riêng "đúng 8 đàn".
+            self.assertEqual(len(s["fish"]), len(tuning_gather()["fish_initial"]))
             self.assertTrue(all(n["pos"][1] == 0 for n in s["nodes"]))
 
     def test_con_02_deterministic_bytes(self):
