@@ -23,7 +23,7 @@ PYTHONPATH=tests:. python3 -m unittest discover -s tests -v         # test
 python3 -m chonoi.live --mode day                                   # chơi thử trọn vòng ngày
 ```
 
-Điều khiển: WASD/mũi tên di chuyển, E tương tác, Space bắt cá, Esc/P tạm dừng, H bật/tắt tương phản cao; trong Shop dùng 1/2 để mua, Enter để đóng. Thủy quái, oxy thấp và khách sắp hết kiên nhẫn có cảnh báo chữ/biểu tượng.
+Điều khiển: WASD/mũi tên di chuyển, E tương tác, Space bắt cá, Esc/P tạm dừng, C bật/tắt tương phản cao; trong Shop dùng 1/2 để mua, Enter để đóng. Thủy quái, oxy thấp và khách sắp hết kiên nhẫn có cảnh báo chữ/biểu tượng.
 
 Headless: `python3 -m chonoi.headless --mode day --days 5 --seed 1 --ticks 111000 --out day.jsonl`.
 
@@ -31,9 +31,23 @@ Benchmark: `python3 -m chonoi.benchmark --seed 42 --duration 30 --out bench.json
 
 Soak 10 ngày: `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json`.
 
+## Cách tính điểm
+
+Điểm = **earned + 100 × floor(reputation)**.
+
+- `earned` là tổng thu của cả lượt chơi, gồm tiền món và tiền boa.
+- `reputation` (uy tín) khởi đầu 3.0, giới hạn trong [0, 5]. Khách bỏ đi làm giảm 0.5; boa dương cộng 0.2.
+- Số 100 là `score.reputation_multiplier` trong `game.contract.json`.
+
+Ví dụ: earned 72, uy tín 3.2 → điểm = 72 + 100 × 3 = 372.
+
 ## Tự do sáng tạo
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
+
+## Sáng tạo của nhóm
+
+Nhóm không thêm nội dung sáng tạo ngoài đề. Hai yếu tố dễ bị nhầm là đều theo yêu cầu Phase 4: chế độ tương phản cao (phím C) và cảnh báo có biểu tượng và chữ. Bằng chứng: `docs/verification/phase-4.md`.
 
 ## Lịch 3 giờ
 

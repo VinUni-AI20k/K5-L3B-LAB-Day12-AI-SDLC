@@ -1,0 +1,21 @@
+test_cli_01_bad_duration_exit_2 (test_p4_bench.Cli.test_cli_01_bad_duration_exit_2) ... lỗi: --duration phải > 0
+ok
+test_cli_02_missing_args_exit_2 (test_p4_bench.Cli.test_cli_02_missing_args_exit_2) ... usage: chonoi.bench [-h] --seed SEED --duration DURATION --out OUT
+chonoi.bench: error: the following arguments are required: --duration, --out
+ok
+test_cli_03_no_browser_exit_1_without_hanging (test_p4_bench.Cli.test_cli_03_no_browser_exit_1_without_hanging) ... không tìm thấy Chrome/Chromium/Edge (đặt biến môi trường CHROME_BIN)
+ok
+test_compute_01_steady_60fps (test_p4_bench.Compute.test_compute_01_steady_60fps)
+600 khung đều 1000/60 ms: 60 FPS, 1% low cũng 60 FPS, 10 s. ... ok
+test_compute_02_p1_low_uses_slowest_one_percent (test_p4_bench.Compute.test_compute_02_p1_low_uses_slowest_one_percent)
+100 khung: 99 khung 10 ms và 1 khung 100 ms. max(1, ceil(0.01×100)) = 1 khung chậm nhất → 1/0.1 s = 10 FPS. ... ok
+test_compute_03_ceil_for_non_round_frame_counts (test_p4_bench.Compute.test_compute_03_ceil_for_non_round_frame_counts)
+250 khung → ceil(2.5) = 3 khung chậm nhất: ba khung 50 ms, trung bình 50 ms → 20 FPS. ... ok
+test_compute_04_few_frames_use_at_least_one (test_p4_bench.Compute.test_compute_04_few_frames_use_at_least_one)
+Dưới 100 khung vẫn lấy ít nhất 1 khung chậm nhất. ... ok
+test_real_01_bench_json_has_five_fields (test_p4_bench.Real.test_real_01_bench_json_has_five_fields) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 6.989s
+
+OK

@@ -14,7 +14,8 @@ class Phase4Tools(unittest.TestCase):
     def test_contract_declares_phase4_commands(self):
         contract = load_contract()
         self.assertEqual(contract["contract_version"], "1.3")
-        self.assertIn("benchmark", contract["bench_cmd"])
+        # Nhóm chọn bản có render làm bench_cmd chính thức (chonoi.bench); bản headless chonoi.benchmark vẫn có và được kiểm riêng bên dưới.
+        self.assertIn("chonoi.bench", contract["bench_cmd"])
         self.assertIn("soak", contract["soak_cmd"])
 
     def test_day_six_to_ten_repeat_five_day_plan(self):

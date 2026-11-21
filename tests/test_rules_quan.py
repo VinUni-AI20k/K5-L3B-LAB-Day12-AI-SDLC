@@ -22,7 +22,7 @@ Chạy: PYTHONPATH=tests:. python3 -m unittest test_rules_quan -v
 import unittest
 
 from helpers import Workdir, events, frames
-from rules_common import at, contract_tuning, run_mode
+from rules_common import FRESH, Kitchen, at, contract_tuning, counts, kinds, res_counts, run_mode, settled_price
 
 LOC = "ca_loc_nuong_trui"
 PRICE_LOC = 60  # menu.ca_loc_nuong_trui.price trong preset
@@ -42,12 +42,21 @@ def only(rows, name):
     return ev[0]
 
 
-def cust(cid="C1", **kw):
-    """Khách fixture mặc định: chờ ở T1, gọi cá lóc nướng trui, giữ 1 cá lóc."""
+NORES = [] if FRESH else {}   # "không giữ gì": v1.2 là mảng id, bản cũ là map kind → số lượng
+
+
+def cust(cid="C1", reserved=NORES, **kw):
+    """Khách fixture mặc định: chờ ở T1, gọi cá lóc nướng trui. `reserved` dựng bằng Kitchen.reserve (hoặc NORES)."""
     c = {"id": cid, "table_id": "T1", "dish_id": LOC, "order_tick": 0, "state": "waiting",
-         "order_status": "reserved", "reserved": {"ca_loc": 1}}
+         "order_status": "reserved", "reserved": reserved}
     c.update(kw)
     return c
+
+
+def loc_kitchen(n=1):
+    """Kho n cá lóc và hàm giữ 1 cá lóc cho mỗi khách: trả (stock, reserve_one)."""
+    k = Kitchen({"ca_loc": n})
+    return k.stock, (lambda: k.reserve({"ca_loc": 1}))
 
 
 class Khach(unittest.TestCase):
@@ -58,14 +67,15 @@ class Khach(unittest.TestCase):
         Kho chỉ đủ 1 món (cá lóc) nên món được chọn phải là cá lóc nướng trui."""
         first = tuning()["first_customer_tick"]
         with Workdir() as w:
-            rows = run(w, {"stock": {"ca_loc": 1}}, ticks=first)
+            rows = run(w, {"stock": Kitchen({"ca_loc": 1}).stock}, ticks=first)
             self.assertEqual(at(rows, first - 1)["customers"], [])
             ev = only(rows, "customer_arrived")
             self.assertEqual(ev["tick"], first)
             self.assertEqual(ev["data"]["table_id"], "T1")
             self.assertEqual(ev["data"]["dish_id"], LOC)
-            c = at(rows, first)["customers"][0]
-            self.assertEqual(c["reserved"], {"ca_loc": 1})
+            snap = at(rows, first)
+            c = snap["customers"][0]
+            self.assertEqual(res_counts(snap, c), {"ca_loc": 1})
             self.assertEqual(c["order_tick"], first)
             self.assertEqual(ev["data"]["order_id"], c["id"])
 
@@ -73,7 +83,7 @@ class Khach(unittest.TestCase):
         """Có bàn trống mà không món nào đủ nguyên liệu: `no_dish` {}, không có khách."""
         first = tuning()["first_customer_tick"]
         with Workdir() as w:
-            rows = run(w, {"stock": {"bong_sung": 1}}, ticks=first)
+            rows = run(w, {"stock": Kitchen({"bong_sung": 1}).stock}, ticks=first)
             self.assertEqual(only(rows, "no_dish")["data"], {})
             self.assertEqual(at(rows, first)["customers"], [])
 
@@ -83,8 +93,9 @@ class Khach(unittest.TestCase):
         phải chiếm đủ cả 4 bàn mới còn ý nghĩa 'hết bàn'; giữ chỗ phải khớp tồn kho."""
         first = tuning()["first_customer_tick"]
         with Workdir() as w:
-            sc = {"stock": {"ca_loc": 4},
-                  "customers": [cust(f"C{i}", table_id=f"T{i}", patience_ticks_left=first + 100)
+            stock, one = loc_kitchen(4)
+            sc = {"stock": stock,
+                  "customers": [cust(f"C{i}", reserved=one(), table_id=f"T{i}", patience_ticks_left=first + 100)
                                 for i in range(1, 5)]}
             rows = run(w, sc, ticks=first)
             self.assertEqual(events(rows, "customer_arrived"), [])
@@ -94,7 +105,7 @@ class Khach(unittest.TestCase):
         """random_customers:false tắt khách tự sinh."""
         first = tuning()["first_customer_tick"]
         with Workdir() as w:
-            rows = run(w, {"stock": {"ca_loc": 1}, "random_customers": False}, ticks=first + 5)
+            rows = run(w, {"stock": Kitchen({"ca_loc": 1}).stock, "random_customers": False}, ticks=first + 5)
             self.assertEqual(events(rows, "customer_arrived"), [])
             self.assertEqual(at(rows, first + 5)["customers"], [])
 
@@ -105,27 +116,29 @@ class Bep(unittest.TestCase):
     def test_bep_01_cook_started_consumes_reserved_stock(self):
         """interact cạnh bếp idle: lấy đơn reserved, tiêu nguyên liệu giữ, `cook_started`, bếp cooking đủ cook_s × 60."""
         with Workdir() as w:
-            sc = {"stock": {"ca_loc": 1}, "random_customers": False, "player": {"pos": [2, 7.5]},
-                  "customers": [cust()]}
+            stock, one = loc_kitchen(1)
+            sc = {"stock": stock, "random_customers": False, "player": {"pos": [2, 7.5]},
+                  "customers": [cust(reserved=one())]}
             rows = run(w, sc, inp=frames({"tick": 0, "interact": True}), ticks=1)
             d = only(rows, "cook_started")["data"]
             self.assertEqual((d["stove_id"], d["order_id"], d["dish_id"]), ("B1", "C1", LOC))
-            self.assertEqual(d["items"], ["ca_loc"])
-            self.assertEqual(d["base_price"], PRICE_LOC)
+            self.assertEqual(kinds(d["items"]), ["ca_loc"])
+            # v1.2: giá chốt theo độ tươi; kho quán đã hao 1 tick trước khi nấu (xem rules_common.settled_price)
+            self.assertEqual(d["base_price"], settled_price(PRICE_LOC, 1))
             s = at(rows, 1)
             b1 = next(b for b in s["stoves"] if b["id"] == "B1")
             self.assertEqual(b1["state"], "cooking")
             self.assertEqual(b1["cook_ticks_left"], 6 * 60)
-            self.assertEqual(s["stock"], {})
+            self.assertEqual(counts(s["stock"]), {})
             self.assertEqual(s["customers"][0]["order_status"], "assigned")
-            self.assertEqual(s["customers"][0]["reserved"], {})
+            self.assertEqual(res_counts(s, s["customers"][0]), {})
 
     def test_bep_02_dish_ready_then_pick_up(self):
         """Món nấu xong → `dish_ready`, ready_ticks = 0; interact nhận món: `dish_picked`, tay có payload, bếp idle."""
         dish = {"order_id": "C1", "dish_id": LOC, "base_price": PRICE_LOC}
         with Workdir() as w:
             sc = {"random_customers": False, "player": {"pos": [2, 7.5]},
-                  "customers": [cust(order_status="assigned", reserved={})],
+                  "customers": [cust(order_status="assigned", reserved=NORES)],
                   "stoves": [{"id": "B1", "state": "cooking", "dish": dish, "cook_ticks_left": 3}]}
             inp = frames({"tick": 5, "interact": True})
             rows = run(w, sc, inp=inp, ticks=6)
@@ -143,7 +156,7 @@ class Bep(unittest.TestCase):
         t = tuning()
         with Workdir() as w:
             sc = {"random_customers": False, "player": {"pos": [9, 2.5]}, "hand": dish,
-                  "customers": [cust(order_status="assigned", reserved={})]}
+                  "customers": [cust(order_status="assigned", reserved=NORES)]}
             rows = run(w, sc, inp=frames({"tick": 0, "interact": True}), ticks=1)
             d = only(rows, "served")["data"]
             self.assertEqual((d["order_id"], d["table_id"], d["dish_id"], d["base_price"]),
@@ -160,7 +173,7 @@ class Bep(unittest.TestCase):
         dish = {"order_id": "C9", "dish_id": LOC, "base_price": PRICE_LOC}
         with Workdir() as w:
             sc = {"random_customers": False, "player": {"pos": [9, 2.5]}, "hand": dish,
-                  "customers": [cust(order_status="assigned", reserved={})]}
+                  "customers": [cust(order_status="assigned", reserved=NORES)]}
             rows = run(w, sc, inp=frames({"tick": 0, "interact": True}), ticks=1)
             self.assertEqual(events(rows, "served"), [])
 
@@ -172,7 +185,7 @@ class Tien(unittest.TestCase):
         dish = {"order_id": "C1", "dish_id": LOC, "base_price": PRICE_LOC}
         with Workdir() as w:
             sc = {"random_customers": False, "player": {"pos": [9, 2.5]}, "hand": dish,
-                  "customers": [cust(order_status="assigned", reserved={}, patience_ticks_left=patience_left)]}
+                  "customers": [cust(order_status="assigned", reserved=NORES, patience_ticks_left=patience_left)]}
             rows = run(w, sc, inp=frames({"tick": 0, "interact": True}), ticks=1)
             return only(rows, "served")["data"]
 
@@ -189,7 +202,7 @@ class Tien(unittest.TestCase):
         t = tuning()
         with Workdir() as w:
             sc = {"random_customers": False,
-                  "customers": [cust(state="eating", order_status="served", reserved={},
+                  "customers": [cust(state="eating", order_status="served", reserved=NORES,
                                      eat_ticks_left=3, base_price=PRICE_LOC, tip=12)]}
             rows = run(w, sc, ticks=3)
             d = only(rows, "paid")
@@ -206,7 +219,7 @@ class Tien(unittest.TestCase):
         """Boa 0 thì uy tín không đổi khi thu tiền."""
         with Workdir() as w:
             sc = {"random_customers": False,
-                  "customers": [cust(state="eating", order_status="served", reserved={},
+                  "customers": [cust(state="eating", order_status="served", reserved=NORES,
                                      eat_ticks_left=2, base_price=PRICE_LOC, tip=0)]}
             rows = run(w, sc, ticks=2)
             self.assertAlmostEqual(at(rows, 2)["reputation"], tuning()["reputation_initial"], places=2)
@@ -220,7 +233,8 @@ class HetGio(unittest.TestCase):
         nhả phần giữ (kho còn nguyên vì chưa nấu)."""
         t = tuning()
         with Workdir() as w:
-            sc = {"stock": {"ca_loc": 1}, "random_customers": False, "customers": [cust(patience_ticks_left=5)]}
+            stock, one = loc_kitchen(1)
+            sc = {"stock": stock, "random_customers": False, "customers": [cust(reserved=one(), patience_ticks_left=5)]}
             rows = run(w, sc, ticks=6)
             ev = only(rows, "customer_left")
             self.assertEqual(ev["tick"], 5)
@@ -229,20 +243,22 @@ class HetGio(unittest.TestCase):
             self.assertAlmostEqual(ev["data"]["reputation"], t["reputation_initial"] + t["left_reputation_delta"], places=2)
             s = at(rows, 6)
             self.assertEqual(s["customers"], [])
-            self.assertEqual(s["stock"], {"ca_loc": 1})
+            self.assertEqual(counts(s["stock"]), {"ca_loc": 1})
 
     def test_het_02_reputation_clamped_at_min(self):
         """Uy tín không xuống dưới reputation_min."""
         with Workdir() as w:
-            sc = {"random_customers": False, "reputation": 0.2, "stock": {"ca_loc": 1},
-                  "customers": [cust(patience_ticks_left=2)]}
+            stock, one = loc_kitchen(1)
+            sc = {"random_customers": False, "reputation": 0.2, "stock": stock,
+                  "customers": [cust(reserved=one(), patience_ticks_left=2)]}
             rows = run(w, sc, ticks=3)
             self.assertAlmostEqual(at(rows, 3)["reputation"], tuning()["reputation_min"], places=2)
 
     def test_het_03_closing_waiting_customer_leaves_without_penalty(self):
         """Hết ca: khách còn chờ rời với reason closing, không trừ uy tín; rồi `quan_end`."""
         with Workdir() as w:
-            sc = {"random_customers": False, "time_left_ticks": 3, "stock": {"ca_loc": 1}, "customers": [cust()]}
+            stock, one = loc_kitchen(1)
+            sc = {"random_customers": False, "time_left_ticks": 3, "stock": stock, "customers": [cust(reserved=one())]}
             rows = run(w, sc, ticks=10)
             self.assertEqual(only(rows, "customer_left")["data"]["reason"], "closing")
             end = only(rows, "quan_end")
@@ -254,7 +270,7 @@ class HetGio(unittest.TestCase):
         """Hết ca: khách đang ăn trả ngay (reason closing) rồi `quan_end` với shift_earned đúng."""
         with Workdir() as w:
             sc = {"random_customers": False, "time_left_ticks": 3,
-                  "customers": [cust(state="eating", order_status="served", reserved={},
+                  "customers": [cust(state="eating", order_status="served", reserved=NORES,
                                      eat_ticks_left=500, base_price=PRICE_LOC, tip=12)]}
             rows = run(w, sc, ticks=10)
             self.assertEqual(only(rows, "paid")["data"]["reason"], "closing")
