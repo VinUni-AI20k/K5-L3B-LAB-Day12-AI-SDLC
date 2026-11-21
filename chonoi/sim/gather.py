@@ -13,10 +13,6 @@ Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gath
       - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
       - sự kiện dive / surface / oxygen_empty / choke / faint
       - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
-  TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
-      - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
-      - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
-      - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
 Các tính năng của phase sau chưa nằm trong khung này.
 """
 
@@ -117,11 +113,10 @@ class GatherSim:
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
+            self._try_harvest(events)
         # 4. bắt cá
         if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+            self._try_catch(events)
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
@@ -133,6 +128,49 @@ class GatherSim:
 
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]
+
+    def _nearest(self, entities, radius):
+        nearest = None
+        nearest_distance = math.inf
+        for entity in sort_by_id(entities):
+            distance = math.dist(self.pos, entity["pos"])
+            if distance <= radius and distance < nearest_distance:
+                nearest = entity
+                nearest_distance = distance
+        return nearest
+
+    def _push_hold(self, kind, count, events):
+        if len(self.hold) + count > self.t["hold_capacity"]:
+            events.append(("hold_full", {}))
+            return False
+        self.hold.extend([kind] * count)
+        return True
+
+    def _try_harvest(self, events):
+        if not self._at_surface():
+            return
+        ready = (node for node in self.nodes if node["regrow_ticks"] == 0)
+        node = self._nearest(ready, self.t["interact_radius"])
+        if node is None:
+            return
+        kind = node["kind"]
+        count = self.t["node_yield"]
+        if self._push_hold(kind, count, events):
+            node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+            events.append(("gather", {"node_id": node["id"], "kind": kind, "count": count}))
+
+    def _try_catch(self, events):
+        if self._at_surface() or self.catch_cd_ticks:
+            return
+        fish = self._nearest(self.fish, self.t["catch_radius"])
+        if fish is None:
+            return
+        kind = fish["kind"]
+        count = self.t["fish_yield"][kind]
+        if self._push_hold(kind, count, events):
+            self.fish.remove(fish)
+            self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+            events.append(("fish_caught", {"fish_id": fish["id"], "kind": kind, "count": count}))
 
     def _finish(self, reason, events):
         self.done = True
