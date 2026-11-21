@@ -1,4 +1,11 @@
-# Clarify — câu hỏi và câu trả lời (PO ghi, cả nhóm dùng chung)
+# Clarify — câu hỏi và câu trả lời (PO & Integrator ghi, cả nhóm dùng chung)
 
 | # | Ngày giờ | Câu hỏi | Trả lời / giả định | Ai quyết |
 |---|---|---|---|---|
+| 1 | 2026-11-21 10:15 | Khi nhấn `interact` trong vùng bến tàu vừa có nút hái vừa trong bán kính bến thì ưu tiên cái nào? | Ưu tiên cập bến (`in_dock`) trước để kết thúc phiên và ghi nhận kho an toàn; chỉ khi ngoài bến mới xử lý hái nút bông. | Integrator |
+| 2 | 2026-11-21 10:20 | Khách chọn món ở quán được giữ chỗ nguyên liệu (`reserved`) tại thời điểm nào? | Giữ chỗ ngay khi khách vào bàn và chọn món thành công; nhằm tránh việc khách sau tranh chấp nguyên liệu mà bếp chưa kịp nấu. | PO |
+| 3 | 2026-11-21 (TV2 đối chiếu lại PRD) | Khi ngất, giỏ và file kho xử lý thế nào? | Tôi sửa kết luận cũ “không ghi hoặc ghi rỗng”: PRD-0 F/G bắt buộc ghi kho rỗng nếu có `--inventory-out`. Event `faint` phải lưu `lost` theo LIFO trước khi giỏ bị xóa, rồi `gather_end` có inventory rỗng. | Theo PRD-0 E/F/G, chờ review tích hợp |
+| 4 | 2026-11-21 (TV2 đối chiếu lại PRD) | Nếu đàn cá cho nhiều món hơn chỗ trống của giỏ, lấy một phần hay từ chối cả đàn? | PRD-0 F đã quy định: thiếu chỗ thì từ chối toàn bộ, phát `hold_full`, giữ giỏ/đàn/cooldown và không thử đàn khác. Tôi sửa helper TV2 theo quy tắc này, thống nhất với phần TV3 đã tích hợp. Câu hỏi đã được giải đáp bằng PRD, không cần đặt giả định mới. | Theo PRD-0 F |
+| 5 | 2026-11-21 (TV4) | Nếu có nhiều món đủ nguyên liệu, hoặc không còn bàn ở tick khách đến, xử lý thế nào? | Giả định khi triển khai lát TV4: chọn bằng luồng `Streams` riêng trên danh sách món đã sắp xếp và bỏ qua lượt đến khi đầy bàn. Chờ đối chiếu PRD Phase 2 trên lab board. | Chờ PO đối chiếu PRD |
+| 6 | 2026-11-21 (TV4) | Nếu khách hết kiên nhẫn đúng tick khách mới đến, khách mới dùng bàn và nguyên liệu được trả chỗ ngay không? | Xử lý hết kiên nhẫn trước lượt đến, theo thứ tự các bước trong khung `QuanSim.step`. Khách mới nhận đủ thời gian kiên nhẫn ở tick vào bàn. | TV4, theo thứ tự trong starter |
+| 7 | 2026-11-21 (TV2 sửa sau phản hồi) | Payload `oxygen_empty` và `faint` trong hợp đồng nội bộ khác PRD thì theo nguồn nào? | Tôi lấy PRD-0 E làm chuẩn: `oxygen_empty` có `oxygen_ticks:0`; `faint` có `cause:"choke", lost, hp:0`. Tôi sửa code, test và bảng Gather trong hợp đồng; ghi lý do ở ADR 0001. `reason:"fainted"` thuộc `gather_end` và dòng end. | Theo PRD-0 E, chờ review tích hợp |

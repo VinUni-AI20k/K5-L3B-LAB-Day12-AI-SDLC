@@ -1,0 +1,15 @@
+{
+  "quan": {
+    "stock": {"ca_loc": 1},
+    "customers": [
+      {
+        "id": "C9",
+        "table_id": "T1",
+        "dish": "ca_loc_nuong_trui",
+        "state": "waiting",
+        "patience_ticks": 120,
+        "reserved": {"ca_loc": 1}
+      }
+    ]
+  }
+}

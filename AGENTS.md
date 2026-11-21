@@ -3,9 +3,14 @@
 > Cập nhật file này qua các phase (lịch sử git phải cho thấy điều đó). Ngắn gọn, có lệnh chạy thật.
 
 ## Lệnh
+- Kiểm chứng TV2 Gather v1.1: `python docs/proof/phase-2/member-2/verify.py` (suite, headless, tất định; ghi riêng trạng thái TEAM).
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
+- Kiểm tra thành viên: `python3 tools/check_team.py`
+- Kiểm chứng Gather Core và tái tạo bằng chứng TV2: `python docs/proof/phase-1/member-2/verify.py` (Windows dùng `python`; máy khác có thể dùng `python3`).
+- Bằng chứng TV2 sau hiệu chỉnh PRD ở `docs/proof/phase-1/member-2/prd-correction/`; test CLI payload ở `tests/test_gather_core_contract.py` (PRD-0 E/F/G, ADR 0001).
+- Kiểm tra khách quán (TV4) trên PowerShell: `python -m unittest tests.test_quan_customers -v`. Fixture và lệnh headless ở `docs/verification/phase-2.md`.
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
@@ -26,4 +31,5 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `.agents/skills/run-smoke`: Tự động chạy toàn bộ suite test và kịch bản headless trước khi commit / push để đảm bảo nhánh chính luôn xanh.
+- `.agents/skills/check-scenario`: Kiểm tra tính hợp lệ của kịch bản và file kho trước khi nạp vào sim nhằm bắt lỗi sai miền giá trị (mã 2).
