@@ -91,8 +91,8 @@
 | QA | `tests/`, `docs/verification/phase-3.md`, `docs/proof/phase-3/`, `CHANGELOG.md` | regression P1–P2 | **TV5** |
 
 ### TV1
-- [ ] T301–T304: schema kho v1.2 trong `inventory.py` (đọc theo `contract_version`, kho đếm → mã 2), thêm `tuning.freshness` `{initial:100, gather_decay_per_s:0.5, quan_decay_per_s:0.25, spoiled_below:30}` (JSON sẵn trong [`docs/research/phase-3.md`](docs/research/phase-3.md)).
-- [ ] Đổi `contract_version:"1.2"` khi gather + quan sẵn sàng. Gắn `phase-3` trước 2:30.
+- [x] T301–T304: schema kho v1.2 trong `inventory.py` (đọc theo `contract_version`, kho đếm → mã 2), thêm `tuning.freshness` `{initial:100, gather_decay_per_s:0.5, quan_decay_per_s:0.25, spoiled_below:30}` (JSON sẵn trong [`docs/research/phase-3.md`](docs/research/phase-3.md)).
+- [ ] Đổi `contract_version:"1.2"` khi gather + quan sẵn sàng. Gắn `phase-3` trước 2:30. (chưa: giỏ vẫn là tên loại, quán vẫn giữ theo số lượng)
 
 ### TV2
 - [ ] Cá thể trong giỏ, id `I1, I2…` tăng xuyên pha/Ngày; hao từ bước sau khi lấy; `spoiled` đúng 1 lần theo id.
@@ -130,9 +130,10 @@ Chi tiết task: [`specs/004-release/tasks.md`](specs/004-release/tasks.md) · P
 | Điều phối retro + UI + demo | TV6 | Cảnh báo + tương phản cao (T413); retro P2→P4 (T440); standup; demo (T470); clarify / ai-usage-log |
 
 ### TV1 — Integrator / Đóng gói / Release
-- [ ] T410: `contract_version:"1.3"` + `bench_cmd` + `soak_cmd` ở gốc `game.contract.json` (gameplay giữ v1.2).
-- [ ] T420–T421: README (env, điều khiển, test, headless, bench); clone sạch UI ≤ 3 lệnh; chuẩn bị artifact đính Release.
-- [ ] T432, T450–T451: CHANGELOG theo phase; rà CREDITS/LICENSE; release notes; **tag `phase-4` + GitHub Release `v1.0.0` cùng commit `main` trước 3:00**.
+- [ ] T410: `bench_cmd` + `soak_cmd` đã khai và chạy được. `contract_version:"1.3"` chờ sau `"1.2"` (gameplay giữ v1.2).
+- [x] T420: README (env, điều khiển, test, headless, bench); clone sạch UI ≤ 3 lệnh.
+- [x] T421: gói nguồn chạy được `dist/chonoi-v1.0.0.zip` (giải nén rồi `python3 -m chonoi.live --mode day`).
+- [ ] T432, T450–T451: CHANGELOG và CREDITS đã rà; release notes nháp ở `docs/release-notes-v1.0.0.md`. Chưa tag `phase-4`, chưa công bố Release.
 
 ### TV2 — hỗ trợ bench / mở rộng
 - [ ] Hỗ trợ TV5 dựng cảnh bench (gather + Cá Sấu + FX, player đứng yên ở bến) nếu cần.

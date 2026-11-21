@@ -167,6 +167,24 @@ def _validate_day_and_shop(t, menu):
                 raise BadInput(f"tuning.shop.upgrades.{uid}: mỗi cấp cần level, price, {key}")
 
 
+def _validate_freshness(t):
+    """TICKET-03: freshness trong tuning. decay × 240 / tick_hz phải là số nguyên."""
+    fr = t.get("freshness")
+    if not isinstance(fr, dict):
+        raise BadInput("tuning.freshness phải là object")
+    _between("freshness.initial", fr.get("initial"), 0, 100)
+    _between("freshness.gather_decay_per_s", fr.get("gather_decay_per_s"), 0, 100)
+    _between("freshness.quan_decay_per_s", fr.get("quan_decay_per_s"), 0, 100)
+    _between("freshness.spoiled_below", fr.get("spoiled_below"), 0, 100)
+    hz = t.get("tick_hz", 60)
+    if isinstance(hz, bool) or not isinstance(hz, int) or hz <= 0:
+        raise BadInput("tuning.tick_hz phải là số nguyên dương")
+    for key in ("gather_decay_per_s", "quan_decay_per_s"):
+        units = fr[key] * 240 / hz
+        if abs(units - round(units)) > 1e-6:
+            raise BadInput(f"tuning.freshness.{key} × 240 / tick_hz phải là số nguyên")
+
+
 def validate_tuning(t):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
@@ -196,6 +214,8 @@ def validate_tuning(t):
         raise BadInput("burn_s phải là null ở lõi (cháy món là mở rộng)")
     if isinstance(g.get("fish_initial"), int):
         _validate_day_and_shop(t, menu)
+    if "freshness" in t:
+        _validate_freshness(t)
     # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")

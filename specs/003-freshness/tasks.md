@@ -10,10 +10,10 @@
 - [x] T300 [qa] (TV6) Dẫn phân tích tác động; ghi quyết định schema v1.2, thứ tự tích hợp, cách chuyển (đọc 2 phiên bản, bật v1.2 khi hai đầu sẵn sàng) vào `docs/clarify.md` hoặc `docs/adr/0001-kho-ca-the.md`
 
 ## Phase 1 — Adapter / schema (làm trước, chặn mọi lát) — TV1 (+TV6 khung)
-- [ ] T301 [US1] [adapter] (TV1) `chonoi/inventory.py`: `read_inventory` chọn schema theo `contract_version`; v1.2: mảng cá thể, kiểm id duy nhất/khác rỗng, kind 6 loại, fresh hữu hạn [0,100]; kho đếm/sai → `BadInput` (mã 2)
-- [ ] T302 [US1] [adapter] (TV1) `write_inventory` v1.2: sắp theo id, fresh float đầy đủ, file tạm + `os.replace`; ngất → `{"items":[]}`
-- [ ] T303 [P] [US1] [adapter] (TV1) `chonoi/contract.py` validate `freshness {initial, gather_decay_per_s, quan_decay_per_s, spoiled_below}` + kiểm `decay×240/tick_hz` nguyên; `game.contract.json` thêm `freshness` (đổi `"1.2"` ở T340)
-- [ ] T304 [P] [US1] [adapter] (TV1) `docs/contracts/` mục v1.2 từ `specs/003-freshness/contracts/*.md`; báo nhóm schema đã chốt (handoff cho TV2/TV3/TV4/Cursor)
+- [x] T301 [US1] [adapter] (TV1) `chonoi/inventory.py`: `read_inventory` chọn schema theo `contract_version`; v1.2: mảng cá thể, kiểm id duy nhất/khác rỗng, kind 6 loại, fresh hữu hạn [0,100]; kho đếm/sai → `BadInput` (mã 2)
+- [x] T302 [US1] [adapter] (TV1) `write_inventory` v1.2: sắp theo id, fresh float đầy đủ, file tạm + `os.replace`; ngất → `{"items":[]}`
+- [x] T303 [P] [US1] [adapter] (TV1) `chonoi/contract.py` validate `freshness {initial, gather_decay_per_s, quan_decay_per_s, spoiled_below}` + kiểm `decay×240/tick_hz` nguyên; `game.contract.json` thêm `freshness` (đổi `"1.2"` ở T340)
+- [x] T304 [P] [US1] [adapter] (TV1) `docs/contracts/` mục v1.2 từ `specs/003-freshness/contracts/*.md`; báo nhóm schema đã chốt (handoff cho TV2/TV3/TV4/Cursor)
 - [ ] T305 [US1] [adapter] (TV6, agent khung) `chonoi/scenario.py`: `gather.hold`, `quan.stock` mảng cá thể; `customers[].reserved` mảng id; id vật lý duy nhất giữa nơi chứa; reserved trỏ cá thể chưa ươn, đủ công thức, không dùng chung → sai mã 2
 - [ ] T306 [P] [US1] [adapter] (TV6, agent khung) `chonoi/headless.py` + `runner.py`: đọc/ghi kho theo version; bộ cấp id cá thể `ItemIds` toàn cục truyền cho sim; `write_inventory_if_done` dùng v1.2
 - [ ] T307 [P] [US1] [qa] (TV5) Test AC-P3-01…05 (kho đếm → 2, id trùng, fresh ngoài miền, ghi nguyên tử một lần, ngất rỗng, tick_limit giữ đích)
