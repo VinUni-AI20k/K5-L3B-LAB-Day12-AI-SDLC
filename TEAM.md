@@ -1,21 +1,21 @@
 # TEAM
 
-**Tên nhóm:** …  **Số người:** …  (khớp `team_size` trong `game.contract.json`)
+**Tên nhóm:** Quán Ăn Chợ Nổi  **Số người:** 5  (khớp `team_size` trong `game.contract.json`)
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
-| | | `sim/gather` | | |
-| | | `sim/quan` | | |
-| | | `client/ui` | | |
-| | | `qa` | | |
+| (Thành viên 1) | member1 | `sim/gather` | Gameplay Dev (Lặn & Sinh tồn) | `client/ui` |
+| (Thành viên 2) | member2 | `sim/gather` | Gameplay Dev (Hái hoa & Bắt cá) | `sim/quan` |
+| (Thành viên 3) | member3 | `sim/quan` | Gameplay Dev (Khách & Menu) | `sim/gather` |
+| (Thành viên 4) | member4 | `sim/quan` | Gameplay Dev (Bếp nấu & Kinh tế) | `sim/quan` |
+| (Thành viên 5 / Bạn) | leader | `client/ui` | Frontend Dev (Đồ họa & Hiệu ứng) | `client/ui` |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 
 ## Thỏa thuận làm việc nhóm (điền trong 15 phút kickoff, ≤ 10 dòng)
 
-- Kênh liên lạc: …
-- Khi bất đồng về thiết kế: … (ví dụ: nói 2 phút, không xong thì Integrator quyết và ghi lại lý do)
-- Khi ai đó trễ hoặc vướng quá 10 phút: … (ví dụ: nói ngay trong kênh, người dự phòng nhận việc)
-- Giờ standup giữa phase: …
-- Cách đọc code của nhau (tùy chọn): … (ví dụ: mỗi người đọc lát kế bên; PR hoặc xem trực tiếp)
-- Cách làm việc với Git: … (ví dụ: push thẳng nhánh chính / nhánh ngắn rồi gộp; thống nhất ai gắn tag)
+- Kênh liên lạc: Discord / Zalo nhóm
+- Khi bất đồng về thiết kế: Trao đổi tối đa 2 phút, nếu không thống nhất thì Integrator quyết và ghi vào `docs/clarify.md`.
+- Khi ai đó trễ hoặc vướng quá 10 phút: Báo ngay lên kênh chung, người dự phòng nhận hỗ trợ lát việc đó.
+- Giờ standup giữa phase: Trước mỗi mốc gắn tag 15 phút (0:45, 1:40, 2:15, 2:45).
+- Cách làm việc với Git: Mỗi người 1 nhánh tính năng `feat/*`, hoàn thành và pass test 100% thì tạo PR gộp vào `main`. Tối thiểu mỗi người 3 commits có nội dung từ tài khoản GitHub của mình. Trưởng nhóm gắn tag `phase-1` đến `phase-4`.

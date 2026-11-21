@@ -26,4 +26,7 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `gather-sim` (`.agents/skills/gather-sim/`): Chuyên gia mô phỏng lặn, oxy, ngạt, hái bông, bắt cá và giỏ đồ LIFO trong `chonoi/sim/gather.py`.
+- `quan-sim` (`.agents/skills/quan-sim/`): Chuyên gia mô phỏng quán ăn, vòng đời khách, giữ chỗ kho, bếp nấu và thanh toán trong `chonoi/sim/quan.py`.
+- `chonoi-qa` (`.agents/skills/chonoi-qa/`): Chuyên gia kiểm thử tự động, xác thực tính tất định byte-for-byte và test contract.
+- `mekong-ui` (`.agents/skills/mekong-ui/`): Chuyên gia đồ họa Canvas/WebGL sông nước miền Tây cho `chonoi/web/index.html`.
