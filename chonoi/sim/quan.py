@@ -21,11 +21,17 @@ class QuanSim:
     def __init__(self, tuning, scenario, streams, ids, inventory=None, menu_filter=None):
         t = tuning["quan"]
         self.t = t
-        self.tick_hz = tuning.get("tick_hz", 60.0)
-        if menu_filter:
-            self.menu = {k: v for k, v in tuning["menu"].items() if k in menu_filter}
+        self.tick_hz = tuning["tick_hz"]
+        self.menu = tuning["menu"]
+        # None allows the full menu; an empty filter allows no dishes.
+        if menu_filter is None:
+            self.planned_dishes = None
         else:
-            self.menu = dict(tuning["menu"])
+            if not isinstance(menu_filter, (set, frozenset, list, tuple, dict)) or any(
+                not isinstance(key, str) or key not in self.menu for key in menu_filter
+            ):
+                raise BadInput("menu_filter phải chứa các món trong menu")
+            self.planned_dishes = frozenset(menu_filter)
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -56,6 +62,10 @@ class QuanSim:
             c["order"] = dish_id
             c["order_tick"] = c.get("order_tick", 0)
             c["state"] = state
+            order_tick = c.get("order_tick", 0)
+            if isinstance(order_tick, bool) or not isinstance(order_tick, int) or order_tick < 0:
+                raise BadInput(f"customers.{c['id']}.order_tick phải là số nguyên không âm")
+            c["order_tick"] = order_tick
             if "patience_ticks_left" in c:
                 patience = int(c["patience_ticks_left"])
             elif "patience_ticks" in c:
@@ -238,7 +248,11 @@ class QuanSim:
         if not any(tb["id"] not in occupied for tb in self.tables):
             return False
         available = self._available_stock()
-        return any(self._has_recipe(d["recipe"], available) for d in self.menu.values())
+        return any(self._has_recipe(self.menu[dish_id]["recipe"], available)
+                   for dish_id in self._eligible_dishes())
+
+    def _eligible_dishes(self):
+        return sorted(self.menu if self.planned_dishes is None else self.planned_dishes)
 
     def _has_active_work(self):
         return bool(self.customers or self.hand is not None or
@@ -259,7 +273,7 @@ class QuanSim:
         if not free_tables:
             return events
         available = self._available_stock()
-        dishes = [dish_id for dish_id in sorted(self.menu)
+        dishes = [dish_id for dish_id in self._eligible_dishes()
                   if self._has_recipe(self.menu[dish_id]["recipe"], available)]
         if not dishes:
             return events
