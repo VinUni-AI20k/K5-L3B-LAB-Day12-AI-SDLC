@@ -148,7 +148,7 @@ class Catch(unittest.TestCase):
         cd = int(round(tuning_gather()["catch_cooldown_s"] * 60))
         with Workdir() as w:
             code, err, rows = run_gather(w, {
-                "player": {"pos": [20, 5]}, "nodes": [],
+                "player": {"pos": [20, 5]}, "nodes": [], "random_fish": False,  # v1.1 cá tự bơi: giữ đứng yên để test hồi chiêu
                 "fish": [{"id": "F1", "kind": "ca_loc", "pos": [21, 5]},
                          {"id": "F2", "kind": "ca_loc", "pos": [19.5, 5]}],
             }, [{"tick": 0, "catch": True}, {"tick": 1, "catch": False},
@@ -163,7 +163,7 @@ class Catch(unittest.TestCase):
         cd = int(round(tuning_gather()["catch_cooldown_s"] * 60))
         with Workdir() as w:
             code, err, rows = run_gather(w, {
-                "player": {"pos": [20, 5]}, "nodes": [],
+                "player": {"pos": [20, 5]}, "nodes": [], "random_fish": False,  # v1.1 cá tự bơi: giữ đứng yên để test hồi chiêu
                 "fish": [{"id": "F1", "kind": "ca_loc", "pos": [21, 5]},
                          {"id": "F2", "kind": "ca_loc", "pos": [19.5, 5]}],
             }, [{"tick": 0, "catch": True}, {"tick": 1, "catch": False}, {"tick": cd, "catch": True}], ticks=cd + 1)
