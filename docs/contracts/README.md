@@ -6,3 +6,7 @@
 3. **Danh sách sự kiện** — tên, `data`, ai phát, ai nghe (gather: `gather`, `node_regrown`, `hold_full`, `fish_caught`, `gather_end`...; quan: theo mục E của PRD-0).
 
 Khi đổi hợp đồng sau này: báo cả nhóm và ghi lại lý do (ADR hoặc ghi chú, tùy chọn).
+
+## Kho v1.2 (P3-02)
+
+File kho dùng `{"items":[{"id":"I1","kind":"ca_linh","fresh":100.0}]}`; `items` là mảng cá thể theo thứ tự, không còn object đếm. `id` là `I` + số nguyên dương duy nhất; `kind` thuộc sáu nguyên liệu; `fresh` hữu hạn trong `[0,100]`. Kho rỗng là `{"items":[]}`. File đếm v1.0 bị từ chối với mã 2. Ghi nguyên tử khi Gather kết thúc; Day chuyển nguyên `id/kind/fresh` sang Quán, không hao tươi ở ranh giới pha. Xem [mẫu](inventory.sample.json) và [AC P3-02](../plan/phase-3.md).

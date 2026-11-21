@@ -87,11 +87,12 @@ class Survival(unittest.TestCase):
             self.assertEqual(p[30]["zero_oxy_ticks"], 0)
             self.assertEqual(p[30]["hp"], 3)
 
-    def test_invuln_chan_ngat(self):
+    def test_invuln_khong_chan_ngat_theo_contract_v11(self):
+        # Contract v1.1: bất tử chỉ chặn monster_hit; ngạt vẫn trừ Máu.
         with Workdir() as w:
             rows = run_gather(w, {"player": {"pos": [50, 10], "oxygen_ticks": 0, "invuln_ticks": 1000}}, 62)
-            self.assertEqual(by_tick(rows)[62]["hp"], 3)
-            self.assertEqual(events(rows, "choke"), [])
+            self.assertEqual(by_tick(rows)[62]["hp"], 2)
+            self.assertEqual(len(events(rows, "choke")), 1)
 
     def test_mau_ve_0_ngat_xiu_mat_gio(self):
         with Workdir() as w:
@@ -102,10 +103,10 @@ class Survival(unittest.TestCase):
             end = events(rows, "gather_end")
             self.assertEqual(len(end), 1)
             self.assertEqual(end[0]["data"]["reason"], "fainted")
-            self.assertEqual(end[0]["data"]["inventory"], {"items": {}})
+            self.assertEqual(end[0]["data"]["inventory"], {"items": []})
             self.assertEqual(rows[-1]["reason"], "fainted")
             with open(w.path("inv.json"), encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
 
 class Hold(unittest.TestCase):
@@ -138,13 +139,13 @@ class Hold(unittest.TestCase):
             rows = run_gather(w, {"player": {"pos": [50, 10]}, "hold": hold, "time_left_ticks": 2}, 5, inventory=True)
             self.assertEqual(events(rows, "gather_end")[0]["data"]["reason"], "time")
             with open(w.path("inv.json"), encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"bong_sung": 1, "ca_linh": 1, "ca_loc": 2}})
+                self.assertEqual([item["kind"] for item in json.load(f)["items"]], hold)
 
     def test_ngat_giỏ_day_mat_het(self):
         with Workdir() as w:
             rows = run_gather(w, {"player": {"pos": [50, 10], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
                                   "hold": ["ca_linh"] * 12}, 3, inventory=True)
-            self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": {}})
+            self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": []})
 
 
 if __name__ == "__main__":

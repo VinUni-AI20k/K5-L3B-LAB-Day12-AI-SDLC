@@ -65,7 +65,9 @@ class QuanIntegration(unittest.TestCase):
         self.assertEqual([(r["tick"], r["name"]) for r in rows if r["type"] == "event"], [
             (self.first, "customer_arrived"), (self.first + 1, "cook_started"),
             (self.first + 361, "dish_ready"), (self.first + 361, "dish_picked"),
-            (self.first + 398, "served"), (self.first + 998, "paid"),
+            (self.first + 398, "served"),
+            (self.first + round(self.q["customer_interval_s"] * self.hz), "no_dish"),
+            (self.first + 998, "paid"),
         ])
         before_cook = next(s for s in snapshots(rows) if s["tick"] == self.first)
         after_cook = next(s for s in snapshots(rows) if s["tick"] == self.first + 1)

@@ -381,6 +381,7 @@ function eventMessage({ name, data }) {
     case "gather": return kind ? `Đã hái ${itemName(kind)}` : "Đã hái nguyên liệu";
     case "fish_caught": return `Đã bắt ${kind ? itemName(kind) : "cá"}${num(count) ? " ×" + count : ""}`;
     case "hold_full": return "Giỏ không đủ chỗ";
+    case "spoiled": return `${capitalize(String(itemName(d.kind)))} ${d.item_id ?? ""} đã ươn`;
     case "oxygen_empty": return "Hết oxy — nổi lên ngay!";
     case "choke": return num(d.damage) ? `Bị ngạt — mất ${d.damage} Máu` : "Bị ngạt — mất 1 Máu";
     case "dish_ready": return "Món đã xong";
@@ -511,8 +512,11 @@ function renderGather(s) {
   setHTML("slots", capacity === null || !Array.isArray(s.hold) ? "" :
     Array.from({ length: capacity }, (_, index) => {
       if (index >= hold.length) return '<span class="slot"></span>';
-      const icon = known(itemIcons, kindOf(hold[index]));
-      return `<span class="slot filled">${icon ? `<img alt="" src="${icon}">` : "?"}</span>`;
+      const unit = hold[index];
+      const icon = known(itemIcons, kindOf(unit));
+      // độ tươi chỉ hiển thị từ state (không hao ở client); ngưỡng ươn do sim đặt
+      const fresh = typeof unit === "object" && num(unit.fresh) ? `${Math.round(unit.fresh)}%` : "";
+      return `<span class="slot filled" title="${fresh}">${icon ? `<img alt="" src="${icon}">` : "?"}</span>`;
     }).join(""));
   setText("hold-summary", holdSummary(s.hold));
   setText("hint", canPlay() ? gatherHint(s) : "");

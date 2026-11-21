@@ -42,7 +42,8 @@ class Contract(unittest.TestCase):
             for key in ("oxygen_ticks", "hp", "oxygen_max_ticks", "hp_max", "at_surface"):
                 self.assertIn(key, s["player"])
             self.assertEqual(s["hold_capacity"], tuning_gather()["hold_capacity"])
-            self.assertEqual(len(s["fish"]), 8)  # Test Contract v1.1: 8 đàn đầu ca
+            initial_fish = tuning_gather()["fish_initial"]
+            self.assertEqual(len(s["fish"]), initial_fish if isinstance(initial_fish, int) else len(initial_fish))
             self.assertTrue(all(n["pos"][1] == 0 for n in s["nodes"]))
 
     def test_con_02_deterministic_bytes(self):
@@ -62,16 +63,15 @@ class Contract(unittest.TestCase):
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", bad, "--out", out)[0], 2)
             self.assertFalse(os.path.exists(out), "lỗi đầu vào phải thoát TRƯỚC khi ghi đầu ra")
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "-1", "--out", out)[0], 2)
-            for button in ("jump", "attack"):  # nút lạ / của phase sau
-                unk = write_json(w.path("unk.json"), frames({"tick": 0, button: True}))
+            for button, value in (("jump", True), ("attack", "true")):
+                unk = write_json(w.path("unk.json"), frames({"tick": 0, button: value}))
                 self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", unk, "--out", out)[0], 2, button)
             self.assertFalse(os.path.exists(out))
 
-    def test_con_03_old_and_future_modes_rejected(self):
+    def test_con_03_old_mode_rejected(self):
         with Workdir() as w:
             out = w.path("o.jsonl")
-            for mode in ("river", "day"):
-                self.assertEqual(run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out)[0], 2, mode)
+            self.assertEqual(run_headless("--mode", "river", "--seed", "1", "--ticks", "0", "--out", out)[0], 2)
             self.assertFalse(os.path.exists(out))
             old = write_json(w.path("old.json"), {"river": {"hold": []}})
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "0", "--scenario", old, "--out", out)[0], 2)
@@ -194,7 +194,9 @@ class Movement(unittest.TestCase):
             self.assertEqual(end_ev[0]["data"]["reason"], "time")
             self.assertEqual(rows[-1]["reason"], "time")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"ca_loc": 1}})
+                data = json.load(f)
+                self.assertEqual([(i["id"], i["kind"]) for i in data["items"]], [("I1", "ca_loc")])
+                self.assertAlmostEqual(data["items"][0]["fresh"], 100.0 - 3 * 0.5 / 60, delta=0.01)  # 3 tick ca, hao từ tick 1
 
 
 class Integration(unittest.TestCase):
@@ -209,10 +211,14 @@ class Integration(unittest.TestCase):
             self.assertEqual(code, 0, err)
             with open(inv, encoding="utf-8") as f:
                 saved = json.load(f)
-            self.assertEqual(saved, {"items": {"bong_sung": 2, "ca_loc": 1}})
+            self.assertEqual([item["kind"] for item in saved["items"]],
+                             ["ca_loc", "bong_sung", "bong_sung"])
             end = events(read_jsonl(w.path("r.jsonl")), "gather_end")[0]["data"]
             self.assertEqual(end["reason"], "docked")
-            self.assertEqual(end["inventory"], saved)
+            self.assertEqual([(i["id"], i["kind"]) for i in end["inventory"]["items"]],
+                             [(i["id"], i["kind"]) for i in saved["items"]])
+            for a, b in zip(end["inventory"]["items"], saved["items"]):
+                self.assertAlmostEqual(a["fresh"], b["fresh"], delta=0.01)
             code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)

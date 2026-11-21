@@ -8,6 +8,7 @@ from copy import deepcopy
 
 from ..errors import BadInput
 from ..ids import sort_by_id
+from ..inventory import clone_items, items_to_counts, materialize_items
 from .kitchen import KitchenServingMixin
 from .ramp import ramp_velocity
 
@@ -32,7 +33,9 @@ class QuanSim(KitchenServingMixin):
         self._tgt = None
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
+        stock_source = inventory if inventory is not None else scenario.get("stock", {})
+        self.stock_items = materialize_items(stock_source, ids, allow_legacy=inventory is None)
+        self.stock = items_to_counts(self.stock_items)
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", self._ticks(t["duration_s"]))
         self.phase_tick = 0
@@ -70,12 +73,24 @@ class QuanSim(KitchenServingMixin):
         return {
             "player": {"pos": self.pos, "vel": self.vel},
             "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
+            "stock_items": self.inventory_items(),
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
             "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in self.tables],
             "customers": sort_by_id(self.customers),
         }
+
+    def inventory_items(self):
+        """Danh sách cá thể còn trong kho vật lý sau các lần nấu."""
+        remaining = self.stock.copy()
+        kept = []
+        for item in self.stock_items:
+            kind = item["kind"]
+            if remaining.get(kind, 0) > 0:
+                kept.append(item)
+                remaining[kind] -= 1
+        return clone_items(kept)
 
     def step(self, inp):
         if self.done:

@@ -24,6 +24,15 @@ def load_contract(path=DEFAULT_PATH) -> dict:
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
     validate_tuning(c.get("tuning"))
+    if c.get("contract_version") == "1.2":
+        inventory = c["tuning"].get("inventory")
+        if not isinstance(inventory, dict) or set(inventory) != {
+                "initial_fresh", "gather_decay_per_s", "quan_decay_per_s", "spoil_threshold"}:
+            raise BadInput("tuning.inventory v1.2 thiếu/sai khóa")
+        _between("inventory.initial_fresh", inventory["initial_fresh"], 0, 100)
+        _between("inventory.gather_decay_per_s", inventory["gather_decay_per_s"], 0, 100)
+        _between("inventory.quan_decay_per_s", inventory["quan_decay_per_s"], 0, 100)
+        _between("inventory.spoil_threshold", inventory["spoil_threshold"], 0, 100)
     return c
 
 
@@ -69,43 +78,15 @@ def _validate_gather(g):
     _int_between("gather.node_yield", g.get("node_yield"), 1, 12)
     _between("gather.regrow_s", g.get("regrow_s"), 0.1, 600)
     _between("gather.surface_depth", g.get("surface_depth"), 0, 5)
-    _between("gather.fish_speed", g.get("fish_speed"), 0, 10)
-    _int_between("gather.fish_turn_ticks", g.get("fish_turn_ticks"), 1, 10_000)
-    _int_between("gather.fish_spawn_ticks", g.get("fish_spawn_ticks"), 1, 100_000)
-    _int_between("gather.fish_max", g.get("fish_max"), 1, 100)
-    _between("gather.fresh_max", g.get("fresh_max"), 1, 100)
-    _between("gather.fresh_decay_per_s", g.get("fresh_decay_per_s"), 0, 10)
-    _between("gather.spoil_threshold", g.get("spoil_threshold"), 0, g.get("fresh_max") or 0)
-    _between("gather.croc_speed", g.get("croc_speed"), 0, 10)
-    _int_between("gather.croc_turn_ticks", g.get("croc_turn_ticks"), 1, 10_000)
-    _between("gather.croc_attack_radius", g.get("croc_attack_radius"), 0.5, 5)
-    _between("gather.croc_attack_cooldown_s", g.get("croc_attack_cooldown_s"), 0, 60)
-    _int_between("gather.croc_drop_count", g.get("croc_drop_count"), 1, 30)
-    crocs = g.get("croc_initial")
-    if not isinstance(crocs, list):
-        raise BadInput("tuning.gather.croc_initial phải là mảng")
-    seen_c = set()
-    for c in crocs:
-        if not isinstance(c, dict) or not isinstance(c.get("id"), str) or c["id"] in seen_c:
-            raise BadInput("tuning.gather.croc_initial: mỗi cá sấu cần id duy nhất")
-        seen_c.add(c["id"])
-        _pos_in(f"gather.croc_initial.{c['id']}.pos", c.get("pos"), g["bounds"], ("x", "d"))
-        if c["pos"][1] <= g["surface_depth"]:
-            raise BadInput(f"tuning.gather.croc_initial.{c['id']}: cá sấu phải ở dưới nước")
     _pos_in("gather.dock_pos", g.get("dock_pos"), b, ("x", "d"))
     _pos_in("gather.start_pos", g.get("start_pos"), b, ("x", "d"))
     if not _num(g.get("start_heading_deg")):
         raise BadInput("tuning.gather.start_heading_deg phải là số")
     fy = g.get("fish_yield")
-    if not isinstance(fy, dict) or not {"ca_linh", "ca_loc", "ca_keo"} <= set(fy):
-        raise BadInput("tuning.gather.fish_yield phải có ca_linh, ca_loc và ca_keo")
+    if not isinstance(fy, dict) or not {"ca_linh", "ca_loc"} <= set(fy):
+        raise BadInput("tuning.gather.fish_yield phải có ca_linh và ca_loc")
     for k, v in fy.items():
         _int_between(f"gather.fish_yield.{k}", v, 1, g["hold_capacity"])
-    weights = g.get("fish_spawn_weights")
-    if not isinstance(weights, dict) or set(weights) != set(fy) or any(not _num(v) or v < 0 for v in weights.values()):
-        raise BadInput("tuning.gather.fish_spawn_weights phải là số không âm")
-    if abs(sum(weights.values()) - 1.0) > 1e-9:
-        raise BadInput("tuning.gather.fish_spawn_weights phải có tổng bằng 1")
     nodes = g.get("nodes")
     if not isinstance(nodes, list) or not nodes:
         raise BadInput("tuning.gather.nodes phải là mảng không rỗng")
@@ -115,16 +96,31 @@ def _validate_gather(g):
             raise BadInput("tuning.gather.nodes: mỗi nút cần id duy nhất")
         seen.add(n["id"])
         if n.get("kind") not in ("bong_dien_dien", "bong_sung", "keo_neo"):
-            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind không hợp lệ")
+            raise BadInput(f"tuning.gather.nodes.{n['id']}: cây không có trong contract")
         kinds.add(n["kind"])
         _pos_in(f"gather.nodes.{n['id']}.pos", n.get("pos"), b, ("x", "d"))
         if n["pos"][1] != 0:
             raise BadInput(f"tuning.gather.nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
-    if not {"bong_dien_dien", "bong_sung", "keo_neo"} <= kinds:
-        raise BadInput("tuning.gather.nodes phải có đủ ba loại cây")
+    if not {"bong_dien_dien", "bong_sung"} <= kinds:
+        raise BadInput("tuning.gather.nodes phải có ít nhất một nút mỗi loại (bong_dien_dien, bong_sung)")
     fish = g.get("fish_initial")
-    if not isinstance(fish, list) or len(fish) != 8:
-        raise BadInput("tuning.gather.fish_initial phải là danh sách đúng 8 đàn")
+    if type(fish) is int:
+        _between("gather.fish_speed", g.get("fish_speed"), 0, 10)
+        _int_between("gather.fish_turn_ticks", g.get("fish_turn_ticks"), 1, 10_000)
+        _int_between("gather.fish_spawn_ticks", g.get("fish_spawn_ticks"), 1, 100_000)
+        _int_between("gather.fish_max", g.get("fish_max"), 1, 100)
+        _between("gather.fish_spawn_clearance", g.get("fish_spawn_clearance"), 0, 10)
+        _int_between("gather.fish_initial", fish, 1, g["fish_max"])
+        weights = g.get("fish_weights")
+        if (not isinstance(weights, dict) or set(weights) != set(fy)
+                or any(not _num(v) or not 0 < v <= 1 for v in weights.values())
+                or abs(sum(weights.values()) - 1.0) > 1e-9):
+            raise BadInput("tuning.gather.fish_weights phải có trọng số dương với tổng 1")
+        if kinds != {"bong_dien_dien", "bong_sung", "keo_neo"}:
+            raise BadInput("tuning.gather.nodes phải có đủ ba loại cây v1.1")
+        return
+    if not isinstance(fish, list) or len(fish) != 6:
+        raise BadInput("tuning.gather.fish_initial phải là danh sách đúng 6 đàn")
     seen = set()
     for f in fish:
         if not isinstance(f, dict) or not isinstance(f.get("id"), str) or f["id"] in seen:

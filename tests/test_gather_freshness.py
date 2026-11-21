@@ -1,4 +1,4 @@
-"""Phase 3, P3-01: độ tươi nguyên liệu trong giỏ gather (hao tươi, ngưỡng ươn, LIFO, bàn giao ID)."""
+"""Phase 3, P3-01: độ tươi nguyên liệu trong giỏ gather (hao tươi, spoiled, LIFO, bàn giao ID)."""
 
 import unittest
 
@@ -10,142 +10,145 @@ from chonoi.scenario import load_scenario
 
 from helpers import Workdir, write_json
 
-TICK = 60.0
+DECAY_TICK = 0.5 / 60  # gather_decay_per_s / tick_hz
+
+
+def item(ident, kind="ca_loc", fresh=100.0):
+    return {"id": ident, "kind": kind, "fresh": fresh}
 
 
 class GatherFreshness(unittest.TestCase):
     def setUp(self):
         self.tuning = load_contract()["tuning"]
         self.g = self.tuning["gather"]
-        self.decay = self.g["fresh_decay_per_s"] / TICK
 
     def session(self, block, seed=1):
-        fixture = {"nodes": [], "fish": [], **block}
+        fixture = {"nodes": [], "fish": [], "monsters": [], **block}
         return Session("gather", self.tuning, fixture, seed)
 
-    def step(self, s, **pressed):
-        frame = {"tick": s.tick, **pressed}
-        return s.step(InputPlayer([frame]).advance(s.tick))
+    @staticmethod
+    def step(s, **pressed):
+        return s.step(InputPlayer([{"tick": s.tick, **pressed}]).advance(s.tick))
 
-    def idle(self, s, n):
+    @staticmethod
+    def idle(s, n):
         rows = []
         for _ in range(n):
             rows.extend(s.step(InputPlayer([]).advance(s.tick)))
         return rows
 
-    def harvest_session(self, hold=None, extra=None):
+    def harvest_session(self, hold=None):
         block = {"player": {"pos": [20, 0]},
                  "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [20, 0]}]}
         if hold is not None:
             block["hold"] = hold
-        block.update(extra or {})
         return self.session(block)
 
-    # --- tạo nguyên liệu -------------------------------------------------------
-    def test_hai_tao_ca_the_fresh_100_va_id_rieng(self):
+    # --- tạo nguyên liệu ---------------------------------------------------------
+    def test_hai_tao_ca_the_fresh_100_va_id_theo_thu_tu(self):
         s = self.harvest_session()
         rows = self.step(s, interact=True)
-        self.assertEqual(s.sim.hold, [{"id": "NL1", "kind": "bong_sung", "fresh": 100.0, "spoiled": False}])
         self.assertIn("gather", [r["name"] for r in rows])
+        self.assertEqual(s.sim.hold_items, [item("I1", "bong_sung", 100.0)])
 
     def test_bat_ca_tao_moi_ca_the_co_id_rieng(self):
         s = self.session({"player": {"pos": [20, 5]},
                           "fish": [{"id": "F2", "kind": "ca_linh", "pos": [21, 5], "heading_deg": 0}]})
         self.step(s, catch=True)
-        ids = [u["id"] for u in s.sim.hold]
+        ids = [u["id"] for u in s.sim.hold_items]
         self.assertEqual(len(ids), self.g["fish_yield"]["ca_linh"])
         self.assertEqual(len(set(ids)), len(ids))
-        self.assertTrue(all(u["fresh"] == 100.0 for u in s.sim.hold))
+        self.assertTrue(all(u["fresh"] == 100.0 for u in s.sim.hold_items))
 
-    # --- hao tươi ---------------------------------------------------------------
-    def test_hao_tuoi_bat_dau_tu_tick_sau_khi_thu_thap(self):
+    def test_hang_vua_nhat_chua_hao_den_tick_sau(self):
         s = self.harvest_session()
         self.step(s, interact=True)
-        self.assertEqual(s.sim.hold[0]["fresh"], 100.0, "tick nhặt chưa hao")
+        self.assertEqual(s.sim.hold_items[0]["fresh"], 100.0)
         self.idle(s, 1)
-        self.assertAlmostEqual(s.sim.hold[0]["fresh"], 100.0 - self.decay, places=9)
+        self.assertAlmostEqual(s.sim.hold_items[0]["fresh"], 100.0 - DECAY_TICK, places=9)
 
+    # --- hao tươi ----------------------------------------------------------------
     def test_hao_0_5_diem_moi_giay(self):
-        s = self.session({"hold": [{"id": "NL1", "kind": "ca_loc", "fresh": 90.0}]})
+        s = self.session({"hold": [item("I1", fresh=90.0)]})
         self.idle(s, 60)
-        self.assertAlmostEqual(s.sim.hold[0]["fresh"], 89.5, places=6)
+        self.assertAlmostEqual(s.sim.hold_items[0]["fresh"], 89.5, places=9)
 
-    # --- ngưỡng ươn -------------------------------------------------------------
-    def test_duoi_30_phat_spoiled_dung_mot_lan(self):
-        s = self.session({"hold": [{"id": "NL1", "kind": "ca_loc", "fresh": 30.005}]})
-        rows = self.idle(s, 600)
+    def test_san_0_khong_am(self):
+        s = self.session({"hold": [item("I1", fresh=0.001)]})
+        self.idle(s, 5)
+        self.assertEqual(s.sim.hold_items[0]["fresh"], 0.0)
+
+    # --- ngưỡng ươn ----------------------------------------------------------------
+    def test_fresh_30_ươn_o_tick_1_dung_mot_lan(self):
+        s = self.session({"hold": [item("I1", "ca_linh", 30)]})
+        rows = self.idle(s, 1)
         spoiled = [r for r in rows if r["name"] == "spoiled"]
-        self.assertEqual(len(spoiled), 1)
-        self.assertEqual(spoiled[0]["data"]["id"], "NL1")
-        self.assertLess(spoiled[0]["data"]["fresh"], 30)
-        self.assertTrue(s.sim.hold[0]["spoiled"])
+        self.assertEqual([(r["tick"], r["data"]) for r in spoiled],
+                         [(1, {"item_id": "I1", "kind": "ca_linh", "location": "hold"})])
+        self.assertEqual([r for r in self.idle(s, 300) if r["name"] == "spoiled"], [])
 
-    def test_bien_nguong_30(self):
-        # 30.5 hao 0.5/120 mỗi tick: sau 60 tick còn đúng 30.0 (chưa ươn), tick 61 xuống dưới 30
-        s = self.session({"hold": [{"id": "NL1", "kind": "ca_loc", "fresh": 30.5}]})
+    def test_fresh_29_9_khong_phat_spoiled(self):
+        s = self.session({"hold": [item("I1", "ca_linh", 29.9)]})
+        self.assertEqual([r for r in self.idle(s, 10) if r["name"] == "spoiled"], [])
+
+    def test_bien_nguong_chinh_xac_theo_gia_tri_that(self):
+        # 30.5 hao 1/120 mỗi tick: tick 60 còn đúng 30.0 (chưa ươn), tick 61 xuống dưới 30
+        s = self.session({"hold": [item("I1", fresh=30.5)]})
         self.assertEqual([r for r in self.idle(s, 60) if r["name"] == "spoiled"], [])
-        self.assertFalse(s.sim.hold[0]["spoiled"])
         self.assertEqual([r["tick"] for r in self.idle(s, 1) if r["name"] == "spoiled"], [61])
 
-    def test_hang_uon_van_chiem_cho_va_lam_day_gio(self):
-        hold = [{"id": f"NL{i}", "kind": "ca_loc", "fresh": 5.0} for i in range(1, 13)]
+    def test_nhieu_ca_the_vuot_nguong_cung_luc_sap_theo_id(self):
+        s = self.session({"hold": [item("I2", fresh=30), item("I1", fresh=30)]})
+        spoiled = [r["data"]["item_id"] for r in self.idle(s, 1) if r["name"] == "spoiled"]
+        self.assertEqual(spoiled, ["I1", "I2"])
+
+    def test_hang_uon_van_chiem_cho_nen_giỏ_day_khong_nhan_them(self):
+        hold = [item(f"I{i}", fresh=5.0) for i in range(1, self.g["hold_capacity"] + 1)]
         s = self.session({"player": {"pos": [20, 0]},
                           "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [20, 0]}],
                           "hold": hold})
         self.idle(s, 1)
-        self.assertTrue(all(u["spoiled"] for u in s.sim.hold))
-        self.assertEqual(len(s.sim.hold), self.g["hold_capacity"])
-        rows = self.step(s, interact=True)  # giỏ đầy: hàng ươn không được đẩy ra để nhường chỗ
+        self.assertEqual(len(s.sim.hold_items), self.g["hold_capacity"])
+        rows = self.step(s, interact=True)
         self.assertIn("hold_full", [r["name"] for r in rows])
-        self.assertEqual(len(s.sim.hold), self.g["hold_capacity"])
+        self.assertEqual(len(s.sim.hold_items), self.g["hold_capacity"])
 
-    # --- LIFO khi làm rơi ---------------------------------------------------------
-    def test_lam_roi_theo_lifo(self):
-        s = self.session({"hold": [{"id": "NL1", "kind": "ca_loc", "fresh": 80.0},
-                                   {"id": "NL2", "kind": "ca_linh", "fresh": 70.0},
-                                   {"id": "NL3", "kind": "bong_sung", "fresh": 60.0}]})
-        events = []
-        dropped = s.sim._drop_lifo(2, "test", events)
-        self.assertEqual([u["id"] for u in dropped], ["NL3", "NL2"])
-        self.assertEqual([u["id"] for u in s.sim.hold], ["NL1"])
-        self.assertEqual(events[0][0], "dropped")
-        self.assertEqual([u["id"] for u in events[0][1]["units"]], ["NL3", "NL2"])
-
-    def test_ngat_mat_het_giu_thu_tu_lifo(self):
+    # --- LIFO khi ngất ------------------------------------------------------------
+    def test_ngat_mat_het_theo_lifo_voi_object(self):
         s = self.session({"player": {"pos": [30, 10], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
-                          "hold": [{"id": "NL1", "kind": "ca_loc", "fresh": 80.0},
-                                   {"id": "NL2", "kind": "ca_linh", "fresh": 70.0}]})
+                          "hold": [item("I1", "ca_loc", 80.0), item("I2", "ca_linh", 70.0)]})
         rows = self.idle(s, 1)
-        faint = [r for r in rows if r["name"] == "faint"][0]
-        self.assertEqual([u["id"] for u in faint["data"]["lost"]], ["NL2", "NL1"])
-        self.assertEqual(s.sim.hold, [])
+        faint = [r for r in rows if r["name"] == "faint"][0]["data"]
+        self.assertEqual([u["id"] for u in faint["lost"]], ["I2", "I1"])
+        self.assertEqual(s.sim.hold_items, [])
 
     # --- bàn giao ----------------------------------------------------------------
-    def test_ban_giao_giu_dung_id_va_do_tuoi(self):
-        s = self.session({"player": {"pos": [2, 0]},
-                          "hold": [{"id": "NL7", "kind": "ca_loc", "fresh": 55.5}]})
+    def test_ban_giao_giu_id_va_fresh_sau_hao_mot_tick(self):
+        s = self.session({"player": {"pos": [2, 0]}, "hold": [item("I7", "ca_loc", 55.5)]})
         rows = self.step(s, interact=True)
-        end = [r for r in rows if r["name"] == "gather_end"][0]
-        self.assertEqual(end["data"]["reason"], "docked")
-        units = end["data"]["units"]
-        self.assertEqual([(u["id"], u["kind"]) for u in units], [("NL7", "ca_loc")])
-        self.assertAlmostEqual(units[0]["fresh"], 55.5 - self.decay, places=9)  # 1 tick hao trước bến
-        self.assertEqual(end["data"]["inventory"], {"items": {"ca_loc": 1}})
+        end = [r for r in rows if r["name"] == "gather_end"][0]["data"]
+        self.assertEqual(end["reason"], "docked")
+        items = end["inventory"]["items"]
+        self.assertEqual([(i["id"], i["kind"]) for i in items], [("I7", "ca_loc")])
+        self.assertAlmostEqual(items[0]["fresh"], 55.5 - DECAY_TICK, places=9)
 
-    def test_gia_tri_scenario_dang_doi_tuong_duoc_nhan(self):
+    def test_snapshot_hold_la_mang_object(self):
+        s = self.session({"hold": [item("I1", "ca_loc", 80.0)]})
+        self.assertEqual(s.sim.snapshot()["hold"], [item("I1", "ca_loc", 80.0)])
+
+    # --- validation scenario -----------------------------------------------------
+    def test_scenario_nhan_hold_dang_object(self):
         with Workdir() as w:
-            path = write_json(w.path("sc.json"), {"gather": {"hold": [{"id": "NL9", "kind": "keo_neo", "fresh": 12}]}})
-            sc = load_scenario(path, "gather", self.tuning)
-            self.assertEqual(sc["hold"][0]["id"], "NL9")
+            path = write_json(w.path("sc.json"), {"gather": {"hold": [item("I9", "keo_neo", 12)]}})
+            self.assertEqual(load_scenario(path, "gather", self.tuning)["hold"][0]["id"], "I9")
 
     def test_scenario_tu_choi_fresh_sai_va_id_trung(self):
         with Workdir() as w:
             bad = [
-                {"gather": {"hold": [{"id": "NL1", "kind": "ca_loc", "fresh": 101}]}},
-                {"gather": {"hold": [{"id": "NL1", "kind": "ca_loc", "fresh": -1}]}},
-                {"gather": {"hold": [{"id": "NL1", "kind": "ca_loc"}]}},
-                {"gather": {"hold": [{"id": "NL1", "kind": "ca_loc", "fresh": 50},
-                                     {"id": "NL1", "kind": "ca_linh", "fresh": 50}]}},
+                {"gather": {"hold": [item("I1", fresh=101)]}},
+                {"gather": {"hold": [item("I1", fresh=-1)]}},
+                {"gather": {"hold": [{"id": "I1", "kind": "ca_loc"}]}},
+                {"gather": {"hold": [item("I1", fresh=50), item("I1", "ca_linh", 50)]}},
             ]
             for i, body in enumerate(bad):
                 path = write_json(w.path(f"bad{i}.json"), body)
