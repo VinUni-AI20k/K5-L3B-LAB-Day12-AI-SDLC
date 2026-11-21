@@ -124,13 +124,19 @@ assert.match(legacy.children[0].children[0].textContent,/cá lóc ×2/);
 class LiveServerTest(unittest.TestCase):
     def test_auto_transition_carries_gather_inventory_into_quan(self):
         tuning = load_contract()["tuning"]
-        scenario = {"hold": ["ca_loc", "bong_sung"], "time_left_ticks": 1}
+        # P3 [THAY THẾ]: giỏ và kho là mảng cá thể {id,kind,fresh} (contract v1.2), không còn kho đếm.
+        scenario = {"hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100},
+                             {"id": "I2", "kind": "bong_sung", "fresh": 100}], "time_left_ticks": 1}
         game = LiveGame("gather", tuning, scenario, 1)
 
         game._tick_once()
 
         self.assertEqual(game.mode, "quan")
-        self.assertEqual(game.session.snapshot()["stock"], {"bong_sung": 1, "ca_loc": 1})
+        stock = game.session.snapshot()["stock"]
+        self.assertEqual([(it["id"], it["kind"]) for it in stock], [("I1", "ca_loc"), ("I2", "bong_sung")])
+        # hao một bước gather (0.5/s), bàn giao cùng tick không hao thêm
+        for it in stock:
+            self.assertAlmostEqual(it["fresh"], 100 - 0.5 / 60, delta=0.01)
         self.assertEqual(game.session.tick, 0)
         state = json.loads(game.state_json())
         self.assertEqual(state["mode"], "quan")
