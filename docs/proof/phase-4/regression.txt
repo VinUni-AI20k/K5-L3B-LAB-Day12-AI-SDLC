@@ -1,0 +1,373 @@
+# Regression Phase 1–4 (phần QA/UI) — nhánh huydn8816, HEAD 1febf62 + thay đổi chưa commit
+# Lệnh: PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+# contract_version: 1.2
+
+....................................................................FFF...FFFF.FF....F..FFFFFlỗi: --duration phải > 0
+.usage: chonoi.bench [-h] --seed SEED --duration DURATION --out OUT
+chonoi.bench: error: the following arguments are required: --duration, --out
+.không tìm thấy Chrome/Chromium/Edge (đặt biến môi trường CHROME_BIN)
+...........................................F....FFF.FFFF............................
+======================================================================
+FAIL: test_day_01_plan_announced_for_day_1 (test_p2_rules.Day.test_day_01_plan_announced_for_day_1)
+Đầu Ngày: day_start → day_plan → phase_start(gather); day_plan khớp D1; snapshot có day, day_plan, upgrades.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 225, in test_day_01_plan_announced_for_day_1
+    rows = run_day(w, DAY_SC, ticks=0)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 1
+
+
+======================================================================
+FAIL: test_day_02_phases_change_on_same_tick (test_p2_rules.Day.test_day_02_phases_change_on_same_tick)
+gather_end → phase_start(quan) cùng tick; quan_end → phase_start(shop) cùng tick.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 239, in test_day_02_phases_change_on_same_tick
+    rows = run_day(w, DAY_SC, ticks=7)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 1
+
+
+======================================================================
+FAIL: test_day_03_faint_still_opens_quan_with_empty_stock (test_p2_rules.Day.test_day_03_faint_still_opens_quan_with_empty_stock)
+Ngất vẫn mở quán tối với kho bàn giao rỗng.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 254, in test_day_03_faint_still_opens_quan_with_empty_stock
+    rows = run_day(w, sc, ticks=6, every=1)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 1
+
+
+======================================================================
+FAIL: test_day_07_days_complete_end_line (test_p2_rules.Day.test_day_07_days_complete_end_line)
+Đóng Shop ở Ngày cuối: end.reason = days_complete, days_completed = 1.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 287, in test_day_07_days_complete_end_line
+    rows = run_day(w, DAY_SC, inp=frames({"tick": 6, "shop_done": True}), ticks=50)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 1
+
+
+======================================================================
+FAIL: test_perf_01_one_day_under_20s (test_p2_rules.Hieunang.test_perf_01_one_day_under_20s)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 384, in test_perf_01_one_day_under_20s
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 2 != 0 : usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 1
+
+
+======================================================================
+FAIL: test_pause_01_freezes_sim_and_timers (test_p2_rules.Pause.test_pause_01_freezes_sim_and_timers)
+pause (cạnh lên): phát `paused`, tick ngoài chạy tiếp, sim_tick, phase_tick, time_left_ticks đứng yên,
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 356, in test_pause_01_freezes_sim_and_timers
+    rows = gather(w, {"player": {"pos": [50, 10]}}, inp=inp, ticks=12)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 31, in gather
+    return run_mode(w, "gather", block, **kw)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: frame 0 có trường lạ/chưa hỗ trợ: ['pause']
+
+
+======================================================================
+FAIL: test_pause_02_actions_ignored_while_paused (test_p2_rules.Pause.test_pause_02_actions_ignored_while_paused)
+Đang pause: bỏ qua cạnh hành động (hái, bắt cá, mua).
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 371, in test_pause_02_actions_ignored_while_paused
+    rows = gather(w, {"player": {"pos": [12, 0]}}, inp=inp, ticks=5)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 31, in gather
+    return run_mode(w, "gather", block, **kw)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: frame 0 có trường lạ/chưa hỗ trợ: ['pause']
+
+
+======================================================================
+FAIL: test_quan_02_second_customer_at_1020_sits_at_t2 (test_p2_rules.Quan.test_quan_02_second_customer_at_1020_sits_at_t2)
+Lượt khách 120 + 900k: khách thứ hai tick 1020 ngồi ghế trống id nhỏ nhất (T2).
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 183, in test_quan_02_second_customer_at_1020_sits_at_t2
+    rows = run_mode(w, "quan", {"stock": Kitchen({"ca_loc": 5, "bong_sung": 5}).stock}, ticks=1020, every=1020)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
+
+
+======================================================================
+FAIL: test_quan_03_lau_mam_reserves_and_cooks (test_p2_rules.Quan.test_quan_03_lau_mam_reserves_and_cooks)
+Kho chỉ đủ lẩu mắm: khách gọi lau_mam, giữ đủ 5 nguyên liệu; nấu 12 s giá 200, items theo kind.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 196, in test_quan_03_lau_mam_reserves_and_cooks
+    rows = run_mode(w, "quan", sc, inp=frames({"tick": 0, "interact": True}), ticks=1)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
+
+
+======================================================================
+FAIL: test_sau_04_hit_loses_hp_half_hold_lifo_and_invuln (test_p2_rules.Sau.test_sau_04_hit_loses_hp_half_hold_lifo_and_invuln)
+Chạm ≤ 1.5 m ở d ≥ 10: -1 Máu, bỏ floor(n/2) nguyên liệu LIFO, bất tử 90 tick, đúng một hit.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 141, in test_sau_04_hit_loses_hp_half_hold_lifo_and_invuln
+    hit = only(rows, "monster_hit")
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 36, in only
+    assert len(ev) == 1, f"cần đúng 1 event {name}, có {len(ev)}"
+           ^^^^^^^^^^^^
+AssertionError: cần đúng 1 event monster_hit, có 2
+
+======================================================================
+FAIL: test_shop_01_exact_price_buys_and_keeps_earned (test_p2_rules.Shop.test_shop_01_exact_price_buys_and_keeps_earned)
+Đủ đúng giá (200) vẫn mua được bình oxy cấp 1: `bought`, trừ money, giữ earned và điểm.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 306, in test_shop_01_exact_price_buys_and_keeps_earned
+    rows = self.shop_rows(200, "oxygen")
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 302, in shop_rows
+    return run_day(w, sc, inp=inp, ticks=ticks)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 1
+
+
+======================================================================
+FAIL: test_shop_02_not_enough_funds (test_p2_rules.Shop.test_shop_02_not_enough_funds)
+Thiếu tiền: `buy_failed` reason funds, tiền và cấp giữ nguyên.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 318, in test_shop_02_not_enough_funds
+    rows = self.shop_rows(199, "oxygen")
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 302, in shop_rows
+    return run_day(w, sc, inp=inp, ticks=ticks)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 1
+
+
+======================================================================
+FAIL: test_shop_03_unknown_item_fails (test_p2_rules.Shop.test_shop_03_unknown_item_fails)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 324, in test_shop_03_unknown_item_fails
+    rows = self.shop_rows(500, "khong_co")
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 302, in shop_rows
+    return run_day(w, sc, inp=inp, ticks=ticks)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 1
+
+
+======================================================================
+FAIL: test_shop_04_upgrade_active_next_day (test_p2_rules.Shop.test_shop_04_upgrade_active_next_day)
+Cấp đã mua có hiệu lực từ Ngày kế: Ngày 2 oxy tối đa 45 s = 2700 tick, active_upgrades {oxygen:1}.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 332, in test_shop_04_upgrade_active_next_day
+    rows = run_day(w, sc, inp=inp, days=2, ticks=30)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 2
+
+
+======================================================================
+FAIL: test_shop_05_auto_close_after_600_ticks (test_p2_rules.Shop.test_shop_05_auto_close_after_600_ticks)
+Shop tự đóng sau 600 tick hoạt động: shop_end reason time.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 341, in test_shop_05_auto_close_after_600_ticks
+    rows = run_day(w, DAY_SC, ticks=700, every=700)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
+                       [--snapshot-every SNAPSHOT_EVERY]
+lỗi: unrecognized arguments: --days 1
+
+
+======================================================================
+FAIL: test_bep_01_cook_started_consumes_reserved_stock (test_rules_quan.Bep.test_bep_01_cook_started_consumes_reserved_stock)
+interact cạnh bếp idle: lấy đơn reserved, tiêu nguyên liệu giữ, `cook_started`, bếp cooking đủ cook_s × 60.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 122, in test_bep_01_cook_started_consumes_reserved_stock
+    rows = run(w, sc, inp=frames({"tick": 0, "interact": True}), ticks=1)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
+    return run_mode(w, "quan", block, **kw)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
+
+
+======================================================================
+FAIL: test_het_01_patience_runs_out (test_rules_quan.HetGio.test_het_01_patience_runs_out)
+Khách waiting hết kiên nhẫn khi ca còn giờ: `customer_left` reason patience, uy tín + left_reputation_delta,
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 238, in test_het_01_patience_runs_out
+    rows = run(w, sc, ticks=6)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
+    return run_mode(w, "quan", block, **kw)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
+
+
+======================================================================
+FAIL: test_het_02_reputation_clamped_at_min (test_rules_quan.HetGio.test_het_02_reputation_clamped_at_min)
+Uy tín không xuống dưới reputation_min.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 254, in test_het_02_reputation_clamped_at_min
+    rows = run(w, sc, ticks=3)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
+    return run_mode(w, "quan", block, **kw)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
+
+
+======================================================================
+FAIL: test_het_03_closing_waiting_customer_leaves_without_penalty (test_rules_quan.HetGio.test_het_03_closing_waiting_customer_leaves_without_penalty)
+Hết ca: khách còn chờ rời với reason closing, không trừ uy tín; rồi `quan_end`.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 262, in test_het_03_closing_waiting_customer_leaves_without_penalty
+    rows = run(w, sc, ticks=10)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
+    return run_mode(w, "quan", block, **kw)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
+
+
+======================================================================
+FAIL: test_khach_01_first_customer_on_schedule_reserves_recipe (test_rules_quan.Khach.test_khach_01_first_customer_on_schedule_reserves_recipe)
+Tick first_customer_tick: `customer_arrived` ở T1; khách giữ đúng công thức; chưa có khách trước đó.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 70, in test_khach_01_first_customer_on_schedule_reserves_recipe
+    rows = run(w, {"stock": Kitchen({"ca_loc": 1}).stock}, ticks=first)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
+    return run_mode(w, "quan", block, **kw)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
+
+
+======================================================================
+FAIL: test_khach_02_no_dish_when_stock_insufficient (test_rules_quan.Khach.test_khach_02_no_dish_when_stock_insufficient)
+Có bàn trống mà không món nào đủ nguyên liệu: `no_dish` {}, không có khách.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 86, in test_khach_02_no_dish_when_stock_insufficient
+    rows = run(w, {"stock": Kitchen({"bong_sung": 1}).stock}, ticks=first)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
+    return run_mode(w, "quan", block, **kw)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
+
+
+======================================================================
+FAIL: test_khach_03_no_free_table_skips_turn (test_rules_quan.Khach.test_khach_03_no_free_table_skips_turn)
+Không còn bàn trống thì bỏ lượt: không `customer_arrived`, không `no_dish`.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 100, in test_khach_03_no_free_table_skips_turn
+    rows = run(w, sc, ticks=first)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
+    return run_mode(w, "quan", block, **kw)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
+
+
+======================================================================
+FAIL: test_khach_04_random_customers_false_disables_arrivals (test_rules_quan.Khach.test_khach_04_random_customers_false_disables_arrivals)
+random_customers:false tắt khách tự sinh.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 108, in test_khach_04_random_customers_false_disables_arrivals
+    rows = run(w, {"stock": Kitchen({"ca_loc": 1}).stock, "random_customers": False}, ticks=first + 5)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
+    return run_mode(w, "quan", block, **kw)
+  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
+    assert code == 0, f"headless thoát mã {code}: {err}"
+           ^^^^^^^^^
+AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
+
+
+----------------------------------------------------------------------
+Ran 179 tests in 38.120s
+
+FAILED (failures=23)

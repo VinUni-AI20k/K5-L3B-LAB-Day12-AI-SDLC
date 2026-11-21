@@ -1,0 +1,22 @@
+# Ma trận truy vết Phase 4 (phần QA / UI)
+
+Trạng thái commit được kiểm: nhánh `huydn8816` (HEAD `1febf62` + thay đổi chưa commit ghi trong bảng). `main` mới nhất gồm phase 3 một phần.
+Mã AC do nhóm tự đặt. Chỉ ghi kết quả đã chạy thật; ô nào chưa làm thì ghi "chưa".
+
+| AC | Cách kiểm chứng | Bằng chứng | Kết quả |
+|---|---|---|---|
+| AC-P4-01 Công thức bench.json (avg, 1% low, frames, measured_s) | `tests/test_p4_bench.py::Compute` (4 test) | `docs/proof/phase-4/test_p4_bench_verbose.txt` | Đạt |
+| AC-P4-02 Lỗi tham số / thiếu trình duyệt không treo | `test_p4_bench.py::Cli` (3 test) | như trên | Đạt |
+| AC-P4-03 Benchmark có render chạy thật, 5 trường | `chonoi/bench.py` chạy Chrome headless 30 s, seed 42 | `docs/proof/phase-4/bench.json`, `bench-lan2.json` | Đạt một phần: chạy được, 2 lần cho avg 59–60 FPS, 1% low 24 và 59 FPS (lần 1 có khung chậm). Chưa đạt mốc 1% low ≥ 30 ổn định. Chưa khai `bench_cmd` trong contract (việc Integrator) |
+| AC-P4-04 Ba cảnh báo có chữ + biểu tượng | Chụp Chrome 1280×720 với snapshot có Cá Sấu gần, oxy < 25%, khách sắp giận | `docs/proof/phase-4/` và `shots` ghi trong báo cáo | Đạt (kiểm bằng ảnh) |
+| AC-P4-05 Chế độ tương phản cao (phím C, `?contrast`) | Chụp cảnh gather và quán ở chế độ bật | ảnh trong báo cáo | Đạt (kiểm bằng ảnh). Chưa chơi thử thật |
+| AC-P4-06 Regression P1–P3 còn hiệu lực | `unittest discover` toàn bộ | `docs/proof/phase-4/regression.txt`: 179 test, 23 FAIL | **Chưa đạt**: 23 test đỏ, gồm Shop 5, `day` 4, pause 2, Cá Sấu 1, hiệu năng 1 (tính năng chưa có trên main), `quan` 10 (chưa đọc kho cá thể v1.2) |
+| AC-P4-07 Clone sạch chạy bằng tối đa 3 lệnh | Chưa làm | — | **Chưa** |
+| AC-P4-08 Soak 10 Ngày (`soak_cmd`) | Chưa làm (việc giảng viên và `day`) | — | **Chưa** |
+| AC-P4-09 Phụ đề SFX, leaderboard | Chưa làm (không thuộc vai QA/UI của bản này) | — | **Chưa** |
+
+## Đánh giá ngắn
+- Đạt: bench chạy thật và tạo đúng cấu trúc JSON, công thức có test, ba cảnh báo và tương phản cao có bằng chứng ảnh, test gather xanh.
+- Chưa đạt: regression P1–P3 (23 đỏ, lý do ghi trong bảng), clone sạch, soak, `bench_cmd`/`soak_cmd` trong contract.
+- Điều cần làm tiếp: (1) `quan` đọc kho cá thể v1.2 để 10 test quán xanh; (2) `day`, Shop, pause để 13 test còn lại xanh; (3) Integrator khai `bench_cmd`, `soak_cmd` và đổi `contract_version` 1.3; (4) kiểm clone sạch trên macOS hoặc Linux và ghi 3 lệnh vào README.
+- Giới hạn bằng chứng: benchmark đo trên Windows với Chrome, không phải macOS/Linux như đề yêu cầu; ảnh UI dựng từ snapshot giả, không phải mô phỏng thật.
