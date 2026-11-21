@@ -4,11 +4,12 @@
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
-| Trương Đặng Minh Khuê | mKhaiTruong | `qa`, `docs/contracts` | Integrator (gắn tag) · QA lead | Khánh (`sim/quan`) |
-| Phong | trinhtuanphong123 | `sim/gather` | Scrum/Release | Khuê (`qa`) |
-| Khánh | qockhah253 | `sim/quan` | PO (giữ `docs/clarify.md`) | Phong (`sim/gather`) |
+| Trương Đặng Minh Khuê | mKhaiTruong | `docs/contracts`, `scenario.py` (mã 2), `qa` (test, proof, verification) | Integrator (gắn tag) · QA lead | Khánh (`sim/quan`) |
+| Phong | trinhtuanphong123 | `sim/gather` (lát 1 + 2), `README.md` | Scrum/Release | Khuê (`qa`) |
+| Khánh | qockhah253 | `sim/quan` (lát 3 + 4) | PO (giữ `docs/clarify.md`) | Phong (`sim/gather`) |
 
-> `client/ui` chưa có người phụ trách riêng (nhóm 3 người): ai xong lát `sim/*` trước thì nhận, ghi lại ở `docs/standup.md`.
+> Chia theo **file** để không ai sửa chung một file: lát 1–2 cùng `chonoi/sim/gather.py` → Phong; lát 3–4 cùng `chonoi/sim/quan.py` → Khánh.
+> `client/ui`: P1 dùng tạm `chonoi.live` (tự hiện trường có trong snapshot); Phong chơi thử HUD sau khi xong `gather`. Khuê xong contracts thì hỗ trợ Khánh lát 4 (`paid`/closing). Chi tiết: [`docs/plan/phase-1.md`](docs/plan/phase-1.md).
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 
