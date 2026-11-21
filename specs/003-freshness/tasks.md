@@ -36,7 +36,7 @@
 
 ## Phase 4 — day — TV6 (agent khung)
 - [x] T330 [US4] [sim/day] (TV6) Bàn giao `gather_end → quan` cùng tick, không hao thêm, quán chạy từ bước sau — `chonoi/runner.py` / `chonoi/sim/day.py`
-- [ ] T331 [US4] [sim/day] (TV6) Id tăng xuyên Ngày; Ngày đầu giữ id mẫu `gather.hold`, Ngày kế cấp id mới theo thứ tự mảng (kind/fresh ban đầu); Shop `stock` cá thể không hao
+- [x] T331 [US4] [sim/day] (TV6) Id tăng xuyên Ngày; Ngày đầu giữ id mẫu `gather.hold`, Ngày kế cấp id mới theo thứ tự mảng (kind/fresh ban đầu); Shop `stock` cá thể không hao
 - [ ] T332 [P] [US4] [qa] (TV5) Test AC-P3-19…21 (smoke day nhiều Ngày, pause/Shop không hao)
 
 ## Phase 5 — HUD — TV6 (Cursor), chỉ `chonoi/web/`

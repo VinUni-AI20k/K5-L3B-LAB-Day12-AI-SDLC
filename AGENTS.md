@@ -20,6 +20,7 @@
   - `scenario.py`: khối `day {money,earned,reputation,upgrades,day_plan}`, `gather.monsters[]`, `fish[].age_ticks`; cấm `quan.stock`/`quan.reputation` khi chạy day.
   - `live.py`: `--mode day`, `set_input` nhận `pause`/`shop_done`/`buy`, `meta` theo pha + `menu`, `day_plan`, `shop`, `upgrades`; snapshot thêm `paused`.
   - Mới: `chonoi/sim/day.py` (DaySim), `chonoi/sim/shop.py` (ShopSim). Gọi GatherSim/QuanSim qua giao diện hiện có; ngữ cảnh Ngày tạm truyền bằng bản sao tuning (cấp oxy/Máu, lọc menu theo kế hoạch, spawns theo `from_day`) tới khi có T246/T230.
+- **v1.2 khung (TV6)**: quan.stock/reserved → TV3 `_validate_quan` (không còn `apply_items_v12` view đếm). gather.hold cá thể → `_validate_gather` + TV1 `validate_individuals`. `Session(..., contract_version=)` + `write_inventory(version=)` (TV1); `DaySim` T330/T331 bàn giao / id Ngày kế / Shop không hao. Test khung: `tests/test_freshness_frame.py`. Gap: headless/live chưa truyền `contract_version` vào `load_scenario`; runner chưa truyền vào `DaySim`.
 - **File khung đã sửa cho v1.1 (TV3, TICKET-02 Phase 2 — T230)**, lý do: `KINDS_P1` chặn `ca_keo`/`keo_neo` có trong menu v1.1:
   - `inventory.py`: thêm `menu_kinds(menu)` — dải nguyên liệu suy ra từ công thức menu (v1.0 = 4 loại, v1.1 = 6 loại), thay hard-code.
   - `scenario.py`: `gather.hold`, `quan.stock`, `customers[].reserved` kiểm theo `menu_kinds(tuning["menu"])` (v1.0 giữ nguyên hành vi).

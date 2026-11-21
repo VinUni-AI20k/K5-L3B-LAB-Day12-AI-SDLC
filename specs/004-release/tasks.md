@@ -40,7 +40,7 @@
 
 ## Phase 6 — Mở rộng (sau lõi, nếu còn giờ) — nhóm 6 cần ≥ 2 mục cả lab
 - [ ] T460 [P] [ext] (tự nhận) `leaderboard` trong `extensions`: store top 10; `--export-leaderboard`; headless `day --leaderboard --player-name` ghi 1 mục khi `reason:"days_complete"` đủ 5 Ngày; thiếu cặp cờ / sai mode → mã 2; soak không ghi — test + README
-- [ ] T461 [P] [ext] (TV6/UI) Phụ đề SFX: hiện khi có SFX; chơi thử tắt tiếng — `chonoi/web/` + bằng chứng
+- [x] T461 [P] [ext] (TV6/UI) Phụ đề SFX: hiện khi có SFX; chơi thử tắt tiếng — `chonoi/web/` + bằng chứng
 - [ ] T462 [P] [ext] (TV2/TV4) Hoàn thiện mở rộng P2/P3 còn dở (`burn`, `snake`, …) + khai `extensions` + test
 
 ## Demo sau 3:00 (không chặn tag)

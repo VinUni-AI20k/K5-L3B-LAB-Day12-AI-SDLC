@@ -154,7 +154,7 @@ Chi tiết task: [`specs/004-release/tasks.md`](specs/004-release/tasks.md) · P
 - [x] T433, T440: clarify #46 + ai-usage-log P4; retro cuối (rà hành động P2, shortlog, 1 lỗi AI).
 - [x] T441 (riêng TV6): `docs/members/thanhhale288.md`.
 - [ ] T470: dẫn demo (&lt;5 phút) hoặc video **sau 3:00** — chưa tới giờ.
-- [ ] (sau lõi) T461: phụ đề SFX nếu còn giờ.
+- [x] T461: SFX + phụ đề SFX (`?demo=sfx`, M tắt âm, N tắt phụ đề).
 
 ### Mọi người
 - [ ] T441: `docs/members/<handle>.md` ≤ 200 từ + dẫn commit.

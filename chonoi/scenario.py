@@ -16,7 +16,8 @@ import math
 
 from .errors import BadInput
 from .ids import id_key
-from .inventory import menu_kinds, validate_items
+from .inventory import (FRESH_SCALE, KINDS_P1, fresh_to_units, menu_kinds, uses_individuals,
+                        validate_individuals, validate_items)
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks", "monsters"}  # monsters: v1.1
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
@@ -50,8 +51,12 @@ def _check_ids(name, arr):
         seen.add(e["id"])
 
 
-def load_scenario(path, mode: str, tuning: dict) -> dict:
-    """gather/quan: trả dict của khối đó. day (v1.1): trả {"day":…, "gather":…, "quan":…} (khối vắng = {})."""
+def load_scenario(path, mode: str, tuning: dict, version=None) -> dict:
+    """gather/quan: trả dict của khối đó. day (v1.1): trả {"day":…, "gather":…, "quan":…} (khối vắng = {}).
+
+    `version` giữ để tương thích gọi cũ; quan v1.2 do TV3 `_validate_quan` (stock/reserved cá thể,
+    tự cấp reserved). gather.hold cá thể: `_validate_gather` gọi TV1 `validate_individuals`.
+    """
     if path is None:
         return {"day": {}, "gather": {}, "quan": {}} if mode == "day" else {}
     try:
@@ -60,15 +65,15 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
     if mode == "day":
-        return _load_day(data, tuning)
+        return _load_day(data, tuning, version)
     if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
         raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
     if set(data) - {mode}:
         raise BadInput(f"khối sai mode: chạy --mode {mode} chỉ nhận khối '{mode}'")
-    return _validate_block(mode, data.get(mode, {}), tuning)
+    return _validate_block(mode, data.get(mode, {}), tuning, version)
 
 
-def _validate_block(mode, block, tuning):
+def _validate_block(mode, block, tuning, version=None):
     if not isinstance(block, dict):
         raise BadInput(f"khối {mode} phải là object")
     allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
@@ -80,6 +85,8 @@ def _validate_block(mode, block, tuning):
         t = block["time_left_ticks"]
         if isinstance(t, bool) or not isinstance(t, int) or not (1 <= t <= dur):
             raise BadInput(f"time_left_ticks phải là số nguyên trong [1, {dur}]")
+    # quan: TV3 `_validate_quan` là nguồn sự thật cho stock/reserved v1.2 (không qua view đếm).
+    # gather: `_validate_gather` nhận hold kind hoặc mảng cá thể.
     if mode == "gather":
         _validate_gather(block, tuning)
     else:
@@ -87,7 +94,7 @@ def _validate_block(mode, block, tuning):
     return block
 
 
-def _load_day(data, tuning):
+def _load_day(data, tuning, version=None):
     """Scenario `day` (đề §4.3): khối day dựng trạng thái xuyên Ngày; gather/quan là mẫu khởi tạo mỗi Ngày."""
     if not isinstance(data, dict) or not set(data) <= {"day", "gather", "quan"}:
         raise BadInput("scenario day chỉ được có khối 'day', 'gather', 'quan'")
@@ -97,9 +104,24 @@ def _load_day(data, tuning):
         if bad:
             raise BadInput(f"chạy day cấm quan.{', quan.'.join(bad)} (dùng gather.hold / day.reputation)")
     out = {"day": _validate_day(data.get("day", {}), tuning),
-           "gather": _validate_block("gather", data.get("gather", {}), tuning),
-           "quan": _validate_block("quan", q, tuning)}
+           "gather": _validate_block("gather", data.get("gather", {}), tuning, version),
+           "quan": _validate_block("quan", q, tuning, version)}
     return out
+
+
+# --- helpers v1.2 (ủy quyền TV1; không nhân bản kiểm quan — TV3 `_validate_quan`) ---------------
+
+UNITS_PER_POINT = FRESH_SCALE  # alias ADR-0001; nguồn chuẩn là inventory.FRESH_SCALE
+
+
+def is_v12(version) -> bool:
+    """True khi contract_version ≥ 1.2 (ủy quyền TV1 `uses_individuals`)."""
+    return uses_individuals(version)
+
+
+def fresh_units(fresh) -> int:
+    """Đổi điểm tươi → đơn vị nguyên (ủy quyền TV1 `fresh_to_units`)."""
+    return fresh_to_units(fresh)
 
 
 def _validate_day(b, tuning):
@@ -185,7 +207,12 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in menu_kinds(tuning["menu"]) for k in h):
+        if not isinstance(h, list):
+            raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
+        if h and isinstance(h[0], dict):
+            # v1.2: mảng cá thể — schema TV1; sức chứa theo số phần tử (TV2 sim dùng cùng luật)
+            validate_individuals(h, kinds=menu_kinds(tuning["menu"]))
+        elif any(k not in menu_kinds(tuning["menu"]) for k in h):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
