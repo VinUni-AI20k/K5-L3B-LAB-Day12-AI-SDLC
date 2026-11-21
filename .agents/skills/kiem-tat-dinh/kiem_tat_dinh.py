@@ -66,6 +66,7 @@ def scenarios(w, seed, ticks):
         "gather-inputs": ["--mode", "gather", *base, "--inputs", inputs, "--inventory-out", "{kho}"],
         "quan-kho-mau": ["--mode", "quan", *base, "--inventory", SAMPLE_INV],
         "quan-khong-kho": ["--mode", "quan", *base],
+        "day-2-ngay": ["--mode", "day", "--seed", str(seed), "--days", "2", "--ticks", "50000"],
     }
 
 
@@ -106,7 +107,7 @@ def main():
         distinct = {v for v in quan_by_seed.values() if v is not None}
         if len(quan_by_seed) > 1 and len(distinct) == 1:
             lines.append("CẢNH BÁO | quan-kho-mau giống nhau ở mọi seed (bình thường khi chưa có lát 3)")
-        total = len(opt.seeds) * 4
+        total = len(opt.seeds) * 5
         lines.append(f"\n{total - fails}/{total} cặp giống từng byte · seeds {opt.seeds} · {opt.ticks} tick")
         report = "\n".join(lines)
         print(report)

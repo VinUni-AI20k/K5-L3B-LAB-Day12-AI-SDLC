@@ -17,6 +17,9 @@
 | 10 | 21/11 … | (P2) 8 đàn đầu ca chọn thế nào? TICKET-02 chỉ ghi "Đầu ca 8 đàn ở 8 điểm khác nhau" và hướng "theo seed". | Giả định: lặp 8 lần đúng luật "Sinh cá" (trọng số loài chuẩn hóa trên loài còn điểm, điểm cách mọi đàn > 1 m nên 8 điểm khác nhau), hướng đều trong [0, 360), luồng RNG `fish_spawn`. Cài ở `GatherSim._spawn_school()`. | Integrator (nglngnguyen-gh) |
 | 11 | 21/11 … | (P2) Khóa `recoil_dist` là quãng lùi mỗi bước hay tổng? | Giả định: tổng trong `recoil_ticks` = 2.0 m (mỗi bước 2/60 m, đúng TICKET-02 mục 1.2). | Integrator (nglngnguyen-gh) |
 | 12 | 21/11 … | (P2) Ngưỡng độ sâu để quái phát hiện / chạm ("d ≥ 10" với Cá Sấu, "d < 8" với Rắn) lấy từ khóa nào? | Giả định: cận dưới `depths` của loài, không thêm khóa riêng. | Integrator (nglngnguyen-gh) |
+| 13 | 21/11 … | (P2) Nút `attack`/`photo` khi chưa bật mở rộng: mã 2 hay bỏ qua? | Giả định: **bỏ qua** (TICKET-02 mục 4.2 "mở rộng chưa bật thì bỏ qua"); nút lạ như `jump` vẫn mã 2. Đã sửa 2 test v1.0 theo luật này. | Integrator (nglngnguyen-gh) |
+| 14 | 21/11 … | (P2) RNG trong `--mode day`: mọi Ngày dùng chung một chuỗi hay tách? | Giả định: mỗi Ngày `Streams("<seed>:day<n>")`, gather và quán của Ngày đó dùng chung bộ luồng (tên luồng riêng). Cùng seed → giống từng byte; Ngày khác nhau có cá/khách khác nhau. | Integrator (nglngnguyen-gh) |
+| 15 | 21/11 … | (P2) `scenario.gather` / `scenario.quan` trong `day` áp cho Ngày 1 hay mọi Ngày? | Giả định: **mọi Ngày** (TICKET-02 mục 4.3 "làm mẫu khởi tạo mỗi Ngày"). Tick đổi pha luôn có một snapshot pha mới với `phase_tick: 0`. | Integrator (nglngnguyen-gh) |
 
 ## Giả định nhóm đã chốt (không cần hỏi, có căn cứ trong PRD)
 
