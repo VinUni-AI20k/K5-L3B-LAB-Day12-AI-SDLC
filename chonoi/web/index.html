@@ -86,6 +86,86 @@ const KIND_COLOR = { ca_loc: "#7c9a52", ca_linh: "#d6e6f2", ca_keo: "#d9a066", b
 const KIND_NAME = { ca_loc: "cá lóc", ca_linh: "cá linh", ca_keo: "cá kèo", bong_dien_dien: "điên điển", bong_sung: "bông súng", keo_neo: "kèo nèo" };
 const kc = (k) => KIND_COLOR[k] || "#bbbbbb";
 
+// ----- đồ họa theo loại (vector — nhóm vẽ). Cá vẽ quanh gốc, đầu hướng +x; caller tự translate/rotate -----
+const KINDS_ORDER = ["ca_loc", "ca_linh", "ca_keo", "bong_dien_dien", "bong_sung", "keo_neo"];
+const OXY_LOW_FRAC = 0.25, BASKET_NEAR_FRAC = 0.75; // ngưỡng chỉ để vẽ HUD, không phải luật
+
+function drawCaLoc(s) { // cá lóc: thân dài sẫm olive, mõm nhọn, vằn sọc
+  ctx.fillStyle = "#4f633d";
+  ctx.beginPath();
+  ctx.moveTo(1.15 * s, 0);
+  ctx.quadraticCurveTo(0.6 * s, -0.32 * s, -0.55 * s, -0.24 * s);
+  ctx.quadraticCurveTo(-0.9 * s, -0.14 * s, -0.9 * s, 0);
+  ctx.quadraticCurveTo(-0.9 * s, 0.14 * s, -0.55 * s, 0.24 * s);
+  ctx.quadraticCurveTo(0.6 * s, 0.32 * s, 1.15 * s, 0);
+  ctx.fill();
+  ctx.beginPath(); ctx.moveTo(0.45 * s, -0.2 * s); ctx.lineTo(0, -0.52 * s); ctx.lineTo(-0.5 * s, -0.26 * s); ctx.fill(); // vây lưng
+  ctx.beginPath(); ctx.moveTo(-0.75 * s, 0); ctx.lineTo(-1.4 * s, -0.3 * s); ctx.lineTo(-1.22 * s, 0); ctx.lineTo(-1.4 * s, 0.3 * s); ctx.fill(); // đuôi
+  ctx.fillStyle = "rgba(24,32,16,.75)"; // vằn sọc
+  for (let i = -0.4; i <= 0.5; i += 0.45) { ctx.beginPath(); ctx.ellipse(i * s, 0, 0.06 * s, 0.2 * s, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.fillStyle = "rgba(214,230,242,.3)"; // bụng sáng
+  ctx.beginPath(); ctx.ellipse(0.15 * s, 0.14 * s, 0.5 * s, 0.09 * s, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#10161c"; // mắt
+  ctx.beginPath(); ctx.arc(0.82 * s, -0.07 * s, 0.07 * s, 0, Math.PI * 2); ctx.fill();
+}
+function drawCaLinh(s) { // cá linh: tròn nhỏ bạc, đuôi chẻ, mắt to
+  ctx.fillStyle = kc("ca_linh");
+  ctx.beginPath(); ctx.ellipse(0.1 * s, 0, 0.55 * s, 0.34 * s, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#8fa8b8"; // lưng sẫm
+  ctx.beginPath(); ctx.ellipse(0, -0.12 * s, 0.45 * s, 0.15 * s, 0, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(-0.3 * s, 0); ctx.lineTo(-0.85 * s, -0.28 * s); ctx.lineTo(-0.62 * s, 0); ctx.lineTo(-0.85 * s, 0.28 * s); ctx.fill(); // đuôi chẻ
+  ctx.fillStyle = "rgba(255,255,255,.85)"; // bóng sáng
+  ctx.beginPath(); ctx.arc(0.22 * s, -0.1 * s, 0.07 * s, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = "#22303a"; // mắt
+  ctx.beginPath(); ctx.arc(0.45 * s, -0.02 * s, 0.09 * s, 0, Math.PI * 2); ctx.fill();
+}
+function drawFishKind(kind, s) {
+  if (kind === "ca_loc") drawCaLoc(s);
+  else if (kind === "ca_linh") drawCaLinh(s);
+  else { // kind lạ: ellipse + đuôi như starter
+    ctx.fillStyle = kc(kind);
+    ctx.beginPath(); ctx.ellipse(0, 0, 0.9 * s, 0.45 * s, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(-0.8 * s, 0); ctx.lineTo(-1.4 * s, -0.4 * s); ctx.lineTo(-1.4 * s, 0.4 * s); ctx.fill();
+  }
+}
+function drawBongDienDien(s) { // chùm 3 cầu vàng trên cuống xanh
+  ctx.strokeStyle = "#5d8a4a"; ctx.lineWidth = 0.1 * s;
+  ctx.beginPath(); ctx.moveTo(0, 0.45 * s); ctx.lineTo(0, 0.02 * s); ctx.stroke();
+  ctx.fillStyle = kc("bong_dien_dien");
+  [[-0.34, -0.16, 0.26], [0.06, -0.38, 0.3], [0.38, -0.1, 0.24]].forEach(([x, y, r]) => { ctx.beginPath(); ctx.arc(x * s, y * s, r * s, 0, Math.PI * 2); ctx.fill(); });
+  ctx.fillStyle = "rgba(140,100,10,.55)"; // hạt trên cầu hoa
+  [[-0.34, -0.16], [0.06, -0.38], [0.38, -0.1]].forEach(([x, y]) => {
+    for (let a = 0; a < 6; a++) { ctx.beginPath(); ctx.arc((x + Math.cos(a * 1.05) * 0.12) * s, (y + Math.sin(a * 1.05) * 0.12) * s, 0.035 * s, 0, Math.PI * 2); ctx.fill(); }
+  });
+}
+function drawBongSung(s) { // bông súng: 6 cánh hồng xòe + nhụy + lá nổi
+  ctx.fillStyle = "#3f6e44"; // lá
+  ctx.beginPath(); ctx.ellipse(0.45 * s, 0.4 * s, 0.42 * s, 0.13 * s, 0.25, 0, Math.PI * 2); ctx.fill();
+  for (let i = 0; i < 6; i++) {
+    ctx.save(); ctx.rotate((i / 6) * Math.PI * 2);
+    ctx.fillStyle = kc("bong_sung");
+    ctx.beginPath(); ctx.ellipse(0, -0.26 * s, 0.12 * s, 0.3 * s, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.fillStyle = "#f7e8a0"; // nhụy
+  ctx.beginPath(); ctx.arc(0, 0, 0.14 * s, 0, Math.PI * 2); ctx.fill();
+}
+function drawNodeKind(kind, s, x, y) { // hoa quanh điểm neo (x, y) trên mặt nước
+  ctx.save(); ctx.translate(x, y);
+  if (kind === "bong_dien_dien") drawBongDienDien(s);
+  else if (kind === "bong_sung") drawBongSung(s);
+  else { ctx.fillStyle = kc(kind); ctx.beginPath(); ctx.ellipse(0, -0.1 * s, 0.9 * s, 0.4 * s, 0, 0, Math.PI * 2); ctx.fill(); }
+  ctx.restore();
+}
+function drawMiniIcon(kind, x, y, sz) { // hình thu nhỏ theo loại, dùng cho giỏ / kho
+  ctx.save(); ctx.translate(x, y);
+  const u = (kind === "bong_dien_dien" || kind === "bong_sung") ? sz / 1.5 : sz / 3.2;
+  ctx.scale(u, u);
+  if (kind === "bong_dien_dien" || kind === "bong_sung") drawNodeKind(kind, 1, 0, 0);
+  else drawFishKind(kind, 1);
+  ctx.restore();
+}
+
 function fit() {
   const dpr = window.devicePixelRatio || 1;
   const w = innerWidth, h = innerHeight;
@@ -105,6 +185,12 @@ function bar(x, y, w, h, frac, color, label) {
   ctx.fillStyle = color; ctx.fillRect(x, y, w * Math.max(0, Math.min(1, frac)), h);
   ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
   if (label) text(label, x + w / 2, y + h - 3, { size: 11, align: "center" });
+}
+function panel(x, y, w, h, fill = "rgba(8,16,24,.55)") { // nền HUD mờ, bo góc nếu trình duyệt hỗ trợ
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(x, y, w, h, 8); else ctx.rect(x, y, w, h);
+  ctx.fillStyle = fill; ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,.18)"; ctx.lineWidth = 1; ctx.stroke();
 }
 function fmtTime(ticks) {
   const s = Math.ceil(ticks / 60);
@@ -157,19 +243,17 @@ function drawGather(w, h) {
   (snap.nodes || []).forEach((n) => {
     const ready = n.ready !== false;
     ctx.globalAlpha = ready ? 1 : 0.35;
-    ctx.fillStyle = kc(n.kind); ctx.beginPath(); ctx.ellipse(sx(n.pos[0]), sy(n.pos[1]) - 0.1 * s, 0.9 * s, 0.4 * s, 0, 0, Math.PI * 2); ctx.fill();
+    drawNodeKind(n.kind, s, sx(n.pos[0]), sy(n.pos[1]));
     ctx.globalAlpha = 1;
-    text(n.id, sx(n.pos[0]), sy(n.pos[1]) - 0.7 * s, { size: 10, align: "center", color: "#234" });
+    text(n.id, sx(n.pos[0]), sy(n.pos[1]) - 0.95 * s, { size: 10, align: "center", color: "#234" });
     if (!ready && n.regrow_ticks) text(Math.ceil(n.regrow_ticks / 60) + "s", sx(n.pos[0]), sy(n.pos[1]) + 1.1 * s, { size: 10, align: "center", color: "#fff" });
   });
   // đàn cá
   (snap.fish || []).forEach((f) => {
     ctx.save(); ctx.translate(sx(f.pos[0]), sy(f.pos[1])); ctx.rotate(((f.heading_deg || 0) * Math.PI) / 180);
-    ctx.fillStyle = kc(f.kind);
-    ctx.beginPath(); ctx.ellipse(0, 0, 0.9 * s, 0.45 * s, 0, 0, Math.PI * 2); ctx.fill();
-    ctx.beginPath(); ctx.moveTo(-0.8 * s, 0); ctx.lineTo(-1.4 * s, -0.4 * s); ctx.lineTo(-1.4 * s, 0.4 * s); ctx.fill();
+    drawFishKind(f.kind, s);
     ctx.restore();
-    text(f.id, sx(f.pos[0]), sy(f.pos[1]) - 0.7 * s, { size: 10, align: "center", color: "rgba(255,255,255,.8)" });
+    text(f.id, sx(f.pos[0]), sy(f.pos[1]) - 0.8 * s, { size: 10, align: "center", color: "rgba(255,255,255,.8)" });
   });
   // người chơi
   const p = snap.player;
@@ -184,26 +268,45 @@ function drawGather(w, h) {
       ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * 0.9 * s, py + Math.sin(a) * 0.9 * s); ctx.stroke();
     }
   }
-  // HUD trên
-  text("⏱ " + fmtTime(snap.time_left_ticks), 14, 28, { size: 20 });
+  // HUD trên: panel đồng nhất (giờ, oxy, máu, giỏ)
+  panel(8, 8, Math.min(648, w - 16), 54);
+  text("⏱ " + fmtTime(snap.time_left_ticks), 20, 34, { size: 18 });
+  if (p && p.pos) text(`x ${p.pos[0].toFixed(1)}  d ${p.pos[1].toFixed(1)}`, 20, 52, { size: 11, color: "#9fb3c0" });
   if (p && p.oxygen_ticks !== undefined && p.oxygen_max_ticks) {
-    const low = p.oxygen_ticks < p.oxygen_max_ticks * 0.25;
-    bar(110, 12, 220, 18, p.oxygen_ticks / p.oxygen_max_ticks, low ? "#ef5350" : "#4fc3f7", "Oxy " + Math.ceil(p.oxygen_ticks / 60) + "s");
+    const low = p.oxygen_ticks < p.oxygen_max_ticks * OXY_LOW_FRAC;
+    if (low) ctx.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(snap.tick / 12)); // nhịp đỏ khi sắp ngạt
+    bar(104, 13, 180, 16, p.oxygen_ticks / p.oxygen_max_ticks, low ? "#ef5350" : "#4fc3f7", "O₂ " + Math.ceil(p.oxygen_ticks / 60) + "s");
+    ctx.globalAlpha = 1;
   }
   if (p && p.hp !== undefined && p.hp_max) {
     let hs = "";
     for (let i = 0; i < p.hp_max; i++) hs += i < p.hp ? "♥" : "♡";
-    text(hs, 345, 29, { size: 22, color: "#ff6b81" });
+    text(hs, 296, 28, { size: 18, color: "#ff6b81" });
   }
-  if (p && p.pos) text(`x ${p.pos[0].toFixed(1)}  d ${p.pos[1].toFixed(1)}`, 14, 52, { size: 12, color: "#9fb3c0" });
-  if (p && p.catch_cd_ticks > 0) text("hồi chiêu bắt " + (p.catch_cd_ticks / 60).toFixed(1) + "s", 150, 52, { size: 12, color: "#9fb3c0" });
-  // giỏ (khoang) dưới
+  if (p && p.catch_cd_ticks > 0) text("hồi chiêu bắt " + (p.catch_cd_ticks / 60).toFixed(1) + "s", 360, 26, { size: 11, color: "#9fb3c0" });
+  if (snap.hold && snap.hold_capacity) {
+    const cnt = snap.hold_count !== undefined ? snap.hold_count : snap.hold.length, cap = snap.hold_capacity;
+    const full = cnt >= cap, near = !full && cnt >= cap * BASKET_NEAR_FRAC;
+    if (full) ctx.globalAlpha = 0.6 + 0.4 * Math.abs(Math.sin(snap.tick / 8)); // giỏ đầy: nhấp nháy
+    bar(104, 34, 180, 16, cnt / cap, full ? "#ef5350" : near ? "#ffb74d" : "#66bb6a", "Giỏ " + cnt + "/" + cap);
+    ctx.globalAlpha = 1;
+    const names = {};
+    snap.hold.forEach((k) => (names[k] = (names[k] || 0) + 1));
+    let ix = 296;
+    KINDS_ORDER.filter((k) => names[k]).forEach((k) => {
+      drawMiniIcon(k, ix + 9, 42, 18);
+      text("×" + names[k], ix + 21, 46, { size: 12, color: "#e8eef2" });
+      ix += 56;
+    });
+    if (full) text("Giỏ đầy!", ix + 6, 46, { size: 12, color: "#ef5350" });
+  }
+  // giỏ (khoang) dưới — mỗi ô vẽ icon theo loại đồ
   if (snap.hold && snap.hold_capacity) {
     const cap = snap.hold_capacity, sz = Math.min(30, (w - 260) / cap - 4), y0 = h - bottom + 8;
     for (let i = 0; i < cap; i++) {
       const x0 = 14 + i * (sz + 4);
       ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(x0, y0, sz, sz);
-      if (snap.hold[i]) { ctx.fillStyle = kc(snap.hold[i]); ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6); }
+      if (snap.hold[i]) drawMiniIcon(snap.hold[i], x0 + sz / 2, y0 + sz / 2 + 1, sz - 8);
     }
     const names = {}; snap.hold.forEach((k) => (names[k] = (names[k] || 0) + 1));
     text("Giỏ " + snap.hold.length + "/" + cap + "  " + Object.keys(names).map((k) => (KIND_NAME[k] || k) + "×" + names[k]).join(", "), 14, y0 + sz + 16, { size: 12, color: "#cfd8dc" });
