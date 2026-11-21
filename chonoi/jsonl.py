@@ -13,7 +13,7 @@ def _clean(v, digits=3):
     if isinstance(v, dict):
         return {k: _clean(x, FRESH_DIGITS if k == "fresh" else 3) for k, x in v.items()}
     if isinstance(v, (list, tuple)):
-        return [_clean(x) for x in v]
+        return [_clean(x, key) for x in v]
     return v
 
 
