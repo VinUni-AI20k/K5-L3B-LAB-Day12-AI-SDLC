@@ -58,11 +58,72 @@ class QuanScenarioRules(unittest.TestCase):
         self.assertIsNotNone(scenario_err({"reputation": 5.5}))
         self.assertIsNotNone(scenario_err({"reputation": -1}))
 
-    def test_stove_dish_must_be_in_menu(self):
-        self.assertIsNone(scenario_err({"stoves": [{"id": "B1", "dish": "goi_bong_sung", "cook_ticks_left": 30}]}))
-        self.assertIsNotNone(scenario_err({"stoves": [{"id": "B1", "dish": "pho_bo"}]}))
-        # sai kiểu phải bị từ chối bằng BadInput (mã 2), không được văng TypeError
-        self.assertIsNotNone(scenario_err({"stoves": [{"id": "B1", "dish": ["goi_bong_sung"]}]}))
+    # --- PRD-0 mục D: payload món, đơn assigned/unfulfillable, khách eating, giữ chỗ khác công thức ---
+    @staticmethod
+    def payload(order_id="K1", dish_id="goi_bong_sung", price=40):
+        return {"order_id": order_id, "dish_id": dish_id, "base_price": price}
+
+    @staticmethod
+    def customer(status="assigned", **extra):
+        return {"id": "K1", "table_id": "T1", "dish_id": "goi_bong_sung", "order_status": status, **extra}
+
+    def test_valid_assigned_order_on_stove_or_in_hand(self):
+        pl = self.payload()
+        stove = {"id": "B1", "state": "cooking", "dish": pl, "cook_ticks_left": 30}
+        self.assertIsNone(scenario_err({"stoves": [stove], "customers": [self.customer(reserved={})]}))
+        self.assertIsNone(scenario_err({"hand": pl, "customers": [self.customer(reserved={})]}))
+        self.assertIsNone(scenario_err({"hand": None, "stoves": [{"id": "B1", "dish": None}]}))
+
+    def test_dish_payload_must_have_exact_shape(self):
+        for bad in ("goi_bong_sung", ["goi_bong_sung"], {"order_id": "K1"}, {**self.payload(), "extra": 1},
+                    self.payload(dish_id="pho_bo"), self.payload(order_id=""), self.payload(price=-1),
+                    self.payload(price=True)):
+            err = scenario_err({"hand": bad, "customers": [self.customer(reserved={})]})
+            self.assertIsInstance(err, BadInput, bad)  # BadInput (mã 2), không văng TypeError
+
+    def test_payload_must_match_a_customer_and_their_dish(self):
+        self.assertIn("không phải khách", str(scenario_err({"hand": self.payload("K9"),
+                                                             "customers": [self.customer(reserved={})]})))
+        self.assertIn("không khớp đơn", str(scenario_err({"hand": self.payload(dish_id="ca_loc_nuong_trui"),
+                                                           "customers": [self.customer(reserved={})]})))
+
+    def test_stove_and_hand_cannot_hold_the_same_order(self):
+        pl = self.payload()
+        err = scenario_err({"hand": pl, "stoves": [{"id": "B1", "dish": pl}], "customers": [self.customer(reserved={})]})
+        self.assertIn("cùng giữ đơn", str(err))
+
+    def test_assigned_needs_exactly_one_dish_and_empty_reservation(self):
+        self.assertIn("đúng một món", str(scenario_err({"customers": [self.customer(reserved={})]})))
+        pl = self.payload()
+        err = scenario_err({"hand": pl, "stock": {"bong_sung": 2},
+                            "customers": [self.customer(reserved={"bong_sung": 2})]})
+        self.assertIn("phần giữ rỗng", str(err))
+
+    def test_unfulfillable_has_no_dish_and_no_reservation(self):
+        self.assertIsNone(scenario_err({"customers": [self.customer("unfulfillable", reserved={})]}))
+        self.assertIsNotNone(scenario_err({"stock": {"bong_sung": 2},
+                                           "customers": [self.customer("unfulfillable", reserved={"bong_sung": 2})]}))
+        self.assertIsNotNone(scenario_err({"hand": self.payload(),
+                                           "customers": [self.customer("unfulfillable", reserved={})]}))
+
+    def test_reserved_must_equal_recipe(self):
+        ok = self.customer("reserved", reserved={"bong_sung": 2})
+        self.assertIsNone(scenario_err({"stock": {"bong_sung": 2}, "customers": [ok]}))
+        bad = self.customer("reserved", reserved={"bong_sung": 1})
+        self.assertIn("khác công thức", str(scenario_err({"stock": {"bong_sung": 2}, "customers": [bad]})))
+
+    def test_order_status_must_be_known(self):
+        self.assertIsNotNone(scenario_err({"customers": [self.customer("cooking", reserved={})]}))
+
+    def test_eating_customer_must_be_served_with_timer_price_and_tip(self):
+        eating = self.customer("served", state="eating", eat_ticks_left=100, base_price=40, tip=8)
+        self.assertIsNone(scenario_err({"customers": [eating]}))
+        for bad in (dict(eating, order_status="reserved"), dict(eating, eat_ticks_left=0),
+                    {k: v for k, v in eating.items() if k != "tip"},
+                    {k: v for k, v in eating.items() if k != "base_price"}):
+            self.assertIsNotNone(scenario_err({"customers": [bad]}), bad)
+
+    def test_stove_counters_must_not_be_negative(self):
         self.assertIsNotNone(scenario_err({"stoves": [{"id": "B1", "cook_ticks_left": -1}]}))
 
 
