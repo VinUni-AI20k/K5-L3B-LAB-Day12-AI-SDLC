@@ -33,4 +33,5 @@
 
 | Phase | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|
-| 1 | Codex | Soạn kế hoạch, ma trận kiểm chứng và lệnh lưu bằng chứng cho hai mode | Chưa đo | Lệnh thử đầu tiên trên Windows ghi UTF-8 nhưng tiến trình test đọc stderr theo mã trang hệ thống. Bật UTF-8 cho tiến trình test rồi chạy lại. Log cuối có 41 test OK, hai mode cho JSONL lặp lại giống từng byte. [Bằng chứng](verification/phase-1.md) |
+| 1 | Codex | Bản nháp kế hoạch, TEAM, clarify, ma trận kiểm chứng và lệnh lưu bằng chứng | Chưa đo | Sửa cả file của người khác (dòng TEAM của 4 bạn, ma trận và bằng chứng của QA, standup). Tôi bỏ các phần đó khỏi nhánh và chuyển bản ma trận, bằng chứng cho QA. Trên Windows, lệnh đầu đọc stderr sai mã trang, phải bật UTF-8 cho tiến trình test. |
+| 1 | Claude Code (Claude Opus 5.5) | Đối chiếu PRD-0 với contract, chốt clarify, AC-P1-xx trong plan, AGENTS.md, 2 skill, README, CREDITS | Chưa đo | Không đọc được PRD-0 trên lab board (mở theo giờ, cần đăng nhập) nên tôi dán PRD vào. AI phát hiện `events.md` và `customer.md` lệch tên trường so với PRD-0 mục D/E; tôi chốt theo PRD. |
