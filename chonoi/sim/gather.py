@@ -132,6 +132,11 @@ class GatherSim:
                     events.append(("choke", {"hp": self.hp, "pos": list(self.pos)}))
             else:
                 self.zero_oxy_ticks = 0
+        if self.hp <= 0:
+            self.hold.clear()
+            events.append(("faint", {"pos": list(self.pos)}))
+            self._finish("fainted", events)
+            return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
