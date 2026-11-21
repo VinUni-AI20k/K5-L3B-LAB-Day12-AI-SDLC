@@ -5,7 +5,7 @@
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
 | Cao Duy Minh | `workcaominh-gif` | `sim/gather` | Integrator (gắn tag) | `sim/quan` |
-| Duyet | `<handle-duyet>` | `sim/quan` | PO (hỏi giảng viên, `docs/clarify.md`) | `sim/gather` |
+| Duyet | `theduythg` | `sim/quan` | PO (hỏi giảng viên, `docs/clarify.md`) | `sim/gather` |
 | Nhat Minh | `<handle-nhatminh>` | `client/ui` + `qa` | QA lead / Release | `sim/quan` |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
