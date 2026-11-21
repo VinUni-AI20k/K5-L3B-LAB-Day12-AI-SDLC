@@ -22,6 +22,8 @@ Các tính năng của phase sau chưa nằm trong khung này.
 
 import math
 
+from copy import deepcopy
+
 from ..ids import sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
@@ -34,11 +36,12 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids):
+    def __init__(self, tuning, scenario, streams, ids, *, day=1):
         t = tuning["gather"]
         self.t = t
         self.rng = streams
         self.ids = ids
+        self.day = day
         p = scenario.get("player", {})
         self.pos = [float(c) for c in p.get("pos", t["start_pos"])]
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
@@ -60,13 +63,20 @@ class GatherSim:
         if "fish" in scenario:
             src_fish = scenario["fish"]
         elif scenario.get("random_fish", True):
-            src_fish = t["fish_initial"]
+            count = t["fish_initial"]
+            src_fish = self._initial_fish(count) if isinstance(count, int) else count
         else:
             src_fish = []
         # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-        for coll in (self.nodes, self.fish):
+                      "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)} for f in src_fish]
+        monster_spawns = t.get("monsters", {}).get("spawns", ())
+        self.monsters = [
+            {"target_idx": 1, "state": "patrol", "state_ticks_left": 0, "recoil_dir": None,
+             **{k: deepcopy(value) for k, value in monster.items() if k != "from_day"}}
+            for monster in scenario.get("monsters", [m for m in monster_spawns if m["from_day"] <= day])
+        ]
+        for coll in (self.nodes, self.fish, self.monsters):
             for e in coll:
                 ids.reserve(e["id"])
         self.money = 0
@@ -74,6 +84,21 @@ class GatherSim:
         self.reputation = tuning["quan"]["reputation_initial"]
         self.done = False
         self.reason = None
+
+    def _initial_fish(self, count):
+        rng = self.rng.get("fish_spawn")
+        spots = {kind: [(x, d) for x in self.t["fish_spawn_x"] for d in depths]
+                 for kind, depths in sorted(self.t["fish_spawn_depths"].items())}
+        fish = []
+        for _ in range(count):
+            kinds = [kind for kind, positions in spots.items() if positions]
+            kind = rng.choices(kinds, weights=[self.t["fish_weights"][k] for k in kinds])[0]
+            pos = rng.choice(spots[kind])
+            fish.append({"id": self.ids.new("F"), "kind": kind, "pos": pos, "heading_deg": rng.uniform(0, 360)})
+            for positions in spots.values():
+                if pos in positions:
+                    positions.remove(pos)
+        return fish
 
     # --- giao diện cho runner -------------------------------------------------
     def inventory_items(self) -> dict:
@@ -91,8 +116,8 @@ class GatherSim:
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
-                     for f in sort_by_id(self.fish)],
+            "fish": sort_by_id(self.fish),
+            "monsters": sort_by_id(self.monsters),
         }
 
     # --- một bước ---------------------------------------------------------------

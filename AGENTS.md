@@ -5,6 +5,7 @@
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
+- Smoke vòng ngày: `python3 -m chonoi.headless --mode day --days 1 --seed 17 --ticks 22200 --out day.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 - Kiểm chứng P1-04 và lưu bằng chứng: `python3 tools/verify_p1_04.py` (cần `python3` trên PATH).
 
@@ -15,6 +16,7 @@
 - Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.
 - P1-04: helper `chonoi/sim/kitchen.py`; `dish.order_id == customer.id`. Timer khách và cleanup hiện chạy qua helper; khi tích hợp P1-03 không giảm timer hoặc phát `customer_left` hai lần. Xem `docs/notes/P1-04.md`.
+- P2-03: `DaySim` gọi Gather/Quán và giữ dữ liệu xuyên ngày. `Session` xử lý pause trước mọi timer và phát snapshot `phase_tick: 0` khi đổi pha. Gather nhận `day` và tuning đã áp cấp oxy/Máu. Quán nhận menu lọc theo ngày và kho vật lý.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).
