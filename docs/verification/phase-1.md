@@ -2,14 +2,14 @@
 
 | AC | Cách kiểm chứng | Bằng chứng (link `docs/proof/phase-1/...`) | Kết quả (đạt / chưa đạt — ghi trung thực) |
 |---|---|---|---|
-| **AC-P1-01** (Cấu hình repo & team) | Chạy `tools/check_team.py`, kiểm tra `TEAM.md` (5 người) và `game.contract.json` (`team_size: 5`) | [check-team.txt](file:///Users/minhanmacs/Documents/K5-L3B-LAB-Day12-AI-SDLC-Nhom456/docs/proof/phase-1/check-team.txt) | **Đạt** |
-| **AC-P1-02** (Gather Lát 1: Oxy, ngạt, ngất xỉu) | `tests/test_gather_p1.py::GatherSlice1OxygenAndFaint` (kiểm tra ngạt ở đúng $t+59$, mất máu, ngất xóa sạch giỏ LIFO) | [test-suite.txt](file:///Users/minhanmacs/Documents/K5-L3B-LAB-Day12-AI-SDLC-Nhom456/docs/proof/phase-1/test-suite.txt) | **Đạt** |
-| **AC-P1-03** (Gather Lát 2: Hái rau & bắt cá) | `tests/test_gather_p1.py::GatherSlice2NodesAndFish` (kiểm tra thứ tự ưu tiên khoảng cách, cooldown, giỏ đầy không thể nhặt thêm) | [test-suite.txt](file:///Users/minhanmacs/Documents/K5-L3B-LAB-Day12-AI-SDLC-Nhom456/docs/proof/phase-1/test-suite.txt) | **Đạt** |
-| **AC-P1-04** (Bàn giao file kho) | `tests/test_integration_gather_quan.py` (cập bến ghi đúng file kho; ngất ghi kho rỗng `{items: {}}`) | [test-suite.txt](file:///Users/minhanmacs/Documents/K5-L3B-LAB-Day12-AI-SDLC-Nhom456/docs/proof/phase-1/test-suite.txt) | **Đạt** |
-| **AC-P1-05** (Quan Lát 3: Khách, giữ chỗ, kiên nhẫn) | `tests/test_quan_lat3.py` (khách theo lịch `phase_tick`, giữ chỗ nguyên liệu theo công thức, giảm kiên nhẫn, bỏ đi) | [test-suite.txt](file:///Users/minhanmacs/Documents/K5-L3B-LAB-Day12-AI-SDLC-Nhom456/docs/proof/phase-1/test-suite.txt) | **Đạt** |
-| **AC-P1-06** (Quan Lát 4: Bếp, phục vụ, tiền & uy tín) | `tests/test_quan_kitchen.py`, `tests/test_quan_service.py` (nấu, bưng, phục vụ, nhận tiền, tính boa & kẹp uy tín) | [test-suite.txt](file:///Users/minhanmacs/Documents/K5-L3B-LAB-Day12-AI-SDLC-Nhom456/docs/proof/phase-1/test-suite.txt) | **Đạt** |
-| **AC-P1-07** (Tính tất định từng byte - Determinism) | `python3 .agents/skills/verify-contract/verify.py` & `tests/test_qa_regression_p1.py` (chạy 2 lần cùng seed so sánh SHA-256 JSONL & Inventory) | [determinism.txt](file:///Users/minhanmacs/Documents/K5-L3B-LAB-Day12-AI-SDLC-Nhom456/docs/proof/phase-1/determinism.txt) | **Đạt** |
-| **AC-P1-08** (Ràng buộc mã thoát & kịch bản) | `tests/test_qa_regression_p1.py::test_ac_p1_08_*`, `test_smoke_p1.py` (mã 0 khi hoàn thành, mã 2 khi mâu thuẫn/sai trường) | [test-suite.txt](file:///Users/minhanmacs/Documents/K5-L3B-LAB-Day12-AI-SDLC-Nhom456/docs/proof/phase-1/test-suite.txt) | **Đạt** |
+| **AC-P1-01** (Cấu hình repo & team) | Chạy `tools/check_team.py`, kiểm tra `TEAM.md` (5 người) và `game.contract.json` (`team_size: 5`) | [check-team.txt](../proof/phase-1/check-team.txt) | **Đạt** |
+| **AC-P1-02** (Gather Lát 1: Oxy, ngạt, ngất xỉu) | `tests/test_gather_p1.py::GatherSlice1OxygenAndFaint` (kiểm tra ngạt ở đúng $t+59$, mất máu, ngất xóa sạch giỏ LIFO) | [test-suite.txt](../proof/phase-1/test-suite.txt) | **Đạt** |
+| **AC-P1-03** (Gather Lát 2: Hái rau & bắt cá) | `tests/test_gather_p1.py::GatherSlice2NodesAndFish` (kiểm tra thứ tự ưu tiên khoảng cách, cooldown, giỏ đầy không thể nhặt thêm) | [test-suite.txt](../proof/phase-1/test-suite.txt) | **Đạt** |
+| **AC-P1-04** (Bàn giao file kho) | `tests/test_integration_gather_quan.py` (cập bến ghi đúng file kho; ngất ghi kho rỗng `{items: {}}`) | [test-suite.txt](../proof/phase-1/test-suite.txt) | **Đạt** |
+| **AC-P1-05** (Quan Lát 3: Khách, giữ chỗ, kiên nhẫn) | `tests/test_quan_lat3.py` (khách theo lịch `phase_tick`, giữ chỗ nguyên liệu theo công thức, giảm kiên nhẫn, bỏ đi) | [test-suite.txt](../proof/phase-1/test-suite.txt) | **Đạt** |
+| **AC-P1-06** (Quan Lát 4: Bếp, phục vụ, tiền & uy tín) | `tests/test_quan_kitchen.py`, `tests/test_quan_service.py` (nấu, bưng, phục vụ, nhận tiền, tính boa & kẹp uy tín) | [test-suite.txt](../proof/phase-1/test-suite.txt) | **Đạt** |
+| **AC-P1-07** (Tính tất định từng byte - Determinism) | `python3 .agents/skills/verify-contract/verify.py` & `tests/test_qa_regression_p1.py` (chạy 2 lần cùng seed so sánh SHA-256 JSONL & Inventory) | [determinism.txt](../proof/phase-1/determinism.txt) | **Đạt** |
+| **AC-P1-08** (Ràng buộc mã thoát & kịch bản) | `tests/test_qa_regression_p1.py::test_ac_p1_08_*`, `test_smoke_p1.py` (mã 0 khi hoàn thành, mã 2 khi mâu thuẫn/sai trường) | [test-suite.txt](../proof/phase-1/test-suite.txt) | **Đạt** |
 
 ## Đánh giá ngắn
 - **Yêu cầu nào đạt / chưa đạt:**

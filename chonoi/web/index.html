@@ -438,7 +438,10 @@ function drawQuan(w, h) {
     ctx.fill();
     ctx.strokeStyle = "#fff"; ctx.lineWidth = 1.5; ctx.stroke();
     text("🍳 " + st.id, stX, stY + 4, { size: 12, align: "center", color: "#fff", weight: "bold" });
-    if (st.dish) text(st.dish, stX, stY - 1.0 * s, { size: 11, align: "center", color: "#fff", weight: "bold" });
+    if (st.dish) {
+      const dishLabel = typeof st.dish === "string" ? st.dish : (st.dish.dish_id || "món");
+      text(dishLabel, stX, stY - 1.0 * s, { size: 11, align: "center", color: "#fff", weight: "bold" });
+    }
     if (st.state === "cooking" && st.cook_ticks_left !== undefined) {
       text("🔥 " + Math.ceil(st.cook_ticks_left / 60) + "s", stX, stY + 1.35 * s, { size: 11, align: "center", color: "#ffe082", weight: "bold" });
     }

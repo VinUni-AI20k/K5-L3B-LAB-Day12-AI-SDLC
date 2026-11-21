@@ -1,56 +1,44 @@
-# Day 12 — AI SDLC: Quán Ăn Chợ Nổi
+# Day 12 — AI SDLC: Quán Ăn Chợ Nổi (Nhóm 456)
 
-> **Làm theo nhóm 4–6 người** · Dùng AI để xây game 2D qua **4 phase** trong **3 giờ**: Út Sen lặn bắt cá, hái rau trên mặt nước rồi tối mở quán phục vụ khách.
-> **Yêu cầu từng phase mở đúng mốc giờ tại lab board:** **[Chợ Nổi Lab](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg)** (cần đăng nhập claude.ai; có trợ giảng AI cho từng phase).
+> **Nhóm 456 (5 thành viên)** · Game 2D quản lý quán ăn miền Tây Nam Bộ: Út Sen buổi sáng lặn bắt cá, hái rau trên sông Chín Khúc (`gather`) và buổi tối nấu ăn phục vụ khách trên nhà bè (`quan`).
+> **Danh sách thành viên & quy ước nhóm:** [`TEAM.md`](TEAM.md) · **Hợp đồng tích hợp:** [`docs/contracts/README.md`](docs/contracts/README.md) · **Chi tiết kỹ thuật starter:** [`docs/STARTER.md`](docs/STARTER.md)
 
-## Bắt buộc (chỉ có thế)
+## Chạy nhanh từ clone sạch (≤ 3 lệnh, macOS / Linux)
 
-Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair, có hay không CI…). Cái bắt buộc:
-
-1. **Một repo chung:** trưởng nhóm **fork** repo này, đặt tên `K5-L3B-LAB-Day12-AI-SDLC-<ten-nhom>`, thêm mọi thành viên làm collaborator (*Settings → Collaborators*, quyền Write) và để repo **public** (giảng viên xem được, không cần mời).
-2. **Cả nhóm cùng commit** bằng tài khoản GitHub của mình, mỗi người **≥ 3 commit có nội dung** (làm cặp thì ghi `Co-authored-by:`).
-3. **Điền [`TEAM.md`](TEAM.md):** danh sách thành viên + thỏa thuận làm việc nhóm; sửa `team_size` trong [`game.contract.json`](game.contract.json). Commit của người không có trong `TEAM.md` không được tính.
-4. **Gắn tag** `phase-1` … `phase-4` đúng hạn; chạy được tại từng tag.
-5. **Ghi chép tối thiểu:** `docs/verification/phase-n.md`, `docs/clarify.md`, `docs/ai-usage-log.md`, `docs/retro.md`, `docs/members/<handle>.md`.
-
-## Bắt đầu nhanh
+Không cần cài đặt thư viện ngoài (chỉ dùng Python 3 thư viện chuẩn):
 
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone https://github.com/nlamtung/K5-L3B-LAB-Day12-AI-SDLC-Nhom456.git && cd K5-L3B-LAB-Day12-AI-SDLC-Nhom456
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v    # Chạy toàn bộ bộ test (1 lệnh)
+python3 -m chonoi.live --mode gather                           # Chơi trực tiếp trên trình duyệt (đổi sang --mode quan cho buổi tối)
 ```
 
-Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
+### Chạy nối 2 buổi (Headless / Live) qua file kho
+```bash
+python3 -m chonoi.headless --mode gather --seed 42 --scenario docs/proof/phase-1/integration/dock.json --inputs docs/proof/phase-1/integration/dock-inputs.json --ticks 1 --out gather.jsonl --inventory-out catch.json
+python3 -m chonoi.headless --mode quan --seed 42 --inventory catch.json --ticks 0 --out quan.jsonl
+```
 
-## Tự do sáng tạo
+## Điều khiển & Cách tính điểm
 
-Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
+- **Điều khiển (`chonoi.live`):**
+  - `WASD` hoặc phím mũi tên: Bơi (`gather`) / Đi lại trong quán (`quan`).
+  - `E` (`interact`): Cập bến hoặc hái rau ở mặt nước (`gather`); nấu, bưng món hoặc phục vụ khách (`quan`).
+  - `Space` (`catch`): Bắt đàn cá khi đang lặn dưới nước (`gather`).
+  - `R`: Chơi lại từ đầu.
+- **Cách tính điểm (Test Contract v1.0):**
+  - Công thức ở mọi snapshot và dòng `end`: `score = earned + 100 × floor(reputation)`.
+  - Tiền (`money`, `earned`, `shift_earned`) tính bằng số nguyên (đơn vị nghìn đồng); boa (`tip`) = `floor(base_price × tip_rate)` khi tỷ lệ kiên nhẫn còn lại đạt `tip_min_patience_ratio` (cộng thêm `tip_reputation` vào uy tín). Khách bỏ đi vì hết kiên nhẫn trừ uy tín theo `left_reputation_delta`.
 
-## Lịch 3 giờ
+## Sáng tạo của nhóm
 
-| Mốc | Phase | Hạn tag |
-|---|---|---|
-| 0:00 | Phase 1 (PRD-0) | `phase-1` trước 1:00 |
-| 1:00 | Phase 2 | `phase-2` trước 1:55 |
-| 1:55 | Phase 3 | `phase-3` trước 2:30 |
-| 2:30 | Phase 4 | `phase-4` + Release `v1.0.0` trước 3:00 |
+- **Nâng cấp giao diện Canvas 2D & hiệu ứng hạt (`chonoi/web/index.html`):** Sóng nước động trên mặt sông, bọt khí khi Út Sen lặn, khói bếp bay khi nấu, hiển thị trực quan trạng thái bếp/bàn/kiên nhẫn và bảng kết thúc buổi.
+- **Âm thanh procedural bằng Web Audio API (zero-dependency):** Hiệu ứng âm thanh lặn/nổi (`dive`/`surface`), món chín (`dish_ready`), thu tiền (`paid`) kèm nút bật/tắt âm thanh trên màn hình.
+- **Đảm bảo không ảnh hưởng lõi & headless:** Toàn bộ đồ họa và âm thanh chỉ nằm ở phía client trình duyệt (`chonoi/web/index.html`), **tắt hoàn toàn ở chế độ headless** và không thay đổi tick, RNG, sự kiện hay snapshot.
+  - Bằng chứng lõi vẫn đúng & tất định từng byte: [`docs/proof/phase-1/test-suite.txt`](docs/proof/phase-1/test-suite.txt), [`docs/proof/phase-1/determinism.txt`](docs/proof/phase-1/determinism.txt), [`docs/verification/phase-1.md`](docs/verification/phase-1.md).
 
-Hết giờ mỗi phase thì gắn tag rồi đi tiếp; chỗ chưa xong ghi trung thực trong bằng chứng.
+## Kiểm chứng & Tài liệu nhóm
 
-## Đánh giá (100 điểm)
-
-| Hạng mục | Điểm |
-|---|---|
-| Test tự động ẩn (headless, gồm kiểm tra lại phase trước) | 25 |
-| Làm việc nhóm (một repo chung, chia việc, tích hợp, đổi yêu cầu) | 25 |
-| Kiểm chứng & bằng chứng | 15 |
-| Harness AI (AGENTS.md, skill, nhật ký dùng AI) | 10 |
-| Đánh giá & retro | 10 |
-| Chất lượng sản phẩm (đúng yêu cầu, mở rộng/sáng tạo) | 10 |
-| Demo | 5 |
-
-## Quy định
-
-- Dùng AI thoải mái; **không sao chép repo của nhóm khác**; bằng chứng phải thật.
-- Nhân vật, bối cảnh là bản gốc của lab; asset ngoài chỉ dùng CC0/CC-BY/MIT hoặc tự tạo, ghi nguồn trong `CREDITS.md`. Không commit API key, token, `.env`.
+- Kiểm tra danh sách thành viên: `python3 tools/check_team.py`
+- Kỹ năng kiểm tra tự động của nhóm: `python3 .agents/skills/verify-contract/verify.py` · `python3 .agents/skills/qa-blackbox-check/run_qa.py`
+- Tài liệu: [`docs/verification/phase-1.md`](docs/verification/phase-1.md) · [`docs/clarify.md`](docs/clarify.md) · [`docs/ai-usage-log.md`](docs/ai-usage-log.md) · [`docs/standup.md`](docs/standup.md) · [`docs/retro.md`](docs/retro.md) · [`CREDITS.md`](CREDITS.md)
