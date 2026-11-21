@@ -56,6 +56,12 @@
       text(dname(id), hx + 110, y0 + 40, { size: 18, weight: "600" });
     } else text("(trống)", hx + 66, y0 + 40, { size: 18, color: COLOR.muted });
 
-    text("Esc tạm dừng", w - 14, h - 16, { size: 18, align: "right", color: COLOR.muted });
+    // Cảnh báo khách sắp giận (kiên nhẫn < 25%, TICKET-04): banner đếm số bàn, nhãn từng bàn vẽ trong cảnh.
+    const patMax = (((snap.meta || {}).patience_s) || 60) * 60;
+    const angry = (snap.customers || []).filter((c) => (c.state === "waiting" || c.state === "ordered") &&
+      (c.patience_ticks_left ?? c.patience_ticks ?? patMax) / patMax < 0.25).map((c) => c.table_id).sort();
+    if (angry.length) ui.alert(w / 2, 92, "Khách sắp giận: " + angry.join(", "), COLOR.danger, { size: 22 });
+
+    text("Esc tạm dừng · H tương phản cao", w - 14, h - 16, { size: 18, align: "right", color: COLOR.muted });
   };
 })(window.CN);

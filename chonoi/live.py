@@ -16,6 +16,7 @@ Ngẫu nhiên vẫn đi qua `Streams` (seed); chỉ nhịp chạy theo đồng h
 
 import argparse
 import json
+import math
 import os
 import sys
 import threading
@@ -34,6 +35,8 @@ from .scenario import load_scenario
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 TICK_S = 1.0 / 60.0
 MAX_BODY = 4096
+MAX_BENCH_BODY = 1 << 20   # POST /bench: ~1800 thời gian khung cho 30 s, vượt xa 4 KB của /input
+MAX_BENCH_FRAMES = 100000
 RECENT_EVENTS = 40
 # Nhóm F7: client tách thành nhiều file (js/, mock/, assets/) nên máy chủ phục vụ file tĩnh theo đuôi này.
 STATIC_TYPES = {
@@ -75,6 +78,10 @@ class LiveGame:
         self.inventory_out = inventory_out
         self._lock = threading.Lock()
         self._stop = threading.Event()
+        # Bench có render (TICKET-04): client ?bench=1 gửi thời gian khung về đây; chonoi/bench.py đọc qua
+        # `bench_event`/`bench_result` (cùng tiến trình) hoặc GET /bench. Không ảnh hưởng mô phỏng.
+        self.bench_event = threading.Event()
+        self.bench_result = None
         self._thread = None
         self._reset()
 
@@ -191,6 +198,29 @@ class LiveGame:
         with self._lock:
             self.inputs.set(move, buy=buy, **buttons)
 
+    def set_bench(self, body: dict):
+        frames = body.get("frame_ms")
+        if (not isinstance(frames, list) or not 0 < len(frames) <= MAX_BENCH_FRAMES or
+                not all(isinstance(x, (int, float)) and not isinstance(x, bool) and math.isfinite(x) and x > 0 for x in frames)):
+            raise ValueError("frame_ms phải là mảng số dương, khác rỗng")
+        out = {"frame_ms": [float(x) for x in frames]}
+        for k in ("measured_s", "warmup_s", "first_frame_epoch_ms", "width", "height", "dpr"):
+            v = body.get(k)
+            if v is not None and (not isinstance(v, (int, float)) or isinstance(v, bool) or not math.isfinite(v) or v < 0):
+                raise ValueError(f"{k} phải là số ≥ 0")
+            out[k] = v
+        if not out.get("measured_s"):
+            raise ValueError("measured_s phải > 0")
+        out["frames"] = len(out["frame_ms"])
+        with self._lock:
+            self.bench_result = out
+        self.bench_event.set()
+
+    def bench_json(self) -> bytes:
+        with self._lock:
+            r = self.bench_result
+        return json.dumps({"ready": r is not None, "result": r}, separators=(",", ":")).encode("utf-8")
+
     def restart(self):
         with self._lock:
             self._reset()
@@ -215,6 +245,8 @@ class _Handler(BaseHTTPRequestHandler):
         path = self.path.split("?", 1)[0]
         if path == "/state":
             self._send(200, self.game.state_json())
+        elif path == "/bench":
+            self._send(200, self.game.bench_json())
         elif path in ("/", "/index.html"):
             try:
                 with open(os.path.join(WEB_DIR, "index.html"), "rb") as f:
@@ -244,7 +276,7 @@ class _Handler(BaseHTTPRequestHandler):
             n = int(self.headers.get("Content-Length") or 0)
         except ValueError:
             n = -1
-        if n < 0 or n > MAX_BODY:
+        if n < 0 or n > (MAX_BENCH_BODY if path == "/bench" else MAX_BODY):
             self._send(400, b'{"error":"body sai"}')
             return
         raw = self.rfile.read(n) if n else b""
@@ -256,6 +288,11 @@ class _Handler(BaseHTTPRequestHandler):
                 self.game.set_input(body)
             elif path == "/restart":
                 self.game.restart()
+            elif path == "/bench":
+                body = json.loads(raw.decode("utf-8") or "{}")
+                if not isinstance(body, dict):
+                    raise ValueError("body phải là object")
+                self.game.set_bench(body)
             else:
                 self._send(404, b'{"error":"khong co"}')
                 return

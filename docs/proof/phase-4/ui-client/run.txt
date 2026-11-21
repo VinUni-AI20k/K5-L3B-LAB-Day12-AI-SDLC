@@ -1,0 +1,6 @@
+bench screens.mode=play card=None phase=warm
+bench: {"seed": 42, "warmup_s": 3, "measured_s": 30.0, "frames": 1799, "avg_fps": 59.97, "p1_low_fps": 50.65, "first_frame_after_nav_ms": 42.1, "width": 1280, "height": 720, "dpr": 1, "note": "đối chiếu công thức; bench.json chính thức do chonoi/bench.py tính"}
+contrast=0: CN.contrast.on=False
+contrast=1: CN.contrast.on=True
+phím H: False -> True; tải lại không có ?contrast: True
+CONSOLE ERRORS: none

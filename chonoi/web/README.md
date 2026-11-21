@@ -30,7 +30,7 @@ Sửa file JSON trong `mock/` để thử trạng thái khác (vd. `"state": "pa
 
 ## Phím
 
-WASD/mũi tên di chuyển · E tương tác · Space bắt cá · Esc/P tạm dừng (M về menu) · R chơi lại · Shop: 1..n mua, Enter đóng · Q/F cho mở rộng Lao/Sổ tay · `` ` `` nhật ký sự kiện (debug).
+WASD/mũi tên di chuyển · E tương tác · Space bắt cá · Esc/P tạm dừng (M về menu) · **H tương phản cao** (lưu lại; `?contrast=1|0` ghi đè) · R chơi lại · Shop: 1..n mua, Enter đóng · Q/F cho mở rộng Lao/Sổ tay · `` ` `` nhật ký sự kiện (debug).
 
 ## Cấu trúc (mỗi thư mục một chủ)
 
@@ -39,6 +39,7 @@ WASD/mũi tên di chuyển · E tương tác · Space bắt cá · Esc/P tạm d
 | `js/core/draw.js` | Canvas, bảng màu, tên loài/món, chữ, thanh, khung bo góc |
 | `js/core/art.js` | Nét vẽ tự làm: cá theo loài, bông/rau, khăn rằn, quầng sáng; hàm băm cố định thay cho số ngẫu nhiên |
 | `js/core/widgets.js` | Khung, vòng tiến độ, icon nguyên liệu/món, bong bóng, gợi ý phím |
+| `js/core/bench.js` | `/?bench=1[&warmup=3&duration=30]`: bỏ menu/intro, đứng yên, đo thời gian khung, `POST /bench` (TICKET-04) |
 | `js/core/net.js` | `/state`, `/input` (trạng thái phím, `tap` pause/shop_done, `buy`), mock |
 | `js/core/events.js` | Lọc sự kiện mới từ `snap.events` |
 | `js/core/input.js` | Bàn phím → màn hình hoặc phím chơi |

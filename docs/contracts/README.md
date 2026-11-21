@@ -79,6 +79,8 @@ Client không chứa luật; chỉ đọc snapshot và gửi input. Chi tiết �
 | `GET /state` | sim → client | Snapshot hiện tại (mục 6) + `meta` (tuning của pha đang chạy: `gather`/`quan`/`shop`), `menu` (tuning menu), `events` (event mới từ lần đọc trước), `finished`, `reason`, `error` |
 | `POST /input` | client → sim | `{"move":[a,b], "interact":bool, "catch":bool, "pause":bool, "shop_done":bool, "attack":bool, "photo":bool, "buy":"oxygen"}`, mọi trường tùy chọn. Sai kiểu → HTTP 400 |
 | `POST /restart` | client → sim | Dựng lại lượt từ đầu |
+| `POST /bench` | client → sim | Chỉ ở `/?bench=1` (P4): `{frame_ms[] (ms, > 0), frames, measured_s > 0, warmup_s, first_frame_epoch_ms, width, height, dpr}`. Body tối đa 1 MB. Sai kiểu → HTTP 400 |
+| `GET /bench` | sim → bench | `{ready, result}`; `chonoi/bench.py` cũng chờ được `LiveGame.bench_event` trong cùng tiến trình |
 | `GET /<file>` | — | File tĩnh trong `chonoi/web/`, chặn thoát thư mục |
 
 - `/state` của bản chơi có thêm trường **chỉ để hiển thị** (không có trong JSONL): `shift_earned` (pha quán), `days_completed`, `max_days` (mode day). `chonoi.live --mode day --days 1–5`, mặc định 5.

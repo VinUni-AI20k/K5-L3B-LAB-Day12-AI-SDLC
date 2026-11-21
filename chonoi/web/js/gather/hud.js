@@ -28,13 +28,17 @@
       g.addColorStop(0, "rgba(239,83,80,0)"); g.addColorStop(1, `rgba(239,83,80,${a.toFixed(3)})`);
       ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
     }
+    // 3 cảnh báo TICKET-04 (2 cái ở cảnh lặn): chữ + biểu tượng qua ui.alert, viền màn hình chỉ là phụ.
+    let ay = 104;
     if (monsterNear(snap, p)) {
-      ctx.strokeStyle = PURPLE; ctx.globalAlpha = 0.55 + 0.35 * Math.sin(t * 8); ctx.lineWidth = 10;
+      ctx.strokeStyle = PURPLE; ctx.globalAlpha = CN.contrast.on ? 1 : 0.55 + 0.35 * Math.sin(t * 8); ctx.lineWidth = CN.contrast.on ? 14 : 10;
       ctx.strokeRect(5, 5, w - 10, h - 10); ctx.globalAlpha = 1;
-      text("Thủy quái!", w / 2, 100, { size: 28, align: "center", color: PURPLE, weight: "800" });
+      ui.alert(w / 2, ay, "Thủy quái! Tránh xa", CN.contrast.on ? "#bf5af2" : PURPLE, { size: 26 });
+      ay += 52;
     }
-    if (p.oxygen_max_ticks && p.oxygen_ticks === 0 && isUnder(snap, p)) {
-      text("Hết hơi! Lên mặt nước!", w / 2, h / 2 - 80, { size: 30, align: "center", color: COLOR.danger, weight: "800" });
+    if (p.oxygen_max_ticks && isUnder(snap, p)) {
+      if (p.oxygen_ticks === 0) ui.alert(w / 2, h / 2 - 80, "Hết hơi! Lên mặt nước!", COLOR.danger, { size: 30 });
+      else if (lowO2) ui.alert(w / 2, ay, "Sắp hết hơi! Lên thở", COLOR.danger, { size: 24 });
     }
   }
 
@@ -160,6 +164,6 @@
     needList(w, minimap(w, snap), snap);
     hold(w, h, snap);
     returnWarning(w, h, snap);
-    text("Esc tạm dừng", w - 14, h - 16, { size: 18, align: "right", color: COLOR.muted });
+    text("Esc tạm dừng · H tương phản cao", w - 14, h - 16, { size: 18, align: "right", color: COLOR.muted });
   };
 })(window.CN);
