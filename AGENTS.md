@@ -39,3 +39,6 @@
 - Lát 3 (Vũ) và Lát 4 (Hà Anh) cùng file `chonoi/sim/quan.py`: Lát 3: `_load_customer`, `_tick_patience`, `_spawn_customer`. Lát 4: `_tick_stoves`, `_tick_eating`, `_interact`.
 - Pull trước khi sửa `step()`, commit nhỏ, push thường xuyên. Godot (`godot/`) chỉ đọc snapshot, không nhân đôi luật sim.
 - Số liệu thật chỉ từ PRD của phase trên lab board; chưa rõ thì ghi `docs/clarify.md`, không đoán.
+- [chonoi-sim](.agents/skills/chonoi-sim/SKILL.md) — sửa luật Gather hoặc Quán, thứ tự tick, sự kiện và kho.
+- [chonoi-headless](.agents/skills/chonoi-headless/SKILL.md) — kiểm thử Test Contract, tái hiện lỗi và ghi bằng chứng.
+- [chonoi-godot](.agents/skills/chonoi-godot/SKILL.md) — dựng scene 3D third-person, camera, HUD và nối với mô phỏng.
