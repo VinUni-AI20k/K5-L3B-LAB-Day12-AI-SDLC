@@ -6,6 +6,7 @@ from math import hypot
 from pathlib import Path
 
 from helpers import Workdir, events, read_jsonl, run_headless, snapshots, write_json
+from chonoi.inventory import items_to_counts
 
 
 class DayContractTest(unittest.TestCase):
@@ -76,9 +77,9 @@ class DayContractTest(unittest.TestCase):
             (1, "gather", "choke"), (1, "gather", "faint"), (1, "gather", "gather_end"),
             (1, "quan", "phase_start"),
         ])
-        self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": {}})
+        self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": []})
         evening = snapshots(rows)[-1]
-        self.assertEqual((evening["phase"], evening["phase_tick"], evening["stock"]), ("quan", 0, {}))
+        self.assertEqual((evening["phase"], evening["phase_tick"], evening["stock"]), ("quan", 0, []))
 
     def test_shop_purchases_and_failures_apply_to_next_day(self):
         self.short_day["day"] = {"money": 850, "earned": 900, "reputation": 4.1}
@@ -116,7 +117,7 @@ class DayContractTest(unittest.TestCase):
         rows = self.run_game(3, days=2, scenario=self.short_day,
                              frames=[{"tick": 2, "buy": "oxygen", "shop_done": True}])
         self.assertEqual([e["data"]["amount"] for e in events(rows, "paid")], [72])
-        self.assertEqual(snapshots(rows)[2]["stock"], {"ca_loc": 1})
+        self.assertEqual(items_to_counts(snapshots(rows)[2]["stock"]), {"ca_loc": 1})
         self.assertEqual([e["data"]["money"] for e in events(rows, "bought")], [0])
         self.assertEqual((rows[-1]["money"], rows[-1]["earned"], rows[-1]["reputation"]), (0, 200, 3.2))
         self.assertEqual(snapshots(rows)[-1]["player"]["oxygen_max_ticks"], 2700)
@@ -145,7 +146,7 @@ class DayContractTest(unittest.TestCase):
             ("served", 502), ("paid", 1102), ("bought", 1202), ("shop_end", 1202),
         ])
         self.assertEqual(events(rows, "gather_end")[0]["data"]["reason"], "docked")
-        self.assertEqual(snapshots(rows)[-2]["stock"], {})
+        self.assertEqual(snapshots(rows)[-2]["stock"], [])
         self.assertEqual((snapshots(rows)[-1]["day"], snapshots(rows)[-1]["player"]["oxygen_ticks"]), (2, 2700))
         self.assertEqual((rows[-1]["money"], rows[-1]["earned"]), (0, 200))
 
@@ -191,7 +192,7 @@ class DayContractTest(unittest.TestCase):
         self.assertEqual(events(rows, "day_plan")[0]["data"]["ingredients"], {"ca_loc": 1})
         self.assertEqual([row["data"]["dish_id"] for row in events(rows, "customer_arrived")],
                          ["ca_loc_nuong_trui", "ca_loc_nuong_trui"])
-        self.assertEqual(snapshots(rows)[1]["stock"], {"ca_keo": 2, "ca_loc": 2})
+        self.assertEqual(items_to_counts(snapshots(rows)[1]["stock"]), {"ca_keo": 2, "ca_loc": 2})
 
     def test_quan_standalone_can_sell_dish_outside_day_one_plan(self):
         rows = self.run_game(120, mode="quan", scenario={"quan": {"stock": {"ca_keo": 2}}})

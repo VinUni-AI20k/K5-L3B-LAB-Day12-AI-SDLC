@@ -2,6 +2,8 @@
 
 import re
 
+from .errors import BadInput
+
 _TAIL = re.compile(r"^(.*?)(\d+)$")
 
 
@@ -17,7 +19,7 @@ def sort_by_id(items, key=lambda x: x["id"]):
     return sorted(items, key=lambda x: id_key(key(x)))
 
 
-class IdAllocator:
+class IdRegistry:
     """Cấp id theo họ (prefix), nối tiếp hậu tố lớn nhất đã nạp, không cấp lại trong lượt."""
 
     def __init__(self):
@@ -33,3 +35,16 @@ class IdAllocator:
         n = self._next.get(prefix, 1)
         self._next[prefix] = n + 1
         return f"{prefix}{n}"
+
+    def next_item_id(self) -> str:
+        return self.new("I")
+
+    def observe_item_ids(self, items):
+        for item in items:
+            ident = item.get("id") if isinstance(item, dict) else item
+            if not isinstance(ident, str) or not re.fullmatch(r"I[1-9][0-9]*", ident):
+                raise BadInput(f"id nguyên liệu không hợp lệ: {ident!r}")
+            self.reserve(ident)
+
+
+IdAllocator = IdRegistry  # API Phase 1/2 vẫn dùng cùng bộ cấp ID.

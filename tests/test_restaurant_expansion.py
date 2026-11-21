@@ -29,6 +29,13 @@ EXPECTED_MENU = {
 }
 
 
+def individual_items(counts):
+    """P3 v1.2: fixture bàn giao dùng cá thể; kho đếm chỉ còn trong luật bếp cũ."""
+    kinds = [kind for kind in sorted(counts) for _ in range(counts[kind])]
+    return [{"id": f"I{n}", "kind": kind, "fresh": 100.0}
+            for n, kind in enumerate(kinds, 1)]
+
+
 class RestaurantExpansion(unittest.TestCase):
     def setUp(self):
         self.tuning = deepcopy(load_contract()["tuning"])
@@ -62,7 +69,7 @@ class RestaurantExpansion(unittest.TestCase):
         session.sim.pos = list(obj["pos"])
 
     def test_manifest_matches_ticket_restaurant_and_six_recipes(self):
-        self.assertEqual(load_contract()["contract_version"], "1.1")
+        self.assertEqual(load_contract()["contract_version"], "1.2")
         self.assertEqual(self.hz, 60)
         self.assertEqual(self.q["stoves"], [{"id": "B1", "pos": [2, 8]}, {"id": "B2", "pos": [5, 8]}])
         self.assertEqual(self.q["tables"], [{"id": "T1", "pos": [9, 2]}, {"id": "T2", "pos": [13, 2]},
@@ -259,7 +266,7 @@ class RestaurantExpansion(unittest.TestCase):
                 QuanSim(self.tuning, {"customers": cs, "stock": stock}, Streams(1), IdAllocator())
 
     def test_inventory_six_kinds_and_invalid_counts(self):
-        items = {kind: 1 for kind in KINDS_P2}
+        items = individual_items({kind: 1 for kind in KINDS_P2})
         with Workdir() as work:
             path = write_json(work.path("inventory.json"), {"items": items})
             self.assertEqual(read_inventory(path), items)
@@ -282,7 +289,7 @@ class RestaurantDayHooks(unittest.TestCase):
         self.tuning["quan"]["customer_interval_s"] = 1 / 60
         plan = {"day": 3, "dishes": {"ca_keo_nuong": 1}}
         inventory = {"ca_keo": 8, "ca_loc": 5, "bong_sung": 10}
-        q = self.quan(day_plan=plan, inventory=inventory)
+        q = self.quan(day_plan=plan, inventory=individual_items(inventory))
         for _ in range(4):
             q.step(InputState((0, 0), {}, set()))
         self.assertEqual([c["dish_id"] for c in q.customers], ["ca_keo_nuong"] * 4)
@@ -293,13 +300,14 @@ class RestaurantDayHooks(unittest.TestCase):
 
     def test_no_dish_when_only_unplanned_menu_items_have_stock(self):
         self.tuning["quan"]["first_customer_tick"] = 1
-        q = self.quan(day_plan={"dishes": {"lau_mam": 1}}, inventory={"ca_loc": 5})
+        q = self.quan(day_plan={"dishes": {"lau_mam": 1}}, inventory=individual_items({"ca_loc": 5}))
         self.assertEqual(q.step(InputState((0, 0), {}, set())), [("no_dish", {})])
 
     def test_day_fixture_outside_plan_is_rejected(self):
         c = {"id": "C1", "table_id": "T1", "dish_id": "ca_keo_nuong"}
         with self.assertRaises(BadInput):
-            self.quan({"customers": [c]}, day_plan={"dishes": {"goi_bong_sung": 1}}, inventory={"ca_keo": 2})
+            self.quan({"customers": [c]}, day_plan={"dishes": {"goi_bong_sung": 1}},
+                      inventory=individual_items({"ca_keo": 2}))
 
     def test_economy_copies_preserve_totals_across_two_restaurant_shifts(self):
         plan = {"dishes": {"ca_keo_nuong": 1}}
@@ -307,7 +315,7 @@ class RestaurantDayHooks(unittest.TestCase):
         scenario = {"time_left_ticks": 1, "customers": [{"id": "C1", "table_id": "T2",
                     "dish_id": "ca_keo_nuong", "state": "eating", "order_status": "served",
                     "base_price": 70, "tip": 14, "eat_ticks_left": 5}]}
-        q = self.quan(scenario, inventory={}, day_plan=plan, economy=economy)
+        q = self.quan(scenario, inventory=[], day_plan=plan, economy=economy)
         rows = q.step(InputState((0, 0), {}, set()))
         self.assertEqual([name for name, _ in rows], ["paid", "quan_end"])
         self.assertEqual(q.economy_state(), {"money": 284, "earned": 534, "reputation": 5.0})
@@ -315,7 +323,7 @@ class RestaurantDayHooks(unittest.TestCase):
         self.assertEqual(economy, {"money": 200, "earned": 450, "reputation": 4.9})
         exported = q.economy_state()
         # Mimic P2-03 passing totals to the next restaurant; no DayLoop/Shop implementation here.
-        q2 = self.quan(inventory={}, day_plan=plan, economy=exported)
+        q2 = self.quan(inventory=[], day_plan=plan, economy=exported)
         self.assertEqual(q2.economy_state(), exported)
         self.assertEqual(q2.shift_earned, 0)
         exported["money"] = 0
