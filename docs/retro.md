@@ -42,3 +42,9 @@ A gom và nộp (P3-10). C và D tự viết phần của mình; **dòng của N
 - Số liệu: số commit theo người, cách đọc code của nhau, token theo người:
 - Một lần AI sai và cách nhóm phát hiện:
 - Nếu làm lại, đổi gì:
+
+### Nguyễn Đức Nhật (A)
+
+- **Rà hành động Phase 2:** Khi đổi kho ở Phase 3, phần Lặn và bàn giao được tách PR và có bằng chứng kiểm thử. Phần ghi chép cá nhân được bổ sung muộn hơn các PR tính năng.
+- **Điều tốt:** Hai PR giỏ cá thể và bàn giao gộp đúng thứ tự. Lần chạy thử P4-10 kiểm được cá bắt ở Lặn sang Quán, nấu và bán món rồi mua oxy ở Shop. [PR #45](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/45), [PR #46](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/46)
+- **Điều cần sửa:** Codex thử benchmark với `--seconds` theo kế hoạch nội bộ. Lương chạy lệnh đề, thấy `--duration` bị từ chối, rồi bổ sung cờ, 3 giây làm nóng và đo lại trước khi gộp. Lần sau tôi sẽ chạy đúng lệnh chấm như hộp đen trước khi mở PR. [Bản sửa P4-03](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/commit/e2a3b64)
