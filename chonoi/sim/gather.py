@@ -120,7 +120,7 @@ class GatherSim:
             self._harvest(events)
         # 4. bắt cá
         if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+            self._catch(events)
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
@@ -146,6 +146,23 @@ class GatherSim:
         self.hold += [node["kind"]] * amount
         node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
         events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
+
+    def _catch(self, events):
+        if self.catch_cd_ticks > 0 or self._at_surface():
+            return
+        fish = self._nearest(self.fish, self.t["catch_radius"])
+        if fish is None:
+            return  # không có đàn trong tầm: không event, không hồi chiêu
+        y = self.t["fish_yield"][fish["kind"]]
+        free = self.t["hold_capacity"] - len(self.hold)
+        if free < y:
+            # giữ đàn, không đặt hồi chiêu, không thử đàn khác
+            events.append(("hold_full", {"action": "catch", "fish_id": fish["id"], "required": y, "free": free}))
+            return
+        self.hold += [fish["kind"]] * y
+        self.fish.remove(fish)
+        self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": y}))
 
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:
