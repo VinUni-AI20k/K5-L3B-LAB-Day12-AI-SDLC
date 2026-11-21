@@ -1,0 +1,24 @@
+# Kế hoạch Phase 2 (≤ 1 trang)
+
+- **Mục tiêu:** Test Contract v1.1 với số chuẩn (TICKET-02); cá bơi/sinh, Cá Sấu, 2 bếp/4 bàn/6 món, `--mode day` + Shop + pause; regression P1 vẫn xanh; tag `phase-2` trước **1:55**.
+- **Nền đã có (nhánh `contract-v1.1`):** `game.contract.json` v1.1 đủ dữ liệu, `contract.py` kiểm khóa mới, 6 nguyên liệu, 8 đàn đầu ca sinh theo seed, hợp đồng `docs/contracts/README.md` mục 5. Gộp vào `main` **trước** khi các lát bắt đầu.
+- **Ưu tiên số 0:** Lên sửa PR #2 (lát 4 P1) theo review → gộp. Lõi P1 chưa đủ thì test ẩn "kiểm tra lại phase trước" trượt.
+- **Mốc:** p5 gộp `contract-v1.1` · p20 smoke `gather → quan` + standup, lưu `docs/proof/phase-2/integration.*` · p35 smoke `day --days 1` + nhiều Ngày + regression P1 · p45 retro · tag trước 1:55.
+
+## Việc / người / phụ thuộc
+
+| Lát | Người | Tiêu chí chấp nhận | Phụ thuộc |
+|---|---|---|---|
+| 0 | nglngnguyen-gh | **AC-P2-01** `contract_version: "1.1"`, tuning chuẩn, 6 nguyên liệu, 6 món, `day_plan`, `shop` trong manifest; `contract.py` từ chối dữ liệu sai → mã 2 · **AC-P2-02** hợp đồng v1.1 (sự kiện, chuyển pha, inputs) ở `docs/contracts/` | — (nhánh `contract-v1.1`) |
+| 1 | BLong1501 | **AC-P2-10** 8 đàn đầu ca ở 8 điểm khác nhau (đã có `_spawn_school`) · **AC-P2-11** cá bơi 1.5 m/s trong `fish_x` và dải độ sâu của loài, đổi hướng theo seed ở bước bơi 120, 240… (`age_ticks`), phản xạ mép, chạm góc đảo cả hai · **AC-P2-12** sinh tại `phase_tick = 360·k` sau khi cá bơi, trần 12, cách > 1 m, `fish_spawned`, cá mới tham gia từ bước sau · **AC-P2-13** bắt theo vị trí cá **trước** khi bơi; `random_fish:false` tắt bơi + sinh · **AC-P2-14** HUD sáng: Máu, oxy (< 25% đổi màu), thời gian (≤ 30 s đổi màu), độ sâu, giỏ theo loại, đã lấy/cần, hồi bắt, gợi ý hái/cập bến, "Hết hơi!", "Thủy quái!" | Lát 0 |
+| 2 | LyLe10 | **AC-P2-20** Cá Sấu patrol 1.0 m/s giữa 2 waypoint, chase 3.0 m/s khi người chơi d ≥ 10 và ≤ 10 m, về patrol khi > 16 m hoặc d < 10, chặn biên + dải độ sâu · **AC-P2-21** chạm ≤ 1.5 m: −1 Máu, bỏ floor(mang/2) theo LIFO, bất tử 90 tick, tối đa 1 hit/bước (gần nhất, hòa id), `monster_hit` · **AC-P2-22** recoil 60 bước, lùi 2/60 m/bước theo hướng chốt, không hit · **AC-P2-23** Máu 0 do quái → `faint cause:"monster"` → `gather_end fainted`; thứ tự ngạt → hit → hết giờ cùng tick (mục 4.5) · **AC-P2-24** M2 chỉ từ Ngày 3; `gather.monsters[]` trong scenario | Lát 0 |
+| 3 | minhtriet061203 + len2412 | **AC-P2-30** (Lên) 2 bếp B1/B2: mỗi bếp idle lấy đơn reserved cũ nhất khi `interact`, chọn đối tượng gần nhất theo luật v1.0 · **AC-P2-31** (Triết) 4 bàn, khách vào bàn trống id nhỏ nhất, 6 món; quán độc lập dùng cả 6 món · **AC-P2-32** (Triết) trong `day`: lọc menu theo id món trong `day_plan` **trước** khi lọc nguyên liệu khả dụng; khách vẫn gọi tiếp khi đã bán đủ số suất · **AC-P2-33** (Lên) HUD quán: đồng hồ ca, tiền ca, uy tín, món + kiên nhẫn từng bàn (< 25% đổi màu), tiến độ bếp, món đang cầm, kho khả dụng | Lát 0; PR #2 đã gộp |
+| 4 | nglngnguyen-gh (+ người xong sớm) | **AC-P2-40** `--mode day --days N` (1–5): `day_start → day_plan → phase_start(gather)`, bàn giao kho trong bộ nhớ, `phase_start(quan)` cùng tick kể cả ngất, Shop, `shop_end`, `days_completed`, `days_complete` · **AC-P2-41** Shop: `buy` oxygen/hp đúng giá (đủ đúng giá vẫn mua), `bought`/`buy_failed` (`funds`/`max_level`/`unknown`), trừ money giữ earned, tự đóng sau 600 tick, `shop_done` · **AC-P2-42** cấp mua có hiệu lực từ Ngày kế (`upgrades` vs `active_upgrades`), Máu/oxy hồi đầy theo cấp · **AC-P2-43** `pause`/`resumed`: chỉ tăng tick ngoài, mọi timer đứng yên, kể cả trong Shop · **AC-P2-44** scenario `day` (`money ≤ earned`, cấm `quan.stock`/`quan.reputation`) → mã 2 khi sai · **AC-P2-45** menu chính, DayIntro (tự chuyển 4 s), EveningIntro, DayResult, Summary, pause menu trong `chonoi.live` | Lát 0; lát 1–3 chạy được |
+| QA | nglngnguyen-gh | **AC-P2-50** smoke `gather --inventory-out → quan --inventory` (6 nguyên liệu) · **AC-P2-51** regression P1 với số chuẩn (test đổi có ghi lý do) · **AC-P2-52** tất định cả `day` · **AC-P2-53** headless 1 Ngày (≤ 22.200 tick) chạy ≤ 20 s | Lát 1–4 |
+| Mở rộng | (đề xuất) len2412 | **AC-P2-60** `burn` (Cháy món): `burn_s: 20`, `ready_ticks > 1200` → bỏ món, `dish_burnt`, giữ lại đơn hoặc `unfulfillable`; khai `"extensions": ["burn"]`; README mục Mở rộng + test | Lát 3 xong |
+
+## Rủi ro
+- **Lát 4 lớn nhất** và phải sửa khung (`runner.py`, `headless.py`, `inputs.py`) → báo nhóm; ai xong lát sớm vào pair.
+- Lát 1 và lát 2 cùng sửa `gather.py` (cá bơi / quái), lát 3 hai người cùng sửa `quan.py` → nhánh ngắn, gộp thường xuyên, chạy test của người kia trước khi mở PR (bài học P1).
+- Test P1 ghi cứng số liệu v1.0 đã cập nhật trên `contract-v1.1` (lý do ghi trong commit); test mới phải đọc số từ `game.contract.json`.
+- Mở rộng bắt buộc (nhóm 5 người) nhưng chỉ làm khi lõi xanh; nếu không kịp ở P2 thì dời sang P3.

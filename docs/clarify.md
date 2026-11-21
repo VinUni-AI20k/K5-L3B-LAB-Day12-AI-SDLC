@@ -14,6 +14,9 @@
 | 7 | 21/11 … | Thứ tự xử lý khách trong một bước quán (kiên nhẫn / khách mới)? | **Đã có trong PRD-0 mục F (Quán):** 1) đồng hồ, timer, nấu, ăn, giảm kiên nhẫn → 2) bếp → 3) di chuyển + tối đa 1 interact → 4) theo id bàn: ăn xong trả tiền, khách chờ kiên nhẫn 0 rời (còn giờ) hoặc rời `closing` (hết ca, không trừ uy tín), rồi `quan_end` → 5) còn giờ thì khách mới. Giả định cũ (rời ngay ở bước 1) **sai**, đã sửa: phục vụ đúng tick kiên nhẫn về 0 vẫn hợp lệ. | PRD-0 (minhtriet061203 sửa code) |
 | 8 | 21/11 … | Lịch khách tính theo gì khi scenario đặt `time_left_ticks`? | **Đã có trong PRD-0 mục D:** `phase_tick` bắt đầu từ 0, lịch khách tính theo `phase_tick` kể cả khi rút ngắn ca. Khớp code. | PRD-0 |
 | 9 | 21/11 … | Khách đang ăn có giảm kiên nhẫn không? Uy tín cộng số thực có sai số? | Giả định (lát 3): chỉ khách `waiting` giảm kiên nhẫn. Uy tín làm tròn 6 chữ số sau mỗi lần đổi để `floor` không lệch (vd 2.8 + 0.2). | minhtriet061203 (chờ PO) |
+| 10 | 21/11 … | (P2) 8 đàn đầu ca chọn thế nào? TICKET-02 chỉ ghi "Đầu ca 8 đàn ở 8 điểm khác nhau" và hướng "theo seed". | Giả định: lặp 8 lần đúng luật "Sinh cá" (trọng số loài chuẩn hóa trên loài còn điểm, điểm cách mọi đàn > 1 m nên 8 điểm khác nhau), hướng đều trong [0, 360), luồng RNG `fish_spawn`. Cài ở `GatherSim._spawn_school()`. | Integrator (nglngnguyen-gh) |
+| 11 | 21/11 … | (P2) Khóa `recoil_dist` là quãng lùi mỗi bước hay tổng? | Giả định: tổng trong `recoil_ticks` = 2.0 m (mỗi bước 2/60 m, đúng TICKET-02 mục 1.2). | Integrator (nglngnguyen-gh) |
+| 12 | 21/11 … | (P2) Ngưỡng độ sâu để quái phát hiện / chạm ("d ≥ 10" với Cá Sấu, "d < 8" với Rắn) lấy từ khóa nào? | Giả định: cận dưới `depths` của loài, không thêm khóa riêng. | Integrator (nglngnguyen-gh) |
 
 ## Giả định nhóm đã chốt (không cần hỏi, có căn cứ trong PRD)
 
