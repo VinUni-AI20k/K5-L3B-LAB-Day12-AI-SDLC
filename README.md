@@ -23,6 +23,20 @@ python3 -m chonoi.live --mode gather                                # chơi th�
 
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
+## Chạy project Godot
+
+1. Tải [Godot 4.5.1 Standard](https://godotengine.org/download/archive/4.5.1-stable/) cho hệ điều hành của bạn. Project dùng GDScript và renderer Compatibility.
+2. Trong Godot Project Manager, chọn **Import** và mở `godot/project.godot`.
+3. Nhấn **F6** để chạy scene đang mở hoặc **F5** để chạy project. Dùng phím mũi tên để thử di chuyển điểm đánh dấu.
+
+Từ thư mục gốc của repo, dùng lệnh sau để kiểm tra project và tải scene với Godot trên PATH.
+
+```bash
+godot --headless --path godot --quit-after 5
+```
+
+Scene Godot hiện là bản kiểm tra hiển thị và đầu vào. Khi tích hợp gameplay, dùng dữ liệu từ `game.contract.json` và duy trì lệnh `python3 -m chonoi.headless` theo Test Contract để chấm tự động.
+
 ## Tự do sáng tạo
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
