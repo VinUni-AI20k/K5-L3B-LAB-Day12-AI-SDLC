@@ -45,6 +45,8 @@ File kho có duy nhất khóa `items`, ánh xạ bốn ID nguyên liệu hợp l
 
 `gather --inventory-out` ghi kho một lần khi có `gather_end`. `quan --inventory` đọc file này ở tiến trình riêng. Khi cần phát triển Quán độc lập, dùng [kho mẫu](docs/contracts/inventory.sample.json). Xem [kế hoạch chia việc](docs/plan/phase-1.md) và [giao diện tích hợp](docs/plan/phase-1-integration.md).
 
+Phase 2 giữ schema này, thêm hai ID nguyên liệu `ca_keo` và `keo_neo`, và bổ sung chế độ `day` bàn giao kho trong bộ nhớ. Xem [kế hoạch Phase 2](docs/plan/phase-2.md) và [giao diện Test Contract v1.1](docs/plan/phase-2-integration.md).
+
 ## Tự do sáng tạo
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
