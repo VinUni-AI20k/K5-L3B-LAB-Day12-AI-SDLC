@@ -27,4 +27,6 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `implement-slice` (`.agents/skills/implement-slice/SKILL.md`): khi giao agent làm một lát luật — đọc PRD + contracts, test hộp đen trước, chỉ sửa hàm mình sở hữu (bảng chia hàm ở `docs/contracts/README.md`), chạy test, ghi `ai-usage-log`.
+- `verify-phase` (`.agents/skills/verify-phase/`): trước khi gắn tag `phase-n` — `python .agents/skills/verify-phase/verify.py --phase n` chạy test + kiểm tất định + kho gather→quan + TEAM.md, lưu bằng chứng vào `docs/proof/phase-n/`; rồi cập nhật `docs/verification/phase-n.md`.
+- Windows: `headless_cmd` gọi `python3`; nếu test báo `FileNotFoundError` thì thêm `%LOCALAPPDATA%\Microsoft\WindowsApps` vào PATH, không sửa `headless_cmd`.
