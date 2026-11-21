@@ -20,6 +20,9 @@ Dự kiến phát hành thành **1.0.0** cùng tag `phase-4` (D gắn tag và t�
 - Ba cảnh báo có biểu tượng và chữ trong cửa sổ chơi: oxy sắp hết (và hết oxy), Cá Sấu gần, khách sắp giận; tính ở `chonoi/alerts.py` từ snapshot, chỉ có ở `chonoi.live` (trường `alerts`).
 - Chế độ tương phản cao: phím H hoặc `?hc=1`; nền đen, chữ trắng/vàng đậm, viền trắng quanh mọi hình.
 
+### Contract 1.3 (Phase 4, P4-02)
+- `game.contract.json` lên `contract_version` **1.3** và khai hai lệnh ở gốc: `bench_cmd` (`python3 -m chonoi.bench`) và `soak_cmd` (`python3 -m chonoi.soak`). Từ 1.3 thiếu hoặc sai kiểu hai khóa này thì `load_contract` từ chối; bản 1.0 đến 1.2 vẫn nạp được không cần chúng. Hành vi game và kho cá thể (từ 1.2) không đổi.
+
 ### Soak headless (Phase 4, P4-04)
 - `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json` chạy 10 Ngày liền trong một tiến trình bằng chế độ `day` (Ngày 6–10 lặp lại kế hoạch D1–D5) với một bot tất định, ghi `soak.json` (`days`, `days_completed`, `crashes`, `results`, `duration_s`). Không ghi bảng xếp hạng.
 

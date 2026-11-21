@@ -2,12 +2,14 @@
 
 import json
 import os
+import shlex
 
 from .errors import BadInput
 from .freshness import KEYS, PHASES, decay_units_per_tick
 from .inventory import KINDS
 
-SUPPORTED_VERSIONS = ("1.0", "1.1", "1.2")
+SUPPORTED_VERSIONS = ("1.0", "1.1", "1.2", "1.3")
+COMMAND_KEYS = ("bench_cmd", "soak_cmd")  # v1.3: lệnh đo hiệu năng và soak ở gốc contract
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
 FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 
@@ -35,7 +37,25 @@ def load_contract(path=None) -> dict:
     if c.get("contract_version") not in SUPPORTED_VERSIONS:
         raise BadInput(f"contract_version phải thuộc {SUPPORTED_VERSIONS}, đang là {c.get('contract_version')!r}")
     validate_tuning(c.get("tuning"), c["contract_version"])
+    _validate_commands(c)
     return c
+
+
+def _validate_commands(c):
+    """v1.3 bắt buộc `bench_cmd` và `soak_cmd` là chuỗi lệnh tách được bằng shlex; bản cũ cho phép không có."""
+    required = c["contract_version"] >= "1.3"
+    for key in COMMAND_KEYS:
+        if key not in c:
+            if required:
+                raise BadInput(f"contract 1.3 phải có {key} ở gốc")
+            continue
+        v = c[key]
+        if not isinstance(v, str) or not v.strip():
+            raise BadInput(f"{key} phải là chuỗi lệnh không rỗng")
+        try:
+            shlex.split(v)
+        except ValueError as e:
+            raise BadInput(f"{key} không tách được thành lệnh: {e}")
 
 
 def _int_between(name, v, lo, hi):

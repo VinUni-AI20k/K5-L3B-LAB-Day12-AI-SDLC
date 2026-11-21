@@ -94,3 +94,4 @@ Các sự kiện `gather` (từ `dive` đến `gather_end`) khớp code của P1
 - P3-02 (D): thêm kho cá thể (schema, adapter, đọc theo `contract_version`), khối `tuning.freshness` và `chonoi/freshness.py`. Chỉ thêm; `contract_version` chưa đổi nên hành vi v1.1 giữ nguyên.
 - P3-02b (D): đổi khối `tuning.freshness` thành đúng 4 khóa của Ticket-03 (trước đó `fresh_max`, `spoil_below`, `units_per_point`, `decay_per_s`), thêm `dish_price`. Trường `freshness_hud.fresh_max` và `spoil_below` của cửa sổ live giữ nguyên tên.
 - P3-08 (D): bật `contract_version` "1.2" (breaking: kho cá thể). Headless, runner, scenario và cửa sổ live theo schema mới; thêm biến môi trường `CHONOI_CONTRACT` (ghi đè đường dẫn contract, chỉ để test hồi quy chạy bản 1.1). Chi tiết ở `CHANGELOG.md`.
+- P4-02 (D): `contract_version` "1.3": thêm hai khóa gốc `bench_cmd` và `soak_cmd` (chuỗi lệnh, bắt buộc từ 1.3). Schema kho, sự kiện và snapshot không đổi (kho cá thể từ 1.2 trở lên).

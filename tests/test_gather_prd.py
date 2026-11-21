@@ -88,7 +88,7 @@ class GatherPRD(unittest.TestCase):
     def test_invuln_fixture_follows_contract_version(self):
         # Quyết định 4 (docs/plan/phase-2.md): v1.0 từ chối invuln_ticks trước khi ghi file, v1.1 chấp nhận.
         # Nhánh v1.0 với tuning dạng v1.0 được kiểm ở tests/test_p2_monsters.py (load_scenario).
-        v11 = json.loads(Path(ROOT, "game.contract.json").read_text(encoding="utf-8"))["contract_version"] in ("1.1", "1.2")  # invuln_ticks nhận từ v1.1; test chạy headless bản 1.1
+        v11 = json.loads(Path(ROOT, "game.contract.json").read_text(encoding="utf-8"))["contract_version"] != "1.0"  # invuln_ticks nhận từ v1.1; test chạy headless bản 1.1
         with Workdir() as w:
             sc = write_json(w.path("scenario.json"), {"gather": {"player": {"invuln_ticks": 5}}})
             out, inv = Path(w.path("gather.jsonl")), Path(w.path("inventory.json"))

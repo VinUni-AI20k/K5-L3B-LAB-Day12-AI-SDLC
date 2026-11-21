@@ -32,14 +32,19 @@ def _interpreter_runs(name):
         return False
 
 
-def headless_cmd():
-    """Lệnh headless khai trong game.contract.json — test chạy qua đây nên dùng được với MỌI ngôn ngữ.
-    Nếu lệnh bắt đầu bằng python3 hoặc python mà máy không có (Windows thường chỉ có `python`), dùng python đang chạy test."""
+def contract_cmd(key):
+    """Lệnh khai trong game.contract.json (`headless_cmd`, `bench_cmd`, `soak_cmd`): test chạy qua đây nên dùng được với
+    MỌI ngôn ngữ. Nếu lệnh bắt đầu bằng python3 hoặc python mà máy không có (Windows thường chỉ có `python`), dùng python
+    đang chạy test."""
     with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
-        cmd = shlex.split(json.load(f)["headless_cmd"])
+        cmd = shlex.split(json.load(f)[key])
     if cmd and cmd[0] in ("python3", "python") and not _interpreter_runs(cmd[0]):
         cmd[0] = sys.executable
     return cmd
+
+
+def headless_cmd():
+    return contract_cmd("headless_cmd")
 
 
 @lru_cache(maxsize=None)
