@@ -182,11 +182,10 @@ class GatherSim:
                     target = candidates[0][2]
                     y = self.t["fish_yield"][target["kind"]]
                     free = self.t["hold_capacity"] - len(self.hold)
-                    cd = int(round(self.t["catch_cooldown_s"] * TICK))
-                    self.catch_cd_ticks = cd
                     if free < y:
                         events.append(("hold_full", {"action": "catch", "fish_id": target["id"], "required": y, "free": free}))
                     else:
+                        self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
                         for _ in range(y):
                             self.hold.append(target["kind"])
                         self.fish.remove(target)

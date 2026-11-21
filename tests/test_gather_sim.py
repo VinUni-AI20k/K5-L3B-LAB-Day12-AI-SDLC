@@ -151,9 +151,9 @@ class TestGatherSim(unittest.TestCase):
         self.assertEqual(hf_data["fish_id"], "F1")
         self.assertEqual(hf_data["required"], 3)
         self.assertEqual(hf_data["free"], 2)
-        # F1 still present! Cooldown triggered!
+        # F1 still present! No cooldown when hold is full per clarify #5!
         self.assertIn("F1", [f["id"] for f in sim.fish])
-        self.assertEqual(sim.catch_cd_ticks, 30)
+        self.assertEqual(sim.catch_cd_ticks, 0)
 
 
 if __name__ == "__main__":
