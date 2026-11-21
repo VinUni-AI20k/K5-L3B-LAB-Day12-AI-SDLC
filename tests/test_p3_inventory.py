@@ -35,8 +35,9 @@ def indiv(i, kind="ca_linh", fresh=100):
 
 class FreshnessBlock(unittest.TestCase):
     def test_numbers_locked(self):
-        self.assertEqual(T["freshness"], {"fresh_max": 100, "spoil_below": 30, "units_per_point": 240,
-                                          "decay_per_s": {"gather": 0.5, "quan": 0.25}})
+        """Đúng 4 khóa theo Ticket-03 (B đọc từ đề): initial, gather_decay_per_s, quan_decay_per_s, spoiled_below."""
+        self.assertEqual(T["freshness"], {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25,
+                                          "spoiled_below": 30})
 
     def test_integer_units_and_decay_per_tick(self):
         f = Freshness(T)
@@ -63,7 +64,7 @@ class FreshnessBlock(unittest.TestCase):
             self.assertEqual(f.to_units(f.to_points(units)), units)
 
     def test_decay_must_be_whole_units_per_tick(self):
-        bad = dict(T["freshness"], decay_per_s={"gather": 0.5, "quan": 0.3})
+        bad = dict(T["freshness"], quan_decay_per_s=0.3)
         with self.assertRaises(BadInput):
             decay_units_per_tick(bad, T["tick_hz"], "quan")
 
@@ -75,9 +76,10 @@ class FreshnessBlock(unittest.TestCase):
             validate_tuning(t, "1.2")
 
     def test_freshness_validated_when_present(self):
-        for edit in (lambda f: f.update(spoil_below=101), lambda f: f.update(units_per_point=0),
-                     lambda f: f["decay_per_s"].pop("quan"), lambda f: f.update(extra=1),
-                     lambda f: f["decay_per_s"].update(gather=0.4)):
+        for edit in (lambda f: f.update(spoiled_below=101), lambda f: f.update(initial=0),
+                     lambda f: f.pop("quan_decay_per_s"), lambda f: f.update(extra=1),
+                     lambda f: f.update(gather_decay_per_s=0.4), lambda f: f.update(gather_decay_per_s=-1),
+                     lambda f: f.update(units_per_point=240)):
             t = copy.deepcopy(T)
             edit(t["freshness"])
             with self.assertRaises(BadInput, msg=str(t["freshness"])):
@@ -93,6 +95,30 @@ class FreshnessBlock(unittest.TestCase):
             path = write_json(w.path("c12-missing.json"), data)
             with self.assertRaises(BadInput):
                 load_contract(path)
+
+
+class DishPrice(unittest.TestCase):
+    """Công thức giá của đề: floor(giá niêm yết * trung bình fresh / 100), không hệ số phụ."""
+
+    def test_formula_exact_with_integer_units(self):
+        f = Freshness(T)
+        pts = lambda *p: [f.to_units(x) for x in p]  # noqa: E731
+        self.assertEqual(f.dish_price(120, pts(100, 50)), 90)
+        self.assertEqual(f.dish_price(120, pts(100, 100)), 120)
+        self.assertEqual(f.dish_price(120, pts(0)), 0)
+        self.assertEqual(f.dish_price(100, [7199]), 29)  # 29.996 điểm: floor, không làm tròn
+        self.assertEqual(f.dish_price(100, [7200]), 30)
+        self.assertEqual(f.dish_price(7, pts(100, 99, 98)), 6)  # 7 * 99 / 100 = 6.93 -> 6
+
+    def test_boundary_one_unit_changes_floor(self):
+        f = Freshness(T)
+        full = f.max_units
+        self.assertEqual(f.dish_price(100, [full]), 100)
+        self.assertEqual(f.dish_price(100, [full - 1]), 99)  # thiếu 1 đơn vị là xuống 99
+
+    def test_needs_ingredients(self):
+        with self.assertRaises(ValueError):
+            Freshness(T).dish_price(100, [])
 
 
 class IndividualSchema(unittest.TestCase):

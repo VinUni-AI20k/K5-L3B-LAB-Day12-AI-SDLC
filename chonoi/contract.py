@@ -4,7 +4,7 @@ import json
 import os
 
 from .errors import BadInput
-from .freshness import PHASES, decay_units_per_tick
+from .freshness import KEYS, PHASES, decay_units_per_tick
 from .inventory import KINDS
 
 SUPPORTED_VERSIONS = ("1.0", "1.1", "1.2")
@@ -259,16 +259,12 @@ def _validate_freshness(t, required):
         if required:
             raise BadInput("contract 1.2 phải có tuning.freshness")
         return
-    if not isinstance(f, dict) or set(f) != {"fresh_max", "spoil_below", "units_per_point", "decay_per_s"}:
-        raise BadInput("tuning.freshness phải có đúng fresh_max, spoil_below, units_per_point, decay_per_s")
-    _int_between("freshness.fresh_max", f["fresh_max"], 1, 1000)
-    _int_between("freshness.spoil_below", f["spoil_below"], 1, f["fresh_max"])
-    _int_between("freshness.units_per_point", f["units_per_point"], 1, 100_000)
-    d = f["decay_per_s"]
-    if not isinstance(d, dict) or set(d) != set(PHASES):
-        raise BadInput("tuning.freshness.decay_per_s phải có đúng gather và quan")
+    if not isinstance(f, dict) or set(f) != KEYS:
+        raise BadInput(f"tuning.freshness phải có đúng các khóa {sorted(KEYS)}")
+    _int_between("freshness.initial", f["initial"], 1, 1000)
+    _int_between("freshness.spoiled_below", f["spoiled_below"], 1, f["initial"])
     for phase in PHASES:
-        _between(f"freshness.decay_per_s.{phase}", d[phase], 0, 100)
+        _between(f"freshness.{phase}_decay_per_s", f[f"{phase}_decay_per_s"], 0, 100)
         decay_units_per_tick(f, t["tick_hz"], phase)  # phải ra số nguyên đơn vị mỗi tick
 
 
