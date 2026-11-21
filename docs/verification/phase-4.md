@@ -17,8 +17,8 @@ Mã AC do nhóm tự đặt. Chỉ ghi kết quả đã chạy thật; ô nào c
 
 ## Đánh giá ngắn
 - Đạt: bench chạy thật, 3 lần ổn định, đúng cấu trúc JSON; công thức có test; ba cảnh báo và tương phản cao có bằng chứng ảnh; regression 185 test OK sau merge.
-- Chưa đạt: clone sạch 3 lệnh, soak 10 Ngày, `bench_cmd`/`soak_cmd` trong contract.
-- Điều cần làm tiếp: (1) Integrator khai `bench_cmd`, `soak_cmd` và đổi `contract_version` 1.3; (3) soak 10 Ngày (`soak_cmd`).
+- Chưa đạt: `bench_cmd`/`soak_cmd` trong contract trên `main` (việc Integrator); soak chỉ có bot không chơi.
+- Điều cần làm tiếp: (1) Integrator đưa `bench_cmd` và `soak_cmd` đúng vào `main`; (2) thay bot soak bằng bot có điều khiển người chơi nếu muốn kiểm gameplay.
 - Giới hạn bằng chứng: benchmark chỉ đo trên Windows với Chrome; ảnh UI dựng từ snapshot giả, không phải mô phỏng thật.
 
 ## Công cụ headless của nhóm (Bảo, `lat 34 phase 4` trên main)
