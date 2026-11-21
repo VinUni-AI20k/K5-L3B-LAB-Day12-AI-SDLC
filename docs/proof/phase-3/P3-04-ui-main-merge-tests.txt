@@ -1,0 +1,9 @@
+test_serves_phase_two_art (test_live.LiveServerTest.test_serves_phase_two_art) ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_real_catch_transfers_stock_and_real_service_is_paid (test_phase2_live_preview.LiveDayPreviewTest.test_real_catch_transfers_stock_and_real_service_is_paid) ... ok
+test_real_faint_does_not_create_sample_inventory (test_phase2_live_preview.LiveDayPreviewTest.test_real_faint_does_not_create_sample_inventory) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 1.451s
+
+OK

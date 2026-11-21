@@ -10,6 +10,7 @@
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 - Kiểm chứng P1-04 và lưu bằng chứng: `python3 tools/verify_p1_04.py` (cần `python3` trên PATH).
 - Kiểm chứng P2-04: `python3 tools/verify_p2_04.py --integration-ref origin/lehuyanh` (xuất ref vào thư mục tạm, không đổi nhánh). Windows: thêm `.venv/Scripts` vào PATH, đặt `PYTHONPATH=tests;.` và `PYTHONUTF8=1`.
+- Preview UI Phase 2: `python docs/proof/phase-2/day_fixture.py --real-scenes --days 5 --port 8782` (Gather/Quán thật; bỏ `--real-scenes` để kiểm fixture UI v1.1).
 
 ## Cấu trúc & quy ước
 - P3-04: `chonoi/sim/freshness_pricing.py` chỉ tiêu IDs và chốt giá sau decay. Người 3 cấp `sim.freshness` từ manifest root, stock items và reserved IDs; sở hữu validation/decay/re-reserve và wiring tick. Không gọi decay trong helper bếp. Xem `docs/notes/P3-04.md`.
@@ -21,6 +22,7 @@
 - P1-03/P1-04 đã tích hợp: helper `chonoi/sim/kitchen.py`; `dish.order_id == customer.id`. Timer, validation và cleanup chạy qua helper một lần; lịch khách trong `quan.py` chạy sau settlement khi chưa đóng ca. Regression: `tests/test_quan_integration.py`. Xem `docs/notes/P1-04.md`.
 - P2-04: Quán 2 bếp/4 bàn/6 món; kho v1.1 nhận thêm `ca_keo`, `keo_neo`, giữ schema `items`. API cũ P2-03 vẫn dùng được; hook tùy chọn `QuanSim(..., day_plan=plan, economy=state)` và `economy_state()` được mô tả trong `docs/notes/P2-04.md`. Đã ghép Day/Shop/Gather/Monster từ main; cần kiểm chứng theo commit tích hợp.
 - P2-03: `DaySim` gọi Gather/Quán và giữ dữ liệu xuyên ngày. `Session` xử lý pause trước mọi timer và phát snapshot `phase_tick: 0` khi đổi pha. Gather nhận `day` và tuning đã áp cấp oxy/Máu. Quán nhận menu lọc theo ngày và kho vật lý.
+- UI Phase 2 đọc cá sấu từ `snapshot.monsters`, lấy ảnh món theo `dish_id`. Ảnh WebP dùng chung giữa `chonoi.live` và fixture Day, nguồn ghi trong `CREDITS.md`.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).

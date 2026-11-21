@@ -1,0 +1,14 @@
+Gather 1280x720 for 15s: 60.1 FPS
+Quán 1280x720 for 15s: 60.1 FPS
+1-day fixture PASS: menu, intro, pause clock, blur, 2 stoves, 4 customers, buy outcomes, summary
+5-day fixture PASS: upgrade effective next day, M2, summary, menu return, 390px
+Faint fixture PASS: empty inventory displayed and passed to Quán
+Fixture Shop timeout PASS: server snapshot transitions at deadline
+Standalone Phase 1 browser regression PASS; no uncaught JavaScript errors or HTTP failures.
+Chrome follow-up: S swims down in Gather, W walks up in Quán, Pause freezes position and blur releases movement.
+Chrome actual scenes: WASD, harvest without skipping, pause ticks, dock, inventory handoff, walk PASS.
+Python: 107 tests PASS; real catch -> inventory -> reserved -> cook -> pick -> serve -> paid (72) -> Summary, plus real faint with empty stock.
+Phase 2 lab art: 108 Python tests PASS. Chrome rendered six dish cards, four ticket thumbnails, two stove thumbnails and the supplied Bà Út/crocodile sprites. Day transitions and Pause passed, including layout at 1440/1024/820/768/390/320 px, with no horizontal overflow or JavaScript/HTTP errors.
+Phase 2 redesigned play screens: 108 tests PASS. Chrome verified both lab backgrounds and portrait ledger at 1440/1024/820/768/390/320 px, with matching Canvas DPR. Fixture: dish art, crocodile, day flow and Pause PASS. Real v1.0 scenes: WASD, harvest, dock, stock transfer and Pause PASS.
+Swimming artwork: 108 Python tests PASS. Chrome verified the standing pose at the dock, swimming art at the surface away from the dock, horizontal flipping and downward rotation. Both scenes and day transitions still passed at 1440/1024/820/768/390/320 px.
+Integration with origin/main at 82d1de9: 168 Python tests PASS. Chrome verified the six menu illustrations, Gather and Quán, Pause, swimming pose and stock transfer with the integrated simulations.
