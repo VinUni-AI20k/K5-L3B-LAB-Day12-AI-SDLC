@@ -9,4 +9,8 @@ Liệt kê asset ngoài (nguồn, giấy phép CC0/CC-BY/MIT) và công cụ AI 
 
 ## Khung kỹ thuật & Công cụ AI
 - **Khung Python starter `chonoi/` & bộ test mẫu:** giảng viên AI SDLC Day 12 (VinUni).
-- **Công cụ AI:** Antigravity (Orchestrator / Gemini) — xem chi tiết lượt dùng và đối chiếu lỗi tại [`docs/ai-usage-log.md`](docs/ai-usage-log.md).
+- **Công cụ AI:** Claude Code (Claude Opus 5.5 / Sonnet 5.5, Anthropic) và Antigravity (Orchestrator / Gemini) — xem chi tiết lượt dùng và đối chiếu lỗi tại [`docs/ai-usage-log.md`](docs/ai-usage-log.md).
+
+## Giấy phép
+- Mã nguồn và tài liệu do nhóm viết: MIT, xem [`LICENSE`](LICENSE).
+- Asset bên thứ ba giữ giấy phép gốc của tác giả. Riêng gói ảnh cá `assets/fish/` **chưa xác minh được nguồn và giấy phép** (xem mục Asset đồ họa); phải điền hoặc thay bằng asset CC0 trước khi phát hành Release.
