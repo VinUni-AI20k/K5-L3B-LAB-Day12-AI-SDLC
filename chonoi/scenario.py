@@ -9,6 +9,7 @@ import json
 
 from .errors import BadInput
 from .inventory import FISH_KINDS, KINDS_P1, NODE_KINDS, validate_items
+from .sim.quan_customers import build_fixture_customers
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
@@ -159,3 +160,11 @@ def _validate_quan(b, tuning):
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    if "random_customers" in b and not isinstance(b["random_customers"], bool):
+        raise BadInput("random_customers phải là boolean")
+    if "customers" in b:
+        # kiểm trường/mâu thuẫn của khách dựng sẵn (lát 3); phần vượt tồn kiểm lại ở QuanSim khi biết kho cuối
+        stoves = {s["id"]: dict(s) for s in tuning["quan"]["stoves"]}
+        for s in b.get("stoves", []):
+            stoves.setdefault(s["id"], {}).update(s)
+        build_fixture_customers(b["customers"], tuning, b.get("stock"), list(stoves.values()), b.get("hand"))
