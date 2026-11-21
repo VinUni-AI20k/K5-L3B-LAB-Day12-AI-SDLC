@@ -1,0 +1,4 @@
+command: python3 -m chonoi.headless --mode quan --seed 1 --ticks 0 --scenario tests/fixtures/p1/q3/invalid-overreserved.json --out docs/proof/phase-1/q3/invalid-output-must-not-exist.jsonl
+exit_code: 2
+output_exists: False
+stderr: đầu vào sai: nguyên liệu giữ chỗ vượt kho
