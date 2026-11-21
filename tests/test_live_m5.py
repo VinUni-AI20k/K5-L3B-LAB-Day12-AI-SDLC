@@ -252,9 +252,32 @@ class LiveM5Test(unittest.TestCase):
             self.assertEqual(code, 200)
             st_skip_end = json.loads(_get(base + "/state")[2])
             self.assertTrue(st_skip_end["finished"])
+
+            # 7. Kiểm chứng POST /start quan tạo đủ 2 bếp (B1, B2) và 4 bàn (T1-T4)
+            code, _ = _post(base + "/start", {"mode": "quan", "sample_stock": True})
+            self.assertEqual(code, 200)
+            st_multi = json.loads(_get(base + "/state")[2])
+            self.assertGreaterEqual(len(st_multi["stoves"]), 2)
+            self.assertGreaterEqual(len(st_multi["tables"]), 4)
         finally:
             server.httpd.shutdown()
             server.httpd.server_close()
+
+    def test_phase4_bench_cli_outputs_five_fields(self):
+        """Phase 4 M5.1: chonoi.bench xuất đủ 5 trường avg_fps, p1_low_fps, frames, measured_s, load_ms."""
+        import os
+        import tempfile
+        from chonoi.bench import main as bench_main
+
+        with tempfile.TemporaryDirectory() as td:
+            out_path = os.path.join(td, "bench.json")
+            rc = bench_main(["--seed", "42", "--duration", "0.2", "--warmup", "0.05", "--out", out_path])
+            self.assertEqual(rc, 0)
+            with open(out_path, encoding="utf-8") as f:
+                data = json.load(f)
+            for key in ("avg_fps", "p1_low_fps", "frames", "measured_s", "load_ms"):
+                self.assertIn(key, data)
+                self.assertGreater(data[key], 0)
 
 
 if __name__ == "__main__":

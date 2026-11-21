@@ -64,9 +64,28 @@ DEFAULT_LIVE_SHOP = {
 }
 
 
-def _enrich_live_tuning(tuning: dict) -> dict:
-    """Bổ sung cấu hình mặc định `shop` và `day_plan` cho `chonoi.live --mode day` nếu manifest đang ở v1.0."""
+DEFAULT_LIVE_STOVES = [
+    {"id": "B1", "pos": [2, 8]},
+    {"id": "B2", "pos": [5, 8]},
+]
+DEFAULT_LIVE_TABLES = [
+    {"id": "T1", "pos": [9, 2]},
+    {"id": "T2", "pos": [13, 2]},
+    {"id": "T3", "pos": [9, 6]},
+    {"id": "T4", "pos": [13, 6]},
+]
+
+
+def _enrich_live_tuning(tuning: dict, multi_station: bool = True) -> dict:
+    """Bổ sung cấu hình mặc định `shop`, `day_plan`, và 2 bếp / 4 bàn cho phiên chơi thử `chonoi.live`."""
     out = dict(tuning)
+    if multi_station and "quan" in out:
+        q = dict(out["quan"])
+        if len(q.get("stoves", [])) < 2:
+            q["stoves"] = list(DEFAULT_LIVE_STOVES)
+        if len(q.get("tables", [])) < 4:
+            q["tables"] = list(DEFAULT_LIVE_TABLES)
+        out["quan"] = q
     if "shop" not in out:
         out["shop"] = DEFAULT_LIVE_SHOP
     if "day_plan" not in out:
@@ -248,8 +267,8 @@ class LiveGame:
         with self._lock:
             old_seed = self._args[3]
             new_seed = old_seed if seed is None else int(seed)
-            tuning = _enrich_live_tuning(self._base_tuning) if mode == "day" else self._base_tuning
-            inv = {"ca_loc": 3, "ca_linh": 6, "bong_dien_dien": 3, "bong_sung": 4} if (mode == "quan" and sample_stock) else None
+            tuning = _enrich_live_tuning(self._base_tuning, multi_station=True) if mode in ("day", "quan") else self._base_tuning
+            inv = {"ca_loc": 4, "ca_linh": 9, "bong_dien_dien": 4, "bong_sung": 6} if (mode == "quan" and sample_stock) else None
             self.mode = mode
             self.days = days if mode == "day" else 1
             self.tuning = tuning
