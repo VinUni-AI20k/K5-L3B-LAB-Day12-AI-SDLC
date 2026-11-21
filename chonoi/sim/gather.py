@@ -13,16 +13,16 @@ Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gath
       - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
       - sự kiện dive / surface / oxygen_empty / choke / faint
       - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
-  TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
-      - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
+  ĐÃ LÀM (lát 2, BLong1501): hái + bắt cá + cập bến + kho — test: tests/test_gather_slice2.py
+      - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown)
       - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
-      - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
+      - cập bến xét TRƯỚC hái; ghi kho đúng một lần do runner lo
 Các tính năng của phase sau chưa nằm trong khung này.
 """
 
 import math
 
-from ..ids import sort_by_id
+from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
@@ -139,11 +139,12 @@ class GatherSim:
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
-        # 4. bắt cá
-        if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+            # Lát 2 (AC-P1-20): ngoài bến, chỉ hái khi ở mặt nước.
+            if self._at_surface():
+                self._harvest(events)
+        # 4. bắt cá (AC-P1-21): chỉ khi hết hồi chiêu và đang dưới nước
+        if inp.pressed("catch") and self.catch_cd_ticks == 0 and not self._at_surface():
+            self._catch(events)
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
@@ -155,6 +156,50 @@ class GatherSim:
 
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]
+
+    def _nearest(self, items, radius):
+        """Phần tử gần nhất trong bán kính (tính cả đúng mép), hòa theo id_key; không có -> None."""
+        best, best_key = None, None
+        for e in items:
+            d = math.dist(self.pos, e["pos"])
+            if d <= radius:
+                key = (d, id_key(e["id"]))
+                if best_key is None or key < best_key:
+                    best, best_key = e, key
+        return best
+
+    def _free(self) -> int:
+        return self.t["hold_capacity"] - len(self.hold)
+
+    def _harvest(self, events):
+        """Hái nút ready gần nhất trong interact_radius: gather hoặc hold_full."""
+        ready = [n for n in self.nodes if n["regrow_ticks"] == 0]
+        n = self._nearest(ready, self.t["interact_radius"])
+        if n is None:
+            return
+        amount = self.t["node_yield"]
+        free = self._free()
+        if free < amount:
+            events.append(("hold_full", {"action": "gather", "node_id": n["id"], "required": amount, "free": free}))
+            return
+        self.hold.extend([n["kind"]] * amount)
+        n["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+        events.append(("gather", {"node_id": n["id"], "kind": n["kind"], "amount": amount}))
+
+    def _catch(self, events):
+        """Bắt đúng một đàn gần nhất trong catch_radius: fish_caught hoặc hold_full (không thử đàn khác)."""
+        f = self._nearest(self.fish, self.t["catch_radius"])
+        if f is None:
+            return  # không có đàn trong tầm: không event, không hồi chiêu
+        amount = self.t["fish_yield"][f["kind"]]
+        free = self._free()
+        if free < amount:
+            events.append(("hold_full", {"action": "catch", "fish_id": f["id"], "required": amount, "free": free}))
+            return
+        self.hold.extend([f["kind"]] * amount)
+        self.fish = [x for x in self.fish if x["id"] != f["id"]]
+        self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+        events.append(("fish_caught", {"fish_id": f["id"], "kind": f["kind"], "yield": amount}))
 
     def _finish(self, reason, events):
         self.done = True
