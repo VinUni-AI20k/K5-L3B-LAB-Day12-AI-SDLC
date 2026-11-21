@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Ground shadow -->
+  <ellipse cx="64" cy="117" rx="25" ry="6" fill="#000" opacity="0.16"/>
+  <!-- Legs & Basketball Shorts & Sneakers -->
+  <rect x="46" y="92" width="13" height="16" rx="5" fill="#F2B98A" stroke="#1E242B" stroke-width="3"/>
+  <rect x="69" y="92" width="13" height="16" rx="5" fill="#F2B98A" stroke="#1E242B" stroke-width="3"/>
+  <path d="M44 82 L84 82 L86 98 L67 98 L64 92 L61 98 L42 98 Z" fill="#5B21B6" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+  <ellipse cx="52.5" cy="111" rx="9" ry="5.5" fill="#FACC15" stroke="#1E242B" stroke-width="3"/>
+  <ellipse cx="75.5" cy="111" rx="9" ry="5.5" fill="#FACC15" stroke="#1E242B" stroke-width="3"/>
+  <!-- Muscular Arms (right arm sleeve tattoo) -->
+  <path d="M43 56 C27 59 23 75 28 87 C32 93 40 90 41 83 C42 75 43 70 46 67 Z" fill="#F2B98A" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M85 56 C101 59 105 75 100 87 C96 93 88 90 87 83 C86 75 85 70 82 67 Z" fill="#F2B98A" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Dark sleeve tattoo on right arm (viewer's left) -->
+  <path d="M37 60 C30 63 27 72 30 81 C32 84 37 83 38 78 C39 72 40 66 42 63 Z" fill="#334155" opacity="0.65"/>
+  <!-- Torso: Bright Yellow #84 Sleeveless Basketball Jersey -->
+  <path d="M43 54 Q64 49 85 54 L84 86 Q64 89 44 86 Z" fill="#FACC15" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+  <!-- White/purple jersey neck & armhole trim -->
+  <path d="M51 53 Q64 63 77 53" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round"/>
+  <path d="M51 53 Q64 63 77 53" fill="none" stroke="#5B21B6" stroke-width="1.8" stroke-linecap="round"/>
+  <!-- Number 84 on jersey -->
+  <text x="64" y="79" text-anchor="middle" font-family="Arial Black, Impact, sans-serif" font-size="18" font-weight="900" fill="#4C1D95" stroke="#FFFFFF" stroke-width="1">84</text>
+  <!-- Neck & Ears -->
+  <rect x="56" y="48" width="16" height="9" rx="4" fill="#E3A372" stroke="#1E242B" stroke-width="2.5"/>
+  <circle cx="43" cy="39" r="4.5" fill="#F2B98A" stroke="#1E242B" stroke-width="2.5"/>
+  <circle cx="85" cy="39" r="4.5" fill="#F2B98A" stroke="#1E242B" stroke-width="2.5"/>
+  <!-- Head -->
+  <ellipse cx="64" cy="38" rx="20" ry="19.5" fill="#F2B98A" stroke="#1E242B" stroke-width="3"/>
+  <!-- Short cropped black hair -->
+  <path d="M45 31 C45 19 53 15 64 15 C75 15 83 19 83 31 C78 25 71 23 64 23 C57 23 50 25 45 31 Z" fill="#181C22" stroke="#1E242B" stroke-width="2.8" stroke-linejoin="round"/>
+  <!-- Cheerful eyes & brows -->
+  <path d="M51 34 Q55 32 59 34" fill="none" stroke="#1E242B" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M69 34 Q73 32 77 34" fill="none" stroke="#1E242B" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="55" cy="38.5" r="2.6" fill="#1E242B"/>
+  <circle cx="73" cy="38.5" r="2.6" fill="#1E242B"/>
+  <circle cx="56" cy="37.7" r="0.9" fill="#FFF"/>
+  <circle cx="74" cy="37.7" r="0.9" fill="#FFF"/>
+  <!-- Light mustache & cheerful smile -->
+  <path d="M57 45.5 Q64 43 71 45.5" fill="none" stroke="#374151" stroke-width="2" stroke-linecap="round"/>
+  <path d="M58 48.5 Q64 53 70 48.5 Z" fill="#FFFFFF" stroke="#1E242B" stroke-width="2" stroke-linejoin="round"/>
+</svg>

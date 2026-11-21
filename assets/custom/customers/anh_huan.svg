@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <defs>
+    <pattern id="geoShirt" width="12" height="12" patternUnits="userSpaceOnUse">
+      <rect width="12" height="12" fill="#D4C29A"/>
+      <path d="M0 0 L6 0 L6 6 L12 6 L12 12 L6 12 L6 6 L0 6 Z" fill="#1F242B"/>
+      <path d="M2 2 L4 2 L4 4" fill="none" stroke="#D4C29A" stroke-width="1.2"/>
+    </pattern>
+  </defs>
+  <!-- Ground shadow -->
+  <ellipse cx="64" cy="117" rx="24" ry="6" fill="#000" opacity="0.16"/>
+  <!-- Legs & Loafers -->
+  <rect x="46" y="84" width="14" height="24" rx="6" fill="#1F2937" stroke="#1E242B" stroke-width="3"/>
+  <rect x="68" y="84" width="14" height="24" rx="6" fill="#1F2937" stroke="#1E242B" stroke-width="3"/>
+  <ellipse cx="53" cy="111" rx="9" ry="5.5" fill="#111827" stroke="#1E242B" stroke-width="3"/>
+  <ellipse cx="75" cy="111" rx="9" ry="5.5" fill="#111827" stroke="#1E242B" stroke-width="3"/>
+  <!-- Arms -->
+  <path d="M40 59 C27 63 24 76 28 87 C31 92 38 90 39 84 C40 76 42 70 45 67 Z" fill="#F2B98A" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M88 59 C101 63 104 76 100 87 C97 92 90 90 89 84 C88 76 86 70 83 67 Z" fill="#F2B98A" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Torso: Black & beige geometric collared shirt -->
+  <path d="M42 54 Q64 49 86 54 L94 69 L84 73 L83 89 Q64 92 45 89 L44 73 L34 69 Z" fill="url(#geoShirt)" stroke="#1E242B" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Shirt collar & V-neck -->
+  <path d="M52 53 L64 67 L76 53 Z" fill="#F2B98A" stroke="#1E242B" stroke-width="2.2" stroke-linejoin="round"/>
+  <path d="M49 53 L56 62 L60 56 Z" fill="#1F242B" stroke="#1E242B" stroke-width="1.8"/>
+  <path d="M79 53 L72 62 L68 56 Z" fill="#1F242B" stroke="#1E242B" stroke-width="1.8"/>
+  <!-- Silver Cuban link chain -->
+  <path d="M54 55 Q64 65 74 55" fill="none" stroke="#E2E8F0" stroke-width="4.2" stroke-linecap="round"/>
+  <path d="M54 55 Q64 65 74 55" fill="none" stroke="#64748B" stroke-width="1.6" stroke-dasharray="2.5 2.5" stroke-linecap="round"/>
+  <!-- Neck & Ears -->
+  <rect x="57" y="48" width="14" height="9" rx="4" fill="#E3A372" stroke="#1E242B" stroke-width="2.5"/>
+  <circle cx="42" cy="39" r="4.5" fill="#F2B98A" stroke="#1E242B" stroke-width="2.5"/>
+  <circle cx="86" cy="39" r="4.5" fill="#F2B98A" stroke="#1E242B" stroke-width="2.5"/>
+  <!-- Head -->
+  <ellipse cx="64" cy="38" rx="20.5" ry="19.5" fill="#F7C59F" stroke="#1E242B" stroke-width="3"/>
+  <!-- Short spiky black undercut hair -->
+  <path d="M44 33 C43 22 48 16 56 15 L60 9 L66 13 L72 10 L76 15 C83 17 85 24 84 33 L80 26 C72 22 56 22 48 26 Z" fill="#181C22" stroke="#1E242B" stroke-width="2.8" stroke-linejoin="round"/>
+  <!-- Friendly eyes & brows -->
+  <path d="M50 34 Q55 32 60 34" fill="none" stroke="#1E242B" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M68 34 Q73 32 78 34" fill="none" stroke="#1E242B" stroke-width="2.4" stroke-linecap="round"/>
+  <circle cx="55" cy="39" r="2.8" fill="#1E242B"/>
+  <circle cx="73" cy="39" r="2.8" fill="#1E242B"/>
+  <circle cx="56" cy="38" r="1" fill="#FFF"/>
+  <circle cx="74" cy="38" r="1" fill="#FFF"/>
+  <!-- Big bright smile -->
+  <path d="M55 46 Q64 53 73 46 Z" fill="#FFFFFF" stroke="#1E242B" stroke-width="2.2" stroke-linejoin="round"/>
+</svg>
