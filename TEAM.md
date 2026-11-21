@@ -4,7 +4,7 @@
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
-| | | `sim/gather` (lát 1: oxy, ngạt, Máu, giỏ) | Integrator | `sim/gather` lát 2 |
+| Nguyễn Lê Đăng Khoa | s0ra1n0 | `sim/gather` (lát 1: oxy, ngạt, Máu, giỏ) | Integrator | `sim/gather` lát 2 |
 | | | `sim/gather` (lát 2: hái, bắt cá) | | `sim/gather` lát 1 |
 | | | `sim/quan` (lát 3: khách, giữ chỗ, kiên nhẫn) | PO | `sim/quan` lát 4 |
 | | | `sim/quan` (lát 4: bếp, phục vụ, tiền, uy tín) | | `sim/quan` lát 3 |
