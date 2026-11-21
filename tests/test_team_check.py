@@ -24,9 +24,11 @@ class TeamCheck(unittest.TestCase):
         self.assertEqual(check_team.validate(m, 4, actor="an-nguyen", event="pull_request"), [])
 
     def test_template_is_rejected(self):
-        with open(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "TEAM.md"), encoding="utf-8") as f:
-            m = check_team.parse_team(f.read())
-        self.assertTrue(check_team.validate(m, 4))
+        template = GOOD.replace("@an-nguyen", "…")
+        members = check_team.parse_team(template)
+        errors = check_team.validate(members, 4)
+        self.assertEqual(len(errors), 1)
+        self.assertIn("GitHub handle", errors[0])
 
     def test_wrong_size_duplicate_and_outsider(self):
         m = check_team.parse_team(GOOD)
