@@ -140,7 +140,7 @@ function phaseIntro(w, h) {
   const lines = {
     gather: ["Lặn bắt cá (Space), hái rau trên mặt nước (E), về Bến bấm E để mở quán.",
              "Theo dõi Oxy — nổi lên mặt nước để thở. Tránh Cá Sấu ở vùng sâu!"],
-    quan: ["Khách tới ngồi bàn và gọi món từ kho bạn mang về.",
+    quan: [snap.demo ? "Má Tư đã đi chợ mua thêm đủ nguyên liệu theo kế hoạch (chế độ demo)." : "Khách tới ngồi bàn và gọi món từ kho bạn mang về.",
            "Tới Bếp bấm E để nấu → lấy món chín → mang tới Bàn bấm E."],
     shop: ["1: Bình oxy · 2: Áo phao · 3: Vợt hút cá · Enter: sang ngày mới",
            "Nâng cấp có hiệu lực từ Ngày kế."] }[view] || [];
@@ -178,6 +178,7 @@ function overlay(w, h) {
     text("P / Esc để tiếp tục · R để chơi lại", w / 2, h / 2 + 24, { align: "center", size: 18, color: "#cfd8dc" });
   }
   if (snap.day) text(`Ngày ${snap.day} · ${snap.view === "gather" ? "Sáng" : snap.view === "quan" ? "Tối" : "Shop"}`, w / 2, 24, { align: "center", size: 18, color: "#ffd180" });
+  if (snap.finished && snap.day && snap.reason === "days_complete") { drawSummary(w, h); return; }
   if (snap.finished) {
     ctx.fillStyle = "rgba(0,0,0,.55)"; ctx.fillRect(w / 2 - 190, h / 2 - 50, 380, 100);
     const label = snap.day ? "Hết lượt chơi" : "Buổi " + (snap.mode === "gather" ? "sáng" : "tối") + " kết thúc";
@@ -363,6 +364,34 @@ function drawQuan(w, h) {
   text("WASD/mũi tên đi · E tương tác (bếp / bàn) · R chơi lại", w - 10, h - 14, { size: 12, align: "right", color: "#9fb3c0" });
 }
 
+function dayStats(day) { return (snap.stats || []).find((x) => x.day === day) || null; }
+function drawDayResult(w, h, y) {
+  // DayResult: khách đã phục vụ / bỏ đi, tiền, boa, đổi uy tín
+  const st = dayStats(snap.day);
+  if (!st) return;
+  panel(w / 2 - 330, y, 660, 150);
+  text("Kết quả Ngày " + snap.day, w / 2, y + 32, { align: "center", size: 24, color: "#ffd180" });
+  const dRep = st.rep_end != null && st.rep_start != null ? st.rep_end - st.rep_start : 0;
+  text(`🍽 Phục vụ ${st.served} khách · 😠 bỏ đi ${st.left} · 🚫 không có món ${st.no_dish}` + (st.burnt ? ` · 🔥 cháy ${st.burnt}` : ""),
+       w / 2, y + 66, { align: "center", size: 18 });
+  text(`💰 Thu ${st.money}k (boa ${st.tips}k) · ⭐ uy tín ${dRep >= 0 ? "+" : ""}${dRep.toFixed(1)}`, w / 2, y + 96, { align: "center", size: 18 });
+  text(`Sáng: bắt ${st.caught} đàn cá, hái ${st.gathered} lần` + (st.spoiled ? `, ${st.spoiled} món bị ươn` : ""), w / 2, y + 126, { align: "center", size: 16, color: "#b3e5fc" });
+}
+function drawSummary(w, h) {
+  // Summary sau Ngày cuối: tổng tiền, điểm, uy tín, món bán chạy
+  const all = snap.stats || [];
+  const dishes = {};
+  all.forEach((st) => Object.entries(st.dishes || {}).forEach(([d, n]) => (dishes[d] = (dishes[d] || 0) + n)));
+  const best = Object.entries(dishes).sort((a, b) => b[1] - a[1])[0];
+  ctx.fillStyle = "rgba(0,0,0,.6)"; ctx.fillRect(0, 0, w, h);
+  panel(w / 2 - 340, h / 2 - 170, 680, 320);
+  text("🏮 Tổng kết " + all.length + " Ngày ở chợ nổi", w / 2, h / 2 - 120, { align: "center", size: 30, color: "#ffd180" });
+  text(`💰 Tổng thu ${snap.earned}k · còn ${snap.money}k`, w / 2, h / 2 - 66, { align: "center", size: 22 });
+  text(`⭐ Uy tín ${(snap.reputation || 0).toFixed(1)} · 🏆 Điểm ${snap.score}`, w / 2, h / 2 - 30, { align: "center", size: 22 });
+  text("Khách đã phục vụ: " + all.reduce((a, st) => a + st.served, 0) + " · bỏ đi: " + all.reduce((a, st) => a + st.left, 0), w / 2, h / 2 + 6, { align: "center", size: 18 });
+  text("Món bán chạy: " + (best ? (DISH_NAME[best[0]] || best[0]) + " ×" + best[1] : "chưa có"), w / 2, h / 2 + 40, { align: "center", size: 18, color: "#a5d6a7" });
+  text("Nhấn R để chơi lại", w / 2, h / 2 + 96, { align: "center", size: 18, color: "#cfd8dc" });
+}
 function drawShop(w, h) {
   const ups = (snap.meta && snap.meta.upgrades) || {};
   text("Shop cuối Ngày " + snap.day, w / 2, 70, { align: "center", size: 28 });
@@ -378,6 +407,7 @@ function drawShop(w, h) {
   text("Cấp vừa mua có hiệu lực từ Ngày kế · Enter đóng Shop", w / 2, 300, { align: "center", size: 16, color: "#9fb3c0" });
   const stock = fmtItems(snap.stock);
   text("Kho dư (bỏ sau Shop): " + (stock || "(trống)"), w / 2, 330, { align: "center", size: 14, color: "#cfd8dc" });
+  drawDayResult(w, h, 360);
 }
 
 // ---------- hướng dẫn quán: khách kế tiếp, món nấu được, vì sao không có khách ----------

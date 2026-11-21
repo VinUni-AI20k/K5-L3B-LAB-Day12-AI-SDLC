@@ -37,8 +37,9 @@ RECENT_EVENTS = 40
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, days=1):
-        self._args = (mode, tuning, scenario, seed, inventory, days)
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, days=1, demo=False):
+        self._args = (mode, tuning, scenario, seed, inventory, days, demo)
+        self.demo = demo
         self.mode = mode
         self.tuning = tuning
         self.inventory_out = inventory_out
@@ -53,6 +54,7 @@ class LiveGame:
         self.events = []
         self._saved = False
         self.error = None
+        self.stats = {}  # số liệu theo Ngày cho màn Kết quả / Tổng kết (chỉ ở cửa sổ chơi, không vào JSONL)
 
     # --- luồng nền ----------------------------------------------------------------
     def start(self):
@@ -88,6 +90,7 @@ class LiveGame:
             return
         for row in s.step(self.inputs.advance()):
             self.events.append(row)
+            self._count(row)
         del self.events[:-RECENT_EVENTS]
         if s.done and not self._saved:
             self._saved = True
@@ -96,6 +99,35 @@ class LiveGame:
                     s.write_inventory_if_done(self.inventory_out)
                 except OSError as e:
                     sys.stderr.write(f"lỗi ghi kho: {e}\n")
+
+    def _count(self, row):
+        day = row.get("day", 1)
+        st = self.stats.setdefault(day, {"day": day, "served": 0, "left": 0, "no_dish": 0, "money": 0, "tips": 0,
+                                         "rep_start": None, "rep_end": None, "dishes": {}, "burnt": 0, "caught": 0,
+                                         "gathered": 0, "spoiled": 0})
+        name, d = row["name"], row["data"]
+        if name == "phase_start" and row["phase"] == "quan":
+            st["rep_start"] = self.session.sim.reputation
+        elif name == "served":
+            st["served"] += 1
+            st["dishes"][d["dish_id"]] = st["dishes"].get(d["dish_id"], 0) + 1
+        elif name == "paid":
+            st["money"] += d.get("amount", 0)
+            st["tips"] += d.get("tip", 0)
+        elif name == "customer_left" and d.get("reason") == "patience":
+            st["left"] += 1
+        elif name == "no_dish":
+            st["no_dish"] += 1
+        elif name == "dish_burnt":
+            st["burnt"] += 1
+        elif name == "fish_caught":
+            st["caught"] += 1
+        elif name == "gather":
+            st["gathered"] += 1
+        elif name == "spoiled":
+            st["spoiled"] += 1
+        elif name == "quan_end":
+            st["rep_end"] = d.get("reputation")
 
     # --- API cho handler -----------------------------------------------------------
     def state_json(self) -> bytes:
@@ -109,6 +141,8 @@ class LiveGame:
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None
             snap["error"] = self.error
+            snap["stats"] = [self.stats[k] for k in sorted(self.stats)]
+            snap["demo"] = self.demo
             return json.dumps(snap, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
     def set_input(self, body: dict):
@@ -223,6 +257,8 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="chonoi.live", description="Chơi trực tiếp trên trình duyệt (starter).")
     p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])
     p.add_argument("--days", type=int, default=5, help="chỉ với day: số Ngày (1-5)")
+    p.add_argument("--demo", action="store_true",
+                   help="chỉ với day: tối nào Má Tư cũng mua thêm đủ nguyên liệu theo kế hoạch để luôn có khách")
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--port", type=int, default=8000, help="0 = cổng ngẫu nhiên")
     p.add_argument("--host", default="127.0.0.1")
@@ -242,7 +278,9 @@ def main(argv=None) -> int:
             raise BadInput("vừa có quan.stock vừa có --inventory")
         if not 1 <= a.days <= 5:
             raise BadInput("--days phải từ 1 đến 5")
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, days=a.days)
+        if a.demo and a.mode != "day":
+            raise BadInput("--demo chỉ dùng với --mode day")
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, days=a.days, demo=a.demo)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
