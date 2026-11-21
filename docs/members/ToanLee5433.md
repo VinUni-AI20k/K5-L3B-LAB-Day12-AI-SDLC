@@ -1,5 +1,5 @@
+# ToanLee5433 — phản tư cá nhân (≤ 200 từ)
 
-=======
 Lê Quý Toàn · module `sim/gather` · vai `Integrator`
 
 - Tôi đã làm (kèm link commit):
@@ -13,4 +13,3 @@ Lê Quý Toàn · module `sim/gather` · vai `Integrator`
   - AI gán cooldown 30 tick khi bắt cá hụt do đầy giỏ, trái clarify #5. Phát hiện khi chạy test gather.
   - AI hardcode thêm 1 món thay vì biến `node_yield`. Phát hiện qua review của trưởng nhóm tại PR #4.
 - Điều tôi học được: Bám sát clarify, không để AI tự đặt luật ngầm; làm đúng lát cắt, không lấn module bạn khác; chuẩn hóa file kho giúp ghép 2 tiến trình chạy mượt.
->>>>>>> origin/dev

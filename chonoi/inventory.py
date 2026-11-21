@@ -11,7 +11,8 @@ import tempfile
 from .errors import BadInput
 
 KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
-KINDS = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung", "ca_keo", "keo_neo")
+# v1.1 (Phase 2): thêm cá kèo và kèo nèo
+KINDS = KINDS_P1 + ("ca_keo", "keo_neo")
 
 
 def validate_items(items, kinds=KINDS):

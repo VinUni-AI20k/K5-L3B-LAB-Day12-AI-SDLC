@@ -144,3 +144,30 @@ def validate_tuning(t):
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+    if "day_plan" in t:
+        _validate_day_plan(t["day_plan"], menu)
+
+
+def _validate_day_plan(plan, menu):
+    """v1.1: mảng 5 ngày {day, dishes, ingredients}; ingredients = tổng công thức × số suất."""
+    if not isinstance(plan, list) or [p.get("day") if isinstance(p, dict) else None for p in plan] != [1, 2, 3, 4, 5]:
+        raise BadInput("tuning.day_plan phải là mảng 5 object, day lần lượt 1..5")
+    for p in plan:
+        name = f"day_plan.D{p['day']}"
+        if set(p) != {"day", "dishes", "ingredients"}:
+            raise BadInput(f"tuning.{name} chỉ có day, dishes, ingredients")
+        need = {}
+        for key in ("dishes", "ingredients"):
+            m = p[key]
+            if not isinstance(m, dict) or not m:
+                raise BadInput(f"tuning.{name}.{key} phải là map id -> số nguyên dương")
+            for k, n in m.items():
+                if isinstance(n, bool) or not isinstance(n, int) or n <= 0:
+                    raise BadInput(f"tuning.{name}.{key}.{k} phải là số nguyên dương")
+        for dish_id, n in p["dishes"].items():
+            if dish_id not in menu:
+                raise BadInput(f"tuning.{name}: món {dish_id} không có trong menu")
+            for k, c in menu[dish_id]["recipe"].items():
+                need[k] = need.get(k, 0) + c * n
+        if need != p["ingredients"]:
+            raise BadInput(f"tuning.{name}.ingredients phải bằng tổng công thức × số suất: {need}")
