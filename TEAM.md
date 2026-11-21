@@ -7,7 +7,7 @@
 | Cao Duy Minh | `workcaominh-gif` | `sim/gather` | Integrator (gắn tag) | `sim/quan` |
 | Duyet | `theduythg` | `sim/quan` | PO (hỏi giảng viên, `docs/clarify.md`) | `sim/gather` |
 | Nhat Minh | `<handle-nhatminh>` | `client/ui` + `qa` | QA lead / Release | `sim/quan` |
-| Sz3RO | `Sz3RO` | mở rộng P4 (leaderboard, phụ đề SFX) | Dev mở rộng | `client/ui` |
+| Vũ Văn Trường | `Sz3RO` | mở rộng P4 (leaderboard, phụ đề SFX) | Dev mở rộng | `client/ui` |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 
