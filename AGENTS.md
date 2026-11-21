@@ -6,6 +6,13 @@
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
+- Kiểm danh sách nhóm: `python3 tools/check_team.py`
+- Môi trường local: `python -m venv .venv` (chỉ thư viện chuẩn, không cần `pip install`; `.venv/` đã ignore).
+- Windows: test gọi `headless_cmd` = `python3 ...` qua subprocess, mà Windows không có `python3` → tạo shim 1 lần rồi đưa `.venv\Scripts` lên đầu PATH; `PYTHONPATH` dùng `;`:
+  - shim: `copy .venv\Scripts\python.exe .venv\Scripts\python3.exe`
+  - PowerShell: `$env:PATH = "$PWD\.venv\Scripts;$env:PATH"; $env:PYTHONPATH = "tests;."; python3 -m unittest discover -s tests -v`
+  - Git Bash: `PATH="$PWD/.venv/Scripts:$PATH" PYTHONPATH="tests;." python3 -m unittest discover -s tests -v`
+- **Không** đổi `headless_cmd`/`build_cmd` trong `game.contract.json` cho hợp máy local: máy chấm chạy Linux.
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
