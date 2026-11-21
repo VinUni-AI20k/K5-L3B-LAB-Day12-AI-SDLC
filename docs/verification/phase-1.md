@@ -1,6 +1,6 @@
 # Ma trận truy vết Phase 1
 
-Kiểm chứng mới nhất được thực hiện sau khi hòa nhập `origin/main` (`726d101`) vào `main` tại `d754125`. Bộ xác minh Phase 1 đạt 9/9 bước; full suite có 225 tests, không fail/error/expected failure. Log mới nhất: [verify-run.txt](../proof/phase-1/verify-run.txt).
+Kiểm chứng mới nhất được thực hiện sau khi hòa nhập `origin/main` (`726d101`) vào `main` tại `d354cdf`. Bộ xác minh Phase 1 đạt 9/9 bước; full suite có 225 tests, không fail/error/expected failure. Log mới nhất: [verify-run.txt](../proof/phase-1/verify-run.txt).
 
 | AC | Cách kiểm chứng | Bằng chứng | Kết quả |
 |---|---|---|---|
