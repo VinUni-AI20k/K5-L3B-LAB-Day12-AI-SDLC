@@ -32,10 +32,10 @@
 | AC-P2-51 | Regression P1 với số chuẩn: toàn bộ test P1 (lát 1–4, smoke P1) chạy trên v1.1; test đổi có ghi lý do trong commit `aa2445e`, `8a20711` | [unittest.txt](../proof/phase-2/unittest.txt) (154/154) | đạt |
 | AC-P2-52 | `kiem_tat_dinh.py`: 3 seed × 5 kịch bản (gồm `day --days 2`), 2 lần, so byte | [tat-dinh.txt](../proof/phase-2/tat-dinh.txt) | đạt (15/15) |
 | AC-P2-53 | `day --days 1` 22.200 tick: 3,0 s trên máy nhóm; `test_one_day_under_20s` | [day.txt](../proof/phase-2/day.txt) | đạt |
-| AC-P2-60 | Mở rộng `burn`: cháy sau ngưỡng, thử giữ lại kho v1.2, thiếu kho thì khách chờ tới hết kiên nhẫn; headless giữ nguyên luật lõi | [burn.txt](../proof/phase-2/burn.txt), `test_quan_service.py`, `test_python_starter_units.py` | đạt |
+| AC-P2-60 | Mở rộng `burn` | — | **chưa làm** (dời sang Phase 3) |
 
 ## Đánh giá ngắn
-- **Đạt:** contract v1.1; cá bơi/sinh; Cá Sấu (patrol/chase/hit/recoil/ngất); 2 bếp, 4 bàn, 6 món, lọc món theo kế hoạch; `--mode day` + Shop + pause ở headless; smoke tích hợp; regression P1; tất định; hiệu năng; mở rộng `burn` (AC-P2-60, cập nhật sau tag; [bằng chứng](../proof/phase-2/burn.txt)).
-- **Chưa đạt:** AC-P2-45 (các màn menu / DayIntro / Shop / pause trong cửa sổ chơi, `chonoi.live` chưa có `day`) → DoD "chơi trọn vòng ngày với menu, pause và HUD" **chưa đạt** ở bản chơi. HUD sáng / quán chưa chơi thử ghi ảnh (AC-P2-14, 33).
+- **Đạt:** contract v1.1; cá bơi/sinh; Cá Sấu (patrol/chase/hit/recoil/ngất); 2 bếp, 4 bàn, 6 món, lọc món theo kế hoạch; `--mode day` + Shop + pause ở headless; smoke tích hợp; regression P1; tất định; hiệu năng.
+- **Chưa đạt:** AC-P2-45 (các màn menu / DayIntro / Shop / pause trong cửa sổ chơi, `chonoi.live` chưa có `day`) → DoD "chơi trọn vòng ngày với menu, pause và HUD" **chưa đạt** ở bản chơi. HUD sáng / quán chưa chơi thử ghi ảnh (AC-P2-14, 33). Chưa có mục Mở rộng (bắt buộc với nhóm 5 người trong cả buổi lab).
 - **Rủi ro test ẩn:** clarify #13 (`attack` khi chưa bật mở rộng được bỏ qua thay vì mã 2), #10 (cách chọn 8 đàn đầu ca), #14 (luồng RNG theo Ngày).
-- **Điều cần chỉnh cho phase sau:** làm UI vòng ngày trong `chonoi.live` + chơi thử lưu ảnh; mở PR sớm hơn để tránh dồn 4 PR cuối phase (xung đột `day.py`, `index.html`, file ghi chép).
+- **Điều cần chỉnh cho phase sau:** làm UI vòng ngày trong `chonoi.live` + chơi thử lưu ảnh; làm `burn`; mở PR sớm hơn để tránh dồn 4 PR cuối phase (xung đột `day.py`, `index.html`, file ghi chép).
