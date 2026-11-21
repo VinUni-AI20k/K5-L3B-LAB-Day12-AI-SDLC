@@ -28,3 +28,5 @@
 ## Skills / hooks của nhóm
 - `smoke-p1` (`.agents/skills/smoke-p1/SKILL.md`): Chạy smoke test hộp đen 2 tiến trình (`gather` xuất file kho → `quan` đọc file kho) và trích bằng chứng vào `docs/proof/phase-1/` (không commit `*.jsonl`). Dùng từ phút 25 và trước khi gắn tag `phase-1`.
 - `verify-ac` (`.agents/skills/verify-ac/SKILL.md`): Chạy toàn bộ `unittest` + `tools/check_team.py`, đối chiếu `AC-P1-01`..`AC-P1-14` và cập nhật trung thực `docs/verification/phase-1.md`. Dùng sau khi gộp lát vào `main` và ở bước kiểm chứng bàn giao (phút 45–55).
+- `smoke-day` (`.agents/skills/smoke-day/SKILL.md`): Smoke Phase 2: tích hợp `gather` -> `quan`, `--mode day --days 1` và `--days 2` có lệnh `buy`; lưu bằng chứng vào `docs/proof/phase-2/`. Dùng từ phút 20 và trước khi gắn tag `phase-2`.
+- `smoke-p3` (`.agents/skills/smoke-p3/SKILL.md`): Smoke bàn giao kho cá thể Phase 3 (Ticket-03, v1.2): `gather --inventory-out` -> `quan --inventory`; lưu vào `docs/proof/phase-3/`. Nếu manifest còn 1.1 thì chạy `smoke-day` và ghi rõ v1.2 chưa bật.

@@ -1,0 +1,29 @@
+# Smoke --mode day Phase 2 (E, common-maker) @ b046845
+
+## 2a. --days 1 (seed 42, dock ở tick 0, shop_done ở tick 10803)
+mã thoát 0, 0.31s 
+  0 gather day_start
+  0 gather day_plan
+  0 gather phase_start
+  1 gather gather_end
+  1 quan phase_start
+  10801 quan quan_end
+  10801 shop phase_start
+  10804 shop shop_end
+  end: {"type": "end", "ticks": 10804, "sim_tick": 10804, "mode": "day", "state": "finished", "reason": "days_complete", "money": 450, "earned": 450, "reputation": 0, "score": 450, "days_completed": 1}
+
+## 2b. --days 2 có lệnh buy (oxygen hợp lệ, weapon lạ)
+mã thoát 0, 0.64s 
+  0 gather d1 day_start {}
+  0 gather d1 day_plan {"dishes": {"ca_loc_nuong_trui": 3, "goi_bong_sung": 3}, "ingredients": {"ca_loc": 3, "bong_sung": 6}}
+  10803 shop d1 bought {"upgrade": "oxygen", "level": 1, "price": 200, "money": 250}
+  10804 shop d1 buy_failed {"action": "weapon", "reason": "unknown"}
+  10805 shop d1 shop_end {"reason": "done"}
+  10805 gather d2 day_start {}
+  10805 gather d2 day_plan {"dishes": {"ca_loc_nuong_trui": 2, "lau_ca_linh_dien_dien": 2}, "ingredients": {"ca_loc": 2, "ca_linh": 6, "bong_dien_dien": 2}}
+  33005 shop d2 shop_end {"reason": "time"}
+  Snapshot gather đầu tiên của Ngày 2: {"tick": 11400, "day": 2, "upgrades": {"oxygen": 1}, "active_upgrades": {"oxygen": 1}, "oxygen_max_ticks": 2700}
+  end: {"type": "end", "ticks": 33005, "sim_tick": 33005, "mode": "day", "state": "finished", "reason": "days_complete", "money": 250, "earned": 450, "reputation": 0, "score": 450, "days_completed": 2}
+
+KẾT QUẢ 2a: ĐẠT
+KẾT QUẢ 2b: ĐẠT (Ngày 2 oxygen_max_ticks = 2700 sau khi mua oxygen cấp 1)
