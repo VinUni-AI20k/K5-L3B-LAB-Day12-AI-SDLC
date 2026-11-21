@@ -12,6 +12,7 @@ import copy
 import math
 
 from .contract import recipe_sum
+from .items import ItemIds, is_v12, public_list, to_fresh, validate_public_items
 from .ids import IdAllocator
 from .rng import Streams
 from .sim.gather import GatherSim
@@ -27,7 +28,11 @@ class ShopSim:
     def __init__(self, tuning, day_state, stock):
         self.t = tuning["shop"]
         self.ds = day_state
-        self.stock = {k: stock[k] for k in sorted(stock) if stock[k] > 0}  # kho dư từ ca, bỏ sau Shop
+        # kho dư từ ca, bỏ sau Shop. v1.2: mảng cá thể, KHÔNG hao tươi trong Shop
+        if isinstance(stock, list):
+            self.stock = [dict(it) for it in stock]
+        else:
+            self.stock = {k: stock[k] for k in sorted(stock) if stock[k] > 0}
         self.time_left_ticks = int(self.t["max_ticks"])
         self.done = False
         self.reason = None
@@ -37,6 +42,8 @@ class ShopSim:
     reputation = property(lambda self: self.ds.reputation)
 
     def snapshot(self) -> dict:
+        if isinstance(self.stock, list):
+            return {"stock": public_list(self.stock, by_id=True)}
         return {"stock": dict(self.stock)}
 
     def step(self, inp):
@@ -101,6 +108,14 @@ class DaySession:
         self.done = False
         self.reason = None
         self.sim = None
+        # v1.2: một bộ cấp id cá thể cho cả lượt; id trong mẫu gather.hold giữ nguyên ở Ngày 1
+        self.v12 = is_v12(tuning)
+        self.item_ids = ItemIds()
+        self._hold_template = None
+        if self.v12 and "hold" in self.scenario.get("gather", {}):
+            self._hold_template = validate_public_items(self.scenario["gather"]["hold"], "gather.hold")
+            for it in self._hold_template:
+                self.item_ids.reserve(it["id"])
         self._initial = self._start_day()
 
     # --- dựng pha -----------------------------------------------------------------
@@ -122,13 +137,23 @@ class DaySession:
         self.active_upgrades = dict(self.upgrades)  # chỉ khi dựng Ngày mới mới chép cấp đã mua
         self._day_t = self._day_tuning()
         self._streams = Streams(f"{self.seed}:day{self.day}")
-        self.sim = GatherSim(self._day_t, copy.deepcopy(self.scenario.get("gather", {})), self._streams, IdAllocator(), day=self.day)
+        self.sim = GatherSim(self._day_t, self._gather_scenario(), self._streams, IdAllocator(), day=self.day,
+                             item_ids=self.item_ids)
         self._sync_into(self.sim)
         self.phase_tick = 0
         plan = self.plan[self.day]
         return [self._event("day_start", {}, "gather"),
                 self._event("day_plan", {"dishes": plan["dishes"], "ingredients": plan["ingredients"]}, "gather"),
                 self._event("phase_start", {}, "gather")]
+
+    def _gather_scenario(self) -> dict:
+        """Mẫu gather mỗi Ngày. v1.2: Ngày 1 giữ id của mẫu hold; Ngày kế cấp id mới theo thứ tự mảng,
+        kind/fresh như mẫu (TICKET-03, Scenario)."""
+        sc = copy.deepcopy(self.scenario.get("gather", {}))
+        if self._hold_template is not None and self.day > 1:
+            sc["hold"] = [{"id": self.item_ids.new(), "kind": it["kind"], "fresh": to_fresh(it["fresh_units"])}
+                          for it in self._hold_template]
+        return sc
 
     def _sync_into(self, sim):
         sim.money, sim.earned, sim.reputation = self.money, self.earned, self.reputation
@@ -142,7 +167,9 @@ class DaySession:
         if phase == "gather":
             inventory = self.sim.inventory_items()  # ngất -> rỗng; quán vẫn mở
             quan_sc = copy.deepcopy(self.scenario.get("quan", {}))
+            # v1.2: bàn giao mảng cá thể ngay tick đổi pha, không hao thêm; ca quán chạy từ bước sau
             self.sim = QuanSim(self._day_t, quan_sc, self._streams, IdAllocator(), inventory=inventory,
+                               item_ids=self.item_ids,
                                menu_filter=sorted(self.plan[self.day]["dishes"]))  # lọc kế hoạch trước nguyên liệu
             self._sync_into(self.sim)
             self.phase_tick = 0
