@@ -22,10 +22,13 @@ Bản nháp của D (Integrator); TuHoAnh và Cuongngucuteee đã thêm phần c
 A gom và nộp (P3-10); mỗi người tự thêm dòng của mình.
 - Điều tốt:
   - **Cuongngucuteee:** HUD độ tươi (P3-06) làm song song với gather và quán nhờ D gộp schema kho cá thể (P3-02) trước và ghi dạng snapshot trong hợp đồng; test dùng thẳng adapter của P3-02 nên không tự bịa dữ liệu.
+  - **luongvh2510 (D):** Gộp schema, adapter và `freshness` vào `main` trước (P3-02) nên A, B, C làm song song mà ít xung đột; phá thử mỗi PR bắt được các chỗ test chưa chặt; bật 1.2 giữ hồi quy Phase 1-2 xanh (27/27, 15/15) nhờ chạy chúng với bản 1.1.
 - Điều tệ:
   - **Cuongngucuteee:** Mã việc trên Sheet lệch 1 so với kế hoạch nên tôi đặt nhầm tên hai PR (#39, #42); chưa thử HUD với sim v1.2 thật vì quán chưa xong.
+  - **luongvh2510 (D):** Tôi đặt tên khóa `freshness` sai so với đề (P3-02) vì không đọc được Ticket-03; B phát hiện muộn nên phải sửa lại ở #48 và đổi code của B và C. Sheet và PR cũng lệch nhau (P3-04 ghi Xong khi chưa có PR); test của A và B còn lọt vài cách phá thử; payload `spoiled` của gather và quán khác nhau.
 - 1 hành động cho Phase 4:
   - **Cuongngucuteee:** Trước khi làm, đối chiếu mã việc trên Sheet với commit đã gộp; khi A, B gộp v1.2 thì mở cửa sổ chơi chụp lại HUD độ tươi.
+  - **luongvh2510 (D):** Trước khi khóa contract (v1.3, bench và soak), nhờ người đọc được Ticket-04 đối chiếu tên khóa và trường từng chữ; mỗi PR ghi rõ chỗ nào là giả định.
 
 ## Phase 4 (cuối)
 - Rà lại hành động Phase 2: đã làm chưa? vì sao?
