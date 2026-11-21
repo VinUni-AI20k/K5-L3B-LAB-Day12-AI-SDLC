@@ -7,6 +7,7 @@ import { sfx, voiceLine } from "./audio.js";
 import { portrait, icon, dishIcon, DISH_NAME, KIND_NAME } from "./art.js";
 import { riverWorld } from "./story.js";
 import * as progress from "./progress.js";
+import { freshCfg, freshestFirst, isSpoiled, nextItemId, idNum } from "./fresh.js";
 
 const GOLD = "#ffd23f", BORDER = "#f3d27a";
 export const planFor = (contract, day) => (contract.tuning.day_plan || []).find((p) => p.day === day) || null;
@@ -14,6 +15,35 @@ export const planDays = (contract) => (contract.tuning.day_plan || []).length ||
 const kindName = (k) => KIND_NAME[k] || k;
 const dishName = (k) => DISH_NAME[k] || k;
 const ucfirst = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+const idn = (it) => idNum(it.id);
+
+// ---------- Chợ Chú Sáu (vendor, Test Contract v1.1 §3 + v1.2 §1) ----------
+// sell prices (what Chú Sáu pays), buy = floor(sell × 1.5); contract tuning.shop.vendor {buy_multiplier, sell_prices} overrides.
+// One unit per action, unlimited stock. Bought goods wait in save.pendingDelivery (fresh 100, new I<n> id, no decay) and
+// main.js adds them to the NEXT evening's quán stock. Selling takes the freshest NON-spoiled leftover of the kind (tie by id).
+export const VENDOR_SELL = { ca_loc: 20, ca_linh: 8, ca_keo: 10, bong_dien_dien: 5, bong_sung: 5, keo_neo: 5 };
+export function vendorPrices(contract) {
+  const v = contract?.tuning?.shop?.vendor || {}, sell = { ...VENDOR_SELL, ...(v.sell_prices || {}) }, mul = v.buy_multiplier ?? 1.5;
+  return Object.fromEntries(Object.entries(sell).map(([k, p]) => [k, { sell: p, buy: Math.floor(p * mul) }]));
+}
+export function vendorBuy(contract, kind) {
+  const pr = vendorPrices(contract)[kind], s = progress.save;
+  if (!pr || s.money < pr.buy) return null; // buy_failed: money unchanged
+  s.money -= pr.buy;
+  const it = { id: nextItemId(), kind, fresh: freshCfg(contract).initial };
+  if (!Array.isArray(s.pendingDelivery)) s.pendingDelivery = [];
+  s.pendingDelivery.push(it); progress.persist(); return it;
+}
+export function vendorSellable(contract, leftover, kind) { const b = freshCfg(contract).spoiled_below; return (leftover || []).filter((i) => i.kind === kind && !isSpoiled(i, b)).sort(freshestFirst); }
+export function vendorSell(contract, leftover, kind) {
+  const pr = vendorPrices(contract)[kind], it = vendorSellable(contract, leftover, kind)[0];
+  if (!pr || !it) return null; // nothing usable left (spoiled goods can't be sold)
+  leftover.splice(leftover.indexOf(it), 1);
+  const s = progress.save; s.money += pr.sell; s.totalEarned += pr.sell; progress.persist();
+  return { item: it, price: pr.sell };
+}
+const countKinds = (items) => { const o = {}; for (const it of items || []) o[it.kind] = (o[it.kind] || 0) + 1; return o; };
+export const deliveryText = (items) => Object.entries(countKinds(items)).map(([k, n]) => `${n} ${kindName(k)}`).join(", ");
 
 class Base {
   constructor(tod = "dawn") { this.t = 0; this.tod = tod; this.cam = { x: 0, y: 40 }; this.done = false; }
@@ -35,6 +65,8 @@ export class DayIntro extends Base {
     const total = p ? Object.values(p.ingredients).reduce((a, b) => a + b, 0) : 0;
     this.line = p ? `Hôm nay quán nấu ${dishes}. Con lặn lấy đủ ${total} nguyên liệu nghen!` : "Hôm nay con cứ lặn kiếm thật nhiều đồ nghen!";
     this.autoS = 4;
+    const pend = progress.save.pendingDelivery || [];
+    this.delivery = pend.length ? `Chú Sáu giao tối nay: ${deliveryText(pend)}` : null;
     try { voiceLine("ba", this.line); } catch (e) {}
     sfx("whoosh");
   }
@@ -61,6 +93,9 @@ export class DayIntro extends Base {
       txt("CẦN LẤY", bx + bw / 2, ly + 10, { size: 7, align: "center", color: "#9fd8ff", weight: 900 });
       ing.forEach(([kk, n], i) => { const x = bx + 8 + (i % cols) * rw, y = ly + 14 + Math.floor(i / cols) * 13; u.drawImage(icon(kk), x, y, 10, 10); txt(`${ucfirst(kindName(kk))} ×${n}`, x + 14, y + 8, { size: 8, color: "#fff", weight: 800 }); });
     }
+    if (this.delivery) { const dy = this.plan ? by + bh + 8 + 16 + Math.ceil(Object.keys(this.plan.ingredients).length / 3) * 13 + 6 : by + bh + 8;
+      panel(bx, dy, bw, 16, { fill: "rgba(30,50,20,.88)", border: "#9fdc7a", r: 6 }); u.drawImage(portrait("sau"), bx + 4, dy + 1, 14, 14);
+      txt(this.delivery, bx + 22, dy + 11, { size: 8, color: "#d8ffc0", weight: 800 }); }
     const left = Math.max(0, Math.ceil(this.autoS - t));
     txt(`Phím bất kỳ: xuống nước · tự đi sau ${left} s`, W / 2, H - 8, { size: 7, align: "center", color: "rgba(255,255,255,.65)", weight: 700 });
   }
@@ -69,44 +104,122 @@ export class DayIntro extends Base {
 // how many servings of a dish the stock covers
 export function servings(recipe, stock) { let n = Infinity; for (const [k, q] of Object.entries(recipe)) n = Math.min(n, Math.floor((stock[k] || 0) / q)); return n === Infinity ? 0 : n; }
 
-// ---------- EveningIntro: stock received + which plan dishes can be cooked ----------
+// ---------- EveningIntro "Chuẩn bị mở quán": stock received + the wooden MENU BOARD (choose what to sell) ----------
+// items (v1.2): the handover [{ id, kind, fresh }] (gather haul + Chợ Chú Sáu delivery) — servings count usable (≥ spoiled_below) only.
+// opts.delivered: item ids that came from Chợ Chú Sáu (marked "Hàng chợ").
+// Board: every contract dish with toggle (plan dishes pre-selected, "Kế hoạch"), target portions stepper capped by what is
+// cookable — usable stock is shared between selected dishes greedily in board order. onDone({ menu: [ids], portions: {id: n} }).
 export class EveningIntro extends Base {
-  // items (v1.2): the gather handover [{ id, kind, fresh }] — listed with fresh %; servings count usable (≥ spoiled_below) only
-  constructor(contract, day, stock, onDone, items = null) {
+  constructor(contract, day, stock, onDone, items = null, opts = {}) {
     super("dusk"); this.onDone = onDone; this.day = day; this.stock = stock || {}; this.menu = contract.tuning.menu;
     this.below = { spoiled_below: 30, ...contract.freshness }.spoiled_below;
     this.items = Array.isArray(items) ? items : null;
-    if (this.items) { this.usable = {}; for (const it of this.items) if (it.fresh >= this.below) this.usable[it.kind] = (this.usable[it.kind] || 0) + 1; }
+    this.delivered = new Set((opts && opts.delivered) || []);
+    this.usable = {};
+    if (this.items) { for (const it of this.items) if (it.fresh >= this.below && !it.spoiled) this.usable[it.kind] = (this.usable[it.kind] || 0) + 1; }
+    else for (const [k, n] of Object.entries(this.stock)) this.usable[k] = Math.max(0, n | 0);
+    // "2 cá linh đã ươn" warnings
+    const sp = {}; for (const it of this.items || []) if (it.fresh < this.below || it.spoiled) sp[it.kind] = (sp[it.kind] || 0) + 1;
+    this.warn = Object.entries(sp).map(([k, n]) => `${n} ${kindName(k)} đã ươn`);
     this.plan = planFor(contract, day);
-    this.ids = this.plan ? Object.keys(this.plan.dishes) : Object.keys(this.menu);
+    this.planIds = this.plan ? Object.keys(this.plan.dishes).filter((k) => this.menu[k]) : [];
+    let cm = 1; try { cm = progress.stats(contract).cookMul || 1; } catch (e) {}
+    this.rows = Object.keys(this.menu).map((id) => ({ id, plan: this.planIds.includes(id), on: this.planIds.includes(id), target: 0, can: 0, auto: true,
+      alone: servings(this.menu[id].recipe, this.usable), cook: Math.round(this.menu[id].cook_s * cm * 10) / 10, expect: this.expectPrice(id) }));
+    if (!this.planIds.length) for (const r of this.rows) r.on = r.alone > 0; // no plan (old contract): everything cookable
+    this.recalc();
+    this.sel = this.rows.length; // starts on "Mở quán ▶" (Enter opens with Má Tư's plan, as before)
+    this.msg = null;
   }
-  update(dt) { this.tick(dt); if (this.t > 0.6 && (input.hit("confirm") || input.hit("interact") || input.hit("catch"))) this.finish(this.ids); }
+  get ids() { return this.rows.filter((r) => r.on).map((r) => r.id); }
+  // expected price now: freshest usable items of each recipe kind → floor(price × mean fresh / 100) (the quán locks it at cook start)
+  expectPrice(id) {
+    const m = this.menu[id]; if (!this.items) return m.price;
+    const used = [];
+    for (const [k, q] of Object.entries(m.recipe)) { const got = this.items.filter((it) => it.kind === k && it.fresh >= this.below && !it.spoiled).sort((a, b) => b.fresh - a.fresh || idn(a) - idn(b)).slice(0, q); if (got.length < q) return null; used.push(...got); }
+    return used.length ? Math.floor(m.price * used.reduce((a, it) => a + it.fresh, 0) / used.length / 100) : m.price;
+  }
+  // greedy in board order: each selected dish takes target × recipe from what is left; `can` = cookable from what is left
+  recalc() {
+    const rem = { ...this.usable };
+    for (const r of this.rows) {
+      const rec = this.menu[r.id].recipe; r.can = servings(rec, rem);
+      if (!r.on) continue;
+      if (r.auto) { r.target = r.can; r.auto = false; } // freshly switched on: as many as the stock covers
+      r.target = clamp(r.target, 0, r.can);
+      for (const [k, q] of Object.entries(rec)) rem[k] = (rem[k] || 0) - q * r.target;
+    }
+  }
+  update(dt) {
+    this.tick(dt); if (this.msg) { this.msg.life -= dt; if (this.msg.life <= 0) this.msg = null; }
+    if (this.t <= 0.6) return;
+    const n = this.rows.length + 1;
+    if (input.hit("up")) { this.sel = (this.sel + n - 1) % n; sfx("click"); }
+    if (input.hit("down")) { this.sel = (this.sel + 1) % n; sfx("click"); }
+    const r = this.rows[this.sel];
+    if (r && (input.hit("left") || input.hit("right"))) {
+      if (!r.on) { sfx("hurt"); this.msg = { text: "Bật món này trước (E/Enter)", col: "#ffb36b", life: 1.4 }; }
+      else { const d = input.hit("right") ? 1 : -1, nt = clamp(r.target + d, r.can > 0 ? 1 : 0, r.can); if (nt !== r.target) { r.target = nt; sfx("click"); this.recalc(); } else sfx("hurt"); }
+    }
+    if (input.hit("next")) return this.open();
+    if (input.hit("confirm") || input.hit("interact") || input.hit("catch")) {
+      if (!r) return this.open();
+      r.on = !r.on; r.auto = r.on; sfx(r.on ? "select" : "click"); this.recalc();
+    }
+  }
+  open() {
+    const menu = this.ids, anyCook = this.rows.some((r) => r.alone > 0);
+    if (!anyCook) { // nothing cookable at all: open anyway with the plan dishes — guests still come, read the board and go home
+      const ids = menu.length ? menu : this.planIds.length ? this.planIds : Object.keys(this.menu);
+      return this.finish({ menu: ids, portions: null });
+    }
+    if (!menu.length) { sfx("hurt"); this.msg = { text: "Chọn ít nhất 1 món để bán", col: "#ff8a8a", life: 1.6 }; return; }
+    this.finish({ menu, portions: Object.fromEntries(this.rows.filter((r) => r.on).map((r) => [r.id, r.target])) });
+  }
   draw() {
     this.bg(); const u = screen.ui; u.imageSmoothingEnabled = false;
-    txt(`NGÀY ${this.day} · MỞ QUÁN`, W / 2, 26, { size: 18, align: "center", color: "#ff8a3d", weight: 900, italic: true, stroke: "#3a1410", sw: 5 });
-    // stock received
-    const ks = Object.entries(this.stock).filter(([, n]) => n > 0), its = this.items, rh = its ? 22 : 13;
-    panel(16, 38, 170, 22 + Math.max(1, ks.length) * rh, { fill: "rgba(8,20,38,.88)", border: "#7ac0ff", r: 6 });
-    txt("NHẬP KHO" + (its ? " · ĐỘ TƯƠI" : ""), 101, 49, { size: 8, align: "center", color: "#9fd8ff", weight: 900 });
-    if (!ks.length) txt("Kho trống — giỏ đã mất", 101, 64, { size: 8, align: "center", color: "#ffb0b0", weight: 800 });
-    ks.forEach(([k, n], i) => { const y = 54 + i * rh; u.drawImage(icon(k), 24, y, 10, 10); txt(ucfirst(kindName(k)), 38, y + 8, { size: 8, color: "#fff", weight: 800 }); txt("×" + n, 178, y + 8, { size: 8, align: "right", color: "#cfe", weight: 900 });
-      if (!its) return; // v1.2: each item id with its fresh % (spoiled = "ươn" in red); clipped to the panel width
-      let line = "", spoiled = false;
-      for (const it of its.filter((q) => q.kind === k)) { const bad = it.fresh < this.below; spoiled ||= bad; const part = `${it.id} ${bad ? "ươn" : Math.floor(it.fresh) + "%"}`; const next = line ? line + " · " + part : part; if (measure(next, 7, 700) > 150) { line += " …"; break; } line = next; }
-      txt(line, 24, y + 18, { size: 7, color: spoiled ? "#ffb0a0" : "rgba(220,245,255,.8)", weight: 700 }); });
-    // plan dishes
-    const x0 = 196, w0 = W - x0 - 16;
-    panel(x0, 38, w0, 22 + this.ids.length * 24, { fill: "rgba(30,12,16,.88)", border: BORDER, r: 6 });
-    txt("THỰC ĐƠN KẾ HOẠCH", x0 + w0 / 2, 49, { size: 8, align: "center", color: GOLD, weight: 900 });
-    this.ids.forEach((id, i) => {
-      const y = 54 + i * 24, m = this.menu[id]; if (!m) return;
-      const can = servings(m.recipe, this.usable || this.stock), want = this.plan?.dishes[id];
-      u.drawImage(dishIcon(id), x0 + 6, y, 18, 18);
-      txt(dishName(id), x0 + 28, y + 8, { size: 8, color: "#fff", weight: 800 });
-      txt(Object.entries(m.recipe).map(([k, q]) => `${kindName(k)} ×${q}`).join(" + ") + ` · ${m.price}k`, x0 + 28, y + 18, { size: 7, color: "rgba(255,230,200,.75)", weight: 700 });
-      txt(can > 0 ? `nấu được ×${can}` + (want ? `/${want}` : "") : "thiếu đồ", x0 + w0 - 6, y + 8, { size: 7, align: "right", color: can > 0 ? "#7dffb0" : "#ff8a8a", weight: 900 });
+    txt(`NGÀY ${this.day} · CHUẨN BỊ MỞ QUÁN`, W / 2, 24, { size: 16, align: "center", color: "#ff8a3d", weight: 900, italic: true, stroke: "#3a1410", sw: 5 });
+    // stock received (left)
+    const ks = Object.entries(this.stock).filter(([, n]) => n > 0), its = this.items, rh = its ? 22 : 13, pw = 168;
+    const ph = 22 + Math.max(1, ks.length) * rh;
+    panel(12, 34, pw, ph, { fill: "rgba(8,20,38,.88)", border: "#7ac0ff", r: 6 });
+    txt("NHẬP KHO" + (its ? " · ĐỘ TƯƠI" : ""), 12 + pw / 2, 45, { size: 8, align: "center", color: "#9fd8ff", weight: 900 });
+    if (!ks.length) txt("Kho trống — giỏ đã mất", 12 + pw / 2, 60, { size: 8, align: "center", color: "#ffb0b0", weight: 800 });
+    ks.forEach(([k, n], i) => { const y = 50 + i * rh; u.drawImage(icon(k), 18, y, 10, 10); txt(ucfirst(kindName(k)), 32, y + 8, { size: 8, color: "#fff", weight: 800 }); txt("×" + n, 12 + pw - 8, y + 8, { size: 8, align: "right", color: "#cfe", weight: 900 });
+      if (!its) return;
+      const mine = its.filter((q) => q.kind === k), nMkt = mine.filter((q) => this.delivered.has(q.id)).length;
+      if (nMkt) txt(`Hàng chợ ×${nMkt}`, 12 + pw - 26, y + 8, { size: 7, align: "right", color: GOLD, weight: 900 });
+      let line = "", spoiled = false; // each item id with its fresh % (spoiled = "ươn"), clipped to the panel width
+      for (const it of mine) { const bad = it.fresh < this.below || it.spoiled; spoiled ||= bad; const part = `${it.id}${this.delivered.has(it.id) ? "(chợ)" : ""} ${bad ? "ươn" : Math.floor(it.fresh) + "%"}`; const next = line ? line + " · " + part : part; if (measure(next, 7, 700) > pw - 16) { line += " …"; break; } line = next; }
+      txt(line, 18, y + 18, { size: 7, color: spoiled ? "#ffb0a0" : "rgba(220,245,255,.8)", weight: 700 }); });
+    this.warn.forEach((w, i) => txt("! " + w, 16, 34 + ph + 10 + i * 10, { size: 7, color: "#ff8a8a", weight: 900, stroke: "#1a0a0a", sw: 2 }));
+    // wooden menu board (right)
+    const x0 = 186, w0 = W - x0 - 8, rH = 26, y0 = 50;
+    panel(x0, 32, w0, 18 + this.rows.length * rH + 4, { fill: "rgba(96,58,30,.96)", border: "#d9a05a", r: 6, bw: 1.5 });
+    u.fillStyle = "rgba(60,34,16,.35)"; for (let i = 0; i < this.rows.length; i++) u.fillRect(x0 + 3, y0 + i * rH + rH - 1, w0 - 6, 1); // plank seams
+    txt("BẢNG THỰC ĐƠN TỐI NAY", x0 + w0 / 2, 44, { size: 8, align: "center", color: "#ffe9c4", weight: 900, stroke: "#3a1a08", sw: 2 });
+    this.rows.forEach((r, i) => {
+      const y = y0 + i * rH, m = this.menu[r.id], sel = this.sel === i, dim = r.on ? 1 : 0.55;
+      if (sel) panel(x0 + 3, y, w0 - 6, rH - 2, { fill: "rgba(255,210,100,.2)", border: GOLD, r: 4 });
+      panel(x0 + 6, y + 7, 22, 10, { fill: r.on ? "rgba(60,160,80,.95)" : "rgba(60,40,30,.9)", border: r.on ? "#9fffb8" : "rgba(255,255,255,.3)", r: 4 });
+      txt(r.on ? "BẬT" : "TẮT", x0 + 17, y + 14.5, { size: 7, align: "center", color: "#fff", weight: 900 });
+      u.save(); u.globalAlpha = dim; u.drawImage(dishIcon(r.id), x0 + 31, y + 3, 18, 18); u.restore();
+      txt(dishName(r.id), x0 + 52, y + 10, { size: 8, color: r.on ? "#fff" : "rgba(255,255,255,.6)", weight: 900 });
+      if (r.plan) { const nx = x0 + 56 + measure(dishName(r.id), 8, 900); panel(nx, y + 3, 36, 9, { fill: "rgba(255,210,63,.25)", border: GOLD, r: 3 }); txt("Kế hoạch", nx + 18, y + 10, { size: 7, align: "center", color: GOLD, weight: 900 }); }
+      let rx = x0 + 52; // recipe icons
+      for (const [k, q] of Object.entries(m.recipe)) { u.drawImage(icon(k), rx, y + 14, 8, 8); txt("×" + q, rx + 9, y + 21, { size: 7, color: "rgba(255,233,196,.85)", weight: 800 }); rx += 22; }
+      const ex = r.expect, price = ex != null && ex !== m.price ? `${m.price}k→${ex}k` : `${m.price}k`;
+      txt(`${price} · ${r.cook} s`, rx + 2, y + 21, { size: 7, color: ex != null && ex < m.price ? "#ffd0a0" : "#ffe9c4", weight: 800 });
+      const right = x0 + w0 - 8;
+      if (r.on) txt(`◀ ${r.target} ▶`, right, y + 10, { size: 8, align: "right", color: r.target > 0 ? GOLD : "#ff8a8a", weight: 900 });
+      txt(r.can > 0 ? `Nấu được ${r.can} phần` : "thiếu đồ", right, y + 21, { size: 7, align: "right", color: r.can > 0 ? "#7dffb0" : "#ff8a8a", weight: 900 });
     });
-    if (this.t > 0.6) txt("Enter / E: mở quán ▶", W / 2, H - 10, { size: 9, align: "center", color: "#fff", weight: 900, alpha: 0.7 + 0.3 * Math.sin(this.t * 5) });
+    // "Mở quán ▶" button
+    const bs = this.sel === this.rows.length, by = y0 + this.rows.length * rH + 8;
+    panel(x0 + w0 / 2 - 50, by, 100, 15, { fill: bs ? "rgba(200,90,30,.95)" : "rgba(110,64,32,.95)", border: bs ? GOLD : "#3a2410", bw: 1.5, r: 5 });
+    txt("Mở quán ▶", x0 + w0 / 2, by + 11, { size: 9, align: "center", color: "#fff", weight: 900, alpha: bs ? 0.75 + 0.25 * Math.sin(this.t * 5) : 1 });
+    if (this.msg) txt(this.msg.text, W / 2, H - 20, { size: 9, align: "center", color: this.msg.col, weight: 900, stroke: "#1a1220", sw: 2 });
+    if (this.t > 0.6) txt("↑↓ chọn món · E/Enter bật/tắt · ←→ số phần · N: mở quán", W / 2, H - 6, { size: 7, align: "center", color: "rgba(255,255,255,.7)", weight: 700 });
   }
 }
 
@@ -137,10 +250,13 @@ export class DayResult extends Base {
   }
 }
 
-// ---------- Shop: contract upgrades first, creative extras after; auto-closes after shop.max_ticks ----------
+// ---------- Shop: tab "Nâng cấp" (contract upgrades first, creative extras after) + tab "Chợ Chú Sáu" (buy / sell raw goods);
+// auto-closes after shop.max_ticks. opts.leftover = tonight's leftover quán items (spoiled included), mutated by sales and
+// thrown away by main.js when the Shop closes. this.bought = { kind: n } bought this visit (main.js sends Chú Sáu's message).
 const CU = { oxygen: { name: "Bình oxy", eff: (l) => `O₂ ${l.oxygen_max_s} s` }, hp: { name: "Áo phao (thêm Máu)", eff: (l) => `${l.hp_max} Máu` } };
+export const SHOP_TABS = ["NÂNG CẤP", "CHỢ CHÚ SÁU"];
 export class Shop extends Base {
-  constructor(contract, nextLabel, onDone) {
+  constructor(contract, nextLabel, onDone, opts = {}) {
     super("night"); this.c = contract; this.onDone = onDone; this.nextLabel = nextLabel;
     const ups = contract.tuning.shop?.upgrades || {};
     this.rows = [{ head: "NÂNG CẤP CHUẨN" }];
@@ -150,15 +266,53 @@ export class Shop extends Base {
     this.rows.push({ done: true });
     this.items = this.rows.map((r, i) => (r.head ? -1 : i)).filter((i) => i >= 0);
     this.sel = 0; this.msg = null;
-    this.left = (contract.tuning.shop?.max_ticks ?? 600) / (contract.tuning.tick_hz || 60); // frozen while paused (main.js skips update)
+    // contract: auto-close after shop.max_ticks of activity. GUI: counted as IDLE time (any key resets it) so trading isn't rushed
+    this.maxLeft = (contract.tuning.shop?.max_ticks ?? 600) / (contract.tuning.tick_hz || 60); this.left = this.maxLeft; // frozen while paused
+    // Chợ Chú Sáu
+    this.tab = opts.tab === 1 ? 1 : 0;
+    this.leftover = Array.isArray(opts.leftover) ? opts.leftover : [];
+    this.prices = vendorPrices(contract); this.kinds = Object.keys(this.prices);
+    this.below = freshCfg(contract).spoiled_below;
+    this.mSel = 0; this.col = 0; // market row (kinds…, then "done") · column 0 = Mua, 1 = Bán
+    this.bought = {}; this.pops = [];
   }
   update(dt) {
     this.tick(dt); this.left -= dt;
+    if (input.anyKey?.()) this.left = this.maxLeft;
     if (this.msg) { this.msg.life -= dt; if (this.msg.life <= 0) this.msg = null; }
+    for (const p of this.pops) p.life -= dt; this.pops = this.pops.filter((p) => p.life > 0);
     if (this.left <= 0) { this.left = 0; return this.finish("time"); }
+    if (input.hit("tab") || (this.tab === 0 && (input.hit("left") || input.hit("right")))) { this.tab = 1 - this.tab; sfx("click"); return; }
+    const ok = this.t > 0.3 && (input.hit("confirm") || input.hit("interact") || input.hit("catch"));
+    if (this.tab === 1) {
+      const n = this.kinds.length + 1;
+      if (input.hit("up")) { this.mSel = (this.mSel + n - 1) % n; sfx("click"); }
+      if (input.hit("down")) { this.mSel = (this.mSel + 1) % n; sfx("click"); }
+      if (input.hit("left")) { this.col = 0; sfx("click"); }
+      if (input.hit("right")) { this.col = 1; sfx("click"); }
+      if (ok) { if (this.mSel >= this.kinds.length) return this.finish("done"); this.trade(this.kinds[this.mSel], this.col ? "sell" : "buy"); }
+      return;
+    }
     if (input.hit("up")) { this.sel = (this.sel + this.items.length - 1) % this.items.length; sfx("click"); }
     if (input.hit("down")) { this.sel = (this.sel + 1) % this.items.length; sfx("click"); }
-    if (this.t > 0.3 && (input.hit("confirm") || input.hit("interact") || input.hit("catch"))) this.activate(this.rows[this.items[this.sel]]);
+    if (ok) this.activate(this.rows[this.items[this.sel]]);
+  }
+  // one unit per action (contract): buy → pendingDelivery for tomorrow evening; sell → freshest usable leftover
+  trade(kind, action) {
+    const row = this.kinds.indexOf(kind), px = action === "buy" ? 250 : 382, py = 108 + row * 20;
+    if (action === "buy") {
+      const it = vendorBuy(this.c, kind);
+      if (!it) { sfx("hurt"); this.msg = { text: "Không đủ tiền mua " + kindName(kind), col: "#ff8a8a", life: 1.6 }; return null; }
+      this.bought[kind] = (this.bought[kind] || 0) + 1; sfx("coin");
+      this.pops.push({ text: `-${this.prices[kind].buy}k`, x: px, y: py, col: "#ffb36b", life: 1 });
+      this.msg = { text: `Đã mua 1 ${kindName(kind)} (${it.id}) · giao tối mai, tươi 100%`, col: "#7dffb0", life: 1.6 };
+      return it;
+    }
+    const r = vendorSell(this.c, this.leftover, kind);
+    if (!r) { sfx("hurt"); this.msg = { text: this.leftover.some((i) => i.kind === kind) ? `${ucfirst(kindName(kind))} còn lại đã ươn — Chú Sáu không lấy` : `Hết ${kindName(kind)} dư để bán`, col: "#ff8a8a", life: 1.6 }; return null; }
+    sfx("coin"); this.pops.push({ text: `+${r.price}k`, x: px, y: py, col: GOLD, life: 1 });
+    this.msg = { text: `Bán ${r.item.id} (${Math.floor(r.item.fresh)}%) cho Chú Sáu`, col: GOLD, life: 1.4 };
+    return r;
   }
   activate(r) {
     if (r.done) return this.finish("done");
@@ -182,10 +336,19 @@ export class Shop extends Base {
   }
   draw() {
     this.bg(); const s = progress.save;
-    txt("SHOP CHỢ NỔI", W / 2, 22, { size: 16, align: "center", color: GOLD, weight: 900, italic: true, stroke: "#3a1410", sw: 4 });
-    txt(`Ví ${s.money}k · Tổng thu ${s.totalEarned}k`, 16, 22, { size: 8, color: GOLD, weight: 900 });
-    txt(`Tự đóng sau ${Math.ceil(this.left)} s`, W - 16, 22, { size: 8, align: "right", color: this.left < 4 ? "#ff8a8a" : "#cfe", weight: 800 });
-    const x0 = 24, w0 = W - 48; let y = 32;
+    txt("SHOP CHỢ NỔI", W / 2, 18, { size: 14, align: "center", color: GOLD, weight: 900, italic: true, stroke: "#3a1410", sw: 4 });
+    txt(`Ví ${s.money}k · Tổng thu ${s.totalEarned}k`, 16, 18, { size: 8, color: GOLD, weight: 900 });
+    txt(`Tự đóng nếu không thao tác ${Math.ceil(this.left)} s`, W - 16, 18, { size: 8, align: "right", color: this.left < 4 ? "#ff8a8a" : "#cfe", weight: 800 });
+    SHOP_TABS.forEach((name, i) => { const on = this.tab === i, x = W / 2 - 112 + i * 116;
+      panel(x, 23, 108, 13, { fill: on ? "rgba(255,160,60,.35)" : "rgba(8,20,38,.75)", border: on ? GOLD : "rgba(243,210,122,.35)", r: 5 });
+      txt(name, x + 54, 32.5, { size: 8, align: "center", color: on ? "#fff" : "rgba(255,255,255,.6)", weight: 900 }); });
+    if (this.tab === 1) this.drawMarket(); else this.drawUpgrades();
+    for (const p of this.pops) txt(p.text, p.x, p.y - (1 - p.life) * 14, { size: 10, align: "center", color: p.col, weight: 900, stroke: "#1a1220", sw: 2, alpha: Math.min(1, p.life * 2) });
+    if (this.msg) txt(this.msg.text, W / 2, H - 18, { size: 9, align: "center", color: this.msg.col, weight: 900, stroke: "#1a1220", sw: 2 });
+    txt(this.tab === 1 ? "↑↓ chọn hàng · ←→ Mua/Bán · Enter: 1 đơn vị · Tab: Nâng cấp · Esc/P tạm dừng" : "↑↓ chọn · Enter mua · Tab/←→: Chợ Chú Sáu · Esc/P tạm dừng · có hiệu lực từ ngày mai", W / 2, H - 5, { size: 7, align: "center", color: "rgba(255,255,255,.6)", weight: 700 });
+  }
+  drawUpgrades() {
+    const x0 = 24, w0 = W - 48; let y = 40;
     this.rows.forEach((r, i) => {
       if (r.head) { txt(r.head, x0 + 2, y + 9, { size: 7, color: r.head.includes("SÁNG") ? "#c9a6ff" : "#9fd8ff", weight: 900 }); y += 12; return; }
       const sel = this.items[this.sel] === i, rt = this.rowText(r), h = r.done ? 16 : 17;
@@ -195,8 +358,42 @@ export class Shop extends Base {
       if (rt.price) txt(rt.price, x0 + w0 - 6, y + 10, { size: 8, align: "right", color: rt.price === "TỐI ĐA" ? "#9fd8ff" : rt.can ? "#7dffb0" : "#ff8a8a", weight: 900 });
       y += h;
     });
-    if (this.msg) txt(this.msg.text, W / 2, H - 20, { size: 9, align: "center", color: this.msg.col, weight: 900, stroke: "#1a1220", sw: 2 });
-    txt("↑↓ chọn · Enter mua · Esc/P tạm dừng · nâng cấp có hiệu lực từ ngày kế tiếp", W / 2, H - 6, { size: 7, align: "center", color: "rgba(255,255,255,.6)", weight: 700 });
+  }
+  drawMarket() {
+    const u = screen.ui, s = progress.save; u.imageSmoothingEnabled = false;
+    // Chú Sáu + wooden sign
+    panel(16, 40, W - 32, 46, { fill: "rgba(96,58,30,.95)", border: "#d9a05a", r: 6, bw: 1.5 });
+    try { u.drawImage(portrait("sau"), 22, 43, 40, 40); } catch (e) {}
+    txt("CHỢ CHÚ SÁU", 70, 56, { size: 11, color: "#ffe9c4", weight: 900, stroke: "#3a1a08", sw: 3 });
+    txt("“Mua cá tươi giao tận quán tối mai, đồ dư tối nay Chú lấy hết — miễn đừng ươn nghen!”", 70, 70, { size: 7, color: "#fff3d6", weight: 700 });
+    const pend = s.pendingDelivery || [];
+    txt(pend.length ? `Chờ giao tối mai: ${deliveryText(pend)}` : "Chưa đặt hàng cho tối mai", 70, 80, { size: 7, color: pend.length ? "#d8ffc0" : "rgba(255,255,255,.55)", weight: 800 });
+    // columns
+    const x0 = 16, w0 = W - 32, cB = 186, cS = 318, y0 = 92, rh = 20;
+    txt("HÀNG", x0 + 6, y0 + 4, { size: 7, color: "#9fd8ff", weight: 900 });
+    txt("MUA (giao tối mai)", cB + 64, y0 + 4, { size: 7, align: "center", color: this.col === 0 ? GOLD : "#9fd8ff", weight: 900 });
+    txt("BÁN (đồ dư tối nay)", cS + 64, y0 + 4, { size: 7, align: "center", color: this.col === 1 ? GOLD : "#9fd8ff", weight: 900 });
+    const pc = countKinds(pend);
+    this.kinds.forEach((k, i) => {
+      const y = y0 + 8 + i * rh, sel = this.mSel === i, pr = this.prices[k];
+      panel(x0, y, w0, rh - 2, { fill: sel ? "rgba(255,160,60,.16)" : "rgba(8,20,38,.82)", border: sel ? "rgba(255,210,63,.6)" : "rgba(243,210,122,.25)", r: 5 });
+      u.drawImage(icon(k), x0 + 6, y + 4, 10, 10); txt(ucfirst(kindName(k)), x0 + 20, y + 12, { size: 8, color: "#fff", weight: 900 });
+      // buy cell
+      const canBuy = s.money >= pr.buy;
+      panel(cB, y + 2, 128, rh - 6, { fill: sel && this.col === 0 ? "rgba(255,160,60,.4)" : "rgba(0,0,0,.25)", border: sel && this.col === 0 ? GOLD : "rgba(255,255,255,.12)", r: 4 });
+      txt(`${pr.buy}k`, cB + 6, y + 12, { size: 8, color: canBuy ? "#7dffb0" : "#ff8a8a", weight: 900 });
+      txt(`đã đặt ${pc[k] || 0}`, cB + 122, y + 12, { size: 7, align: "right", color: pc[k] ? "#d8ffc0" : "rgba(255,255,255,.5)", weight: 800 });
+      // sell cell: usable leftovers only; spoiled shown greyed "ươn"
+      const good = vendorSellable(this.c, this.leftover, k).length, bad = this.leftover.filter((it) => it.kind === k).length - good;
+      panel(cS, y + 2, 128, rh - 6, { fill: sel && this.col === 1 ? "rgba(255,160,60,.4)" : "rgba(0,0,0,.25)", border: sel && this.col === 1 ? GOLD : "rgba(255,255,255,.12)", r: 4 });
+      txt(`${pr.sell}k`, cS + 6, y + 12, { size: 8, color: good ? GOLD : "rgba(255,255,255,.4)", weight: 900 });
+      txt(`còn ${good}`, cS + 76, y + 12, { size: 7, align: "right", color: good ? "#fff" : "rgba(255,255,255,.4)", weight: 800 });
+      if (bad) txt(`${bad} ươn`, cS + 122, y + 12, { size: 7, align: "right", color: "#8a8a8a", weight: 800 });
+    });
+    const dy = y0 + 8 + this.kinds.length * rh + 2, ds = this.mSel >= this.kinds.length;
+    panel(x0, dy, w0, 14, { fill: ds ? "rgba(255,160,60,.25)" : "rgba(8,20,38,.82)", border: ds ? GOLD : "rgba(243,210,122,.35)", r: 5 });
+    txt((ds ? "▶ " : "") + this.nextLabel, x0 + 6, dy + 10, { size: 8, color: "#fff", weight: 900 });
+    if (!this.leftover.length) txt("Tối nay không còn đồ dư", x0 + w0 - 6, dy + 10, { size: 7, align: "right", color: "rgba(255,255,255,.5)", weight: 700 });
   }
 }
 

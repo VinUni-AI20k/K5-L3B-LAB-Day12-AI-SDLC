@@ -147,6 +147,8 @@ export const PORTRAITS = {
     "..kkkkkkkkkkkkkkkkkkkkk.",
   ],
 };
+// Chú Sáu (Chợ Chú Sáu vendor in the Shop): the straw-hat guest with a green market shirt
+PORTRAITS.sau = PORTRAITS.khach.map((r) => r.replace(/b/g, "x").replace(/B/g, "X"));
 
 // 10x10 item icons (hold slots, stock, recipes)
 export const ICONS = {
