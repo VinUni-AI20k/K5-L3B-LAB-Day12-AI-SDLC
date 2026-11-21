@@ -20,7 +20,7 @@ git clone <fork-của-nhóm> && cd <fork-của-nhóm>
 python3 -m chonoi.live --mode gather
 ```
 
-Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Menu có **Chơi trọn ngày**, **Chỉ chơi buổi sáng** và **Chỉ chơi buổi tối**.
+Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Chọn **Chơi** để xem vòng 5 ngày của Phase 2. Bản hiện tại dùng snapshot mẫu v1.1 cho vòng 5 ngày. **Chơi trọn ngày**, **Chỉ chơi buổi sáng** và **Chỉ chơi buổi tối** vẫn chạy sim Phase 1.
 
 ## Điều khiển
 
@@ -30,6 +30,8 @@ Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Menu
 | E | Hái rau hoặc cập bến | Tương tác với bếp hoặc bàn để nấu, bưng, phục vụ |
 | Space | Bắt đàn cá gần khi đang lặn | |
 | R | Chơi lại buổi sáng | Chơi lại ca tối với kho đầu ca |
+
+Trong Phase 2, **Esc** hoặc **P** tạm dừng hoặc tiếp tục, kể cả khi ở cửa hàng. Bấm **Mua cấp** để mua nâng cấp và **Qua ngày mới** để đóng cửa hàng. Cấp đã mua bắt đầu áp dụng từ sáng hôm sau.
 
 Buổi sáng ghi `inventory.json` khi kết thúc. Trong **Chơi trọn ngày**, màn chuyển ca hiện kho đã chốt. Chọn **Mở quán** để dùng kho đó cho ca tối. Khi chỉ chơi buổi tối, game dùng `inventory.json` nếu có hoặc [kho mẫu](docs/contracts/inventory.sample.json). Có thể chỉ định kho khác bằng `python3 -m chonoi.live --mode quan --inventory kho.json`, hoặc đổi tên file bàn giao bằng `--inventory-out kho.json` khi chạy `--mode gather`.
 
@@ -45,11 +47,14 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 
 Khi cần kiểm tra UI riêng, chạy `python3 -m http.server 8000 --bind 127.0.0.1` ở gốc repo và mở `http://127.0.0.1:8000/chonoi/web/?preview=1`. Chọn chế độ, rồi nhấn **E** hoặc **Space** để duyệt các snapshot mẫu. Bản xem có thể đi qua luồng thu hoạch, chuyển kho, nấu, bưng, phục vụ, thanh toán và tổng kết.
 
+Để xem UI Phase 2 độc lập, đổi URL thành `http://127.0.0.1:8000/chonoi/web/?preview=2`. Chọn **Chơi**, nhấn **E** hoặc **Space** để duyệt cảnh sông và nhấn **E** để duyệt ca tối. Phiên này dùng tình huống đã dựng sẵn. Trên PowerShell có thể chạy máy chủ bằng `python -m chonoi.live --mode gather`.
+
 ## Sáng tạo của nhóm
 
 - Sông Chín Khúc có trời hồng, bờ dừa nước, nhà sàn và bọt khí khi Út Sen bơi dưới nước. Camera cuộn ngang theo nhân vật.
 - Nhà bè Má Tư có sàn gỗ, đèn dây đung đưa và khói khi bếp đang nấu. Út Sen mặc áo bà ba, quàng khăn rằn và mang giỏ lưới.
 - Thông báo dùng giọng Nam Bộ. Cạn oxy hiện cảnh báo, ngạt làm viền đỏ và rung nhẹ, khách boa làm thông báo thanh toán sáng lên. Đồ họa và hiệu ứng do client vẽ từ snapshot và event. [Bằng chứng UI](docs/proof/phase-1/client-ui.md)
+- Phase 2 chia sông thành ba tầng màu, thêm vạch nước sâu và cá sấu Năm Chèo với phản hồi riêng khi đuổi hoặc bị choáng. Nhà bè có ánh đèn dây, khói trên hai bếp và lời thoại ngắn của khách. [Checklist UI Phase 2](docs/verification/phase-2.md)
 
 ## Tự do sáng tạo
 

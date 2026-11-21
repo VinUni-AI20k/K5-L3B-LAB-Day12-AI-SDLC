@@ -117,9 +117,19 @@ export function shore(ctx, w, h, horizon, drift = 0) {
   }
 }
 
-export function river(ctx, w, h, horizon, floor, drift = 0, t = 0) {
-  ctx.fillStyle = ramp(ctx, horizon, floor, "#87a385", "#497963", "#24534c", "#163731");
-  ctx.fillRect(0, horizon, w, h - horizon);
+export function river(ctx, w, h, horizon, floor, drift = 0, t = 0, tiers) {
+  if (tiers) {
+    const [middle, deep] = tiers;
+    for (const [top, bottom, light, dark] of [
+      [horizon, middle, "#b2a673", "#667d57"], [middle, deep, "#4e7558", "#2b5350"], [deep, floor, "#25474a", "#112e37"],
+    ]) {
+      ctx.fillStyle = ramp(ctx, top, bottom, light, dark);
+      ctx.fillRect(0, top, w, bottom - top + 1);
+    }
+  } else {
+    ctx.fillStyle = ramp(ctx, horizon, floor, "#87a385", "#497963", "#24534c", "#163731");
+    ctx.fillRect(0, horizon, w, h - horizon);
+  }
   ctx.save();
   ctx.beginPath();
   ctx.rect(0, horizon, w, Math.max(0, h - horizon));
@@ -163,8 +173,9 @@ export function plant(ctx, x, y, kind, ready, scale) {
     const dx = (i - 1) * s * .57;
     const up = s * (.6 + (i % 2) * .31);
     stroke(ctx, "#427551", 1.6, [x + dx * .4, y + 2], [x + dx, y - up]);
-    oval(ctx, x + dx, y - up, s * .35, s * .23, lotus ? "#e2849b" : "#eda857");
-    oval(ctx, x + dx - 1, y - up - s * .15, s * .17, s * .18, lotus ? "#f5b2ba" : "#f8cf79");
+    const [flower, tip] = kind === "keo_neo" ? ["#88b46b", "#d4e491"] : lotus ? ["#e2849b", "#f5b2ba"] : ["#eda857", "#f8cf79"];
+    oval(ctx, x + dx, y - up, s * .35, s * .23, flower);
+    oval(ctx, x + dx - 1, y - up - s * .15, s * .17, s * .18, tip);
   }
 }
 
@@ -185,11 +196,38 @@ export function school(ctx, x, y, fish, scale, t) {
   ctx.translate(x, y);
   ctx.rotate((fish.heading_deg ?? 0) * Math.PI / 180);
   const wave = Math.sin(t * 2 + fish.pos[0]);
-  fishBody(ctx, 0, wave * 1.4, size, moss);
-  if (!moss) {
+  if (fish.kind === "ca_keo") {
+    shape(ctx, "#716d83", [-size * .46, 0], [-size, -size * .24], [-size * .88, size * .19]);
+    oval(ctx, 0, wave * 1.4, size * .68, size * .16, "#a5a7c1");
+    oval(ctx, size * .42, -.8, 1.65, 1.65, "#313342");
+  } else fishBody(ctx, 0, wave * 1.4, size, moss);
+  if (fish.kind === "ca_linh") {
     fishBody(ctx, -size * .65, size * .48, size * .67, false);
     fishBody(ctx, size * .58, -size * .31, size * .61, false);
   }
+  ctx.restore();
+}
+
+export function crocodile(ctx, x, y, scale, monster, time) {
+  const sway = Math.sin(time * (monster.state === "chase" ? 10 : 4)) * 4;
+  const chase = monster.state === "chase";
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((monster.heading_deg ?? 0) * Math.PI / 180);
+  const size = Math.min(1.7, Math.max(.85, scale / 12));
+  ctx.scale(size, size);
+  ctx.globalAlpha = monster.state === "recoil" ? .58 : 1;
+  if (chase) {
+    oval(ctx, 0, 0, 42, 14, "#e9645d44");
+    stroke(ctx, "#ff9d8075", 1.6, [-65, -8], [-35, -4], [-55, 0]);
+  }
+  shape(ctx, "#627e53", [-10, -5], [-27, -2], [-46, sway], [-22, 6], [-8, 7]);
+  oval(ctx, -4, 0, 18, 8, "#74945f");
+  shape(ctx, "#8dae6e", [8,-6], [27,-4], [36,-1], [35,5], [9,6]);
+  for (let i = -13; i < 7; i += 5) shape(ctx, "#3a654c", [i,-2], [i+2,-6], [i+4,-2]);
+  stroke(ctx, "#264e3a", 1.3, [15, 3], [35, 2]);
+  oval(ctx, 13, -3, 3.2, 3.2, chase ? "#ff584d" : "#e9bb6e");
+  oval(ctx, 14, -3, 1.1, 1.65, "#243932");
   ctx.restore();
 }
 
