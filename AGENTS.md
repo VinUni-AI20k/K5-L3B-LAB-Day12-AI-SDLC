@@ -10,7 +10,7 @@
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
-- Luật chơi Phase 1: `chonoi/sim/gather.py`, `chonoi/sim/quan.py`. `chonoi/scenario.py` kiểm fixture và liên kết đơn với món, bếp, tay và kho trước khi tạo JSONL.
+- Luật mô phỏng: `chonoi/sim/gather.py`, `chonoi/sim/quan.py`. `chonoi/scenario.py` kiểm fixture trước khi tạo JSONL.
 - **Số liệu chỉ đọc từ `game.contract.json` / dữ liệu**, không hard-code trong luật.
 - Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.
@@ -32,3 +32,4 @@
 - `python3 tools/phase1.py verify` chạy kiểm danh sách thành viên và toàn bộ suite Phase 1 trước khi bàn giao.
 - `python3 tools/phase1.py smoke` chạy riêng hai tiến trình Gather → kho → Quán khi sửa ranh giới tích hợp.
 - Kết quả chạy của nhóm nằm trong [ma trận bàn giao Phase 1](docs/verification/phase-1.md).
+- Khi kiểm Phase 2, đọc [ma trận nghiệm thu](docs/verification/phase-2.md) và chạy toàn suite trên commit tích hợp. Dùng `tools/phase1.py smoke` để kiểm riêng hai tiến trình bàn giao kho. Ghi kết quả preview và headless theo từng nguồn bằng chứng.

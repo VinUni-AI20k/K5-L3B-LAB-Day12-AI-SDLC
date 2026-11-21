@@ -20,7 +20,7 @@ git clone <fork-của-nhóm> && cd <fork-của-nhóm>
 python3 -m chonoi.live --mode gather
 ```
 
-Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Chọn **Chơi** để xem vòng 5 ngày của Phase 2. Bản hiện tại dùng snapshot mẫu v1.1 cho vòng 5 ngày. **Chơi trọn ngày**, **Chỉ chơi buổi sáng** và **Chỉ chơi buổi tối** vẫn chạy sim Phase 1.
+Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Chọn **Chơi** để xem vòng 5 ngày của Phase 2 bằng snapshot mẫu. **Chơi trọn ngày**, **Chỉ chơi buổi sáng** và **Chỉ chơi buổi tối** gọi live adapter với preset Gather và Quán hiện tại. [Báo cáo nghiệm thu Phase 2](docs/verification/phase-2.md)
 
 ## Điều khiển
 
