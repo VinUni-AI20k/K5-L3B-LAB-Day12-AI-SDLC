@@ -5,6 +5,7 @@
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Kiểm tất định: `python3 tools/check_determinism.py` (cùng seed, output giống từng byte)
+- Smoke Phase 1 (hộp đen, 27 mục): `python3 tools/smoke_phase1.py`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 
