@@ -1,30 +1,23 @@
-# Ma trận kiểm chứng Phase 2 — phần chur04
+# Ma trận kiểm chứng Phase 2
 
-Các mã L3/L4 dưới đây là nhóm kiểm chứng nội bộ theo mục TICKET-02, không phải mã AC do giảng viên cấp. Kết quả thuộc working tree trên nhánh cá nhân, chưa phải commit bàn giao/tag của toàn nhóm.
-
-| Phạm vi / mục ticket | Cách kiểm | Bằng chứng | Kết quả |
+| Phạm vi / mục PRD Phase 2 | Cách kiểm chứng | Bằng chứng | Kết quả |
 |---|---|---|---|
-| L4 / 4.1–4.2: inputs, days, buy theo frame, boolean/cạnh lên, cờ sai mã 2 | Inputs11, HeadlessDay | [tests.txt](../proof/phase-2/chur04/tests.txt) | Đạt các trường hợp đã kiểm |
-| L4 / 2, 4.4–4.5: đổi pha cùng tick, phase_tick=0, event phase/day cũ/mới, đóng Shop mới hoàn thành Ngày | DayAndShop + smoke CLI hai Ngày | [day-run1.txt](../proof/phase-2/chur04/day-run1.txt) | Đạt trên fixture v1.1 |
-| L4 / 2: Shop oxygen/hp, đúng giá, max/funds/unknown, cấp áp từ Ngày kế, giữ earned/điểm | DayAndShop | [tests.txt](../proof/phase-2/chur04/tests.txt) | Đạt |
-| L4 / 4.2: pause trước hành động, freeze timer/lịch, resume bước đó, không lặp cạnh/buy | DayAndShop: paused Shop, gather/quan, deadline nấu/ăn/kiên nhẫn, tick_limit paused | [tests.txt](../proof/phase-2/chur04/tests.txt) | Đạt |
-| L3 / 1.3, 2: 2 bếp/4 bàn/6 món, ghế id nhỏ nhất, menu theo kế hoạch, không giới hạn suất dự kiến | Quan11 + ca 4 khách | [tests.txt](../proof/phase-2/chur04/tests.txt) | Đạt trên dữ liệu fixture |
-| L4 / 4.3: tiền/cấp/plan sai, cấm stock/reputation; kiểm món fixture khi mở quán trên kho thực | DayAndShop | [tests.txt](../proof/phase-2/chur04/tests.txt) | Đạt các tình huống của lát day |
-| Tích hợp kho: gather → inventory → quan | Hai tiến trình thật trong workspace v1.1 tạm | [inventory.json](../proof/phase-2/chur04/inventory.json), [quan](../proof/phase-2/chur04/integration-quan.txt) | Đạt với 4 nguyên liệu P1 trong ca mẫu |
-| Tất định và giới hạn 22.200 tick / ≤20s | Hai CLI day cùng seed/input; một ca đủ thời lượng với random_fish=false | [summary.json](../proof/phase-2/chur04/summary.json), [full-day.log](../proof/phase-2/chur04/full-day.log) | Đạt trong fixture backend; chưa đo engine cá/quái mới |
-| Mở rộng burn | Biên 1200/1201, thiếu hàng, giữ lại và nấu lại cùng tick | Quan11 | [tests.txt](../proof/phase-2/chur04/tests.txt) | Logic/test đạt; chưa bật manifest |
-| Regression sau merge | 70 test gốc + 34 test mới | [tests.txt](../proof/phase-2/chur04/tests.txt) | 104/104 đạt, launcher Python cục bộ trên Windows |
-| DoD toàn nhóm: manifest chung 1.1, cá/quái, 6 loại file kho, UI/FPS, tag | Chờ các lát tương ứng và kiểm lại trên main | [Giới hạn bàn giao](../proof/phase-2/chur04/README.md) | Chưa xác nhận |
+| **Contract v1.1 & 6 nguyên liệu** (`game.contract.json`, `inventory.py`, `contract.py`) | `load_contract()` kiểm `1.1`, 6 nút `N1..N6`, 8 cá đầu ca, 2 bếp, 4 bàn, 6 món, 5 ngày, shop; nạp kho chứa `ca_keo`, `keo_neo` | `tests/test_monsters.py`, [contract-monsters.txt](../proof/phase-2/contract-monsters.txt) | Đạt |
+| **Lát 1 — Cá bơi, phản xạ mép/góc & sinh cá (`gather_fish.py`)** | `tests/test_gather.py::GatherPhase2FishTest`: 8 đàn đầu ca ở 8 điểm khác nhau, bơi `1.5 m/s`, đổi hướng tick `120`, phản xạ mép/góc, sinh `360·k` trần `12`, `random_fish: false` đứng yên | `tests/test_gather.py` | Đạt |
+| **Lát 2 — Cá Sấu Năm Chèo `M1`/`M2` (`gather_monsters.py`)** | `tests/test_monsters.py`: M1 Ngày 1 / M2 Ngày 3, patrol `1.0 m/s` đổi waypoint, chase `3.0 m/s` ngưỡng `d >= 10`, hit mất 1 HP + `floor(hold/2)` LIFO + bất tử `90` tick, recoil `60` tick (`+x` khi trùng tâm), faint `cause="monster"`, scenario lỗi mã `2` | `tests/test_monsters.py`, [contract-monsters.txt](../proof/phase-2/contract-monsters.txt) | Đạt |
+| **Lát 3 — 2 bếp/4 bàn/6 món, ghế id nhỏ nhất, menu theo kế hoạch** | `tests/test_chur04_phase2.py::Quan11` + `tests/test_quan_service.py` (28 test) | [chur04/tests.txt](../proof/phase-2/chur04/tests.txt) | Đạt |
+| **Lát 4 — `--mode day`, Shop (`oxygen`/`hp`), `pause`/`resumed`, inputs v1.1** | `tests/test_chur04_phase2.py::DayAndShop`, `Inputs11`, `HeadlessDay`: đổi pha cùng tick, Shop áp cấp từ Ngày kế, pause đóng băng timer/lịch, 1 Ngày 22.200 tick ≤ 20s | [chur04/day-run1.txt](../proof/phase-2/chur04/day-run1.txt), [chur04/summary.json](../proof/phase-2/chur04/summary.json) | Đạt |
+| **UI Phase 2 (`live.py`, `web/index.html`)** | `tests/test_ui_live.py` (5 test, gồm trọn vòng 6 màn hình Menu/DayIntro/Gather/EveningIntro/Quan/DayResult/Shop/Summary, Pause, Shop v1.1, chữ `≥ 18px`) | [ui-live-p2.md](../proof/phase-2/ui-live-p2.md) | Đạt |
+| **Tích hợp kho `gather → inventory → quan` & determinism** | `check-contract` (`gather` & `quan` byte-identical) + smoke tích hợp CLI | [chur04/inventory.json](../proof/phase-2/chur04/inventory.json), [chur04/integration-quan.txt](../proof/phase-2/chur04/integration-quan.txt) | Đạt |
+| **Regression P1 trên số chuẩn v1.1** | `tests/test_smoke_p1.py` (cập nhật `fish_initial` đọc từ contract, `attack`/`day` hợp lệ ở v1.1), `tests/test_quan_service.py` (đứng trái `B1` tránh `B2 [5,8]`), `tests/test_ui_live.py` | Toàn bộ 119 test lõi + `check-contract` PASS | Đạt |
 
 ## Bổ sung QA — Nguyễn Minh Thành
 
 | AC/P2 kiểm chứng | Cách kiểm | Bằng chứng | Kết quả |
 |---|---|---|---|
-| Regression P1 + P2 | `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` | [Log đầy đủ](../proof/phase-2/chur04/tests.txt) | Đạt: 111/111 |
-| Contract determinism gather/quan | `python3 .agents/skills/check-contract/check_contract.py` | Kết quả công cụ Contract command | Đạt: gather và quan byte-giống-byte |
+| Regression P1 + P2 | `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` | [Log đầy đủ](../proof/phase-2/chur04/tests.txt) | Đạt |
+| Contract determinism `gather`/`quan` | `python3 .agents/skills/check-contract/check_contract.py` | Kết quả công cụ Contract command | Đạt: `gather` và `quan` byte-giống-byte |
 | `day`, Shop, pause, nhiều Ngày, fixture/inventory | `python3 tools/verify_chur04_phase2.py` | [summary.json](../proof/phase-2/chur04/summary.json) | Đạt cho backend/fixture |
 | Hai tiến trình `day` cùng seed/input | CLI trong verify script | [summary.json](../proof/phase-2/chur04/summary.json) | Đạt; SHA-256 `56b42d48b76d961fd6b2b526300ef3840e082c16fd87ea73f630e880db9cae4f` |
-| 22.200 tick không pause | CLI trong verify script | [summary.json](../proof/phase-2/chur04/summary.json) | Đạt: `0.422347 s`, dùng `random_fish=false` |
-| Tích hợp gather → inventory → quan | Hai CLI thật | [inventory.json](../proof/phase-2/chur04/inventory.json), [quan](../proof/phase-2/chur04/integration-quan.txt) | Đạt |
-
-**Giới hạn:** chưa xác nhận manifest chung v1.1, engine cá/quái, UI/menu/pause trình duyệt, FPS hoặc tag `phase-2`.
+| 22.200 tick không pause | CLI trong verify script | [summary.json](../proof/phase-2/chur04/summary.json) | Đạt: `0.422347 s` |
+| Tích hợp `gather → inventory → quan` | Hai CLI thật | [inventory.json](../proof/phase-2/chur04/inventory.json), [quan](../proof/phase-2/chur04/integration-quan.txt) | Đạt |

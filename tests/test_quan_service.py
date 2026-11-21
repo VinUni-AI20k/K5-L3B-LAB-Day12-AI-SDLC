@@ -109,9 +109,10 @@ class Service(unittest.TestCase):
         self.assertEqual(rows[0]["data"]["stove_id"], "B2")
 
     def test_exact_radius_and_outside(self):
+        # Đứng phía trái B1 [2,8] để không rơi vào bán kính bếp B2 [5,8] (v1.1)
         for distance, expected in ((1.5, ["cook_started"]), (1.500001, [])):
             with self.subTest(distance=distance):
-                s = self.session({"player": {"pos": [2 + distance, 8]}})
+                s = self.session({"player": {"pos": [2 - distance, 8]}})
                 self.assertEqual([r["name"] for r in self.step(s, True)], expected)
 
     def test_movement_happens_before_interaction(self):

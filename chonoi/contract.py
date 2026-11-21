@@ -94,18 +94,18 @@ def _validate_gather(g, v11=False):
             raise BadInput("tuning.gather.nodes: mỗi nút cần id duy nhất")
         seen.add(n["id"])
         if n.get("kind") not in (("bong_dien_dien", "bong_sung", "keo_neo") if v11 else ("bong_dien_dien", "bong_sung")):
-            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind phải là bong_dien_dien hoặc bong_sung")
+            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind không hợp lệ")
         kinds.add(n["kind"])
         _pos_in(f"gather.nodes.{n['id']}.pos", n.get("pos"), b, ("x", "d"))
         if n["pos"][1] != 0:
             raise BadInput(f"tuning.gather.nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
     required_nodes = {"bong_dien_dien", "bong_sung", "keo_neo"} if v11 else {"bong_dien_dien", "bong_sung"}
     if kinds != required_nodes:
-        raise BadInput("tuning.gather.nodes phải có ít nhất một nút mỗi loại (bong_dien_dien, bong_sung)")
+        raise BadInput("tuning.gather.nodes phải có đủ loại nút theo phiên bản contract")
     fish = g.get("fish_initial")
     if v11:
         _int_between("gather.fish_initial", fish, 8, 8)
-        return  # Cá bơi/sinh và miền species do lát Gather kiểm thêm.
+        return
     if not isinstance(fish, list) or len(fish) != 6:
         raise BadInput("tuning.gather.fish_initial phải là danh sách đúng 6 đàn")
     seen = set()
