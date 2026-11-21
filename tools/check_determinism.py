@@ -1,9 +1,10 @@
 """Kiểm tính tất định: chạy headless hai lần cùng seed, so output từng byte.
 
-    python3 tools/check_determinism.py [--mode gather|quan|all] [--seed 1] [--ticks 600] [--inputs file.json]
+    python3 tools/check_determinism.py [--mode gather|quan|day|all] [--seed 1] [--ticks 600] [--inputs file.json]
 
 Mặc định chạy cả hai chế độ với một bộ input bơi/đi có nút `interact` và `catch`, để đường chạy có chuyển
 động thật (không chỉ đứng yên). Thoát 0 nếu mọi cặp giống hệt, 1 nếu có cặp khác (in dòng đầu tiên lệch).
+Chế độ `day` chạy `--days 2` đến hết (days_complete) để qua đủ ba pha và hai Ngày, bỏ qua `--ticks`.
 Lệnh headless lấy từ `headless_cmd` trong game.contract.json; nếu `python3` không có trên máy
 (Windows) thì dùng python đang chạy script này. Chỉ dùng thư viện chuẩn.
 """
@@ -41,9 +42,17 @@ def headless_cmd():
     return cmd
 
 
+DAY_DAYS = 2
+DAY_TICKS = 200000  # dư để chạy hết DAY_DAYS Ngày; dừng sớm khi days_complete
+
+
 def run_once(mode, seed, ticks, inputs, out):
+    if mode == "day":
+        ticks = DAY_TICKS
     args = [*headless_cmd(), "--mode", mode, "--seed", str(seed), "--ticks", str(ticks), "--out", out,
             "--inputs", inputs]
+    if mode == "day":
+        args += ["--days", str(DAY_DAYS)]
     p = subprocess.run(args, cwd=ROOT, capture_output=True, text=True)
     return p.returncode, p.stderr.strip()
 
@@ -75,7 +84,7 @@ def check_mode(mode, seed, ticks, inputs, tmp):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
-    ap.add_argument("--mode", choices=["gather", "quan", "all"], default="all")
+    ap.add_argument("--mode", choices=["gather", "quan", "day", "all"], default="all")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--ticks", type=int, default=600)
     ap.add_argument("--inputs", help="file inputs JSON (mặc định: bộ input có chuyển động và nút bấm)")
@@ -83,7 +92,7 @@ def main(argv=None):
     for stream in (sys.stdout, sys.stderr):  # Windows (cp1252) không in được tiếng Việt nếu không đổi
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(encoding="utf-8", errors="replace")
-    modes = ["gather", "quan"] if a.mode == "all" else [a.mode]
+    modes = ["gather", "quan", "day"] if a.mode == "all" else [a.mode]
     with tempfile.TemporaryDirectory() as tmp:
         inputs = a.inputs
         if inputs is None:
