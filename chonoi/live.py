@@ -15,6 +15,7 @@ Ngẫu nhiên vẫn đi qua `Streams` (seed); chỉ nhịp chạy theo đồng h
 import argparse
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -31,6 +32,8 @@ from .scenario import load_scenario
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 TICK_S = 1.0 / 60.0
 MAX_BODY = 4096
+ASSET_NAME = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]*")  # tên phẳng, không dấu `/`, không bắt đầu bằng `.`
+ASSET_TYPES = {".svg": "image/svg+xml", ".js": "text/javascript; charset=utf-8"}
 RECENT_EVENTS = 40
 
 
@@ -144,6 +147,19 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _send_asset(self, name: str):
+        """Phục vụ file tĩnh trong chonoi/web/assets (SVG, SFX). Chỉ nhận tên phẳng, đuôi trong ASSET_TYPES:
+        không `/`, không `..` nên không duyệt ra ngoài thư mục asset."""
+        ext = os.path.splitext(name)[1].lower()
+        if not ASSET_NAME.fullmatch(name) or ext not in ASSET_TYPES:
+            self._send(404, b'{"error":"khong co"}')
+            return
+        try:
+            with open(os.path.join(WEB_DIR, "assets", name), "rb") as f:
+                self._send(200, f.read(), ASSET_TYPES[ext])
+        except OSError:
+            self._send(404, b'{"error":"khong co"}')
+
     def do_GET(self):
         path = self.path.split("?", 1)[0]
         if path == "/state":
@@ -154,6 +170,8 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
+        elif path.startswith("/assets/"):
+            self._send_asset(path[len("/assets/"):])
         else:
             self._send(404, b'{"error":"khong co"}')
 
