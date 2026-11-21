@@ -6,3 +6,5 @@ __pycache__/
 *.2ddev.md
 *2DDev.md
 *2ddev.md
+.venv/
+venv/
