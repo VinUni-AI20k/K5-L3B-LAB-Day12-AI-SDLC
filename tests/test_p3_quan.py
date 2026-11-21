@@ -91,6 +91,28 @@ class FreshnessAndReservation(unittest.TestCase):
         self.assertEqual(s.customers[0]["reserved"], ["I2"])
         self.assertEqual(s.snapshot()["customers"][0]["reserved"], ["I2"])
 
+    def test_reservation_prefers_the_fresher_item_even_with_a_larger_id(self):
+        """Bổ sung theo phá thử của D: giữ chỗ chọn cũ nhất thay vì tươi nhất không bị test cũ (hai cá thể cùng độ tươi) bắt."""
+        s = sim(stock=[item("I1", fresh=50), item("I9", fresh=90)])
+        step_many(s, FIRST)
+        self.assertEqual(s.customers[0]["reserved"], ["I9"])
+
+    def test_spoiled_event_is_emitted_once_when_crossing_not_every_tick(self):
+        """Bổ sung theo phá thử của D: `spoiled` chỉ phát khi qua ngưỡng, không phát lại mỗi tick khi hàng đã ươn."""
+        s = sim({"random_customers": False}, [item("I1", fresh=30.004)])
+        events = step_many(s, 10)
+        self.assertEqual([data["item_id"] for name, data in events if name == "spoiled"], ["I1"])
+        self.assertTrue(TUNING["freshness"]["spoiled_below"] * UNITS_PER_POINT > s.stock[0]["fresh"])
+
+    def test_spoiled_reserved_item_is_never_cooked(self):
+        """Bổ sung theo phá thử của D: hàng đã ươn không được nấu dù còn trong phần giữ chỗ của khách."""
+        s = sim({"random_customers": False, "player": {"pos": [2, 8]},
+                 "customers": [customer("K1", "T1", ["I1"])]}, [item("I1", fresh=10)])
+        rows = s.step(InputPlayer([{"tick": 0, "interact": True}]).advance(0))
+        self.assertFalse(any(name == "cook_started" for name, _ in rows))
+        self.assertEqual([x["id"] for x in s.stock], ["I1"])
+        self.assertEqual(s.snapshot()["stoves"][0]["state"], "idle")
+
     def test_freshness_price_and_itemized_cook_payload(self):
         stocks = [item("I10", "ca_loc", 80), item("I2", "bong_dien_dien", 60)]
         s = sim({"random_customers": False, "player": {"pos": [2, 8]},
