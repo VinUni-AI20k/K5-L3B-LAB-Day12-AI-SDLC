@@ -2,17 +2,27 @@
 
 > **Nhóm 5 thành viên (`CSCD`)** · Game 2D quản lý quán ăn miền Tây Nam Bộ qua **4 phase** (Test Contract v1.0): Út Sen lặn bắt cá, hái rau trên sông Chín Khúc vào buổi sáng (`gather`) rồi tối mở quán trên nhà bè phục vụ khách (`quan`).
 
-## Chạy nhanh từ clone sạch (macOS / Linux, ≤ 3 lệnh)
+## Yêu cầu môi trường
 
-Yêu cầu Python 3 (chỉ dùng thư viện chuẩn, không cần cài gói ngoài):
+- **Python ≥ 3.10**, chỉ dùng thư viện chuẩn (không cần `pip install`).
+- Trình duyệt hiện đại để chơi bản có giao diện. Riêng `chonoi.bench` cần Tkinter (có sẵn trong Python; Linux không màn hình dùng `xvfb-run`).
+- Windows: nếu không có `python3` thì dùng `python`.
+
+## Chạy nhanh từ clone sạch (macOS / Linux, 2 lệnh)
 
 ```bash
 git clone https://github.com/common-maker/K5-L3B-LAB-Day12-AI-SDLC-CSCD.git && cd K5-L3B-LAB-Day12-AI-SDLC-CSCD
+python3 -m chonoi.live --mode day
+```
+
+Mở địa chỉ in ra trên terminal (mặc định `http://127.0.0.1:8000/`) bằng trình duyệt. `--mode day` chơi trọn vòng Lặn & Hái → Mở Quán → Shop (tối đa 5 Ngày, đổi bằng `--days N`, 1 đến 5).
+
+Chơi riêng từng buổi (bàn giao kho qua file):
+
+```bash
 python3 -m chonoi.live --mode gather --inventory-out kho.json
 python3 -m chonoi.live --mode quan --inventory kho.json
 ```
-
-Mở địa chỉ in ra trên terminal (mặc định `http://127.0.0.1:8000/`) bằng trình duyệt để chơi từng buổi. *(Trên Windows nếu thiếu `python3`, dùng `python` cho lệnh chơi thử.)*
 
 ## Điều khiển
 
@@ -22,6 +32,9 @@ Mở địa chỉ in ra trên terminal (mặc định `http://127.0.0.1:8000/`) 
 | `E` (`interact`) | Cập bến (trong vùng bến) hoặc hái rau (mặt nước) | Nấu món (bếp rảnh), bưng món (bếp xong), phục vụ (bàn) |
 | `Space` (`catch`) | Bắt đàn cá khi đang lặn dưới nước | — |
 | `R` | Chơi lại từ đầu (`chonoi.live`) | Chơi lại từ đầu (`chonoi.live`) |
+| `Esc` / `P` | Tạm dừng / tiếp tục | Tạm dừng / tiếp tục |
+| `1` / `2` / `Enter` | Màn Shop (`--mode day`): mua oxy / mua máu / đóng Shop | — |
+| `M` | Về menu | Về menu |
 
 ## Cách tính điểm & Luật ngắn
 
@@ -38,6 +51,16 @@ Mở địa chỉ in ra trên terminal (mặc định `http://127.0.0.1:8000/`) 
 PYTHONPATH=tests:. python3 -m unittest discover -s tests -v    # chạy toàn bộ unit + smoke test
 python3 tools/check_team.py                                     # kiểm tra danh sách thành viên TEAM.md
 ```
+
+**Benchmark có render và soak 10 Ngày (Test Contract v1.3):**
+
+```bash
+python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json   # Linux không màn hình: xvfb-run -a python3 -m ...
+python3 -m chonoi.soak --seed 7 --days 10 --out soak.json          # đạt khi days_completed = days và crashes = 0
+python3 -m chonoi.headless --mode day --seed 1 --days 1 --ticks 600 --out day.jsonl
+```
+
+Bằng chứng soak: [`docs/proof/phase-4/`](docs/proof/phase-4/).
 
 **Smoke test hộp đen 2 tiến trình (PRD-0 mục G):**
 
