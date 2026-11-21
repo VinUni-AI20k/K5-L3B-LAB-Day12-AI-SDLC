@@ -7,7 +7,7 @@ import argparse
 import os
 import sys
 
-from .contract import load_contract
+from .contract import DAYS, load_contract
 from .errors import BadInput
 from .inputs import load_frames
 from .inventory import read_inventory
@@ -48,8 +48,8 @@ def main(argv=None) -> int:
         if a.days is not None and a.mode != "day":
             raise BadInput("--days chỉ dùng với --mode day")
         days = 1 if a.days is None else a.days
-        if not 1 <= days <= 5:
-            raise BadInput("--days phải là số nguyên từ 1 đến 5")
+        if not 1 <= days <= DAYS:
+            raise BadInput(f"--days phải là số nguyên từ 1 đến {DAYS}")
         if a.ticks < 0:
             raise BadInput("--ticks phải >= 0")
         if a.snapshot_every <= 0:
