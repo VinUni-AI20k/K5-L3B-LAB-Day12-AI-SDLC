@@ -15,11 +15,26 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 
 ## Bắt đầu nhanh
 
+Trên macOS, Linux hoặc Ubuntu WSL, cần Git, Python 3.10 trở lên và trình duyệt. Bản chơi dùng thư viện chuẩn Python.
+
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone https://github.com/invzble-z/K5-L3B-DAY12-AI-SDLC-NhomF7.git cho-noi
+cd cho-noi
+python3 -m chonoi.live --mode day
 ```
+
+Mở địa chỉ in trên terminal. Dùng WASD hoặc phím mũi tên để di chuyển, E để tương tác, Space để bắt cá, Esc/P để tạm dừng và R để chơi lại.
+
+Nếu dùng ZIP, giải nén rồi chạy lệnh cuối từ thư mục `cho-noi`. Trên Windows PowerShell, dùng `python` nếu `python3` là lối tắt Microsoft Store.
+
+### Kiểm thử
+
+```bash
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+python3 -m chonoi.headless --mode day --days 1 --seed 1 --ticks 23000 --out day.jsonl
+```
+
+Lệnh benchmark có render và soak 10 ngày sẽ được cập nhật khi các module Phase 4 được tích hợp vào bản phát hành.
 
 Buổi tối có thể tự tìm `inventory.json` trong thư mục chạy lệnh; không bắt buộc truyền `--inventory`:
 
