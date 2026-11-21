@@ -13,6 +13,7 @@ Pause do Session xử lý (cạnh `pause`), giống headless.
 
 import math
 
+from . import inventory as inv
 from .inputs import InputState
 from .runner import Session
 
@@ -26,6 +27,23 @@ DEFAULT_VENDOR = {
 }
 
 
+def usable_counts(stock, spoiled_below=30):
+    """Đếm hàng dùng được theo loại. v1.2: mảng cá thể {id,kind,fresh} (bỏ hàng ươn); v1.1: object đếm."""
+    if isinstance(stock, dict):
+        return {k: n for k, n in stock.items() if n > 0}
+    out = {}
+    for it in stock or []:
+        if it.get("fresh", 100) >= spoiled_below:
+            out[it["kind"]] = out.get(it["kind"], 0) + 1
+    return out
+
+
+def _id_key(item_id):
+    head = item_id.rstrip("0123456789")
+    tail = item_id[len(head):]
+    return (head, int(tail) if tail else -1, item_id)
+
+
 class LiveDaySession:
     """Giao diện giống `runner.Session` (tick, done, sim, snapshot, step, initial_events) cho `chonoi.live`."""
 
@@ -36,6 +54,7 @@ class LiveDaySession:
         self.core = Session("day", tuning, scenario, seed, days=days)
         self.days = days
         self.vendor_cfg = tuning.get("shop", {}).get("vendor") or DEFAULT_VENDOR
+        self.spoiled_below = tuning.get("freshness", {}).get("spoiled_below", 30)
         self.screen = "day_intro"
         self.screen_ticks = 0
         self.vendor_pending = {}     # mua hôm nay → kho quán tối mai
@@ -86,6 +105,13 @@ class LiveDaySession:
                 self.screen_ticks = 0
             return []
         rows = []
+        if inp.pressed("close_early") and self.core.sim.phase == "quan" and not self.core.paused:
+            # Đóng quán sớm (chỉ cửa sổ chơi): đưa đồng hồ ca về bước cuối, bước này QuanSim tự đóng ca
+            # theo luật closing — khách đang ăn trả tiền ngay, khách đang chờ về không trừ uy tín.
+            shift = self.core.sim.shift
+            if shift.time_left_ticks > 1:
+                rows.append(self._row("closed_early", {"time_left_ticks": shift.time_left_ticks}))
+                shift.time_left_ticks = 1
         if inp.buy and inp.buy.startswith(("sell:", "buy:")):
             if self.core.sim.phase == "shop" and not self.core.paused:
                 rows.append(self._row(*self._trade(inp.buy)))
@@ -119,7 +145,8 @@ class LiveDaySession:
         name, d = r["name"], r["data"]
         if name == "gather_end":
             self.stats["gather_reason"] = d.get("reason")
-            self.stats["handover"] = dict(d.get("inventory", {}).get("items", {}))
+            items = d.get("inventory", {}).get("items", {})
+            self.stats["handover"] = list(items) if isinstance(items, list) else dict(items)
         elif name == "served":
             self.stats["served"] += 1
             self.dish_sold[d["dish_id"]] = self.dish_sold.get(d["dish_id"], 0) + 1
@@ -154,10 +181,15 @@ class LiveDaySession:
             return "buy_failed", {"action": action, "reason": "unknown"}
         if side == "sell":
             stock = sim.shift.stock  # pha shop: kho dư của ca tối
-            if stock.get(kind, 0) <= 0:
+            if usable_counts(stock, self.spoiled_below).get(kind, 0) <= 0:
                 return "buy_failed", {"action": action, "reason": "out_of_stock"}
             price = prices[kind]
-            stock[kind] -= 1
+            if isinstance(stock, list):  # v1.2: bán cá thể chưa ươn tươi nhất của loại, hòa theo id
+                pick = min((it for it in stock if it["kind"] == kind and it.get("fresh", 100) >= self.spoiled_below),
+                           key=lambda it: (-it.get("fresh", 100), _id_key(it["id"])))
+                stock.remove(pick)
+            else:
+                stock[kind] -= 1
             sim.money += price
             sim.earned += price
         else:
@@ -169,12 +201,18 @@ class LiveDaySession:
         return "vendor_trade", {"action": side, "kind": kind, "price": price, "money": sim.money}
 
     def _deliver_vendor(self):
-        stock = self.core.sim.shift.stock
-        for k, n in self.vendor_delivery.items():
-            stock[k] = stock.get(k, 0) + n
+        sim = self.core.sim
+        stock = sim.shift.stock
+        for k, n in sorted(self.vendor_delivery.items()):
+            if isinstance(stock, list):  # v1.2: hàng Chợ vào kho với fresh 100 và id mới (bộ cấp id chung của DaySim)
+                for _ in range(n):
+                    stock.append(inv.make_item(sim.ids, k, 100))
+            else:
+                stock[k] = stock.get(k, 0) + n
 
     # --- snapshot cho UI ----------------------------------------------------------------------
     def _cookable(self, stock):
+        stock = usable_counts(stock, self.spoiled_below)
         menu = self.tuning["menu"]
         return {d: min((stock.get(k, 0) // q for k, q in menu[d]["recipe"].items()), default=0)
                 for d in self.core.sim.plans[self.core.sim.day]["dishes"]}
@@ -194,7 +232,8 @@ class LiveDaySession:
         if sim.phase == "quan" and not self.done:
             s["shift_money"] = sim.money - self.quan_money_start
         if self.screen == "evening_intro":
-            s["handover"] = dict(self.stats["handover"])
+            ho = self.stats["handover"]
+            s["handover"] = list(ho) if isinstance(ho, list) else dict(ho)
             s["vendor_delivery"] = dict(self.vendor_delivery)
             s["cookable"] = self._cookable(sim.shift.stock)
             s["gather_reason"] = self.stats["gather_reason"]

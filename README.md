@@ -44,6 +44,9 @@ Chơi trọn 5 Ngày trên trình duyệt: `python3 -m chonoi.live --mode day` (
 | Esc / P | tạm dừng (Tiếp tục · Cài đặt · Về menu) |
 | Enter / phím bất kỳ | qua màn DayIntro, EveningIntro, DayResult |
 | 1 / 2 · Enter | Shop: mua Bình oxy / Áo phao · đóng Shop |
+| Z | ca sáng: đổi camera bám theo Út Sen ↔ toàn cảnh khúc sông |
+| C | ca tối (day): đóng quán sớm — hỏi xác nhận, đóng theo luật closing |
+| H | bật/tắt hướng dẫn Ngày 1 |
 | F3 / F2 | hiện FPS / nhật ký event (QA) |
 
 Điểm = `earned + 100 × floor(uy tín)`. Màn hình: Menu → DayIntro (Má Tư đọc món + nguyên liệu) → Lặn & Hái (HUD đã lấy/cần) → EveningIntro (nhập kho, món nấu được) → Mở Quán → DayResult → Shop → Summary.
@@ -54,6 +57,11 @@ Chơi trọn 5 Ngày trên trình duyệt: `python3 -m chonoi.live --mode day` (
 7. **Thời tiết theo Ngày** (chỉ hình + tiếng): D1 nắng, D2 sương sớm, D3 mưa lâm râm (có tiếng mưa), D4 gió chướng (sóng lớn, lá bay), D5 nắng. Má Tư nhắc thời tiết ở DayIntro.
 8. **Chuyện Má Tư kể**: 5 mẩu chuyện gốc về chợ nổi hiện ở DayResult, mở theo uy tín (D1 luôn mở, D5 cần ≥ 3.5); Summary đếm số chuyện đã nghe.
 9. **Khách quen có tên**: Ông Ba vé số, Cô Tư áo dài, Chú Năm ghe lúa, Bé Bi, Dì Bảy bán bông, Anh Sáu xe ôm — gán theo id đơn, có lời chào/khen/than riêng. Chỉ là lớp hiển thị, không đổi luật chọn món.
+
+10. **Hướng dẫn Ngày 1**: 5 bước ca sáng + 5 bước ca tối, tự qua bước theo event thật (`gather`, `fish_caught`, `cook_started`…), vòng sáng chỉ mục tiêu; phím H ẩn, nhớ trong trình duyệt.
+11. **Đóng quán sớm** (chỉ cửa sổ chơi): phím C → xác nhận → đưa đồng hồ ca về bước cuối để QuanSim tự đóng ca theo luật closing (khách đang ăn trả tiền, khách chờ về không trừ uy tín); phát event live `closed_early`. Headless không đổi.
+12. **Đồ họa mới**: Út Sen áo bà ba, bím tóc, nón lá, quay theo chiều bơi; cá lóc/cá linh/cá kèo khác dáng và hoa văn; Cá Sấu có mõm, răng, vảy lưng, mắt đỏ khi đuổi; quán nhà bè ván gỗ, bếp lò đất có lửa, bàn khăn caro, ghế đẩu, khách mặc áo màu riêng.
+13. **Độ tươi (chuẩn bị v1.2)**: giá dự kiến theo độ tươi trên bong bóng gọi món, đồng hồ "⏳ ươn sau N s", hàng ngả xám dần/ruồi bay khi ươn/lấp lánh khi tươi, Má Tư chấm hàng lúc nhập kho.
 
 Cửa sổ chơi dùng **cùng DaySim với headless** (`runner.Session("day")`); `chonoi/live_day.py` chỉ thêm màn chờ UI, gộp số liệu và Chợ Chú Sáu, không đụng headless.
 
