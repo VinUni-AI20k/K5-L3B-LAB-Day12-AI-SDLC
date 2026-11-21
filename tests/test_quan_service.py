@@ -69,6 +69,41 @@ class QuanService(unittest.TestCase):
         self.assertEqual(got, [("B1", "C2"), ("B2", "C1")], "cùng order_tick -> id bàn T1 trước T2")
         self.assertEqual([st["state"] for st in session.sim.stoves], ["cooking", "cooking"])
 
+    def test_cooking_consumes_reserved_ids_and_locks_freshness_price(self):
+        # v1.2 (TICKET-03), test của len2412 (PR #11) chuyển sang tuning v1.2 + scenario mảng cá thể:
+        # nấu tiêu đúng id giữ, cook_started.items sắp kind rồi id, giá floor(120 × 92.5 / 100) = 111,
+        # boa floor(111 × 0.2) = 22 tính trên giá đã chốt.
+        tuning = load_contract()["tuning"]
+        self.assertIn("freshness", tuning)
+        scenario = {
+            "random_customers": False,
+            "stock": [{"id": "I1", "kind": "ca_linh", "fresh": 90}, {"id": "I2", "kind": "ca_linh", "fresh": 80},
+                      {"id": "I3", "kind": "ca_linh", "fresh": 100}, {"id": "I4", "kind": "bong_dien_dien", "fresh": 100},
+                      {"id": "I5", "kind": "ca_linh", "fresh": 100}],
+            "customers": [{"id": "C1", "table_id": "T1", "dish_id": "lau_ca_linh_dien_dien",
+                           "reserved": ["I3", "I1", "I4", "I2"]}],
+        }
+        sim = Session("quan", tuning, scenario, 1).sim
+        events = []
+        self.assertTrue(sim._cook_at(sim.stoves[0], events))
+        started = events[0][1]
+        self.assertEqual(started["items"], [
+            {"id": "I4", "kind": "bong_dien_dien", "fresh": 100},
+            {"id": "I1", "kind": "ca_linh", "fresh": 90},
+            {"id": "I2", "kind": "ca_linh", "fresh": 80},
+            {"id": "I3", "kind": "ca_linh", "fresh": 100},
+        ])
+        self.assertEqual([item["id"] for item in sim.stock], ["I5"])
+        self.assertEqual((started["base_price"], sim.stoves[0]["dish"]["base_price"]), (111, 111))
+
+        sim.hand = dict(sim.stoves[0]["dish"])
+        sim.pos = list(sim.tables[0]["pos"])
+        controls = LiveInputs()
+        controls.set(interact=True)
+        sim._interact(controls.advance(), events)
+        self.assertEqual(events[-1][0], "served")
+        self.assertEqual((events[-1][1]["base_price"], events[-1][1]["tip"]), (111, 22))
+
     def test_finished_meal_is_paid_after_eating_ticks(self):
         scenario = {
             "random_customers": False,
