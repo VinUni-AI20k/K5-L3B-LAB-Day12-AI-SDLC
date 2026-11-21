@@ -31,7 +31,7 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids, day=1, item_ids=None, hold=None):
+    def __init__(self, tuning, scenario, streams, ids, day=1, item_ids=None, hold=None, net=None):
         t = tuning["gather"]
         self.t = t
         self.rng = streams
@@ -65,6 +65,8 @@ class GatherSim:
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
         self.phase_tick = 0  # số bước gameplay đã chạy trong buổi (lịch sinh cá dùng)
         self.day = day  # chế độ day truyền vào; gather độc lập = bố trí Ngày 1
+        # mở rộng net: {level, price, catch_radius, max_schools} của cấp đang áp dụng; None = luật lõi (cấp 0)
+        self.net = net if "net" in tuning.get("extensions", ()) else None
         for n in self.nodes:
             ids.reserve(n["id"])
         # đàn cá: scenario.fish THAY đàn ban đầu; random_fish=false tắt cá mặc định, bơi và sinh
