@@ -122,3 +122,8 @@ Hết giờ mỗi phase thì gắn tag rồi đi tiếp; chỗ chưa xong ghi tr
 
 - Dùng AI thoải mái; **không sao chép repo của nhóm khác**; bằng chứng phải thật.
 - Nhân vật, bối cảnh là bản gốc của lab; asset ngoài chỉ dùng CC0/CC-BY/MIT hoặc tự tạo, ghi nguồn trong `CREDITS.md`. Không commit API key, token, `.env`.
+
+## Phase 3 — Độ tươi (Test Contract v1.2)
+- Kho cá thể `{"items":[{"id","kind","fresh"}]}`; giỏ hao 0.5/s, kho quán 0.25/s (kể cả hàng giữ), ươn khi fresh < 30 (event `spoiled`).
+- Giữ chỗ theo id (tươi nhất, hòa theo id), giữ lại một lần khi phần giữ vừa ươn; giá chốt `floor(giá × mean fresh / 100)`.
+- Bằng chứng: `bash docs/proof/phase-3/run_proof.sh`; truy vết `docs/verification/phase-3.md`; kế hoạch/tác động `docs/plan/phase-3.md`; thay đổi `CHANGELOG.md`.

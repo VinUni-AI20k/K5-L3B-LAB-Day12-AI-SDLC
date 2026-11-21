@@ -43,3 +43,9 @@
 | C-P2-B09 | 2026-11-21 Phase 2 | Id khách / cá qua nhiều Ngày | Một `IdAllocator` và một `Streams` cho cả lượt: id khách tiếp tục tăng qua Ngày (`order_id` duy nhất trong file), luồng RNG nối tiếp. | Nhóm |
 | C-P2-B10 | 2026-11-21 Phase 2 | Snapshot `day` có thêm gì ngoài khóa bắt buộc? | Thêm `days_completed` (số Shop đã đóng) cho HUD; `day_plan` trong snapshot = `{dishes, ingredients}` của Ngày hiện tại. | Nhóm |
 | C-P2-B11 | 2026-11-21 Phase 2 | DayIntro 4 s / EveningIntro có chiếm tick headless? | Không: chỉ là màn UI; headless một Ngày = 10.800 + 10.800 + 600 = 22.200 tick đúng mốc tối đa của ticket. | Nhóm |
+
+## Phase 3 (TICKET-03 v1.2) — giả định của lát Quán/day
+- Nhiều đơn cùng có phần giữ vừa ươn trong một tick: nhả phần giữ của TẤT CẢ đơn bị ảnh hưởng trước, rồi giữ lại từng đơn một lần theo (order_tick, id bàn).
+- Đơn chuyển unfulfillable do ươn không phát event riêng (contract không định nghĩa); thấy qua snapshot.
+- Snapshot quán xuất `fresh` từ đơn vị nguyên; dung sai quan sát ±0.01 theo contract.
+- `customers[].reserved` trong snapshot sắp theo kind rồi id.

@@ -11,3 +11,8 @@
 - Số liệu: số commit theo người, cách đọc code của nhau, token theo người:
 - Một lần AI sai và cách nhóm phát hiện:
 - Nếu làm lại, đổi gì:
+
+## Retro Phase 3 (đổi kho)
+- Tốt: helper độ tươi đơn vị nguyên (240/điểm) chốt sớm ở `inventory.py` → gather và quán dùng chung, ngưỡng 30/floor chính xác.
+- Tốt: lớp chuyển fixture giữ được regression P1–P2 mà không viết lại hàng loạt test.
+- Cần cải thiện: hai lát cùng sửa test smoke P1 song song; lần sau chốt người sở hữu từng file test trước khi chia việc.

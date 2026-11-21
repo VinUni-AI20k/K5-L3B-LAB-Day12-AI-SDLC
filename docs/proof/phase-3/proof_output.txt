@@ -1,0 +1,7 @@
+gather exit=0
+quan exit=0
+quan count-schema exit=2 (cần 2)
+day --days 2 exit=0
+Ran 151 tests in 18.481s
+
+OK
