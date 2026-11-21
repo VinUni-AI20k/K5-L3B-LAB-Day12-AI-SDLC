@@ -29,4 +29,6 @@
 ## Skills / hooks của nhóm
 - `implement-slice` (`.agents/skills/implement-slice/SKILL.md`): khi giao agent làm một lát luật — đọc PRD + contracts, test hộp đen trước, chỉ sửa hàm mình sở hữu (bảng chia hàm ở `docs/contracts/README.md`), chạy test, ghi `ai-usage-log`.
 - `verify-phase` (`.agents/skills/verify-phase/`): trước khi gắn tag `phase-n` — `python .agents/skills/verify-phase/verify.py --phase n` chạy test + kiểm tất định + kho gather→quan + TEAM.md, lưu bằng chứng vào `docs/proof/phase-n/`; rồi cập nhật `docs/verification/phase-n.md`.
-- Windows: `headless_cmd` gọi `python3`; nếu test báo `FileNotFoundError` thì thêm `%LOCALAPPDATA%\Microsoft\WindowsApps` vào PATH, không sửa `headless_cmd`.
+- `run-checks` (`.agents/skills/run-checks/`): kiểm nhanh trước khi merge (`python3 tools/run_checks.py`) và xem test `@pending` của lát nào đã xanh (`QA_STRICT=1`).
+- Test hộp đen PRD-0 của QA: `tests/test_gather_p1.py`, `tests/test_quan_p1.py`; test chờ lát mang `@pending` (skip mặc định, `QA_STRICT=1` để chạy). Ma trận AC: `docs/verification/phase-1.md`.
+- Windows: `headless_cmd` gọi `python3`; nếu test báo `FileNotFoundError` thì thêm `%LOCALAPPDATA%\Microsoft\WindowsApps` vào PATH, không sửa `headless_cmd`. Nếu `python3` có nhưng hỏng (mã 106) thì đặt riêng trên máy mình `CHONOI_HEADLESS_CMD="python -m chonoi.headless"` (test và `run_checks.py` đọc biến này; CI không đặt).

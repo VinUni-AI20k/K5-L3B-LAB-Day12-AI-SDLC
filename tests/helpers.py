@@ -21,7 +21,14 @@ def frames(*fr):
 
 
 def headless_cmd():
-    """Lệnh headless khai trong game.contract.json — test chạy qua đây nên dùng được với MỌI ngôn ngữ."""
+    """Lệnh headless khai trong game.contract.json — test chạy qua đây nên dùng được với MỌI ngôn ngữ.
+
+    Máy nào `python3` không chạy được (hay gặp trên Windows) thì đặt biến môi trường
+    CHONOI_HEADLESS_CMD, ví dụ `CHONOI_HEADLESS_CMD="python -m chonoi.headless"`. CI không đặt biến này.
+    """
+    override = os.environ.get("CHONOI_HEADLESS_CMD")
+    if override:
+        return shlex.split(override)
     with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
         return shlex.split(json.load(f)["headless_cmd"])
 

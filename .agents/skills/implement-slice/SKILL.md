@@ -22,6 +22,19 @@ description: Quy trình cho agent khi viết một lát luật chơi (gather lá
 - Dùng `tests/helpers.py`: `Workdir`, `write_json`, `frames`, `run_headless`, `read_jsonl`, `events`, `snapshots`, `close`.
 - Dựng tình huống bằng `--scenario` (đặt sẵn vị trí, oxy, giỏ, khách...) để test ngắn và rõ; số liệu đọc từ `game.contract.json`, không hard-code.
 - Chạy và xác nhận test **đỏ** đúng lý do trước khi sửa luật.
+- QA đã viết sẵn test hộp đen theo AC (ma trận `docs/verification/phase-1.md`). Test của lát chưa xong mang `@pending("lát N")`: skip mặc định, chạy thật bằng `QA_STRICT=1`:
+
+  | Lát | Lớp test có sẵn |
+  |---|---|
+  | 1 | `test_gather_p1.Oxygen` |
+  | 2 | `test_gather_p1.Gathering`, `Catching`, `DockAndInventory` |
+  | 3 | `test_quan_p1.Customers`, `Closing` |
+  | 4 | `test_quan_p1.Kitchen`, `ServeAndPay`, `Closing`, `FixtureValidation` |
+
+  ```
+  QA_STRICT=1 PYTHONPATH=tests:. python3 -m unittest test_gather_p1.Oxygen -v
+  ```
+  Lát xanh hết thì báo QA bỏ `@pending`. Thấy test lệch PRD thì báo QA kèm trích dẫn, không sửa assert.
 
 ## 3. Sửa luật
 - Chỉ sửa **hàm mình sở hữu** trong bảng chia hàm. Cần đổi hàm dùng chung, thứ tự trong `step()`, schema kho, `game.contract.json` hay khung giảng viên → dừng, báo nhóm, ghi lý do (ADR `docs/adr/` hoặc `clarify.md`).

@@ -4,6 +4,7 @@
 **Bằng chứng tổng:** chạy `python .agents/skills/verify-phase/verify.py --phase 1` trên commit `7d85efa` (main sau khi merge lát 1, 2, 3), xem [`docs/proof/phase-1/summary.md`](../proof/phase-1/summary.md).
 **Kết quả chạy:** 58 test, OK (2 skipped); tất định đạt; kho gather → quán đạt; `check_team` đạt.
 **Mã AC:** nhóm tự đặt `AC-P1-xx` theo các mục của PRD-0, vì PRD không có mã AC.
+**Test chi tiết của QA:** [`phase-1-qa-tests.md`](phase-1-qa-tests.md) (mã theo từng test, có cột đối chiếu về AC ở bảng này).
 
 | AC | Cách kiểm chứng | Bằng chứng | Kết quả |
 |---|---|---|---|
@@ -14,14 +15,14 @@
 | AC-P1-05 Ngạt: chạm 0 ở t → `choke` ở t+59, mỗi 60 tick −1 Máu; nổi lên kịp thì không ngạt | `test_gather_lat1.Choke.*` | [lat1.md](../proof/phase-1/lat1.md) | đạt |
 | AC-P1-06 Ngất: bỏ giỏ LIFO, `faint` → `gather_end fainted`, kho `{"items":{}}`; ngất thắng hết giờ cùng tick | `test_gather_lat1.Faint.*` | [lat1.md](../proof/phase-1/lat1.md) | đạt |
 | AC-P1-07 `dive` / `surface` chỉ khi đổi phía, `pos` sau di chuyển | `test_gather_lat1.DiveSurface.*` | [lat1.md](../proof/phase-1/lat1.md) | đạt |
-| AC-P1-08 Hái nút ở mặt nước (gần nhất, hòa theo id), `regrow`, `hold_full` (mục F bước 4) | Chỉ đọc code `GatherSim._try_gather` (lát 2), đối chiếu PRD | — | **chưa kiểm chứng**: lát 2 chưa có test |
-| AC-P1-09 Bắt cá dưới nước, lấy toàn bộ yield, hồi 30 tick, thiếu chỗ → `hold_full` giữ đàn (mục F bước 5) | Chỉ đọc code `GatherSim._try_catch` (lát 2) | — | **chưa kiểm chứng**: lát 2 chưa có test |
+| AC-P1-08 Hái nút ở mặt nước (gần nhất, hòa theo id), `regrow`, `hold_full` (mục F bước 4) | `test_gather_p1.Gathering.*` (7 test: mép bán kính, hòa id, ready, hold_full, regrow) | [qa-tests](phase-1-qa-tests.md) | đạt (chạy local trên `feat/qa` sau merge `main`; chờ merge PR #5, chưa có bằng chứng ở commit tag) |
+| AC-P1-09 Bắt cá dưới nước, lấy toàn bộ yield, hồi 30 tick, thiếu chỗ → `hold_full` giữ đàn (mục F bước 5) | `test_gather_p1.Catching.*` (hòa F2 < F10, hồi chiêu t+L, ngoài tầm, thiếu chỗ giữ đàn) | [qa-tests](phase-1-qa-tests.md) | đạt (chạy local trên `feat/qa`, chờ merge PR #5) |
 | AC-P1-10 Cập bến hoặc hết giờ giữ giỏ, ghi kho đúng một lần; chạm `--ticks` trước thì không ghi (mục G) | `test_time_ends_gather_and_keeps_hold`, `Integration.test_inv_01_*` | [tests.txt](../proof/phase-1/tests.txt) | đạt |
 | AC-P1-11 Kho gather → quán: quán tick 0 có đúng `stock`; schema sai → mã 2 (mục G) | `Integration.*`; verify bước kho | [inventory.txt](../proof/phase-1/inventory.txt) | đạt |
 | AC-P1-12 Khách đến theo lịch, chọn món đủ nguyên liệu, giữ chỗ, `no_dish`, hết bàn bỏ lượt (mục F quán bước 5) | `test_quan_lat3.Arrival.*` | [tests.txt](../proof/phase-1/tests.txt) | đạt; 1 test cần ≥ 2 bàn đang skip (preset P1 chỉ có T1) |
 | AC-P1-13 Kiên nhẫn, khách rời `patience` (−0.5 uy tín) hoặc `closing` (không trừ), kẹp uy tín | `test_quan_lat3.Leaving.*` | [tests.txt](../proof/phase-1/tests.txt) | đạt |
 | AC-P1-14 Khách dựng từ scenario, suy ra giữ chỗ, fixture mâu thuẫn → mã 2 | `test_quan_lat3.ScenarioCustomers.*` | [tests.txt](../proof/phase-1/tests.txt) | đạt một phần (1 test skip vì cần ≥ 2 bàn); còn TODO kiểm mâu thuẫn trong `scenario.py` |
-| AC-P1-15 Bếp, bưng, phục vụ, trả tiền, boa, uy tín (`cook_started` … `paid`) | — | — | **chưa đạt**: lát 4 chưa làm (`_tick_stoves_and_eating`, `_interact`, `_pay` còn TODO) |
+| AC-P1-15 Bếp, bưng, phục vụ, trả tiền, boa, uy tín (`cook_started` … `paid`) | `test_quan_lat4.*` (lát 4) và `test_quan_p1.Kitchen/ServeAndPay/Closing` (QA) | [qa-tests](phase-1-qa-tests.md) | đạt (lát 4 đã merge PR #6; test QA chạy local trên `feat/qa`, chờ merge PR #5; cần chạy lại `verify-phase` để có bằng chứng ở commit tag) |
 | AC-P1-16 Chơi được cả hai buổi, HUD đọc được (DoD 1) | Chơi thử `chonoi.live` | — | **chưa đạt**: buổi tối chưa nấu và phục vụ được (phụ thuộc AC-P1-15) |
 | AC-P1-17 `TEAM.md` đủ 5 người, `team_size` = 5, handle hợp lệ | `tools/check_team.py` | [team.txt](../proof/phase-1/team.txt) | đạt; mục "Kênh liên lạc" trong thỏa thuận còn trống |
 | AC-P1-18 Hợp đồng kho có schema + ví dụ; giao diện sim↔UI; danh sách sự kiện | Đọc lại `docs/contracts/README.md` | [contracts](../contracts/README.md) | đạt |
