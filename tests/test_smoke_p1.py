@@ -226,7 +226,10 @@ class Integration(unittest.TestCase):
             code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], saved["items"])
+            stock = snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"]
+            self.assertEqual([(i["id"], i["kind"]) for i in stock], [(i["id"], i["kind"]) for i in saved["items"]])
+            for a, b in zip(stock, saved["items"]):  # snapshot làm tròn 3 chữ số: dung sai quan sát ±0.01 (PRD)
+                self.assertAlmostEqual(a["fresh"], b["fresh"], delta=0.01)
 
     def test_inv_01_not_written_when_tick_limit_first(self):
         with Workdir() as w:
