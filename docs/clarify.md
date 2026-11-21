@@ -21,3 +21,16 @@
 
 ## Phase 2 — nguồn chốt
 TICKET-02 do người dùng cung cấp được lưu ở `docs/tickets/TICKET-02.md`. Không thêm luật Shop tự đoán: oxygen 200/400 (45/60s), hp 250/500 (4/5), tối đa 600 tick. Màn intro/result/menu là trình bày live, headless chỉ có gather/quan/shop theo mục 4.4–4.5. Không bật mở rộng trong lần triển khai này.
+
+## Phase 3 — câu hỏi chờ PO, giả định tích hợp
+
+Nguồn: [PRD Phase 3](prd/phase-3.md). Các dòng P1–P2 phía trên là lịch sử; khi mâu thuẫn schema, yêu cầu [THAY THẾ] của P3 được ưu tiên (ví dụ kho rỗng hiện là `{"items":[]}`). Các giả định kỹ thuật dưới đây theo giao diện chung v1.2 do nhóm cung cấp, chưa ghi thành xác nhận của PO.
+
+| # | Ngày giờ | Câu hỏi | Trả lời / giả định | Trạng thái | Ai quyết |
+|---|---|---|---|---|---|
+| P3-01 | 2026-11-21 | “Đủ độ chính xác” khi xuất fresh là bao nhiêu chữ số? | Dùng `round(fresh_u / 240, 6)` ở snapshot/event/file, dưới dạng số JSON; không bắt buộc giữ số 0 cuối. Kiểm ngưỡng và floor bằng giá trị nội bộ trước làm tròn. | giả định | Nhóm v1.2; PO cần xác nhận |
+| P3-02 | 2026-11-21 | PRD gợi ý 240 đơn vị/điểm: có dùng thống nhất không? | Có: `fresh_u = round(fresh * 240)`, `per_tick_u = round(decay_per_s * 240 / tick_hz)`, kẹp đáy 0. Giá trị đầu vào không nằm đúng lưới 1/240 được lượng tử hóa khi nạp. Không tích lũy float theo tick. | giả định | Nhóm v1.2; PO cần xác nhận |
+| P3-03 | 2026-11-21 | Pause có hao ở bước bật/tắt không? | Kế thừa P2: bước bật pause chỉ tăng tick ngoài, không hao; bước resume chạy gameplay ngay, hao đúng một bước. Hàng Shop/chờ nhập không hao, kể cả khi không pause. | giả định | QA theo P2 + P3; PO cần xác nhận |
+| P3-04 | 2026-11-21 | `customers[].reserved` phải xuất theo thứ tự nào? | Là mảng id, không lặp; PRD chưa chốt thứ tự mảng phần giữ. QA so tập id cho công thức nhiều cá thể, chỉ ép thứ tự mà PRD quy định ở cook_started `(kind,id)` và các mảng thực thể theo id. | giả định | QA; PO cần xác nhận |
+| P3-05 | 2026-11-21 | Mã AC-P3-xx chính thức nằm ở đâu? | PRD hiện không liệt kê mã AC; dùng mã QA cục bộ 01–24 theo tên test và docs/plan/phase-3.md. Tích hợp viên nối vào verification, đổi ánh xạ nếu PO cung cấp mã chính thức. | giả định | QA; PO cần xác nhận |
+| P3-06 | 2026-11-21 | Hàng mua Chợ Chú Sáu có lệnh mua nguyên liệu nào ở bản nền? | Contract P2 trong worktree chỉ khai nâng cấp oxygen/hp. Chưa tự thêm lệnh mua nguyên liệu; nếu lát C có hỗ trợ từ nguồn chuẩn khác, cần cung cấp giao diện để QA bổ sung kiểm fresh 100/id mới/chờ nhập không hao. | giả định | QA; PO/tích hợp viên cần trả lời |
