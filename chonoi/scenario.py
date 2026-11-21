@@ -1,8 +1,9 @@
 """Nạp và kiểm scenario (Contract D). Trả về dict của đúng khối theo mode.
 
 KHUNG: kiểm cú pháp, id trùng, bộ đếm âm, khoang vượt sức chứa, trường lạ.
-TODO(nhóm): bổ sung kiểm mâu thuẫn mức luật mà nhóm cần (khách giữ chỗ quá kho, đơn assigned
-phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 mục D và 'Mâu thuẫn -> mã 2'.
+Mâu thuẫn mức luật (PRD-0 mục D, 'Mâu thuẫn -> mã 2') nhóm kiểm trong luật, không ở đây:
+`chonoi/sim/quan.py` `_load_customers` (giữ chỗ trỏ id không có trong kho / đã ươn / dùng chung) và
+`_validate_state` (đơn assigned phải có đúng một món ở bếp hoặc tay, khách eating cần base_price + tip).
 """
 
 import json

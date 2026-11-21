@@ -1,6 +1,7 @@
 // Ingredient freshness (Test Contract v1.2 §1 "Độ tươi"): items {id, kind, fresh}; ids I1, I2, … continue across
 // the whole campaign (progress.save.itemSeq). Numbers come from contract.freshness, defaults below if the key is missing.
 import { save } from "./progress.js";
+import { hc, HC } from "./a11y.js";
 
 export const FRESH_DEFAULT = { initial: 100, gather_decay_per_s: 0.5, quan_decay_per_s: 0.25, spoiled_below: 30 };
 export function freshCfg(contract) { return { ...FRESH_DEFAULT, ...(contract && contract.freshness) }; }
@@ -26,10 +27,11 @@ export const isSpoiled = (it, below = FRESH_DEFAULT.spoiled_below) => it.spoiled
 // plain contract item (what crosses the handover)
 export const plain = (it) => ({ id: it.id, kind: it.kind, fresh: it.fresh });
 
-// green → yellow → red by fresh %, grey when spoiled
+// green → yellow → red by fresh %, grey when spoiled; high-contrast mode uses a11y.HC and a lighter grey
+// (#7a7a7a almost vanishes on the dark bar track)
 export function freshColor(f, spoiled) {
-  if (spoiled) return "#7a7a7a";
-  return f >= 70 ? "#5ee07a" : f >= 45 ? "#ffd23a" : "#ff6b4a";
+  if (spoiled) return hc("#7a7a7a", "#c8c8c8");
+  return f >= 70 ? "#5ee07a" : f >= 45 ? hc("#ffd23a", HC.warn) : hc("#ff6b4a", HC.danger);
 }
 // tiny horizontal bar (dark track + fill)
 export function freshBar(u, x, y, w, h, f, spoiled) {
