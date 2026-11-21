@@ -27,6 +27,23 @@ def validate_items(items, kinds=KINDS_P1):
     return out
 
 
+def validate_stock(stock, kinds=KINDS_P1):
+    if isinstance(stock, list):
+        seen = set()
+        for it in stock:
+            if not isinstance(it, dict) or "id" not in it or "kind" not in it:
+                raise BadInput("mỗi cá thể trong stock phải là object có id và kind")
+            if it["id"] in seen:
+                raise BadInput(f"stock: id trùng {it['id']}")
+            seen.add(it["id"])
+            if it["kind"] not in kinds:
+                raise BadInput(f"nguyên liệu lạ: {it['kind']}")
+            if "fresh" in it and (isinstance(it["fresh"], bool) or not isinstance(it["fresh"], (int, float)) or it["fresh"] < 0):
+                raise BadInput(f"fresh không hợp lệ: {it.get('fresh')}")
+        return stock
+    return validate_items(stock, kinds)
+
+
 def read_inventory(path: str, kinds=KINDS_P1) -> dict:
     try:
         with open(path, encoding="utf-8") as f:
