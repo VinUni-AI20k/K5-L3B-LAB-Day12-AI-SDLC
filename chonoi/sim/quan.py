@@ -9,6 +9,7 @@ Nhóm viết tiếp (PRD-0 mục F, Quán):
 
 from ..ids import sort_by_id
 from .ramp import ramp_velocity
+from .quan_customers import CustomerManager
 
 TICK = 60.0
 
@@ -37,10 +38,8 @@ class QuanSim:
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        # TODO(nhóm): khách dựng sẵn từ scenario (customers[]) và suy ra giữ chỗ (reserved).
-        self.customers = [dict(c, reserved=c.get("reserved", {})) for c in scenario.get("customers", [])]
-        for e in self.customers:
-            ids.reserve(e["id"])
+        self.customer_manager = CustomerManager(tuning, scenario, streams, ids, self.stock)
+        self.customers = self.customer_manager.customers
         self.money = 0
         self.earned = 0
         self.shift_earned = 0
@@ -66,13 +65,20 @@ class QuanSim:
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
             "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in self.tables],
-            "customers": sort_by_id(self.customers),
+            "customers": sort_by_id(self.customer_manager.snapshot_customers()),
         }
 
     def step(self, inp):
         events = []
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # TODO(nhóm): giảm kiên nhẫn / nấu / ăn; bếp chín -> ready; xử lý khách theo thứ tự PRD-0 mục F.
+        customer_events = self.customer_manager.step(self.tables)
+        for name, data in customer_events:
+            if name == "customer_left":
+                delta = float(self.t["left_reputation_delta"])
+                self.reputation = max(float(self.t["reputation_min"]),
+                                      min(float(self.t["reputation_max"]), self.reputation + delta))
+                data["reputation"] = self.reputation
+            events.append((name, data))
         self._move(inp)
         # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
         # TODO(nhóm): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.

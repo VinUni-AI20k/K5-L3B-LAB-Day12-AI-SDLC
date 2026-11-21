@@ -154,10 +154,71 @@ def _validate_quan(b, tuning):
         _pos("player.pos", p["pos"], qb, axes=("x", "z"))
     if "vel" in p and not (isinstance(p["vel"], list) and len(p["vel"]) == 2 and all(_num(c) for c in p["vel"])):
         raise BadInput("player.vel phải là [x, z]")
+    if "random_customers" in b and not isinstance(b["random_customers"], bool):
+        raise BadInput("random_customers phải là boolean")
+    if "hand" in b:
+        if b["hand"] is not None and b["hand"] not in tuning["menu"]:
+            raise BadInput("hand phải là tên món trong menu hoặc null")
+    if "reputation" in b:
+        r = b["reputation"]
+        q = tuning["quan"]
+        if not _num(r) or not (q["reputation_min"] <= r <= q["reputation_max"]):
+            raise BadInput("reputation nằm ngoài [reputation_min, reputation_max]")
     table_ids = [c.get("table_id") for c in b.get("customers", [])]
     known = {t["id"] for t in tuning["quan"]["tables"]} | {t.get("id") for t in b.get("tables", [])}
+    for stove in b.get("stoves", []):
+        extra = set(stove) - {"id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks"}
+        if extra:
+            raise BadInput(f"trường lạ/chưa hỗ trợ trong stoves.{stove['id']}: {sorted(extra)}")
+        if "pos" in stove:
+            _pos(f"stoves.{stove['id']}.pos", stove["pos"], qb, axes=("x", "z"))
+        if "state" in stove and stove["state"] not in {"idle", "cooking", "ready"}:
+            raise BadInput(f"stoves.{stove['id']}: state không hợp lệ")
+        for key in ("cook_ticks_left", "ready_ticks"):
+            if key in stove:
+                _nonneg_int(f"stoves.{stove['id']}.{key}", stove[key])
+        if "dish" in stove and stove["dish"] is not None and stove["dish"] not in tuning["menu"]:
+            raise BadInput(f"stoves.{stove['id']}: dish không có trong menu")
+    for table in b.get("tables", []):
+        extra = set(table) - {"id", "pos"}
+        if extra:
+            raise BadInput(f"trường lạ/chưa hỗ trợ trong tables.{table['id']}: {sorted(extra)}")
+        if "pos" in table:
+            _pos(f"tables.{table['id']}.pos", table["pos"], qb, axes=("x", "z"))
+    customer_keys = {"id", "table_id", "dish", "state", "patience_ticks", "eat_ticks_left", "reserved"}
+    stock = validate_items(b.get("stock", {}))
+    menu = tuning["menu"]
+    reserved_totals = {}
     for c in b.get("customers", []):
+        extra = set(c) - customer_keys
+        if extra:
+            raise BadInput(f"trường lạ/chưa hỗ trợ trong customers.{c['id']}: {sorted(extra)}")
         if not isinstance(c.get("table_id"), str) or c["table_id"] not in known:
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
+        if "dish" in c and c["dish"] is not None:
+            if c["dish"] not in menu:
+                raise BadInput(f"customers.{c['id']}: dish không có trong menu")
+        if "state" in c:
+            if c["state"] not in {"waiting", "eating", "paid", "cooking", "ready", "served"}:
+                raise BadInput(f"customers.{c['id']}: state không hợp lệ")
+        if "patience_ticks" in c:
+            _nonneg_int(f"customers.{c['id']}.patience_ticks", c["patience_ticks"])
+        if "eat_ticks_left" in c:
+            _nonneg_int(f"customers.{c['id']}.eat_ticks_left", c["eat_ticks_left"])
+        reserved = c.get("reserved", {})
+        if not isinstance(reserved, dict):
+            raise BadInput(f"customers.{c['id']}.reserved phải là object")
+        try:
+            reserved = validate_items(reserved)
+        except BadInput as e:
+            raise BadInput(f"customers.{c['id']}.reserved: {e}")
+        if c.get("dish") is not None and reserved:
+            recipe = menu[c["dish"]]["recipe"]
+            if reserved != recipe:
+                raise BadInput(f"customers.{c['id']}: reserved không khớp dish")
+        for kind, count in reserved.items():
+            reserved_totals[kind] = reserved_totals.get(kind, 0) + count
+            if "stock" in b and reserved_totals[kind] > stock.get(kind, 0):
+                raise BadInput("khách giữ chỗ vượt số nguyên liệu trong kho")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")

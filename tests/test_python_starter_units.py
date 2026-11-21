@@ -73,6 +73,28 @@ class Units(unittest.TestCase):
         self.assertEqual(s.snapshot()["tick"], 2)
         self.assertEqual(s.end_row()["reason"], "docked")
 
+    def test_quan_customer_reservation_and_patience(self):
+        tuning = load_contract()["tuning"]
+        scenario = {
+            "stock": {"ca_loc": 1, "bong_sung": 2, "ca_linh": 3, "bong_dien_dien": 1},
+            "customers": [{
+                "id": "C1",
+                "table_id": "T1",
+                "dish": "ca_loc_nuong_trui",
+                "state": "waiting",
+                "patience_ticks": 1,
+                "reserved": {"ca_loc": 1},
+            }],
+        }
+        s = Session("quan", tuning, scenario, 1)
+        li = LiveInputs()
+        rows = s.step(li.advance())
+        names = [row["name"] for row in rows]
+        self.assertIn("customer_left", names)
+        left = next(row for row in rows if row["name"] == "customer_left")
+        self.assertEqual(left["data"]["customer_id"], "C1")
+        self.assertLess(s.snapshot()["reputation"], 3.0)
+
 
 if __name__ == "__main__":
     unittest.main()
