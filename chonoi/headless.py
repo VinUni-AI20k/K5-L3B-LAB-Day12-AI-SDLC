@@ -42,16 +42,13 @@ def main(argv=None) -> int:
     p.add_argument("--inventory")
     p.add_argument("--inventory-out", dest="inventory_out")
     p.add_argument("--snapshot-every", dest="snapshot_every", type=_int("snapshot-every"), default=10)
-    p.add_argument("--days", type=_int("days"))  # v1.1: chỉ với --mode day, 1..5, mặc định 1
+    p.add_argument("--days", type=_int("days"))  # v1.1: chỉ với day, 1..5, mặc định 1
     a = p.parse_args(argv)
     try:
         if a.days is not None and a.mode != "day":
             raise BadInput("--days chỉ dùng với --mode day")
-        if a.mode == "day" and not 1 <= (a.days if a.days is not None else 1) <= 5:
+        if a.days is not None and not 1 <= a.days <= 5:
             raise BadInput("--days phải là số nguyên từ 1 đến 5")
-        if a.mode == "day":
-            # TODO(lát 5): chạy vòng Ngày (chonoi/sim/day.py). Tạm thời kiểm cờ rồi báo chưa hỗ trợ.
-            raise BadInput("--mode day chưa cài (lát 5, Phase 2)")
         if a.ticks < 0:
             raise BadInput("--ticks phải >= 0")
         if a.snapshot_every <= 0:
@@ -77,7 +74,7 @@ def main(argv=None) -> int:
         return 2
     try:
         run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out)
+            inventory=inventory, inventory_out=a.inventory_out, days=a.days or 1)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

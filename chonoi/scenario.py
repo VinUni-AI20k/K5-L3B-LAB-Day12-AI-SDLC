@@ -8,7 +8,7 @@ phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 m
 import json
 import math
 
-from .contract import FISH_KINDS, NODE_KINDS, plan_ingredients, validate_dishes
+from .contract import FISH_KINDS, NODE_KINDS, validate_day_plan
 from .errors import BadInput
 from .inventory import KINDS, validate_items
 
@@ -45,17 +45,16 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
             data = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
-    if not isinstance(data, dict) or not set(data) <= {"gather", "quan", "day"}:
-        raise BadInput("scenario chỉ được có khối 'gather', 'quan' hoặc 'day'")
     if mode == "day":
         return _load_day(data, tuning)
+    if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
+        raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
     if set(data) - {mode}:
         raise BadInput(f"khối sai mode: chạy --mode {mode} chỉ nhận khối '{mode}'")
-    return _load_block(data, mode, tuning)
+    return _check_block(mode, data.get(mode, {}), tuning)
 
 
-def _load_block(data, mode, tuning) -> dict:
-    block = data.get(mode, {})
+def _check_block(mode, block, tuning):
     if not isinstance(block, dict):
         raise BadInput(f"khối {mode} phải là object")
     allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
@@ -74,56 +73,46 @@ def _load_block(data, mode, tuning) -> dict:
     return block
 
 
-def _load_day(data, tuning) -> dict:
-    """--mode day (Ticket-02 mục 4.3): gather/quan là MẪU khởi tạo mỗi Ngày, khối day dựng trạng thái xuyên Ngày.
+def _load_day(data, tuning):
+    """Ticket-02 mục 4.3: khối day dựng trạng thái xuyên Ngày; gather/quan là mẫu khởi tạo mỗi Ngày."""
+    if not isinstance(data, dict) or not set(data) <= {"day", "gather", "quan"}:
+        raise BadInput("scenario --mode day chỉ nhận khối 'day', 'gather', 'quan'")
+    quan = data.get("quan", {})
+    if isinstance(quan, dict) and ({"stock", "reputation"} & set(quan)):
+        raise BadInput("khi chạy day cấm quan.stock và quan.reputation (dùng gather.hold, day.reputation)")
+    return {"day": _validate_day_block(data.get("day", {}), tuning),
+            "gather": _check_block("gather", data.get("gather", {}), tuning),
+            "quan": _check_block("quan", quan, tuning)}
 
-    Trả {"gather": {...}, "quan": {...}, "day": {...}} đã kiểm. Kiểm kho/khách theo kế hoạch trên kho THỰC
-    lúc mở quán là việc của sim day (lát 5), không làm được ở đây.
-    """
-    out = {}
-    for mode in ("gather", "quan"):
-        out[mode] = _load_block(data, mode, tuning) if mode in data else {}
-    if "stock" in out["quan"] or "reputation" in out["quan"]:
-        raise BadInput("chạy day: cấm quan.stock và quan.reputation (dùng gather.hold và day.reputation)")
-    d = data.get("day", {})
-    if not isinstance(d, dict):
+
+def _validate_day_block(b, tuning):
+    if not isinstance(b, dict):
         raise BadInput("khối day phải là object")
-    extra = set(d) - DAY_KEYS
+    extra = set(b) - DAY_KEYS
     if extra:
         raise BadInput(f"trường lạ/chưa hỗ trợ trong day: {sorted(extra)}")
     for key in ("money", "earned"):
-        if key in d:
-            _nonneg_int(f"day.{key}", d[key])
-    if ("money" in d) != ("earned" in d) and d.get("money", 0) > 0:
+        if key in b:
+            _nonneg_int(f"day.{key}", b[key])
+    if ("money" in b) != ("earned" in b) and (b.get("money", 0) or b.get("earned", 0)):
         raise BadInput("day: có tiền đầu kỳ thì khai cả money và earned")
-    if d.get("money", 0) > d.get("earned", 0):
+    if not b.get("money", 0) <= b.get("earned", 0):
         raise BadInput("day: cần 0 <= money <= earned")
     q = tuning["quan"]
-    if "reputation" in d and (not _num(d["reputation"]) or not math.isfinite(d["reputation"])
-                              or not q["reputation_min"] <= d["reputation"] <= q["reputation_max"]):
-        raise BadInput("day.reputation nằm ngoài giới hạn")
-    ups = d.get("upgrades", {})
-    shop_ups = tuning.get("shop", {}).get("upgrades", {})
-    if not isinstance(ups, dict) or set(ups) - set(shop_ups):
-        raise BadInput("day.upgrades phải là map nâng cấp → cấp")
-    for k, lv in ups.items():
-        if isinstance(lv, bool) or not isinstance(lv, int) or not 0 <= lv <= len(shop_ups[k]):
-            raise BadInput(f"day.upgrades.{k}: cấp không hợp lệ")
-    plan = d.get("day_plan", [])
-    if not isinstance(plan, list):
-        raise BadInput("day.day_plan phải là mảng")
-    seen = set()
-    for e in plan:
-        if not isinstance(e, dict) or set(e) - {"day", "dishes", "ingredients"} or "dishes" not in e:
-            raise BadInput("day.day_plan: mỗi mục {day, dishes[, ingredients]}")
-        if isinstance(e.get("day"), bool) or e.get("day") not in range(1, 6) or e["day"] in seen:
-            raise BadInput("day.day_plan: day là số Ngày 1..5, không trùng")
-        seen.add(e["day"])
-        validate_dishes(f"day.day_plan.{e['day']}", e["dishes"], tuning["menu"])
-        if "ingredients" in e and e["ingredients"] != plan_ingredients(e["dishes"], tuning["menu"]):
-            raise BadInput(f"day.day_plan.{e['day']}.ingredients khác tổng công thức × số suất")
-    out["day"] = d
-    return out
+    if "reputation" in b and not (_num(b["reputation"]) and q["reputation_min"] <= b["reputation"] <= q["reputation_max"]):
+        raise BadInput("day.reputation phải trong dải uy tín của tuning")
+    ups = b.get("upgrades", {})
+    if not isinstance(ups, dict):
+        raise BadInput("day.upgrades phải là map id -> cấp")
+    table = tuning["shop"]["upgrades"]
+    for kind, lv in ups.items():
+        if kind not in table:
+            raise BadInput(f"day.upgrades: nâng cấp lạ {kind}")
+        if isinstance(lv, bool) or not isinstance(lv, int) or not 0 <= lv <= len(table[kind]):
+            raise BadInput(f"day.upgrades.{kind} phải là cấp nguyên trong [0, {len(table[kind])}]")
+    if "day_plan" in b:
+        validate_day_plan(b["day_plan"], tuning["menu"])
+    return b
 
 
 def _num(v):

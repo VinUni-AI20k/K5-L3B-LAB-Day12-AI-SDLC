@@ -302,3 +302,35 @@ def validate_tuning(t):
         _validate_day_plan(t["day_plan"], menu)
     if "shop" in t:
         _validate_shop(t["shop"], g)
+
+
+def _pos_int_map(name, m, allowed=None):
+    if not isinstance(m, dict) or not m:
+        raise BadInput(f"{name} phải là map khác rỗng id -> số nguyên dương")
+    for k, v in m.items():
+        if allowed is not None and k not in allowed:
+            raise BadInput(f"{name}: id lạ {k}")
+        if isinstance(v, bool) or not isinstance(v, int) or v <= 0:
+            raise BadInput(f"{name}.{k} phải là số nguyên dương")
+
+
+def validate_day_plan(plan, menu, expect_days=None):
+    """Mảng {day, dishes, ingredients?}; ingredients (nếu khai) phải khớp tổng công thức × số suất."""
+    if not isinstance(plan, list) or not plan:
+        raise BadInput("day_plan phải là mảng khác rỗng")
+    days = []
+    for entry in plan:
+        if not isinstance(entry, dict) or not set(entry) <= {"day", "dishes", "ingredients"}:
+            raise BadInput("day_plan: mỗi mục chỉ có day, dishes, ingredients")
+        day = entry.get("day")
+        _int_between("day_plan.day", day, 1, 5)
+        _pos_int_map(f"day_plan[{day}].dishes", entry.get("dishes"), menu)
+        if "ingredients" in entry:
+            _pos_int_map(f"day_plan[{day}].ingredients", entry["ingredients"])
+            if entry["ingredients"] != plan_ingredients(entry["dishes"], menu):
+                raise BadInput(f"day_plan[{day}].ingredients khác tổng công thức × số suất")
+        days.append(day)
+    if len(set(days)) != len(days):
+        raise BadInput("day_plan: trùng số Ngày")
+    if expect_days is not None and sorted(days) != list(range(1, expect_days + 1)):
+        raise BadInput(f"tuning.day_plan phải có đủ Ngày 1..{expect_days}")

@@ -81,7 +81,7 @@ Một tick có nhiều event thì ghi theo **thứ tự xử lý** (mục F), r�
   - trả đàn mới hoặc `False`;
   - đầu ca gọi 8 lần, không phát event. **Lát 2** gọi lại theo lịch `phase_tick = 360·k` và phát `fish_spawned`.
 - **Cá trong sim:** `{id, kind, pos, heading_deg, age_ticks}`. Cá Sấu: `{id, kind, pos, waypoints, target_idx, state, state_ticks_left, recoil_dir}`; chưa di chuyển, việc của **lát 1** (`_update_monsters`).
-- **`QuanSim(..., allowed_dishes=None)`:** đã có từ lát 3. `carry` (tiền/uy tín xuyên Ngày) để **lát 5** thêm.
+- **`QuanSim(..., allowed_dishes, carry)`:** lát 3 và lát 5 đã làm (xem mục giao diện day ở dưới).
 
 **Inputs** (`chonoi/inputs.py`, mục 4.2):
 - **Nút boolean:** `interact, catch, pause, shop_done, attack, photo`. Tên lạ vẫn trả mã 2. Nút đúng kiểu nhưng sai pha hoặc mở rộng chưa bật thì sim bỏ qua.
@@ -94,7 +94,7 @@ Một tick có nhiều event thì ghi theo **thứ tự xử lý** (mục F), r�
   - Cấm `quan.stock` / `quan.reputation`.
   - Kiểm `0 ≤ money ≤ earned`, `upgrades` và `day_plan`.
 
-**Headless:** thêm `--days` (chỉ với `day`, giá trị 1..5). Chạy `--mode day` vẫn báo "chưa cài" (mã 2) tới khi **lát 5** xong.
+**Headless:** `--days` (chỉ với `day`, giá trị 1..5). `--mode day` do lát 5 cài (`chonoi/sim/day.py`); `day.py` truyền `day=` vào `GatherSim` để bố trí Cá Sấu đúng Ngày.
 
 **Event v1.1 mới** (mục 4.4; lát nào phát):
 
@@ -139,5 +139,22 @@ Quán (PRD-0 mục F): đồng hồ + kiên nhẫn + nấu/ăn → di chuyển +
 | `base_price`, `tip` | số nguyên hoặc `null` | lát 4 | `null` tới lúc chốt (xem `docs/clarify.md` #1) |
 
 Món trên bếp / trên tay: payload `{order_id, dish_id, base_price}` (`docs/clarify.md` #2). Khách rời (`_leave`) bỏ món có `order_id` trùng.
+
+## Mode `day`, Shop, pause (lát 5 — Ticket-02 mục 2, 4.2–4.5)
+
+| Thành phần | File | Ghi chú |
+|---|---|---|
+| Vòng Ngày | `chonoi/sim/day.py` (`DaySim`) | gather → quan → shop → Ngày kế; chỉ gọi `step`, `done`, `snapshot`, `inventory_items` của từng pha |
+| Shop | `chonoi/sim/shop.py` (`ShopSim`) | mỗi bước: đồng hồ → tối đa một `buy` → cạnh `shop_done` → hết giờ (`tuning.shop.max_ticks`) |
+| Pause | `chonoi/runner.py` (`Session.step`) | ở tầng runner nên đúng cho cả 3 mode; `tick` ≠ `sim_tick` khi pause, `phase_tick` của day reset mỗi pha |
+| Dữ liệu | `tuning.day_plan`, `tuning.shop` trong `game.contract.json` | kiểm ở `contract.py` (`validate_day_plan`, `_validate_shop`); `ingredients` phải = Σ công thức × số suất |
+
+Giao diện các pha phải giữ (day.py dựa vào):
+- `GatherSim(tuning, scenario, streams, ids)`: day truyền **bản sao tuning** đã thay `gather.oxygen_max_s` / `gather.hp_max` theo `active_upgrades`, nên lát 1 không cần tham số cấp. Lát 1 thêm Cá Sấu theo Ngày thì nhận thêm `day=1` (tùy chọn) và báo lát 5 để truyền vào.
+- `QuanSim(..., inventory, allowed_dishes, carry)`: `carry = {money, earned, reputation}` xuyên Ngày; `shift_earned` tính riêng từng ca.
+- Thuộc tính đọc được: `phase`, `done`, `reason`, `time_left_ticks`, `money`, `earned`, `reputation`; quán thêm `stock`.
+- Sự kiện trong day có thêm `day`; sự kiện kết thúc mang pha cũ, `phase_start` mang pha mới, cùng tick. Ngày mới: `shop_end` → `day_start` → `day_plan` → `phase_start(gather)` cùng tick.
+- Inputs v1.1 (`chonoi/inputs.py`): nút `pause`, `shop_done`; `buy` là chuỗi, chỉ có ở đúng frame khai báo (`InputState.buy`). `attack`/`photo` chưa bật.
+- Giả định lát 5: `docs/clarify.md` #4–#8.
 
 Khi đổi hợp đồng sau này: báo cả nhóm và ghi lại lý do (ADR hoặc ghi chú, tùy chọn).
