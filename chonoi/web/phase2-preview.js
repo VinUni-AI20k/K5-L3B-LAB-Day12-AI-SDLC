@@ -114,10 +114,14 @@ export class MockSimV11Adapter {
     else this.enter("quan", "evening_intro");
   }
 
+  orderPrice(dishId) { return this.contract.tuning.menu[dishId].price; }
+
   quanFrame() {
     const tuning = this.contract.tuning;
     const dishId = this.plan.dishes[0];
-    const { price, recipe } = tuning.menu[dishId];
+    const { recipe } = tuning.menu[dishId];
+    const price = this.orderPrice(dishId, "C1");
+    const secondPrice = this.orderPrice(dishId, "C2");
     const tableId = tuning.quan.tables[0].id;
     const order = { table_id: tableId, order_id: "C1", dish_id: dishId };
     this.tick++;
@@ -135,13 +139,13 @@ export class MockSimV11Adapter {
     }
     if (this.step === 3) this.emit("served", { ...order, base_price: price, tip: 15 });
     if (this.step !== 4) return;
-    this.shift = 2 * (price + 15);
+    this.shift = price + secondPrice + 30;
     this.earned += this.shift;
     this.money += this.shift;
     this.reputation = Number((this.reputation + .2).toFixed(1));
-    for (const [id, table] of [["C1", "T1"], ["C2", "T2"]]) {
-      if (id === "C2") this.emit("served", { ...order, order_id: id, table_id: table, base_price: price, tip: 15 });
-      this.emit("paid", { ...order, order_id: id, table_id: table, base_price: price, tip: 15, amount: price + 15, reason: "finished_eating" });
+    for (const [id, table, basePrice] of [["C1", "T1", price], ["C2", "T2", secondPrice]]) {
+      if (id === "C2") this.emit("served", { ...order, order_id: id, table_id: table, base_price: basePrice, tip: 15 });
+      this.emit("paid", { ...order, order_id: id, table_id: table, base_price: basePrice, tip: 15, amount: basePrice + 15, reason: "finished_eating" });
     }
     this.emit("customer_left", { order_id: "C3", table_id: "T3", reason: "patience", reputation: this.reputation });
     this.stock = this.shiftStock(recipe);

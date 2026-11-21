@@ -245,3 +245,47 @@ kbd { display: inline-block; vertical-align: .03em; border: 1px solid #678273; b
   .phase-two .sidebar .ingredients { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .phase-two .menu-art { height: 310px; }
 }
+
+.phase-three .game-grid { grid-template-columns: minmax(0, 1fr) 412px; }
+.phase-three .ingredients.fresh-inventory { grid-template-columns: 1fr; gap: 2px; }
+.phase-three #goal-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.fresh-inventory > div { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 7px; }
+.fresh-inventory .fresh-guide { border: 0; color: var(--muted); min-height: 22px; }
+.fresh-inventory dd { display: grid; grid-template-columns: 37px 87px 73px; align-items: center; gap: 5px; text-align: center; }
+.fresh-inventory[data-held="true"] dd { grid-template-columns: 32px 31px 87px 70px; gap: 4px; }
+.fresh-inventory .fresh-guide dd { color: var(--muted); font-weight: 600; }
+.fresh-inventory .held-qty { color: var(--gold); }
+.fresh-value.soon { color: var(--gold); }
+.fresh-note { margin-top: 7px; color: var(--muted); }
+.spoiled-badge { color: #f5d5b2; background: #584030; border-radius: 4px; padding: 0 3px; white-space: nowrap; }
+.slots li[data-freshness] { position: relative; overflow: hidden; }
+.slots li[data-freshness]::after { content: ""; position: absolute; bottom: 0; left: 0; width: var(--fresh-fill); height: 3px; background: var(--mint); }
+.slots li[data-freshness="soon"]::after { background: var(--gold); }
+.slots li[data-freshness="spoiled"] { background: radial-gradient(circle at 75% 22%, #abb488 1px, transparent 3px), radial-gradient(circle at 52% 34%, #829367 1px, transparent 3px), repeating-linear-gradient(135deg, #523e32 0 4px, #392f28 4px 8px); border-color: #af8465; }
+.slots li[data-freshness="spoiled"] .ingredient-marker { filter: saturate(.08) brightness(.75); }
+.slots li[data-freshness="spoiled"]::after { height: 2px; width: 100%; background: #cc9e75; transform: rotate(-45deg); bottom: 50%; }
+@keyframes spoil-flash { from { box-shadow: inset 0 0 0 3px #ef827a; background: #582e27; } to { box-shadow: none; } }
+.spoil-alert { animation: spoil-flash 620ms ease-out; }
+.station.fresh-shortage { border-color: #a86656; }
+.station.fresh-shortage .station-title span { color: var(--rose); font-weight: 800; }
+.campaign-paused #bag-panel { animation-play-state: paused !important; }
+
+@media (min-width: 1051px) {
+  .phase-three #game[data-mode="quan"] .stage .toasts { max-width: min(27%, 211px); }
+  .phase-three #game[data-standalone="true"] .sidebar.evening .panel { padding-block: 6px; }
+  .phase-three #game[data-standalone="true"] .fresh-inventory > div { padding-top: 0; }
+  .phase-three #game[data-standalone="true"] .dishes li { padding-block: 2px; }
+  .phase-three .journey[data-screen="shop"] .journey-card { width: min(100%, 1150px); display: grid; grid-template-columns: minmax(362px, 2fr) minmax(0, 3fr); column-gap: 12px; }
+  .phase-three .journey[data-screen="shop"] :is(.journey-head, .journey-stats, .toasts, #journey-toast-anchor, .result-actions) { grid-column: 1 / -1; }
+}
+
+@media (max-width: 1050px) {
+  .phase-three .game-grid { grid-template-columns: minmax(0, 1fr) 382px; }
+  .fresh-inventory[data-held="true"] dd { grid-template-columns: 34px 29px 76px 70px; gap: 3px; }
+}
+@media (max-width: 750px) {
+  .phase-three .game-grid { grid-template-columns: 1fr; }
+  .fresh-inventory dd { grid-template-columns: 34px 76px 67px; gap: 3px; }
+  .fresh-inventory[data-held="true"] dd { grid-template-columns: 32px 29px 73px 67px; }
+  .journey[data-screen="evening_intro"] .journey-columns { grid-template-columns: 1fr; }
+}
