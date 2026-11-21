@@ -25,6 +25,7 @@ import math
 from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
+from .gather_monsters import init_monsters, step_monsters
 
 TICK = 60.0
 AXES = ("x", "d")
@@ -69,6 +70,17 @@ class GatherSim:
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
+        day = int(scenario.get("day", 1))
+        monster_entries = scenario.get("monsters")
+        if monster_entries is None:
+            monster_entries = [
+                dict(m, pos=list(m["pos"]))
+                for m in tuning.get("gather", {}).get("monsters", [])
+                if int(m.get("day", 1)) == day
+            ]
+        self.monsters = init_monsters(self, {"monsters": monster_entries}, day)
+        self.recoil = None
+        self.recoil_ticks = 0
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -93,6 +105,10 @@ class GatherSim:
                       for n in sort_by_id(self.nodes)],
             "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
                      for f in sort_by_id(self.fish)],
+            "monsters": [{"id": m["id"], "pos": m["pos"], "kind": m["kind"],
+                          "heading_deg": m["heading_deg"], "state": m["state"],
+                          "recoil_ticks": m["recoil_ticks"], "age_ticks": m["age_ticks"]}
+                         for m in sort_by_id(self.monsters)],
         }
 
     # --- một bước ---------------------------------------------------------------
@@ -110,6 +126,7 @@ class GatherSim:
         # 2. bơi + chặn mép + phân vùng + oxy / ngạt / ngất
         was_at_surface = self._at_surface()
         self._move(inp)
+<<<<<<< HEAD
         now_at_surface = self._at_surface()
         if was_at_surface and not now_at_surface:
             events.append(("dive", {"pos": list(self.pos)}))
@@ -117,6 +134,13 @@ class GatherSim:
             events.append(("surface", {"pos": list(self.pos)}))
         if self._step_oxygen(now_at_surface, events):
             return events
+=======
+        if step_monsters(self, events):
+            return events
+        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
+        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
+        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
+>>>>>>> 50867dc (Update code)
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():

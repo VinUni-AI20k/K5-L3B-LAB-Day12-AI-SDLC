@@ -1,4 +1,4 @@
-# Hợp đồng tích hợp — Nhóm Nicecentt (Contract v1.0)
+# Hợp đồng tích hợp — Nhóm Nicecentt (Contract v1.1)
 
 > Người giữ hợp đồng (Integrator): **Võ Thị Phương Nhung (`nhungvo631-stack`)**.
 > Khi cần đổi hợp đồng (schema kho, snapshot, tên sự kiện, `game.contract.json`): báo cả nhóm trước và ghi lại lý do trong `docs/adr/` hoặc `docs/clarify.md`.
@@ -9,7 +9,8 @@
 
 - **File mẫu hợp lệ:** [`inventory.sample.json`](./inventory.sample.json) → `{"items":{"bong_sung":2,"ca_loc":1}}`
 - **Cấu trúc bắt buộc:** đúng 1 khóa gốc `"items"`, giá trị là object `{<kind>: <số nguyên >= 0>}`.
-- **Nguyên liệu hợp lệ (v1.0 / `KINDS_P1`):** `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`.
+- **Nguyên liệu hợp lệ v1.1:** `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`, `ca_keo`, `keo_neo`.
+- Hai nguyên liệu sáng tạo `ca_ro_dong`, `rau_muong` được hỗ trợ tùy chọn trong headless mở rộng.
 - **Quy tắc đọc/ghi:**
   - Khi ghi (`chonoi/inventory.py`): loại bỏ mục có số lượng `0`, sắp khóa theo thứ tự bảng chữ cái, ghi nguyên tử qua file tạm.
   - Chỉ ghi **đúng 1 lần** khi `gather` kết thúc (`gather_end`). Nếu dừng do `tick_limit` thì **không ghi** file đích. Nếu kết thúc với `reason="fainted"` thì giỏ rỗng (`{"items":{}}`).
@@ -60,5 +61,12 @@ Mỗi dòng sự kiện có dạng: `{"type":"event","tick":<int>,"phase":"gathe
 | Tên sự kiện | Trạng thái | `data` / Ghi chú |
 |---|---|---|
 | `quan_end` | Đã có trong khung | `{"reason": "time", "money": ..., "earned": ..., "shift_earned": ..., "reputation": ...}` |
+<<<<<<< HEAD
 | `customer_arrived`, `customer_left`, `no_dish` | Lát 3 (`nhungvo631-stack`) | `customer_arrived`: `order_id`, `table_id`, `dish_id`, `reserved`; `customer_left`: `order_id`, `table_id`, `reason`, `reputation`; `no_dish`: `{}` (khi có bàn trống nhưng không còn món đủ kho). |
 | `cook_started`, `dish_ready`, `dish_picked`, `served`, `paid` | Lát 4 (`chur04`) | `cook_started`/`dish_ready`/`dish_picked`: `stove_id`, `order_id`, `dish_id` (`cook_started` thêm `items`, `base_price`); `served`: `order_id`, `table_id`, `dish_id`, `patience_ticks_left`, `base_price`, `tip`; `paid`: `order_id`, `table_id`, `base_price`, `tip`, `amount`, `reason`. |
+=======
+| `customer_arrived`, `customer_left`, `no_dish` | Lát 3 (`nhungvo631-stack`) | `customer_arrived`: `customer_id`, `table_id`, `dish`, `reserved`; `customer_left`: `customer_id`, `table_id`, `reserved`, `reputation`; `no_dish`: `reason` (`no_cookable_dish` hoặc `no_free_table`). |
+| `cook_started`, `dish_ready`, `dish_picked`, `served`, `paid` | Lát 4 (`chur04`) | Chốt khóa `data` theo PRD-0 mục E, F (`docs/clarify.md` #6, #7) |
+| `fish_spawned` | Lát 1 (`capkhai`) | Cá sinh theo lịch, payload chốt theo PRD-2. |
+| `monster_hit`, `faint` | Lát 2 (`nhungvo631-stack`) | `monster_hit`: `monster_id`, `damage`, `hp`, `removed`, `removed_count`, `invuln_ticks`; `faint`: `cause="monster"`, `pos`, `monster_id`. |
+>>>>>>> 50867dc (Update code)

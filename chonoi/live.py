@@ -24,7 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
-from .inventory import KINDS_P1, read_inventory
+from .inventory import KINDS_ALL, read_inventory
 from .runner import Session
 from .scenario import load_scenario
 
@@ -237,7 +237,7 @@ def main(argv=None) -> int:
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
         tuning = load_contract()["tuning"]
-        inventory_kinds = KINDS_P1
+        inventory_kinds = KINDS_ALL
         if a.extra_content:
             with open(EXTRA_CONTENT_PATH, encoding="utf-8") as content_file:
                 extra = json.load(content_file)
