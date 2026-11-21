@@ -3,6 +3,10 @@
 Dùng: ip = InputPlayer(frames); mỗi bước k: state = ip.advance(k)
   state.move -> (x, d) trong gather hoặc (x, z) trong quan, đã chuẩn hóa;
   state.pressed("interact") -> True nếu CẠNH LÊN ở bước này.
+  state.buy -> chuỗi lệnh mua/bán của ĐÚNG frame này (v1.1), hoặc None.
+
+v1.1 (TICKET-02 mục 4.2, TV3): thêm nút `pause` (cả ba mode), `shop_done` (Shop) và trường chuỗi `buy`
+(chỉ chạy tại frame khai báo, không kế thừa). Nút `attack`/`photo` chỉ có khi bật mở rộng tương ứng nên vẫn bị từ chối.
 """
 
 import json
@@ -10,20 +14,23 @@ import math
 
 from .errors import BadInput
 
-BUTTONS_V10 = ("interact", "catch")  # v1.0; các nút khác có từ phiên bản sau
+BUTTONS_V10 = ("interact", "catch")  # v1.0
+BUTTONS_V11 = ("interact", "catch", "pause", "shop_done")  # v1.1: thêm pause, shop_done
+STRING_FIELDS = ("buy",)  # v1.1: chuỗi khác rỗng, chỉ tác động ở frame khai báo
 
 
 class InputState:
-    def __init__(self, move, held, edges):
+    def __init__(self, move, held, edges, buy=None):
         self.move = move
         self.held = held
         self._edges = edges
+        self.buy = buy
 
     def pressed(self, name: str) -> bool:
         return name in self._edges
 
 
-def load_frames(path, buttons=BUTTONS_V10):
+def load_frames(path, buttons=BUTTONS_V11):
     if path is None:
         return []
     try:
@@ -35,7 +42,7 @@ def load_frames(path, buttons=BUTTONS_V10):
         raise BadInput("inputs phải có đúng một khóa 'frames' (mảng)")
     last = -1
     frames = []
-    allowed = {"tick", "move", *buttons}
+    allowed = {"tick", "move", *buttons, *STRING_FIELDS}
     for i, fr in enumerate(data["frames"]):
         if not isinstance(fr, dict):
             raise BadInput(f"frame {i} không phải object")
@@ -57,6 +64,9 @@ def load_frames(path, buttons=BUTTONS_V10):
         for b in buttons:
             if b in fr and not isinstance(fr[b], bool):
                 raise BadInput(f"frame {i}: {b} phải là boolean")
+        for k in STRING_FIELDS:
+            if k in fr and (not isinstance(fr[k], str) or not fr[k]):
+                raise BadInput(f"frame {i}: {k} phải là chuỗi khác rỗng")
         frames.append(fr)
     return frames
 
@@ -70,7 +80,7 @@ def normalize(move):
 
 
 class InputPlayer:
-    def __init__(self, frames, buttons=BUTTONS_V10):
+    def __init__(self, frames, buttons=BUTTONS_V11):
         self._frames = {fr["tick"]: fr for fr in frames}
         self._buttons = buttons
         self._move = (0.0, 0.0)
@@ -79,8 +89,10 @@ class InputPlayer:
     def advance(self, k: int) -> InputState:
         """Đọc input có tick == k. Trả trạng thái dùng cho bước k."""
         edges = set()
+        buy = None
         fr = self._frames.get(k)
         if fr:
+            buy = fr.get("buy")
             if "move" in fr:
                 self._move = normalize(fr["move"])
             for b in self._buttons:
@@ -88,7 +100,7 @@ class InputPlayer:
                     if fr[b] and not self._held[b]:
                         edges.add(b)
                     self._held[b] = fr[b]
-        return InputState(self._move, dict(self._held), edges)
+        return InputState(self._move, dict(self._held), edges, buy)
 
 
 class LiveInputs:
@@ -97,15 +109,18 @@ class LiveInputs:
     Luồng khác gọi set(); luồng mô phỏng gọi advance() mỗi tick (cần khóa ngoài nếu dùng nhiều luồng).
     """
 
-    def __init__(self, buttons=BUTTONS_V10):
+    def __init__(self, buttons=BUTTONS_V11):
         self._buttons = buttons
         self._move = (0.0, 0.0)
         self._held = {b: False for b in buttons}
         self._pending = set()
+        self._buy = None
 
-    def set(self, move=None, **buttons):
+    def set(self, move=None, buy=None, **buttons):
         if move is not None:
             self._move = normalize(move)
+        if buy:
+            self._buy = str(buy)
         for b, v in buttons.items():
             if b not in self._held:
                 continue
@@ -115,4 +130,5 @@ class LiveInputs:
 
     def advance(self) -> InputState:
         edges, self._pending = self._pending, set()
-        return InputState(self._move, dict(self._held), edges)
+        buy, self._buy = self._buy, None
+        return InputState(self._move, dict(self._held), edges, buy)
