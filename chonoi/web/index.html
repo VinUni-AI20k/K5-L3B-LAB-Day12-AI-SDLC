@@ -303,14 +303,22 @@ const dishes = {
   ca_loc_nuong_trui: "Cá lóc nướng trui",
   goi_bong_sung: "Gỏi bông súng",
   lau_ca_linh_dien_dien: "Lẩu cá linh bông điên điển",
-  canh_chua_ca_loc_bong_dien_dien: "Canh chua cá lóc bông điên điển",
-  ca_keo_nuong_muoi_ot: "Cá kèo nướng muối ớt",
-  lau_mam_mien_tay: "Lẩu mắm miền Tây"
+  canh_chua_ca_loc: "Canh chua cá lóc bông điên điển",
+  ca_keo_nuong: "Cá kèo nướng muối ớt",
+  lau_mam: "Lẩu mắm miền Tây"
 };
 const reasons = { docked: "Đã cập bến", time: "Hết giờ", fainted: "Bà Út bị ngất" };
 const known = (map, key) => Object.hasOwn(map, key) ? map[key] : undefined;
 const itemName = key => known(itemNames, key) ?? key;
-const dishId = value => typeof value === "string" ? value : value?.dish_id;
+const fixtureDishIds = {
+  ca_keo_nuong_muoi_ot: "ca_keo_nuong",
+  canh_chua_ca_loc_bong_dien_dien: "canh_chua_ca_loc",
+  lau_mam_mien_tay: "lau_mam"
+};
+const dishId = value => {
+  const id = typeof value === "string" ? value : value?.dish_id;
+  return known(fixtureDishIds, id) ?? id;
+};
 const dishName = value => {
   const id = dishId(value);
   return (record(value) ? value.label : null) ?? known(dishes, id) ?? (typeof id === "string" ? id : "Chưa rõ món");
@@ -518,6 +526,7 @@ function eventMessage({ name, data }) {
     case "gather": return kind ? `Đã hái ${itemName(kind)}` : "Đã hái nguyên liệu";
     case "fish_caught": return `Đã bắt ${kind ? itemName(kind) : "cá"}${num(count) ? " ×" + count : ""}`;
     case "hold_full": return "Giỏ không đủ chỗ";
+    case "monster_hit":
     case "crocodile_hit":
       hitUntil = performance.now() + 450;
       return "Cá sấu tấn công · Kiểm tra Máu và giỏ";
@@ -761,7 +770,7 @@ function renderDay() {
     buttons = flowButton("resume", "Tiếp tục") + flowButton("menu", "Về menu");
   } else if (stage === "menu") {
     body = "<p>Thu nguyên liệu buổi sáng, mở quán khi trời tối.</p>" +
-      (day.live_scenes ? '<p class="subtle">Gather và Quán dùng backend v1.0. Shop v1.1 chưa kết nối.</p>' : "");
+      (day.live_scenes ? '<p class="subtle">Gather và Quán dùng mô phỏng thật. Shop chưa kết nối với giao diện này.</p>' : "");
     buttons = flowButton("start", "Chơi") + flowButton("exit", "Thoát");
   } else if (stage === "exited") {
     body = "<p>Bạn có thể đóng tab này hoặc quay lại menu.</p>";

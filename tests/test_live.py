@@ -33,8 +33,8 @@ class LiveServerTest(unittest.TestCase):
         self.addCleanup(server.stop)
         for name in ("gather", "quan", "ba-ut", "ba-ut-boi", "khach-nam", "khach-nu", "ca-linh", "ca-loc",
                      "ca-sau", "ca-loc-nuong-trui", "goi-bong-sung",
-                     "lau-ca-linh-dien-dien", "canh-chua-ca-loc-bong-dien-dien",
-                     "ca-keo-nuong-muoi-ot", "lau-mam-mien-tay"):
+                     "lau-ca-linh-dien-dien", "canh-chua-ca-loc",
+                     "ca-keo-nuong", "lau-mam"):
             with self.subTest(name=name):
                 with urllib.request.urlopen(server.url + f"art/{name}.webp", timeout=5) as response:
                     self.assertEqual(response.headers.get_content_type(), "image/webp")

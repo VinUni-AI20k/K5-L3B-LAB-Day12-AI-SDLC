@@ -19,7 +19,7 @@ TUNING = load_contract()["tuning"]
 SPAWN = {"gather": [34, 8], "quan": [8, 5]}
 DISHES = [
     "ca_loc_nuong_trui", "goi_bong_sung", "lau_ca_linh_dien_dien",
-    "canh_chua_ca_loc_bong_dien_dien", "ca_keo_nuong_muoi_ot", "lau_mam_mien_tay",
+    "canh_chua_ca_loc", "ca_keo_nuong", "lau_mam",
 ]
 ITEMS = ["ca_linh", "ca_loc", "ca_keo", "bong_sung", "bong_dien_dien", "keo_neo"]
 STOCK = dict(zip(ITEMS, [6, 3, 3, 4, 2, 2]))
@@ -170,7 +170,7 @@ class Preview:
 
 
 class LiveScenesPreview(Preview):
-    """Local day screen flow backed by full Phase 1 simulation for both shifts."""
+    """Local day screen flow backed by real Gather and Quán simulations."""
     live_scenes = True
 
     def __init__(self, days, faint):
