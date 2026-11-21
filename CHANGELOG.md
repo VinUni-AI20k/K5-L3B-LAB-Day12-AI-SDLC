@@ -8,6 +8,11 @@
 - `tests/test_assets.py` (12 test). Không đổi luật, tick, sự kiện, JSONL hay `game.contract.json`.
 - HUD quán chừa thêm chỗ phía trên cho 3 dòng kho (trước đó bị mép phòng che).
 
+### Phase 4 — cảnh báo và chế độ tương phản cao (AC-P4-04, AC-P4-05)
+- 3 cảnh báo có **chữ + biểu tượng** (`warn_*`): "Thủy quái!" (Cá Sấu trong 1,5 × bán kính phát hiện, hoặc đang đuổi; thêm viền tím), "Oxy sắp hết!" / "Hết hơi!" (oxy < 25% / cạn, chỉ khi ở dưới nước), "Khách sắp giận!" (kiên nhẫn < 25%, kèm biểu tượng ngay cạnh khách).
+- **Chế độ tương phản cao** (phím **H**, nhớ lựa chọn): chữ đậm có viền (chữ tối viền trắng, chữ sáng viền đen), viền khung dày hơn, cảnh báo nền đen, tăng tương phản và bão hòa cảnh.
+- `tests/test_warnings.py` (9 test, chạy HUD thật trong Node với canvas giả; skip nếu không có Node) và bằng chứng ảnh ở `docs/proof/phase-4/`. Không đổi luật, tick, sự kiện hay JSONL.
+
 ### Phase 3 — v1.2 đã bật trên `main` (`contract_version: "1.2"`)
 - Kho cá thể dùng chung `chonoi/items.py`, file kho / scenario / giỏ cá thể, giữ chỗ theo id, hao kho quán, giá theo tươi (lát 0, 3, 4). Code vẫn nhận manifest v1.1 (không có `tuning.freshness`).
 - Test hộp đen Phase 3 `tests/test_fresh_p3.py` (28 test) và ma trận `docs/verification/phase-3.md`.
