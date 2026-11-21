@@ -1,0 +1,89 @@
+﻿Phase 1 QA smoke proof
+Date: 2026-11-21 Asia/Bangkok
+
+Determinism check:
+> python -m chonoi.headless --mode gather --seed 1 --ticks 600 --out docs/proof/phase-1/gather_seed1_run1.jsonl
+exit code: 0
+> python -m chonoi.headless --mode gather --seed 1 --ticks 600 --out docs/proof/phase-1/gather_seed1_run2.jsonl
+exit code: 0
+run 1 SHA-256: 72c30e63f0ca4f4d15de11305be5fae1a967aa6bcd9e00f3deef7d301e1c7ae3
+run 2 SHA-256: 72c30e63f0ca4f4d15de11305be5fae1a967aa6bcd9e00f3deef7d301e1c7ae3
+byte-identical: True
+
+Automated tests:
+> python -m unittest discover -s tests -v
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_choke_damages_only_after_full_60_tick_interval (test_phase1_qa_edges.Phase1GatherEdges.test_choke_damages_only_after_full_60_tick_interval) ... FAIL
+test_interact_with_full_hold_emits_hold_full_without_changing_hold (test_phase1_qa_edges.Phase1GatherEdges.test_interact_with_full_hold_emits_hold_full_without_changing_hold) ... FAIL
+test_unready_node_regrows_and_emits_event_on_exact_tick (test_phase1_qa_edges.Phase1GatherEdges.test_unready_node_regrows_and_emits_event_on_exact_tick) ... ok
+test_customer_leaves_on_tick_patience_reaches_zero (test_phase1_qa_edges.Phase1QuanEdges.test_customer_leaves_on_tick_patience_reaches_zero) ... FAIL
+test_fast_service_tip_uses_contract_rate_and_menu_price (test_phase1_qa_edges.Phase1QuanEdges.test_fast_service_tip_uses_contract_rate_and_menu_price) ... FAIL
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+V� d\u1ee5 smoke test trong PRD-0 m\u1ee5c G: c\u1eadp b\u1ebfn \u1edf tick 0, qu�n \u0111\u1ecdc kho \u0111�ng n\u1ed9i dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+B\u1ecf 6 tick t\u0103ng t\u1ed1c r\u1ed3i \u0111o 60 tick: qu�ng \u2248 swim_speed � 1 s (�0.1). Ngang, xu\u1ed1ng, ch�o (kh�ng nhanh h\u01a1n). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Ch\u1eb7n t\u1eebng m�p c\u1ee7a v�ng n\u01b0\u1edbc, k\u1ec3 c\u1ea3 d kh�ng �m (kh�ng bay l�n kh\u1ecfi m\u1eb7t n\u01b0\u1edbc) v� \u0111�y d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+\u0110\u1ea3o t\u1eeb +speed sang -speed: v\u1eadn t\u1ed1c ch\u1ea1m m\u1ee5c ti�u sau t\u1ed1i \u0111a ramp_max_ticks tick k\u1ec3 t\u1eeb l�c \u0111\u1ed5i input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+======================================================================
+FAIL: test_choke_damages_only_after_full_60_tick_interval (test_phase1_qa_edges.Phase1GatherEdges.test_choke_damages_only_after_full_60_tick_interval)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase1_qa_edges.py", line 51, in test_choke_damages_only_after_full_60_tick_interval
+    self.assertEqual(sim.zero_oxy_ticks, interval - 1)
+AssertionError: 0 != 59
+======================================================================
+FAIL: test_interact_with_full_hold_emits_hold_full_without_changing_hold (test_phase1_qa_edges.Phase1GatherEdges.test_interact_with_full_hold_emits_hold_full_without_changing_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase1_qa_edges.py", line 40, in test_interact_with_full_hold_emits_hold_full_without_changing_hold
+    self.assertIn("hold_full", [name for name, _ in events])
+AssertionError: 'hold_full' not found in []
+======================================================================
+FAIL: test_customer_leaves_on_tick_patience_reaches_zero (test_phase1_qa_edges.Phase1QuanEdges.test_customer_leaves_on_tick_patience_reaches_zero)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase1_qa_edges.py", line 84, in test_customer_leaves_on_tick_patience_reaches_zero
+    self.assertEqual(sim.customers[0]["patience_ticks_left"], 1)
+AssertionError: 2 != 1
+======================================================================
+FAIL: test_fast_service_tip_uses_contract_rate_and_menu_price (test_phase1_qa_edges.Phase1QuanEdges.test_fast_service_tip_uses_contract_rate_and_menu_price)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase1_qa_edges.py", line 101, in test_fast_service_tip_uses_contract_rate_and_menu_price
+    self.assertEqual(len(paid), 1)
+AssertionError: 0 != 1
+----------------------------------------------------------------------
+Ran 37 tests in 5.255s
+FAILED (failures=4)
+unittest exit code: 1
+
+Summary: 37 tests run; 33 passed, 4 failed. The 4 failures map to gameplay rules still marked TODO in chonoi/sim/gather.py and chonoi/sim/quan.py.
