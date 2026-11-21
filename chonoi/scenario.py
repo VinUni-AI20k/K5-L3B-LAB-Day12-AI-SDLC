@@ -247,8 +247,22 @@ def _validate_quan_rules(b, tuning):
                 _nonneg_int(f"customers.{cid}.{key}", c.get(key))
         for k, v in (reserved or {}).items():
             reserved_total[k] = reserved_total.get(k, 0) + v
-    # Kho đến từ --inventory thì scenario không biết, nên chỉ so khi scenario tự khai stock.
+    # Kho đến từ --inventory thì load_scenario không biết; headless gọi check_reserved_within_stock sau khi đọc kho.
     if "stock" in b:
-        for k, need in reserved_total.items():
-            if need > b["stock"].get(k, 0):
-                raise BadInput(f"khách giữ chỗ {k} = {need} vượt kho ({b['stock'].get(k, 0)})")
+        _check_within_stock(reserved_total, b["stock"])
+
+
+def _check_within_stock(need, stock):
+    for k in sorted(need):
+        if need[k] > stock.get(k, 0):
+            raise BadInput(f"khách giữ chỗ {k} = {need[k]} vượt kho ({stock.get(k, 0)})")
+
+
+def check_reserved_within_stock(block, stock):
+    """Phần giữ chỗ nguyên liệu của khách (ghi rõ trong `customers[].reserved`) không được vượt kho (PRD-0 mục D, mã 2).
+    Dùng cho kho nạp từ --inventory; `block` là khối quan đã qua load_scenario nên `reserved` đã hợp lệ."""
+    need = {}
+    for c in block.get("customers", []):
+        for k, v in (c.get("reserved") or {}).items():
+            need[k] = need.get(k, 0) + v
+    _check_within_stock(need, stock)

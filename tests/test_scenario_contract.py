@@ -1,13 +1,14 @@
 """P1-08: kiểm mâu thuẫn scenario mức luật (quán) và các khóa còn lại của game.contract.json."""
 
 import copy
+import os
 import unittest
 
 from helpers import Workdir, run_headless, write_json
 
 from chonoi.contract import load_contract, validate_tuning
 from chonoi.errors import BadInput
-from chonoi.scenario import load_scenario
+from chonoi.scenario import check_reserved_within_stock, load_scenario
 
 TUNING = load_contract()["tuning"]
 
@@ -162,6 +163,48 @@ class HeadlessExitCode(unittest.TestCase):
             code, err = run_headless("--mode", "quan", "--seed", "1", "--ticks", "10",
                                      "--out", w.path("o.jsonl"), "--scenario", sc)
         self.assertEqual(code, 2, err)
+
+
+class ReservedVsInventory(unittest.TestCase):
+    """P1-08b: giữ chỗ nguyên liệu không được vượt kho nạp từ --inventory (PRD-0 mục D, mã 2)."""
+
+    @staticmethod
+    def customers(*reserved):
+        return [{"id": f"K{i}", "table_id": f"T{i}", "dish_id": "goi_bong_sung", "reserved": r}
+                for i, r in enumerate(reserved, 1)]
+
+    def run_quan(self, w, customers, inventory):
+        sc = write_json(w.path("s.json"), {"quan": {"customers": customers}})
+        inv = write_json(w.path("inv.json"), {"items": inventory})
+        out = w.path("o.jsonl")
+        code, err = run_headless("--mode", "quan", "--seed", "1", "--ticks", "0", "--out", out,
+                                 "--scenario", sc, "--inventory", inv)
+        return code, err, os.path.exists(out)
+
+    def test_reservation_within_inventory_is_accepted(self):
+        with Workdir() as w:
+            code, err, wrote = self.run_quan(w, self.customers({"bong_sung": 2}), {"bong_sung": 2})
+        self.assertEqual(code, 0, err)
+        self.assertTrue(wrote)
+
+    def test_reservation_over_inventory_exits_2_before_writing_output(self):
+        with Workdir() as w:
+            code, err, wrote = self.run_quan(w, self.customers({"bong_sung": 2}), {"bong_sung": 1})
+        self.assertEqual(code, 2, err)
+        self.assertIn("bong_sung = 2", err)  # tên nguyên liệu và số lượng (ASCII, không phụ thuộc mã hóa console)
+        self.assertFalse(wrote)
+
+    def test_ingredient_missing_from_inventory_counts_as_zero(self):
+        with Workdir() as w:
+            code, _, _ = self.run_quan(w, self.customers({"ca_loc": 1}), {"bong_sung": 5})
+        self.assertEqual(code, 2)
+
+    def test_check_function_adds_up_customers_and_accepts_exact_stock(self):
+        two = {"customers": [{"reserved": {"ca_loc": 1}}, {"reserved": {"ca_loc": 1}}, {"id": "K3"}]}
+        check_reserved_within_stock(two, {"ca_loc": 2})  # vừa đủ: không lỗi
+        with self.assertRaises(BadInput):
+            check_reserved_within_stock(two, {"ca_loc": 1})
+        check_reserved_within_stock({}, {})  # không khách: không lỗi
 
 
 if __name__ == "__main__":
