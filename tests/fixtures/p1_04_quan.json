@@ -1,0 +1,17 @@
+{
+  "quan": {
+    "random_customers": false,
+    "player": {"pos": [2, 8]},
+    "stock": {"ca_loc": 1},
+    "tables": [{"id": "T1", "pos": [4, 8]}],
+    "customers": [
+      {
+        "id": "C1", "table_id": "T1",
+        "state": "waiting", "order_status": "reserved", "order_tick": 0,
+        "dish_id": "ca_loc_nuong_trui", "base_price": 60,
+        "reserved": {"ca_loc": 1},
+        "patience_ticks_left": 3600
+      }
+    ]
+  }
+}

@@ -1,0 +1,167 @@
+test_headless_full_shift_events_snapshots_and_deterministic_bytes (test_kitchen_serving.KitchenIntegration.test_headless_full_shift_events_snapshots_and_deterministic_bytes) ... ok
+test_live_http_quan_input_snapshot_payment_and_restart (test_kitchen_serving.KitchenIntegration.test_live_http_quan_input_snapshot_payment_and_restart) ... ok
+test_busy_stove_cannot_cook_or_pick (test_kitchen_serving.KitchenServing.test_busy_stove_cannot_cook_or_pick) ... ok
+test_closing_discards_all_unserved_dish_locations_without_refund (test_kitchen_serving.KitchenServing.test_closing_discards_all_unserved_dish_locations_without_refund) ... ok
+test_closing_pays_eating_and_releases_waiting_without_penalty (test_kitchen_serving.KitchenServing.test_closing_pays_eating_and_releases_waiting_without_penalty) ... ok
+test_cook_consumes_exact_recipe_and_emits_sorted_items_for_each_dish (test_kitchen_serving.KitchenServing.test_cook_consumes_exact_recipe_and_emits_sorted_items_for_each_dish) ... ok
+test_eating_finishes_normally_before_closing_settlement (test_kitchen_serving.KitchenServing.test_eating_finishes_normally_before_closing_settlement) ... ok
+test_equal_distance_stoves_use_natural_id_and_only_one_action (test_kitchen_serving.KitchenServing.test_equal_distance_stoves_use_natural_id_and_only_one_action) ... ok
+test_euclidean_radius_inclusive_and_outside_rejected (test_kitchen_serving.KitchenServing.test_euclidean_radius_inclusive_and_outside_rejected) ... ok
+test_final_tick_keeps_ready_event_before_closing_cleanup (test_kitchen_serving.KitchenServing.test_final_tick_keeps_ready_event_before_closing_cleanup) ... ok
+test_full_hand_cannot_pick_or_duplicate_dish (test_kitchen_serving.KitchenServing.test_full_hand_cannot_pick_or_duplicate_dish) ... ok
+test_held_interact_does_not_pick_when_cooking_finishes (test_kitchen_serving.KitchenServing.test_held_interact_does_not_pick_when_cooking_finishes) ... ok
+test_insufficient_or_wrong_reservation_does_not_partially_consume (test_kitchen_serving.KitchenServing.test_insufficient_or_wrong_reservation_does_not_partially_consume) ... ok
+test_invalid_ownership_and_overreservation_exit_2_before_output (test_kitchen_serving.KitchenServing.test_invalid_ownership_and_overreservation_exit_2_before_output) ... Exception in thread Thread-22 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1083, in _bootstrap_inner
+    self._context.run(self.run)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1025, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\subprocess.py", line 1614, in _readerthread
+    buffer.append(fh.read())
+                  ~~~~~~~^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 37: character maps to <undefined>
+Exception in thread Thread-28 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1083, in _bootstrap_inner
+    self._context.run(self.run)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1025, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\subprocess.py", line 1614, in _readerthread
+    buffer.append(fh.read())
+                  ~~~~~~~^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x81 in position 35: character maps to <undefined>
+Exception in thread Thread-30 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1083, in _bootstrap_inner
+    self._context.run(self.run)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1025, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\subprocess.py", line 1614, in _readerthread
+    buffer.append(fh.read())
+                  ~~~~~~~^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x81 in position 35: character maps to <undefined>
+ok
+test_leave_clears_cooking_ready_and_hand_without_refund (test_kitchen_serving.KitchenServing.test_leave_clears_cooking_ready_and_hand_without_refund) ... ok
+test_minimal_customer_fixture_uses_contract_defaults (test_kitchen_serving.KitchenServing.test_minimal_customer_fixture_uses_contract_defaults) ... ok
+test_movement_precedes_interaction (test_kitchen_serving.KitchenServing.test_movement_precedes_interaction) ... ok
+test_nearest_unusable_object_blocks_fallback_and_tie_prefers_stove (test_kitchen_serving.KitchenServing.test_nearest_unusable_object_blocks_fallback_and_tie_prefers_stove) ... ok
+test_no_reserved_order_cannot_cook (test_kitchen_serving.KitchenServing.test_no_reserved_order_cannot_cook) ... ok
+test_nondefault_tuning_controls_cook_eat_tip_carry_and_movement (test_kitchen_serving.KitchenServing.test_nondefault_tuning_controls_cook_eat_tip_carry_and_movement) ... ok
+test_oldest_order_then_natural_table_id_and_other_reservation_preserved (test_kitchen_serving.KitchenServing.test_oldest_order_then_natural_table_id_and_other_reservation_preserved) ... ok
+test_payment_adds_to_existing_totals_and_no_tip_preserves_reputation (test_kitchen_serving.KitchenServing.test_payment_adds_to_existing_totals_and_no_tip_preserves_reputation) ... ok
+test_payment_and_leaving_order_follow_table_ids_instead_of_customer_ids (test_kitchen_serving.KitchenServing.test_payment_and_leaving_order_follow_table_ids_instead_of_customer_ids) ... ok
+test_pick_preserves_order_price_and_resets_stove (test_kitchen_serving.KitchenServing.test_pick_preserves_order_price_and_resets_stove) ... ok
+test_ready_events_are_sorted_by_natural_stove_id (test_kitchen_serving.KitchenServing.test_ready_events_are_sorted_by_natural_stove_id) ... ok
+test_ready_exact_tick_once_and_ready_ticks_start_next_step_no_burning (test_kitchen_serving.KitchenServing.test_ready_exact_tick_once_and_ready_ticks_start_next_step_no_burning) ... ok
+test_ready_then_pick_on_same_tick_and_no_decrement_of_new_eating_timer (test_kitchen_serving.KitchenServing.test_ready_then_pick_on_same_tick_and_no_decrement_of_new_eating_timer) ... ok
+test_reputation_clamps_high_and_low_without_float_drift (test_kitchen_serving.KitchenServing.test_reputation_clamps_high_and_low_without_float_drift) ... ok
+test_reserved_leave_releases_claim_without_consuming_stock (test_kitchen_serving.KitchenServing.test_reserved_leave_releases_claim_without_consuming_stock) ... ok
+test_serve_on_closing_tick_gets_paid_then_end_once (test_kitchen_serving.KitchenServing.test_serve_on_closing_tick_gets_paid_then_end_once) ... ok
+test_serve_on_zero_patience_tick_is_allowed (test_kitchen_serving.KitchenServing.test_serve_on_zero_patience_tick_is_allowed) ... ok
+test_service_on_both_zero_patience_and_closing_tick (test_kitchen_serving.KitchenServing.test_service_on_both_zero_patience_and_closing_tick) ... ok
+test_timeout_after_cook_started_does_not_refund_consumed_inventory (test_kitchen_serving.KitchenServing.test_timeout_after_cook_started_does_not_refund_consumed_inventory) ... ok
+test_tip_boundary_uses_patience_after_decrement (test_kitchen_serving.KitchenServing.test_tip_boundary_uses_patience_after_decrement) ... ok
+test_tips_for_all_prices_payment_delayed_and_once (test_kitchen_serving.KitchenServing.test_tips_for_all_prices_payment_delayed_and_once) ... ok
+test_wrong_table_order_or_dish_not_served (test_kitchen_serving.KitchenServing.test_wrong_table_order_or_dish_not_served) ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... Exception in thread Thread-53 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1083, in _bootstrap_inner
+    self._context.run(self.run)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1025, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\subprocess.py", line 1614, in _readerthread
+    buffer.append(fh.read())
+                  ~~~~~~~^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 35: character maps to <undefined>
+Exception in thread Thread-55 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1083, in _bootstrap_inner
+    self._context.run(self.run)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1025, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\subprocess.py", line 1614, in _readerthread
+    buffer.append(fh.read())
+                  ~~~~~~~^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 35: character maps to <undefined>
+ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... Exception in thread Thread-75 (_readerthread):
+Traceback (most recent call last):
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1083, in _bootstrap_inner
+    self._context.run(self.run)
+    ~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\threading.py", line 1025, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\subprocess.py", line 1614, in _readerthread
+    buffer.append(fh.read())
+                  ~~~~~~~^^
+  File "C:\Users\admin\AppData\Local\Programs\Python\Python314\Lib\encodings\cp1252.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 23: character maps to <undefined>
+ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 68 tests in 10.804s
+
+OK
