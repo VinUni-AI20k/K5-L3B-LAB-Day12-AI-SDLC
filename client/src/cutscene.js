@@ -1,6 +1,12 @@
 // Timeline-driven cutscenes. A script is a flat list of steps; blocking steps pause the timeline.
+// Audio steps: { music }, { sfx }, { stinger: name, arg } (synth cinematic FX), { duck: seconds }, { musicCue: 0..2 }.
+// Cards play "swish" in/out and hero_hit / title_hit on the impact; a "riser" is armed to end on the impact
+// whenever the step before the card has a known length (see armRiser).
 import { W, H, screen, input, fx, ease, clamp, lerp, txt, wrap, panel, measure, reduceMotion } from "./engine.js";
-import { sfx, music } from "./audio.js";
+import { sfx, music, voice, duck, musicCue } from "./audio.js";
+
+const IMPACT = { intro: 0.3, title: 0.14 }; // seconds into a card where the name slams in
+const RISER = 1.1; // riser length that ends on a card impact
 import { portrait, R } from "./art.js";
 
 // ---------- shared comic-style effects ----------
@@ -113,24 +119,52 @@ export class Cutscene {
     const from = {}; for (const k in to) from[k] = obj[k] ?? 0;
     this.tweens.push({ obj, from, to, dur, t: 0, e });
   }
+  // impact time of the card that follows the current blocking step (instant steps skipped), else null
+  nextCardImpact() {
+    for (let j = this.i; j < this.steps.length; j++) {
+      const s = this.steps[j];
+      if (s.intro) return IMPACT.intro;
+      if (s.title) return IMPACT.title;
+      if (s.caption || s.say || s.wait !== undefined) return null;
+    }
+    return null;
+  }
+  // arm a riser so it ends on the next card's impact; D = how long the current blocking step lasts
+  armRiser(D) {
+    this.riser = null;
+    const imp = this.nextCardImpact();
+    if (imp === null || !(D > 0)) return;
+    const at = Math.max(0, D + imp - RISER), dur = D + imp - at;
+    if (dur >= 0.6) this.riser = { at, dur };
+  }
+  startCard(type, def) {
+    const dur = def.dur || (type === "intro" ? 2.9 : 2.2);
+    this.card = { type, ...def, dur, k: 0, hit: false, out: false };
+    sfx("swish");
+    sfx(def.stinger || (type === "intro" ? "hero_hit" : "title_hit"), IMPACT[type]); // swell now, hit lands on the impact
+    this.armRiser(dur);
+  }
   advance() {
-    this.cur = null; this.curT = 0;
+    this.cur = null; this.curT = 0; this.riser = null;
     while (this.i < this.steps.length) {
       const s = this.steps[this.i++];
       if (s.bg) { this.bg = s.bg; continue; }
       if (s.music !== undefined) { music(s.music); continue; }
       if (s.sfx) { sfx(s.sfx); continue; }
+      if (s.stinger) { sfx(s.stinger, s.arg); continue; }
+      if (s.duck !== undefined) { duck(s.duck); continue; }
+      if (s.musicCue !== undefined) { musicCue(s.musicCue); continue; }
       if (s.shake) { fx.shake(s.shake, s.t || 0.4); continue; }
       if (s.flash) { fx.flash(s.flash, s.t || 0.2); continue; }
       if (s.set) { Object.assign(this.v, s.set); continue; }
-      if (s.fade) { this.fade.to = s.fade === "out" ? 1 : 0; this.fade.col = s.color || "#000"; this.fade.spd = 1 / (s.dur || 0.5); if (s.wait) { this.cur = s; return; } continue; }
-      if (s.cam) { this.tween(this.cam, s.cam, s.dur, s.ease ? ease[s.ease] : ease.inOut); if (s.wait) { this.cur = { wait: s.dur }; return; } continue; }
-      if (s.tween) { this.tween(this.v, s.tween, s.dur, s.ease ? ease[s.ease] : ease.inOut); if (s.wait) { this.cur = { wait: s.dur }; return; } continue; }
-      if (s.caption) { this.caption = { ...s, k: 0 }; this.cur = s; return; }
+      if (s.fade) { this.fade.to = s.fade === "out" ? 1 : 0; this.fade.col = s.color || "#000"; this.fade.spd = 1 / (s.dur || 0.5); if (s.wait) { this.cur = s; return this.armRiser(s.dur || 0.5); } continue; }
+      if (s.cam) { this.tween(this.cam, s.cam, s.dur, s.ease ? ease[s.ease] : ease.inOut); if (s.wait) { this.cur = { wait: s.dur }; return this.armRiser(s.dur); } continue; }
+      if (s.tween) { this.tween(this.v, s.tween, s.dur, s.ease ? ease[s.ease] : ease.inOut); if (s.wait) { this.cur = { wait: s.dur }; return this.armRiser(s.dur); } continue; }
+      if (s.caption) { this.caption = { ...s, k: 0 }; this.cur = s; return this.armRiser(s.dur || 2.6); }
       if (s.say) { this.say = { ...s, k: 0, shown: 0 }; this.cur = s; return; }
-      if (s.intro) { this.card = { type: "intro", ...s.intro, dur: s.intro.dur || 2.9, k: 0, hit: false }; this.cur = s; sfx("whoosh"); return; }
-      if (s.title) { this.card = { type: "title", ...s.title, dur: s.title.dur || 2.2, k: 0, hit: false }; this.cur = s; sfx("whoosh"); return; }
-      if (s.wait !== undefined) { this.cur = s; return; }
+      if (s.intro) { this.cur = s; return this.startCard("intro", s.intro); }
+      if (s.title) { this.cur = s; return this.startCard("title", s.title); }
+      if (s.wait !== undefined) { this.cur = s; return this.armRiser(s.wait); }
     }
     this.finish();
   }
@@ -149,6 +183,7 @@ export class Cutscene {
     if (input.down("back")) { this.skipHold += dt; if (this.skipHold > 0.7) { sfx("click"); this.finish(); return; } } else this.skipHold = 0;
 
     const s = this.cur; if (!s) return;
+    if (this.riser && this.curT >= this.riser.at) { sfx("riser", Math.max(0.3, this.riser.dur - (this.curT - this.riser.at))); this.riser = null; }
     if (s.wait !== undefined && this.curT >= s.wait) return this.advance();
     if (s.fade && Math.abs(f.a - f.to) < 0.001) return this.advance();
     if (s.caption) {
@@ -159,7 +194,7 @@ export class Cutscene {
       const d = this.say;
       const before = Math.floor(d.shown);
       d.shown = Math.min(d.text.length, d.shown + dt * 42);
-      if (Math.floor(d.shown) > before && Math.floor(d.shown) % 2 === 0 && d.text[Math.floor(d.shown) - 1] !== " ") sfx("blip");
+      for (let k = before; k < Math.floor(d.shown); k++) voice(d.say, d.text[k], d.text, k); // babble (skips spaces/punct itself)
       if (input.hit("confirm") || input.hit("catch") || input.hit("interact")) {
         if (d.shown < d.text.length) d.shown = d.text.length;
         else { sfx("click"); this.say = null; return this.advance(); }
@@ -167,8 +202,8 @@ export class Cutscene {
     }
     if (this.card) {
       const c = this.card; c.k = this.curT;
-      const impact = c.type === "intro" ? 0.3 : 0.14;
-      if (!c.hit && c.k >= impact) { c.hit = true; sfx("slam"); fx.shake(c.type === "intro" ? 6 : 4, 0.35); fx.flash("#fff", 0.1); fx.hitstop(0.06); }
+      if (!c.hit && c.k >= IMPACT[c.type]) { c.hit = true; fx.shake(c.type === "intro" ? 6 : 4, 0.35); fx.flash("#fff", 0.1); fx.hitstop(0.06); } // hit sound was scheduled in startCard
+      if (!c.out && c.k >= c.dur - (c.type === "intro" ? 0.35 : 0.3)) { c.out = true; sfx("swish", 0.6); }
       if (c.k >= c.dur) { this.card = null; return this.advance(); }
     }
   }

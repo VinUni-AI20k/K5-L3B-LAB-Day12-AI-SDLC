@@ -96,7 +96,7 @@ export function riverWorld(c, cs, tod = "dawn") {
 // ---------- scripts ----------
 export function introScript() {
   return [
-    { music: "theme" },
+    { music: "cut_dawn" },
     { bg: (c, cs) => riverWorld(c, cs, "dawn") },
     { set: { sunUp: 0, jump: 0, splash: 0, ba: true } },
     { cam: { x: 0, y: -232 }, dur: 0.01 },
@@ -107,12 +107,13 @@ export function introScript() {
     { say: "Bà Tư", portrait: "ba", color: "#7a4fa0", text: "Út ơi! Tối nay quán mình mở cửa lại đó nghen." },
     { say: "Út Sen", portrait: "sen", side: "right", color: "#1aa6a0", text: "Dạ, con nhớ mà nội! Quán Ăn Chợ Nổi tái xuất giang hồ!" },
     { say: "Bà Tư", portrait: "ba", color: "#7a4fa0", text: "Lặn kiếm cá linh, cá lóc, hái bông súng với bông điên điển về đây. Nhớ canh hơi thở nghe con, hết hơi là phải trồi lên!" },
+    { musicCue: 2 },
     { intro: { name: "ÚT SEN", sub: "Thợ lặn nhí của chợ nổi · nhịn thở 30 giây", tag: "NHÂN VẬT CHÍNH", portrait: "sen", colA: "#14a6a0", colB: "#ff8a3d", nameCol: "#ffe14d" } },
     { say: "Út Sen", portrait: "sen", side: "right", color: "#1aa6a0", text: "Hít một hơi thật sâu... Đi nè!" },
     { cam: { x: 300, y: -200 }, dur: 0.6 },
-    { sfx: "whoosh" },
+    { sfx: "whoosh" }, { stinger: "riser", arg: 0.75 },
     { tween: { jump: 1 }, dur: 0.75, ease: "inOut", wait: true },
-    { sfx: "splash" }, { shake: 5 }, { flash: "#e8fbff" },
+    { sfx: "splash" }, { stinger: "splash_big" }, { shake: 5 }, { flash: "#e8fbff" },
     { set: { splash: 1, school: true } },
     { tween: { splash: 0 }, dur: 0.6 },
     { music: "underwater" },
@@ -126,7 +127,7 @@ export function introScript() {
 export function duskScript(haul = []) {
   const count = haul.length;
   return [
-    { music: "theme" },
+    { music: "cut_dusk" },
     { bg: (c, cs) => riverWorld(c, cs, "dusk") },
     { set: { raft: true, lights: 0, boatX: 160 } },
     { cam: { x: 0, y: -230 }, dur: 0.01 },
@@ -136,9 +137,10 @@ export function duskScript(haul = []) {
     { cam: { x: 330, y: -225 }, dur: 4.5, wait: true },
     { say: "Út Sen", portrait: "sen", side: "right", color: "#1aa6a0", text: count >= 8 ? "Nội ơi! Con về rồi! Đầy ghe luôn nè!" : "Nội ơi, con về rồi... hôm nay hơi ít, nội đừng la nha." },
     { say: "Bà Tư", portrait: "ba", color: "#7a4fa0", text: "Giỏi lắm con. Lên đèn thôi, khách sắp tới rồi!" },
-    ...Array.from({ length: 8 }, (_, i) => [{ set: { lights: i + 1 } }, { sfx: "ding" }, { wait: 0.18 }]).flat(),
+    { musicCue: 1 }, { stinger: "drumroll", arg: 1.7 },
+    ...Array.from({ length: 8 }, (_, i) => [{ set: { lights: i + 1 } }, { stinger: "bell", arg: i }, { wait: 0.18 }]).flat(),
     { intro: { name: "BÀ TƯ", sub: "Bếp trưởng huyền thoại · 40 năm giữ lửa lẩu", tag: "BẾP TRƯỞNG", portrait: "ba", colA: "#7a4fa0", colB: "#d94a3d", nameCol: "#ffd23f" } },
-    { sfx: "fanfare" },
+    { sfx: "fanfare" }, { musicCue: 2 }, { stinger: "sting_win", arg: 0.5 },
     { title: { text: "QUÁN ĂN CHỢ NỔI", sub: "MỞ CỬA! Nấu món, bưng ra bàn, giữ uy tín quán", color: "#ffd23f", band: "rgba(60,14,20,.9)" } },
     { fade: "out", dur: 0.6, wait: true },
   ];
