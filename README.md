@@ -33,10 +33,21 @@ Tài liệu nhóm Math. [Kế hoạch Phase 1](docs/plan/phase-1.md) · [Ma tr�
 | E | Cập bến (trong bán kính bến) hoặc hái nút trên mặt nước | Nấu ở bếp, bưng món, phục vụ ở bàn |
 | Space | Bắt cá khi đang lặn | — |
 | R | Chơi lại | Chơi lại |
+| Esc / P | Tạm dừng (từ Phase 2) | Tạm dừng (từ Phase 2) |
+
+Từ Phase 2 game chơi theo vòng ngày (5 Ngày): Má Tư đọc món định nấu → lặn hái → mở quán → kết quả ngày → Shop mua Bình oxy / Áo phao. Headless một Ngày: `python3 -m chonoi.headless --mode day --days 1 --seed 1 --ticks 22200 --out day.jsonl`.
 
 ### Cách tính điểm
 
 `score = earned + 100 × floor(reputation)`: `earned` là tổng tiền thu (nghìn đồng, gồm boa), `reputation` là uy tín 0–5 (bắt đầu 3.0; khách hết kiên nhẫn −0.5, khách boa +0.2).
+
+### Mở rộng đã làm
+
+> Nhóm 6 người cần ≥ 2 mục trong cả buổi (TICKET-02 mục 3). Mục có mã trong Test Contract thì khai ở `extensions` tại gốc `game.contract.json`.
+
+| Mục | Mã `extensions` | Phase | Test / bằng chứng |
+|---|---|---|---|
+| (chưa chọn, PO chốt ở đầu Phase 3) | | | |
 
 ### Sáng tạo của nhóm
 
