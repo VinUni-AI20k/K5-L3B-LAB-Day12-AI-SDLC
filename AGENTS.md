@@ -9,6 +9,7 @@
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 - Kiểm chứng P1-04 và lưu bằng chứng: `python3 tools/verify_p1_04.py` (cần `python3` trên PATH).
 - Kiểm chứng P2-04: `python3 tools/verify_p2_04.py --integration-ref origin/lehuyanh` (xuất ref vào thư mục tạm, không đổi nhánh). Windows: thêm `.venv/Scripts` vào PATH, đặt `PYTHONPATH=tests;.` và `PYTHONUTF8=1`.
+- Preview UI Phase 2: `python docs/proof/phase-2/day_fixture.py --real-scenes --days 5 --port 8782` (Gather/Quán thật; bỏ `--real-scenes` để kiểm fixture UI v1.1).
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
@@ -20,6 +21,7 @@
 - P2-04: Quán 2 bếp/4 bàn/6 món; kho v1.1 nhận thêm `ca_keo`, `keo_neo`, giữ schema `items`. API cũ P2-03 vẫn dùng được; hook tùy chọn `QuanSim(..., day_plan=plan, economy=state)` và `economy_state()` được mô tả trong `docs/notes/P2-04.md`. Đã ghép Day/Shop/Gather/Monster từ main; cần kiểm chứng theo commit tích hợp.
 - P2-03: `DaySim` gọi Gather/Quán và giữ dữ liệu xuyên ngày. `Session` xử lý pause trước mọi timer và phát snapshot `phase_tick: 0` khi đổi pha. Gather nhận `day` và tuning đã áp cấp oxy/Máu. Quán nhận menu lọc theo ngày và kho vật lý.
 - P3-02: file kho v1.2 dùng `{"items":[{"id":"I1","kind":"ca_linh","fresh":100.0}]}`; `IdRegistry` giữ bộ đếm I xuyên pha/ngày. `headless.py` và `live.py` là CLI thực tế; `--inventory` từ chối object đếm cũ. Xem `docs/plan/phase-3.md` và `docs/verification/phase-3.md`.
+- UI Phase 2 đọc cá sấu từ `snapshot.monsters`, lấy ảnh món theo `dish_id`. Ảnh WebP dùng chung giữa `chonoi.live` và fixture Day, nguồn ghi trong `CREDITS.md`.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).

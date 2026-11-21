@@ -46,6 +46,8 @@ Hai cảnh được vẽ trên lưới pixel rồi phóng nguyên khối, với 
 
 Đã kiểm bằng Chrome trên cả hai scenario ở 1440×900, 1366×768, 1024×768 và 390×844. Mẫu ảnh xác nhận các khối pixel không bị nội suy, Canvas đúng DPR và trang không tràn ngang. Cả 12 biểu tượng trong giỏ scenario tải được. Đã kiểm di chuyển, chơi lại và kho khả dụng. Không ghi nhận lỗi JavaScript hoặc HTTP. Copy lint của Design Taste Frontend trả 0 lỗi, 0 cảnh báo. [Ảnh Gather](frontend-pixel-gather.png) · [Ảnh Quán](frontend-pixel-quan.png).
 
+Sau phản hồi về độ nét, frontend dùng lưới mịn hơn cho nền, vẽ sprite ở lớp riêng theo khối pixel nguyên và đặt nhãn Út Sen ngoài vùng sprite. Cảnh Gather chuyển sắc độ nước theo độ sâu và có nét dừa nước rõ hơn. Kiểm lại bốn kích thước trên trong Chrome ở DPR 1, 1,25 và 2. Màu các pixel đục trên sprite Út Sen khớp với sprite gốc trong hai scenario. 32/32 test Python qua.
+
 ## Phụ thuộc tích hợp
 
 1. **Người 1 — sinh tồn:** cần oxy hồi/hao, sát thương do ngạt và ngất từ sim. Oxy thấp và Máu đã xem qua scenario; chưa kiểm được chuỗi sự kiện sinh tồn từ đầu đến cuối.
