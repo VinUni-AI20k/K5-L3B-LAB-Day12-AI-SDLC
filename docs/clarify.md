@@ -43,3 +43,6 @@
 | 37 | P3 (research) | Snapshot có cờ `spoiled` cho cá thể không? | `CHỜ HỎI`. `GIẢ ĐỊNH`: không; ươn suy ra từ `fresh < 30` (đề chỉ nêu schema `{id,kind,fresh}`). | PO |
 | 38 | P3 (research) | Regression P1–P2 có phải chuyển hết fixture sang kho cá thể? | `ĐÃ TRẢ LỜI một phần`: ở v1.2 kho đếm trả mã 2 nên fixture kho phải đổi; ghi cách cập nhật fixture vào `CHANGELOG.md` (đề §3). | TICKET-03 |
 | 39 | P3 (research, quyết định kỹ thuật) | Độ tươi tính bằng float hay số nguyên? | Research chạy thử: trừ float làm hàng 100 trong giỏ ươn ở bước **8400** thay vì **8401** (sớm 1 tick); số nguyên 240 đơn vị/điểm (−2/tick, ươn khi < 7200) đúng → dùng số nguyên (ADR-0001). | PO + TV1 |
+| 40 | P3 (Spec Kit) | Tên trường trạng thái đơn (`reserved`/`unfulfillable`…) trong snapshot quán? | `CHỜ HỎI`. `GIẢ ĐỊNH`: `customers[].order_status`. | PO |
+| 41 | P3 (Spec Kit) | Ghi `fresh` vào file kho với độ chính xác nào? | `GIẢ ĐỊNH`: float đủ chữ số để đọc lại ra đúng giá trị nội bộ (đề: "đủ độ chính xác khi đọc lại để giữ giá trị và nhánh ở ngưỡng 30"). | PO + TV1 |
+| 42 | P3 (Spec Kit) | Nạp kho có id không dạng `I<n>` thì bộ cấp id tiếp tục từ đâu? | `CHỜ HỎI`. `GIẢ ĐỊNH`: max `n` trong các id dạng `I<n>` + 1. | PO + TV1 |
