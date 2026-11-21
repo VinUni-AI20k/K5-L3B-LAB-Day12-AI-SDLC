@@ -24,3 +24,20 @@
   - Xung đột file `gather.py` (M1 & M2) và `quan.py` (M3 & M4) → Tách `M2.3a`/`M2.3b`, `M4.3` dùng khách giả, pull/merge sớm trước 0:45.
   - Trễ gắn tag do dồn việc Đợt 4 cho M6 → Giữ cứng mốc code freeze 0:45 và nộp bằng chứng trước 0:50.
   - Thiếu GitHub handle trong `TEAM.md` → Điền đủ 6 handle thật và chạy `python tools/check_team.py` xanh ngay trong Đợt 1.
+
+## Spec M3 — Quán: Khách (Phùng Văn Thanh Cao)
+
+Code: `chonoi/sim/quan_customers.py` (gắn vào `QuanSim` qua mixin). Test: `tests/test_quan_customers_m3.py`.
+
+| AC | Nội dung (PRD-0 mục D, E, F) |
+|---|---|
+| AC-P1-C1 | Khách dựng từ scenario có đủ mặc định: `state=waiting`, `order_tick=0`, kiên nhẫn đầy (`patience_s×60`), `order_status=reserved`, `reserved` = công thức món |
+| AC-P1-C2 | Kho khả dụng = tồn vật lý − tổng phần giữ chỗ của mọi đơn |
+| AC-P1-C3 | Kiên nhẫn khách đang chờ giảm 1 mỗi tick; thời gian ăn khách đang ăn giảm 1 mỗi tick |
+| AC-P1-C4 | Hết kiên nhẫn khi còn giờ → `customer_left` reason `patience`, uy tín + `left_reputation_delta` (kẹp tối thiểu), nhả giữ chỗ, bỏ món của đơn đó ở bếp/tay |
+| AC-P1-C5 | Khách mới ở `phase_tick = first_customer_tick + k×customer_interval_s×60`; bàn trống id nhỏ nhất; hết bàn thì bỏ lượt |
+| AC-P1-C6 | Món chọn đều theo seed trong các món đủ nguyên liệu khả dụng; không có món → `no_dish`, không tạo khách |
+| AC-P1-C7 | Hết ca: khách đang ăn trả ngay (reason `closing`), khách đang chờ rời reason `closing`, không trừ uy tín; không xét khách mới ở bước cuối |
+| AC-P1-C8 | `random_customers:false` tắt khách tự sinh; cùng seed → output giống từng byte |
+
+Phối hợp M4 (Nguyễn Nhật Minh): M3 gọi `_pay_customer(c, reason, events)` khi khách ăn xong / hết ca và `_release_order(order_id)` khi khách rời. Bản trong `quan_customers.py` là tối thiểu; M4 thay bằng bản đầy đủ cùng chữ ký (tiền, boa, `tip_reputation`) thì M3 không phải sửa. M4 giữ phần `waiting → eating` khi phục vụ (đặt `state`, `order_status=served`, `eat_ticks_left`, `base_price`, `tip`, xóa `reserved`).

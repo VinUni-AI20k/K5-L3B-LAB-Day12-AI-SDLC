@@ -438,6 +438,37 @@ class QuanM4BlackBox(unittest.TestCase):
             self.assertEqual(rows[-1]["money"], 72)
             self.assertEqual(rows[-1]["reputation"], 3.2)
 
+    def test_m3_m4_integrated_spawn_cook_serve_pay_loop(self):
+        """Ghép M3 ↔ M4: khách tự sinh (customer_arrived) -> nấu -> chín -> bưng -> phục vụ -> ăn xong -> paid."""
+        with Workdir() as w:
+            scenario = {
+                "player": {"pos": [2, 8]},
+                "tables": [{"id": "T1", "pos": [3.5, 8]}],
+                "stock": {"ca_loc": 1},
+                "random_customers": True,
+            }
+            # tick 120: khách K1 tự sinh (first_customer_tick = 120), gọi ca_loc_nuong_trui (duy nhất đủ kho)
+            # tick 121: interact B1 -> cook_started (cook_s=6 -> 360 tick, chín ở tick 482)
+            # tick 482: interact B1 -> dish_picked
+            # tick 483..503: đi sang phải gần T1 -> interact T1 -> served (eat_s=10 -> 600 tick)
+            in_frames = [
+                {"tick": 121, "interact": True},
+                {"tick": 122, "interact": False},
+                {"tick": 482, "interact": True},
+                {"tick": 483, "interact": False, "move": [1, 0]},
+                {"tick": 503, "move": [0, 0], "interact": True},
+                {"tick": 504, "interact": False},
+            ]
+            code, err, rows = _run_quan(w, scenario, input_frames=in_frames, ticks=1200, snapshot_every=10, seed=7)
+            self.assertEqual(code, 0, err)
+            ev_names = [e["name"] for e in events(rows)]
+            for required in ("customer_arrived", "cook_started", "dish_ready", "dish_picked", "served", "paid"):
+                self.assertIn(required, ev_names, ev_names)
+            idx = [ev_names.index(n) for n in ("customer_arrived", "cook_started", "dish_ready", "dish_picked", "served", "paid")]
+            self.assertEqual(idx, sorted(idx), ev_names)
+            self.assertEqual(rows[-1]["money"], 72)
+            self.assertEqual(rows[-1]["reputation"], 3.2)
+
 
 class QuanM4UnitEdges(unittest.TestCase):
     """Kiểm các luật đa bàn/đa bếp bằng QuanSim trực tiếp (vẫn giữ tuning chuẩn ở contract)."""

@@ -29,7 +29,7 @@ flowchart LR
 | **P0 (Làm ngay)** | **M4.1** | Chốt Spec/AC + giao ước interface với M3 | Không | `M4.2` | Đã xong (chờ xác nhận nhanh với M3) |
 | **P0 (Sau M4.1)** | **M4.2** | Viết bộ test `tests/test_quan_m4.py` | `M4.1`, `M6.1` ✅, `M6.3` ✅ | `M4.3` | Đã xong ✅ |
 | **P0 (Trọng tâm)** | **M4.3** | Code phần M4 trong `chonoi/sim/quan.py` (chạy độc lập với khách từ scenario) | `M4.2` | `M3.4`, `M4.4`, `M5.4`, `M6.4` | Đã xong ✅ |
-| **P1 (Trước 0:45)** | **M4.4** | Ghép M3 ↔ M4, chạy full test, lưu bằng chứng | `M4.3`, `M3.3` (C) | `M6.5` | Đang chờ `M3.3` |
+| **P1 (Trước 0:45)** | **M4.4** | Ghép M3 ↔ M4, chạy full test, lưu bằng chứng | `M4.3`, `M3.3` (C) ✅ | `M6.5` | Đã xong ✅ |
 | **P2 (Xuyên suốt)** | **Quy trình** | ≥ 3 commit, review chéo C ↔ D, nhật ký AI & standup | Song song | DoD Phase 1 | Đang tiến hành |
 
 ---
@@ -84,12 +84,12 @@ flowchart LR
 ---
 
 ### Đợt 4 — `M4.4`: Ghép M3 ↔ M4 & Bằng chứng *(Ưu tiên P1 — hoàn tất trước 0:50)*
-- [ ] Pull / merge phần `M3.3` của Phùng Văn Thanh Cao (`ththanh8888`) vào `chonoi/sim/quan.py`.
-- [ ] Kiểm tra khớp vòng đời đầy đủ: khách tự sinh (`customer_arrived`) → giữ chỗ → nấu (`cook_started`) → chín (`dish_ready`) → bưng (`dish_picked`) → phục vụ (`served`) → ăn xong (`paid`) → hết ca (`quan_end`).
+- [x] Pull / merge phần `M3.3` của Phùng Văn Thanh Cao (`ththanh8888`) vào `chonoi/sim/quan.py` (kế thừa `CustomerMixin` từ `chonoi/sim/quan_customers.py`, xử lý sạch xung đột ở `quan.py`, `standup.md`, `ai-usage-log.md`).
+- [x] Kiểm tra khớp vòng đời đầy đủ: khách tự sinh (`customer_arrived`) → giữ chỗ → nấu (`cook_started`) → chín (`dish_ready`) → bưng (`dish_picked`) → phục vụ (`served`) → ăn xong (`paid`) → hết ca (`quan_end`).
 - [x] Kiểm tra tính tất định (chạy cùng seed 2 lần → file JSONL giống nhau từng byte — đã kiểm trong `test_full_kitchen_loop_and_determinism`).
-- [ ] Chạy toàn bộ test suite (`unittest discover -s tests -v`) xanh 100% sau khi ghép M3.
-- [x] Xuất bằng chứng chạy thật phần M4 vào `docs/proof/phase-1/m4-test-log.txt` (cập nhật lại sau khi ghép M3).
-- [ ] Commit 4 (`M4.4`): push bản ghép + bằng chứng cuối.
+- [x] Chạy toàn bộ test suite (`test_quan_m4`, `test_quan_customers_m3`, `test_integration_m6`, `test_scenario_m6`, `test_smoke_p1`, `test_python_starter_units`, `test_team_check`) xanh 100% sau khi ghép M3.
+- [x] Xuất bằng chứng chạy thật phần M4 + ghép M3 vào `docs/proof/phase-1/m4-test-log.txt`.
+- [x] Commit 4 (`M4.4`): commit merge & push bản ghép + bằng chứng cuối.
 
 ---
 

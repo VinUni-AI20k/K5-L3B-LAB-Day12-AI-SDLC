@@ -13,13 +13,23 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 4. **Gắn tag** `phase-1` … `phase-4` đúng hạn; chạy được tại từng tag.
 5. **Ghi chép tối thiểu:** `docs/verification/phase-n.md`, `docs/clarify.md`, `docs/ai-usage-log.md`, `docs/retro.md`, `docs/members/<handle>.md`.
 
-## Bắt đầu nhanh
+## Bắt đầu nhanh (≤ 3 lệnh từ clone sạch)
 
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone https://github.com/huyvu-03/K5-L3B-LAB-Day12-AI-SDLC-NhomABC.git && cd K5-L3B-LAB-Day12-AI-SDLC-NhomABC
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # chạy toàn bộ test bằng 1 lệnh
+python3 -m chonoi.live --mode gather                                # chơi thử buổi sáng (đổi --mode quan cho buổi tối)
 ```
+
+### Điều khiển (trên trình duyệt `chonoi.live`)
+- **WASD / Phím mũi tên**: Bơi (buổi sáng `[x, d]`) hoặc đi lại trong quán (buổi tối `[x, z]`).
+- **E**: Tương tác (`interact`) — cập bến hoặc hái rau ở buổi sáng; nấu, bưng hoặc phục vụ ở buổi tối.
+- **Space**: Bắt cá (`catch`) khi đang lặn dưới nước.
+- **R**: Chơi lại từ đầu.
+
+### Cách tính điểm & Hợp đồng tích hợp
+- **Điểm số**: `score = earned + 100 × floor(reputation)` (trong đó `earned` là tổng thu gồm tiền món và tiền boa, đơn vị nghìn đồng; `reputation` khởi đầu `3.0`, kẹp trong `[0, 5]`).
+- **Hợp đồng file kho, snapshot & sự kiện**: xem [`docs/contracts/README.md`](docs/contracts/README.md) và kho mẫu [`docs/contracts/inventory.sample.json`](docs/contracts/inventory.sample.json).
 
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 

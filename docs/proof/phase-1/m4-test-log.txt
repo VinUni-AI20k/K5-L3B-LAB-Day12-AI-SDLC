@@ -1,7 +1,7 @@
 ﻿python : test_ac_m4_01_interact_edge_and_tiebreak_no_fallback 
 (tests.test_quan_m4.QuanM4BlackBox.test_ac_m4_01_interact_edge_and_tiebreak_no_fallback)
-At line:1 char:382
-+ ...  "tests;."; python -m unittest tests.test_quan_m4 tests.test_scenario ...
+At line:1 char:307
++ ...  "tests;."; python -m unittest tests.test_quan_m4 tests.test_quan_cus ...
 +                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     + CategoryInfo          : NotSpecified: (test_ac_m4_01_i...ak_no_fallback):String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
@@ -30,12 +30,44 @@ test_ac_m4_08_patience_leave_cleans_stove_and_hand_no_refund
 AC-M4-08: Khách hết kiên nhẫn rời đi hủy món đang nấu/ready hoặc trên hand, không hoàn kho, kẹp uy tín >= 0. ... ok
 test_full_kitchen_loop_and_determinism (tests.test_quan_m4.QuanM4BlackBox.test_full_kitchen_loop_and_determinism)
 Vòng đầy đủ: nấu -> chín -> bưng -> phục vụ -> ăn xong trả tiền, cùng seed giống từng byte. ... ok
+test_m3_m4_integrated_spawn_cook_serve_pay_loop 
+(tests.test_quan_m4.QuanM4BlackBox.test_m3_m4_integrated_spawn_cook_serve_pay_loop)
+Ghép M3 ↔ M4: khách tự sinh (customer_arrived) -> nấu -> chín -> bưng -> phục vụ -> ăn xong -> paid. ... ok
 test_carry_limit_blocks_pick_and_wrong_order_id_blocks_serve 
 (tests.test_quan_m4.QuanM4UnitEdges.test_carry_limit_blocks_pick_and_wrong_order_id_blocks_serve)
 Tay đang cầm món không bưng thêm được; đưa sai order_id cho bàn bị bỏ qua. ... ok
 test_cook_picks_oldest_order_tick_then_table_id_key 
 (tests.test_quan_m4.QuanM4UnitEdges.test_cook_picks_oldest_order_tick_then_table_id_key)
 Đơn reserved cũ nhất chọn theo (order_tick, id_key(table_id)): T2 đứng trước T10. ... ok
+test_c5_first_customer_at_tick_120 (tests.test_quan_customers_m3.Arrivals.test_c5_first_customer_at_tick_120) ... ok
+test_c5_no_free_table_skips_round (tests.test_quan_customers_m3.Arrivals.test_c5_no_free_table_skips_round) ... ok
+test_c5_table_freed_by_patience_gets_next_round 
+(tests.test_quan_customers_m3.Arrivals.test_c5_table_freed_by_patience_gets_next_round) ... ok
+test_c6_no_dish_when_stock_empty (tests.test_quan_customers_m3.Arrivals.test_c6_no_dish_when_stock_empty) ... ok
+test_c6_picks_only_cookable_dishes (tests.test_quan_customers_m3.Arrivals.test_c6_picks_only_cookable_dishes) ... ok
+test_c6_reserved_stock_is_not_available 
+(tests.test_quan_customers_m3.Arrivals.test_c6_reserved_stock_is_not_available) ... ok
+test_c8_deterministic_same_seed (tests.test_quan_customers_m3.Arrivals.test_c8_deterministic_same_seed) ... ok
+test_c8_random_customers_false (tests.test_quan_customers_m3.Arrivals.test_c8_random_customers_false) ... ok
+test_c7_no_new_customer_on_last_step (tests.test_quan_customers_m3.Closing.test_c7_no_new_customer_on_last_step) ... ok
+test_c7_waiting_customer_leaves_at_closing_without_penalty 
+(tests.test_quan_customers_m3.Closing.test_c7_waiting_customer_leaves_at_closing_without_penalty) ... ok
+test_eating_customer_pays_immediately_at_closing 
+(tests.test_quan_customers_m3.Closing.test_eating_customer_pays_immediately_at_closing) ... ok
+test_eating_customer_pays_when_done_with_tip_reputation 
+(tests.test_quan_customers_m3.Closing.test_eating_customer_pays_when_done_with_tip_reputation) ... ok
+test_c1_customer_defaults (tests.test_quan_customers_m3.DefaultsAndReservation.test_c1_customer_defaults) ... ok
+test_c1_reserved_follows_recipe_for_each_dish 
+(tests.test_quan_customers_m3.DefaultsAndReservation.test_c1_reserved_follows_recipe_for_each_dish) ... ok
+test_c3_patience_counts_down (tests.test_quan_customers_m3.Patience.test_c3_patience_counts_down) ... ok
+test_c4_leaves_when_patience_runs_out (tests.test_quan_customers_m3.Patience.test_c4_leaves_when_patience_runs_out) 
+... ok
+test_c4_leaving_drops_dish_of_that_order 
+(tests.test_quan_customers_m3.Patience.test_c4_leaving_drops_dish_of_that_order) ... ok
+test_c4_reputation_clamped_at_min (tests.test_quan_customers_m3.Patience.test_c4_reputation_clamped_at_min) ... ok
+test_gather_to_quan_inventory_pipeline_deterministic 
+(tests.test_integration_m6.IntegrationAndDeterminismM6.test_gather_to_quan_inventory_pipeline_deterministic)
+Chạy 2 lần cùng seed luồng gather --inventory-out -> quan --inventory: JSONL và kho giống từng byte. ... ok
 test_assigned_stove_hand_conflicts_exit_2 
 (tests.test_scenario_m6.ScenarioQuanValidationM6.test_assigned_stove_hand_conflicts_exit_2) ... ok
 test_eating_and_misc_conflicts_exit_2 
@@ -48,6 +80,35 @@ test_valid_eating_and_unfulfillable
 (tests.test_scenario_m6.ScenarioQuanValidationM6.test_valid_eating_and_unfulfillable) ... ok
 test_valid_reserved_with_stock_and_inventory 
 (tests.test_scenario_m6.ScenarioQuanValidationM6.test_valid_reserved_with_stock_and_inventory) ... ok
+test_con_01_ticks_zero_and_end_line (tests.test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (tests.test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (tests.test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (tests.test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... 
+ok
+test_gather_snapshot_has_gather_fields (tests.test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (tests.test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it 
+(tests.test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first 
+(tests.test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (tests.test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict 
+(tests.test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (tests.test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) 
+... ok
+test_move_01_swim_speed_after_ramp (tests.test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (tests.test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (tests.test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (tests.test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (tests.test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (tests.test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (tests.test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (tests.test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (tests.test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
 test_bad_frames_raise (tests.test_python_starter_units.Units.test_bad_frames_raise) ... ok
 test_catch_is_a_v10_button_and_attack_is_not 
 (tests.test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
@@ -63,7 +124,7 @@ test_too_few_members (tests.test_team_check.TeamCheck.test_too_few_members) ... 
 test_wrong_size_duplicate_and_outsider (tests.test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 28 tests in 6.474s
+Ran 68 tests in 25.825s
 
 OK
 OK: 6 thành viên: huyvu-03, QuangNEU, ththanh8888, NhMinh-2610, thanhvu101, K0heii
