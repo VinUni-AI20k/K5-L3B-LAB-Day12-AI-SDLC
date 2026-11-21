@@ -25,6 +25,7 @@ const demo = new URLSearchParams(location.search).get("demo");
 const demoStates = {
   pickup: { stove: "ready", seconds: 8, hand: null, target: { id: "B1", action: "dish_picked" } },
   serve: { stove: "idle", seconds: 6, hand: "lau_ca_linh_dien_dien", target: { id: "T1", action: "served" } },
+  eating: { stove: "idle", seconds: 0, hand: null, target: null, eating: true },
   missing: { stove: "idle", seconds: 30, hand: null, target: null, missing: { bong_dien_dien: 1 } },
 };
 
@@ -42,6 +43,7 @@ function previewState(state) {
       player: { ...state.player, pos: [target.pos[0] - 1, target.pos[1]], at_surface: !fish },
       catch_target_id: fish ? target.id : null,
       harvest_target_id: fish ? null : target.id,
+      hold: ["ca_linh", "ca_linh", "ca_linh", harvested.kind],
       nodes: state.nodes.map((node) => node.id === harvested.id
         ? { ...node, ready: false, regrow_ticks: 12 * 60 } : node),
       events: [{ name: "gather", tick: state.tick, data: { kind: harvested.kind, quantity: 1, pos: harvested.pos } }],
@@ -59,7 +61,7 @@ function previewState(state) {
     interact_target: example.target,
     stoves: state.stoves.map((stove) => stove.id === "B1"
       ? { ...stove, state: example.stove, dish: example.stove === "ready" ? dish : null } : stove),
-    customers: [{ table_id: "T1", dish_id: dish, state: "waiting", patience_ticks_left: example.seconds * 60 }],
+    customers: [{ table_id: "T1", dish_id: dish, state: example.eating ? "eating" : "waiting", patience_ticks_left: example.seconds * 60 }],
     stock: { ca_linh: 3, bong_sung: 2 },
     events: example.missing
       ? [{ name: "cook_blocked", tick: state.tick, data: { stove_id: "B1", missing: example.missing } }] : [],
@@ -160,18 +162,104 @@ function bar(x, y, w, h, frac, color, label) {
   ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.strokeRect(x + .5, y + .5, w - 1, h - 1);
   if (label) text(label, x + w / 2, y + h - 3, { size: 11, align: "center" });
 }
+function hearts(hp, maxHp, right, top) {
+  const size = 16, gap = 4;
+  ctx.save();
+  ctx.lineWidth = 1.5;
+  for (let index = 0; index < maxHp; index++) {
+    const x = right - (maxHp - index) * (size + gap) + gap;
+    const full = index < hp;
+    ctx.beginPath();
+    ctx.moveTo(x + 8, top + 15);
+    ctx.bezierCurveTo(x + 6, top + 13, x, top + 9, x, top + 5);
+    ctx.bezierCurveTo(x, top + 1, x + 5, top, x + 8, top + 4);
+    ctx.bezierCurveTo(x + 11, top, x + 16, top + 1, x + 16, top + 5);
+    ctx.bezierCurveTo(x + 16, top + 9, x + 10, top + 13, x + 8, top + 15);
+    ctx.closePath();
+    ctx.fillStyle = full ? "#ff817e" : "#3c2b24";
+    ctx.strokeStyle = full ? "#ffc5b0" : "#b4867d";
+    ctx.fill();
+    ctx.stroke();
+  }
+  ctx.restore();
+}
 function fmtTime(ticks) {
   const s = Math.ceil(ticks / 60);
   return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
 }
-const HUD_TOP = 86, HUD_BOTTOM = 72;
-const footerHeight = (w) => HUD_BOTTOM + (w < 540 ? 18 : 0);
+function timer(ticks, right, accent) {
+  const label = fmtTime(ticks);
+  const color = ticks <= 30 * 60 ? "#ffab92" : accent;
+  text(label, right, 30, { size: 16, align: "right", color, weight: 700 });
+  const x = right - ctx.measureText(label).width - 13;
+  const y = 24;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.arc(x, y, 7, 0, 2 * Math.PI);
+  ctx.moveTo(x, y - 4);
+  ctx.lineTo(x, y);
+  ctx.lineTo(x + 3, y + 2);
+  ctx.stroke();
+  ctx.restore();
+}
+const HUD_TOP = 86;
+const inventoryColumns = (w) => Math.max(1, Math.min(4, Math.floor((w - 24) / 144)));
+function footerHeight(w) {
+  const count = snap.mode === "gather"
+    ? new Set(snap.hold || []).size
+    : Object.values(snap.stock || {}).filter((quantity) => quantity > 0).length;
+  return 64 + Math.ceil(count / inventoryColumns(w)) * 35 + (w < 540 ? 18 : 0);
+}
 const DISH_NAME = {
   ca_loc_nuong_trui: "Cá lóc nướng trui",
   goi_bong_sung: "Gỏi bông súng",
   lau_ca_linh_dien_dien: "Lẩu cá linh điên điển",
 };
 const dishName = (id) => DISH_NAME[id] || id;
+function icon(kind, x, y, size = 16) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 16, size / 16);
+  ctx.fillStyle = kc(kind);
+  if (kind?.startsWith("ca_") && !Object.hasOwn(DISH_NAME, kind)) {
+    ctx.beginPath(); ctx.ellipse(9, 8, 6, kind === "ca_loc" ? 2.8 : 4, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.beginPath(); ctx.moveTo(5, 8); ctx.lineTo(0, 4); ctx.lineTo(0, 12); ctx.fill();
+    ctx.fillStyle = "#241b16"; ctx.fillRect(12, 7, 1.5, 1.5);
+  } else if (kind === "bong_sung") {
+    ctx.fillStyle = "#8fcf6b";
+    ctx.beginPath(); ctx.ellipse(8, 12, 7, 3, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = kc(kind);
+    ctx.beginPath(); ctx.moveTo(3, 5); ctx.lineTo(7, 8); ctx.lineTo(8, 3); ctx.lineTo(10, 8);
+    ctx.lineTo(13, 5); ctx.lineTo(12, 11); ctx.lineTo(5, 11); ctx.fill();
+  } else if (kind?.startsWith("bong_") || kind === "keo_neo") {
+    ctx.fillStyle = "#8fcf6b"; ctx.fillRect(7, 8, 2, 7);
+    ctx.fillStyle = kc(kind);
+    for (const [cx, cy] of [[5, 7], [8, 4], [11, 7]]) {
+      ctx.beginPath(); ctx.arc(cx, cy, 3, 0, 2 * Math.PI); ctx.fill();
+    }
+  } else if (kind === "oxygen") {
+    ctx.fillStyle = "#a5ded0"; ctx.fillRect(6, 1, 4, 3);
+    ctx.beginPath(); ctx.roundRect(4, 4, 8, 11, 3); ctx.fill();
+    ctx.fillStyle = "#345c55"; ctx.fillRect(5, 9, 6, 2);
+  } else if (kind === "pot" || kind === "pot_open" || kind === "lau_ca_linh_dien_dien") {
+    ctx.fillStyle = kind === "lau_ca_linh_dien_dien" ? "#ffc171" : "#e1ccb4";
+    ctx.fillRect(1, 6, 14, 2);
+    if (kind !== "pot_open") ctx.fillRect(6, 2, 4, 2);
+    ctx.beginPath(); ctx.roundRect(3, 5, 10, 8, 2); ctx.fill();
+    ctx.fillStyle = "#513e30"; ctx.fillRect(4, 6, 8, 1.5);
+  } else {
+    ctx.fillStyle = "#e1ccb4";
+    ctx.beginPath(); ctx.ellipse(8, 9, 7.5, 4.5, 0, 0, 2 * Math.PI); ctx.fill();
+    ctx.fillStyle = kind === "goi_bong_sung" ? "#6b9b57"
+      : kind === "ca_loc_nuong_trui" ? "#986445" : "#b39171";
+    ctx.beginPath(); ctx.ellipse(8, 8, 4.5, 2.5, 0, 0, 2 * Math.PI); ctx.fill();
+  }
+  ctx.restore();
+}
+
 function hud(w, h, title, accent, summary, controls) {
   const footer = h - footerHeight(w);
   ctx.fillStyle = "#241b16";
@@ -181,25 +269,84 @@ function hud(w, h, title, accent, summary, controls) {
   ctx.fillRect(0, HUD_TOP - 2, w, 2);
   ctx.fillRect(0, footer, w, 2);
   text(title, 16, 30, { size: 20, weight: 700, maxWidth: w - 120 });
-  text("Còn " + fmtTime(snap.time_left_ticks), w - 16, 30, { align: "right", color: accent, weight: 700 });
-  text(summary, 16, footer + 26, { color: "#fff3d9", weight: 600, maxWidth: w - 32 });
+  timer(snap.time_left_ticks, w - 16, accent);
+  const items = Object.entries(summary.items).filter(([, count]) => count > 0);
+  const label = items.length ? summary.label : summary.label + " · Trống";
+  text(label, 16, footer + 24, { color: "#fff3d9", weight: 700, maxWidth: w - 32 });
+  const columns = inventoryColumns(w);
+  const width = Math.min(210, (w - 32 - (columns - 1) * 8) / columns);
+  items.forEach(([kind, count], index) => {
+    const x = 16 + (index % columns) * (width + 8);
+    const y = footer + 32 + Math.floor(index / columns) * 35;
+    ctx.fillStyle = "#463329";
+    ctx.fillRect(x, y, width, 30);
+    icon(kind, x + 8, y + 5, 20);
+    text(KIND_NAME[kind] || kind, x + 34, y + 20,
+      { size: 12, color: "#fff3d9", maxWidth: width - 72 });
+    text("×" + count, x + width - 8, y + 20,
+      { size: 13, weight: 700, color: accent, align: "right" });
+  });
   const rows = w < 540 ? controls : [controls.join("   ·   ")];
   rows.forEach((row, index) => {
-    text(row, 16, footer + 54 + index * 18, { size: 12, color: "#dccbb7", maxWidth: w - 32 });
+    text(row, 16, h - 16 - (rows.length - 1 - index) * 18, { size: 12, color: "#dccbb7", maxWidth: w - 32 });
   });
 }
 function itemSummary(counts) {
   return Object.entries(counts).filter(([, count]) => count > 0)
     .map(([kind, count]) => `${KIND_NAME[kind] || kind} ×${count}`).join(" · ");
 }
-function marker(label, x, y, w, color = "#fff3d9") {
+function markerBounds(label, x, y, w, dish) {
   ctx.font = "600 12px system-ui, sans-serif";
-  const width = Math.min(ctx.measureText(label).width + 16, w - 16);
-  const left = Math.max(8, Math.min(x - width / 2, w - width - 8));
-  const top = Math.max(HUD_TOP + 4, y - 19);
+  const iconWidth = dish ? 20 : 0;
+  const width = Math.min(ctx.measureText(label).width + 16 + iconWidth, w - 16);
+  return { left: Math.max(8, Math.min(x - width / 2, w - width - 8)),
+    top: Math.max(HUD_TOP + 4, y - 19), width, height: 22 };
+}
+function marker(label, x, y, w, color = "#fff3d9", dish = null) {
+  const { left, top, width, height } = markerBounds(label, x, y, w, dish);
+  const iconWidth = dish ? 20 : 0;
   ctx.fillStyle = "#342219";
-  ctx.fillRect(left, top, width, 22);
-  text(label, left + width / 2, top + 15, { size: 12, weight: 600, align: "center", color, maxWidth: width - 12 });
+  ctx.fillRect(left, top, width, height);
+  if (dish) icon(dish, left + 6, top + 3);
+  text(label, left + (width + iconWidth) / 2, top + 15,
+    { size: 12, weight: 600, align: "center", color, maxWidth: width - 12 - iconWidth });
+  return { left, top, width, height };
+}
+function overlaps(a, b) {
+  return a.left < b.left + b.width && b.left < a.left + a.width
+    && a.top < b.top + b.height && b.top < a.top + a.height;
+}
+
+function drawUtSen(x, y, unit, diving, dish = null, facing = 1) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(unit * facing, unit);
+  ctx.fillStyle = "#233b36";
+  ctx.fillRect(-4, 4, 3, 4);
+  ctx.fillRect(1, 4, 3, 4);
+  ctx.fillStyle = "#89c9b5";
+  ctx.beginPath(); ctx.roundRect(-5, -1, 10, 7, 2); ctx.fill();
+  ctx.fillStyle = "#edbb8e";
+  ctx.beginPath(); ctx.arc(0, -5, 4.5, 0, 2 * Math.PI); ctx.fill();
+  ctx.fillStyle = "#35281f";
+  ctx.fillRect(-4, -9, 8, 2.5);
+  if (diving) {
+    ctx.fillStyle = "#29494d";
+    ctx.fillRect(-2.5, -6.5, 7, 3);
+    ctx.fillStyle = "#a9e4dd";
+    ctx.fillRect(-1.5, -6, 5, 1.5);
+    ctx.fillStyle = "#cba46c";
+    ctx.fillRect(-8, 0, 4, 5);
+    ctx.strokeStyle = "#6b5038";
+    ctx.lineWidth = 0.6;
+    ctx.strokeRect(-8, 0, 4, 5);
+    ctx.beginPath(); ctx.moveTo(-8, 2); ctx.lineTo(-4, 2); ctx.moveTo(-6, 0); ctx.lineTo(-6, 5); ctx.stroke();
+  } else {
+    ctx.fillStyle = "#f6dfaa";
+    ctx.fillRect(-3, 0, 6, 6);
+  }
+  ctx.restore();
+  if (dish) icon(dish, x + 3 * unit, y - 2 * unit, 10 * unit);
 }
 function overlay(w, h) {
   if (offline) text("Mất kết nối tới máy chủ (đã tắt chưa?)", w / 2, 30, { align: "center", color: "#ff8a80", size: 16 });
@@ -240,6 +387,31 @@ function gatherReward(event) {
     return { pos, label: `+${quantity} ${KIND_NAME[kind] || kind}` };
   }
   return null;
+}
+
+function drawFish(kind, x, y, size, heading, tail, highlighted = false) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(heading);
+  ctx.fillStyle = kc(kind);
+  const longFish = kind === "ca_loc";
+  ctx.beginPath();
+  ctx.ellipse(0, 0, (longFish ? 1.05 : 0.83) * size, (longFish ? 0.29 : 0.46) * size, 0, 0, 2 * Math.PI);
+  ctx.fill();
+  if (highlighted) {
+    ctx.strokeStyle = "#fff0a3";
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
+  ctx.beginPath();
+  ctx.moveTo(-0.78 * size, 0);
+  ctx.lineTo(-1.45 * size, (-0.38 + tail) * size);
+  ctx.lineTo(-1.45 * size, (0.38 + tail) * size);
+  ctx.closePath();
+  ctx.fill();
+  ctx.fillStyle = "#143334";
+  ctx.beginPath(); ctx.arc(0.45 * size, -0.08 * size, 0.11 * size, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
 }
 
 // ----- cảnh GATHER: nhìn ngang, x sang phải, d xuống -----
@@ -289,13 +461,21 @@ function drawGather(w, h, frameTime) {
     ctx.stroke();
     ctx.strokeRect(dockX - 1.5 * s, dockY - 0.45 * s, 3 * s, 0.45 * s);
   }
+  const flagY = dockY - 2.4 * s;
+  ctx.fillStyle = "#5a3a22";
+  ctx.fillRect(dockX, flagY - 1.55 * s, 2, 1.55 * s);
+  ctx.fillStyle = "#ffda6e";
+  ctx.beginPath(); ctx.moveTo(dockX + 2, flagY - 1.55 * s);
+  ctx.lineTo(dockX + 2 + 1.25 * s, flagY - 1.15 * s);
+  ctx.lineTo(dockX + 2, flagY - 0.75 * s); ctx.fill();
   ctx.strokeStyle = "rgba(255,230,150,.7)"; ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.arc(sx(dp[0]), sy(dp[1]), dr * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
   text("Bến", sx(dp[0]), sy(-2.8), { size: 11, align: "center", color: "#5a3a22" });
   // nút hái
   (snap.nodes || []).forEach((n) => {
     const ready = n.ready !== false;
     ctx.globalAlpha = ready ? 1 : 0.35;
-    ctx.fillStyle = kc(n.kind); ctx.beginPath(); ctx.ellipse(sx(n.pos[0]), sy(n.pos[1]) - 0.1 * s, 0.9 * s, 0.4 * s, 0, 0, Math.PI * 2); ctx.fill();
+    const plantSize = Math.max(12, Math.min(24, 1.8 * s));
+    icon(n.kind, sx(n.pos[0]) - plantSize / 2, sy(n.pos[1]) - plantSize * 0.68, plantSize);
     ctx.globalAlpha = 1;
     text(KIND_NAME[n.kind] || n.kind, sx(n.pos[0]), sy(n.pos[1]) - 0.7 * s, { size: 11, align: "center", color: "#234" });
     if (!ready && n.regrow_ticks > 0) {
@@ -315,27 +495,27 @@ function drawGather(w, h, frameTime) {
   });
   // đàn cá
   (snap.fish || []).forEach((f, index) => {
-    ctx.save(); ctx.translate(sx(f.pos[0]), sy(f.pos[1])); ctx.rotate(((f.heading_deg || 0) * Math.PI) / 180);
-    ctx.fillStyle = kc(f.kind);
-    ctx.beginPath(); ctx.ellipse(0, 0, 0.9 * s, 0.45 * s, 0, 0, Math.PI * 2); ctx.fill();
     const canCatch = !snap.finished && snap.catch_target_id === f.id;
-    if (canCatch) {
-      ctx.strokeStyle = "#fff0a3";
-      ctx.lineWidth = 2;
-      ctx.stroke();
+    const animate = !reducedMotion.matches && !snap.finished;
+    const [x, depth] = f.pos;
+    const schoolSize = meta.fish_yield?.[f.kind] ?? 1;
+    for (let member = 1; member < schoolSize; member++) {
+      const side = member % 2 === 0 ? 1 : -1;
+      const rank = Math.ceil(member / 2);
+      const phase = animate ? frameTime / 650 + index * 1.2 + member * 0.65 : 0;
+      const offset = side * rank * 1.35 + Math.sin(phase) * 0.42;
+      const nearX = Math.max(0, Math.min(X, x + offset));
+      const nearDepth = Math.max(0, Math.min(D, depth + side * 1.2));
+      const facing = Math.cos(phase) < 0 ? Math.PI : 0;
+      drawFish(f.kind, sx(nearX), sy(nearDepth), 0.9 * s, facing, animate ? Math.sin(phase * 4) * 0.26 : 0);
     }
-    const tailSwing = reducedMotion.matches || snap.finished
-      ? 0 : Math.sin(frameTime / 130 + index * 1.7) * 0.26 * s;
-    ctx.beginPath();
-    ctx.moveTo(-0.78 * s, 0);
-    ctx.lineTo(-1.45 * s, -0.38 * s + tailSwing);
-    ctx.lineTo(-1.45 * s, 0.38 * s + tailSwing);
-    ctx.closePath();
-    ctx.fill();
-    ctx.fillStyle = "#143334";
-    ctx.beginPath(); ctx.arc(0.45 * s, -0.08 * s, 0.11 * s, 0, Math.PI * 2); ctx.fill();
-    ctx.restore();
-    if (canCatch) marker("[Space] Bắt cá", sx(f.pos[0]), sy(f.pos[1]) - 10, w, "#fff0a3");
+    const tail = animate ? Math.sin(frameTime / 130 + index * 1.7) * 0.26 : 0;
+    drawFish(f.kind, sx(x), sy(depth), s, (f.heading_deg || 0) * Math.PI / 180, tail, canCatch);
+    if (canCatch) {
+      const freeSpace = (snap.hold_capacity ?? Infinity) - (snap.hold?.length ?? 0);
+      const count = Math.min(schoolSize, freeSpace);
+      marker(`[Space] Bắt ${KIND_NAME[f.kind] || f.kind} ×${count}`, sx(x), sy(depth) - 17, w, "#fff0a3");
+    }
   });
   // người chơi
   if (p) {
@@ -344,7 +524,7 @@ function drawGather(w, h, frameTime) {
     if (meta.catch_radius && underwater) { ctx.strokeStyle = "rgba(255,255,255,.25)"; ctx.beginPath(); ctx.arc(px, py, meta.catch_radius * s, 0, Math.PI * 2); ctx.stroke(); }
     if (meta.interact_radius && !underwater) { ctx.strokeStyle = "rgba(255,255,255,.35)"; ctx.beginPath(); ctx.arc(px, py, meta.interact_radius * s, 0, Math.PI * 2); ctx.stroke(); }
     if (!(p.invuln_ticks > 0 && Math.floor(snap.tick / 5) % 2)) {
-      ctx.fillStyle = "#ff8a3d"; ctx.beginPath(); ctx.arc(px, py, 0.6 * s, 0, Math.PI * 2); ctx.fill();
+      drawUtSen(px, py, Math.max(0.7, Math.min(1.4, s / 12)), true, null, Math.cos((p.heading_deg || 0) * Math.PI / 180) < 0 ? -1 : 1);
       const a = ((p.heading_deg || 0) * Math.PI) / 180;
       ctx.strokeStyle = "#fff"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(px, py); ctx.lineTo(px + Math.cos(a) * 0.9 * s, py + Math.sin(a) * 0.9 * s); ctx.stroke();
       if (underwater) {
@@ -358,18 +538,19 @@ function drawGather(w, h, frameTime) {
   const capacity = snap.hold_capacity;
   const basket = capacity ? `${hold.length}/${capacity}${hold.length >= capacity ? " (đầy)" : ""}` : "";
   hud(w, h, snap.preview ? "Thu thập · Dữ liệu mẫu" : "Sáng · Thu thập", "#a5ded0",
-    `Giỏ ${basket} · ${itemSummary(counts) || "Trống"}`,
+    { label: basket ? "Giỏ " + basket : "Giỏ", items: counts },
     snap.preview ? ["Xem trạng thái HUD", "Mở trang màn sáng để chơi"]
       : ["WASD / ↑↓←→ Bơi · E Hái hoặc cập bến", "Space Bắt cá · R Chơi lại"]);
   if (p && p.oxygen_ticks !== undefined && p.oxygen_max_ticks) {
     const fraction = p.oxygen_ticks / p.oxygen_max_ticks;
     const low = fraction < 0.25;
     const color = low ? "#ffab92" : "#a5ded0";
-    text(`Oxy ${Math.ceil(p.oxygen_ticks / 60)}s${low ? " · Nổi lên" : ""}`, 16, 54, { color, weight: 700 });
+    icon("oxygen", 16, 40);
+    text(`Oxy ${Math.ceil(p.oxygen_ticks / 60)}s${low ? " · Nổi lên" : ""}`, 37, 54, { color, weight: 700, maxWidth: w - 125 });
     bar(16, 62, Math.min(250, w - 125), 10, fraction, color);
   }
   if (p?.hp !== undefined && p.hp_max) {
-    text(`Máu ${p.hp}/${p.hp_max}`, w - 16, 60, { align: "right", color: "#ffc5b0" });
+    hearts(p.hp, p.hp_max, w - 16, 50);
   }
   if (canDock) {
     marker("[E] Cập bến · Kết thúc buổi sáng", sx(dp[0]), sy(-2.8), w);
@@ -401,6 +582,8 @@ function drawQuan(w, h) {
   const b = meta.bounds || { x: [0, 16], z: [0, 10] };
   const X = b.x[1], Z = b.z[1], top = HUD_TOP, bottom = footerHeight(w);
   const action = snap.finished ? null : snap.interact_target;
+  const actionMarkers = [];
+  const cookId = action?.action === "cook_started" ? action.id : null;
   const pickupId = action?.action === "dish_picked" ? action.id : null;
   const serveId = action?.action === "served" ? action.id : null;
   const failure = (snap.events || []).findLast((event) => event.name === "cook_blocked" && snap.tick - event.tick < 120);
@@ -435,21 +618,27 @@ function drawQuan(w, h) {
     ctx.fillRect(x - 0.8 * s, y - 0.65 * s, 1.6 * s, 1.3 * s);
     ctx.fillStyle = col;
     ctx.fillRect(x - 0.8 * s, y - 0.65 * s, 1.6 * s, Math.max(2, 0.12 * s));
-    text("Bếp " + st.id, x, y + 4, { size: 12, weight: 600, align: "center", color: col, maxWidth: 1.5 * s });
+    const dish = typeof st.dish === "string" ? st.dish : st.dish?.dish_id;
+    const potSize = Math.min(24, 0.9 * s);
+    const stoveIcon = st.state === "ready" ? dish || "plate" : st.state === "cooking" ? "pot" : "pot_open";
+    icon(stoveIcon, x - potSize / 2, y - potSize * 0.7, potSize);
+    if (s >= 24) text("Bếp " + st.id, x, y + 0.5 * s, { size: 11, weight: 600, align: "center", color: col, maxWidth: 1.5 * s });
     let status = "Bếp trống";
     if (st.state === "cooking") status = st.cook_ticks_left === undefined ? "Đang nấu" : `Đang nấu · ${Math.ceil(st.cook_ticks_left / 60)}s`;
     if (st.state === "ready") status = "Món đã chín";
     const canPick = pickupId === st.id && st.state === "ready";
-    if (canPick) {
+    const canCook = cookId === st.id && st.state === "idle";
+    if (canPick || canCook) {
       ctx.strokeStyle = "#fff0a3";
       ctx.lineWidth = 3;
       ctx.strokeRect(x - 0.8 * s, y - 0.65 * s, 1.6 * s, 1.3 * s);
     }
-    const dish = typeof st.dish === "string" ? st.dish : st.dish?.dish_id;
     const label = canPick ? "[E] Lấy món"
+      : canCook ? "[E] Bắt đầu nấu"
       : missing && shortageStove === st.id ? "Thiếu " + missing
       : dish ? `${dishName(dish)} · ${status}` : status;
-    marker(label, x, y - 0.9 * s, w, canPick ? "#fff0a3" : "#fff3d9");
+    if (canPick || canCook) actionMarkers.push({ label, x, y: y - 0.9 * s, dish });
+    else marker(label, x, y - 0.9 * s, w, "#fff3d9", dish);
   });
   // bàn + khách
   const patMax = (meta.patience_s || 60) * 60;
@@ -465,8 +654,13 @@ function drawQuan(w, h) {
       ctx.lineWidth = 3;
       ctx.stroke();
     }
-    text("Bàn " + tb.id, x, y + 4, { size: 12, weight: 600, align: "center", color: "#302117", maxWidth: 1.5 * s });
     const c = byTable[tb.id];
+    if (c?.state === "eating") {
+      const plateSize = Math.min(26, 1.1 * s);
+      icon(c.dish_id || "plate", x - plateSize / 2, y - plateSize / 2, plateSize);
+    } else {
+      text("Bàn " + tb.id, x, y + 4, { size: 12, weight: 600, align: "center", color: "#302117", maxWidth: 1.5 * s });
+    }
     if (c) {
       const cx = sx(tb.pos[0]), cy = sy(tb.pos[1]) - 1.5 * s;
       ctx.fillStyle = c.state === "eating" ? "#7bc67b" : "#f4b6c2"; ctx.beginPath(); ctx.arc(cx, cy, 0.55 * s, 0, Math.PI * 2); ctx.fill();
@@ -476,11 +670,11 @@ function drawQuan(w, h) {
       const urgent = !eating && remaining !== undefined && remaining <= patMax * 0.2;
       const wait = remaining === undefined ? "" : ` · ${Math.ceil(remaining / 60)}s`;
       const status = urgent ? (w < 540 ? "Sắp rời bàn" : name + " · Sắp rời bàn") : "Chờ " + name;
-      marker(eating ? "Đang ăn" : status + wait, cx, cy - 0.65 * s, w, urgent ? "#ffab92" : "#fff3d9");
+      marker(eating ? "Đang ăn" : status + wait, cx, cy - 0.65 * s, w, urgent ? "#ffab92" : "#fff3d9", c.dish_id);
       if (!eating && remaining !== undefined) {
         bar(cx - 0.8 * s, cy + 0.65 * s, 1.6 * s, 5, remaining / patMax, urgent ? "#ff8a72" : "#ffc171");
       }
-      if (canServe) marker("[E] Phục vụ", x, y + Math.min(s, 20), w, "#fff0a3");
+      if (canServe) actionMarkers.push({ label: "[E] Phục vụ", x, y: y + Math.min(s, 20) });
     }
   });
   // người chơi
@@ -488,18 +682,24 @@ function drawQuan(w, h) {
   if (p) {
     const px = sx(p.pos[0]), py = sy(p.pos[1]);
     if (meta.interact_radius) { ctx.strokeStyle = "rgba(255,255,255,.5)"; ctx.setLineDash([4, 4]); ctx.beginPath(); ctx.arc(px, py, meta.interact_radius * s, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); }
-    ctx.fillStyle = "#a5ded0"; ctx.beginPath(); ctx.arc(px, py, 0.5 * s, 0, Math.PI * 2); ctx.fill();
-    text("Út Sen", px, py + 0.5 * s + 15, { size: 12, weight: 700, align: "center", color: "#e2fff5" });
+    const hand = typeof snap.hand === "string" ? snap.hand : snap.hand?.dish_id;
+    const unit = Math.max(0.8, Math.min(1.7, s / 25));
+    drawUtSen(px, py, unit, false, snap.hand ? hand || "plate" : null);
+    text("Út Sen", px, py + 8 * unit + 13, { size: 12, weight: 700, align: "center", color: "#e2fff5" });
+    const label = snap.hand ? "Đang bưng · " + (hand ? dishName(hand) : "Món ăn") : "Tay trống";
+    const labelY = py - 9 * unit - 8;
+    const bounds = markerBounds(label, px, labelY, w, hand || "plate");
+    if (!actionMarkers.some((cue) => overlaps(bounds, markerBounds(cue.label, cue.x, cue.y, w, cue.dish)))) {
+      marker(label, px, labelY, w, snap.hand ? "#a5ded0" : "#dccbb7", hand || "plate");
+    }
   }
+  for (const cue of actionMarkers) marker(cue.label, cue.x, cue.y, w, "#fff0a3", cue.dish);
   // HUD
   hud(w, h, snap.preview ? "Mở quán · Dữ liệu mẫu" : "Tối · Mở quán", "#ffd68b",
-    "Kho · " + (itemSummary(snap.stock || {}) || "Trống"),
+    { label: "Kho", items: snap.stock || {} },
     snap.preview ? ["Xem trạng thái HUD", "Mở trang quán để chơi"] : ["WASD / ↑↓←→ Đi · E Tương tác", "R Chơi lại"]);
   text(`Tiền ${snap.money ?? 0}k · Uy tín ${(snap.reputation ?? 0).toFixed(1)} · Điểm ${snap.score ?? 0}`,
     16, 51, { color: "#ffd68b", weight: 600, maxWidth: w - 32 });
-  const hand = typeof snap.hand === "string" ? snap.hand : snap.hand?.dish_id;
-  const handLabel = snap.hand ? "Đang bưng · " + (hand ? dishName(hand) : "Món ăn") : "Tay trống";
-  text(handLabel, 16, 73, { color: snap.hand ? "#a5ded0" : "#dccbb7", weight: 600, maxWidth: w - 32 });
 }
 
 function frame(frameTime) {

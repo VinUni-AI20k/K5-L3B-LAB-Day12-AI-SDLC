@@ -176,6 +176,8 @@ class QuanSim:
         if target is None:
             return {}
         kind, obj = target
+        if kind == "stove" and obj["state"] == "idle" and self._next_reserved_order() is not None:
+            return {"interact_target": {"id": obj["id"], "action": "cook_started"}}
         if kind == "stove" and obj["state"] == "ready" and self.hand is None and self.t.get("carry_limit", 1) >= 1:
             return {"interact_target": {"id": obj["id"], "action": "dish_picked"}}
         if kind == "table" and self._serving_customer(obj) is not None:
@@ -192,16 +194,18 @@ class QuanSim:
         else:
             self._interact_table(obj, events)
 
+    def _next_reserved_order(self):
+        return min(
+            (c for c in self.customers if c["state"] == "waiting" and c["order_status"] == "reserved"),
+            key=lambda c: (c["order_tick"], id_key(c["table_id"])),
+            default=None,
+        )
+
     def _interact_stove(self, stove, events):
         if stove["state"] == "idle":
-            reserved_orders = [
-                c for c in self.customers
-                if c["state"] == "waiting" and c["order_status"] == "reserved"
-            ]
-            if not reserved_orders:
+            c = self._next_reserved_order()
+            if c is None:
                 return
-            reserved_orders.sort(key=lambda c: (c["order_tick"], id_key(c["table_id"])))
-            c = reserved_orders[0]
             dish_id = c["dish_id"]
             base_price = self.menu[dish_id]["price"]
             items = []
