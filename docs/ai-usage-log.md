@@ -1,5 +1,7 @@
-# Nhật ký dùng AI (theo phase và theo người)
-
+# Nhật ký dùng AI (theo phase và theo người)
+
+
+
 | Phase | Người | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|---|
 | 1     | TuHoAnh | Gemini (Tech Lead) + Codex (VS Code) | P1-06: Quán lát 3 (khách, giữ chỗ, kiên nhẫn)                   | ~15k tokens (ước tính)   | P1-06 lúc đầu thiếu vài mặc định khách scenario & đóng ca; đã được Lương review sửa và merge sạch ở P1-07.               |
@@ -11,6 +13,10 @@
 | 1 | luongvh2510 | Claude Code (Sonnet 5.5) | HX-02 skill check-determinism, hook chặn sửa file khóa, hook pre-push; test chạy được trên Windows | — (chưa đo) | Console cp1252 làm công cụ và hook lỗi khi in tiếng Việt; máy Windows không có python3 làm 28 test lỗi. Phát hiện khi chạy thật, sửa ở PR #4 và #15 |
 | 1 | luongvh2510 | Claude Code (Sonnet 5.5) | P1-09, P1-10, test lát 3 và lát 4 của quán: viết test và chạy phá thử code | — (chưa đo) | Test gather lần đầu bỏ sót thứ tự rơi giỏ LIFO khi ngất; phát hiện khi tôi hỏi lại "đã check kỹ chưa", AI chạy thêm phá thử rồi bổ sung. Một lần phá thử ban đầu thực ra không có tác dụng, làm lại bằng đột biến thật |
 | 1 | luongvh2510 | Claude Code (Sonnet 5.5) | Review PR #5 (A), #8 và #12 (B) theo PRD-0, sửa lỗi của PR #8 trong PR #10 và boa tính chính xác trong PR #13 | — (chưa đo) | AI tìm ra khách dựng từ scenario thiếu giá trị mặc định, ready_ticks đếm ngược sai chiều và boa làm tròn số thực lệch 1 đơn vị. Mọi nhận xét chỉ đăng lên PR sau khi tôi đồng ý |
-| 1 | luongvh2510 | Claude Code (Sonnet 5.5) | P1-12 smoke hộp đen, P1-13 ma trận truy vết, P1-15 kiểm chonoi.live (tiếp quản từ C) | — (chưa đo) | Lần chạy smoke đầu đỏ 12 mục vì AI giả định sai rằng chạy headless từ thư mục khác vẫn import được chonoi; sửa script chứ không phải lỗi của game. Ma trận ghi trung thực các mục chưa đạt (commit của B và C, tài khoản của B) |
+| 1 | luongvh2510 | Claude Code (Sonnet 5.5) | P1-12 smoke hộp đen, P1-13 ma trận truy vết, P1-15 kiểm chonoi.live (tiếp quản từ C) | — (chưa đo) | Lần chạy smoke đầu đỏ 12 mục vì AI giả định sai rằng chạy headless từ thư mục khác vẫn import được chonoi; sửa script chứ không phải lỗi của game. Ma trận ghi trung thực các mục chưa đạt (commit của B và C, tài khoản của B) |
+
 | 2 | luongvh2510 | Claude Code (Sonnet 5.5) | P2-01, P2-02: kế hoạch Phase 2, contract v1.1 và sửa test Phase 1 lệch số; kế hoạch Phase 3, 4 | — (chưa đo) | Đề Ticket-02 không đọc được nên mọi chỗ đoán phải ghi vào clarify; AI không được tự bịa số ngoài contract |
 | 2 | luongvh2510 | Claude Code (Sonnet 5.5) | P2-07: chế độ day (day.py, pause, buy/shop_done), P2-09 smoke phút 20, P2-10 hồi quy và smoke day, P2-11 ma trận và contracts README | — (chưa đo) | Một cách phá thử sống sót (không lọc món theo kế hoạch) nên thêm test; AI nhầm số sự kiện pause trong smoke, chỉ lộ khi chạy thật; review PR #30 của C tìm ra kẽ hở test phát hiện khi đang nổi |
+| 2 | Cuongngucuteee | Claude Code (Opus 5.5) | P2-04: Cá Sấu, Máu, ngạt (`monsters.py`, kiểm scenario, 17 test), sửa theo review của D | — (chưa đo) | Không đọc được Ticket-02 mục 1.2 nên luật dựng từ contract, ghi giả định `clarify` #7, #11, #12. Test mặt nước ban đầu chỉ kiểm tick cuối nên không bắt được lỗi; D phát hiện bằng phá thử, sửa thành kiểm từng tick rồi phá thử lại thấy đỏ. Test headless đầu tiên sai vì người chơi bơi nhanh hơn Cá Sấu, lộ khi chạy |
+| 2 | Cuongngucuteee | Claude Code (Opus 5.5) | P2-08: menu, pause, HUD, Shop trong `chonoi.live`; gộp `main`, PR theo mẫu | — (chưa đo) | Hai lệnh mua liền nhau bị ghi đè (chỉ mua được Máu); phát hiện khi AI tự chụp màn Shop bằng Chrome headless, sửa thành hàng đợi và thêm test. Phím chỉ kiểm bằng đọc code, chưa chơi tay trọn một Ngày |
+| 4 | Cuongngucuteee | Claude Code (Opus 5.5) | P4-05: README 3 lệnh, LICENSE, CHANGELOG, CREDITS, bước clone sạch trong CI Ubuntu | — (chưa đo) | AI viết một khẳng định test vô nghĩa (so chuỗi với chính nó), tự phát hiện khi đọc lại và thay bằng kiểm liên kết thật. Không chạy được CI Ubuntu vì Actions chưa bật trên fork |
