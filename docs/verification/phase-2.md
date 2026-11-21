@@ -7,6 +7,17 @@
 | **Lát 2 — Cá Sấu Năm Chèo `M1`/`M2` (`gather_monsters.py`)** | `tests/test_monsters.py`: M1 Ngày 1 / M2 Ngày 3, patrol `1.0 m/s` đổi waypoint, chase `3.0 m/s` ngưỡng `d >= 10`, hit mất 1 HP + `floor(hold/2)` LIFO + bất tử `90` tick, recoil `60` tick (`+x` khi trùng tâm), faint `cause="monster"`, scenario lỗi mã `2` | `tests/test_monsters.py`, [contract-monsters.txt](../proof/phase-2/contract-monsters.txt) | Đạt |
 | **Lát 3 — 2 bếp/4 bàn/6 món, ghế id nhỏ nhất, menu theo kế hoạch** | `tests/test_chur04_phase2.py::Quan11` + `tests/test_quan_service.py` (28 test) | [chur04/tests.txt](../proof/phase-2/chur04/tests.txt) | Đạt |
 | **Lát 4 — `--mode day`, Shop (`oxygen`/`hp`), `pause`/`resumed`, inputs v1.1** | `tests/test_chur04_phase2.py::DayAndShop`, `Inputs11`, `HeadlessDay`: đổi pha cùng tick, Shop áp cấp từ Ngày kế, pause đóng băng timer/lịch, 1 Ngày 22.200 tick ≤ 20s | [chur04/day-run1.txt](../proof/phase-2/chur04/day-run1.txt), [chur04/summary.json](../proof/phase-2/chur04/summary.json) | Đạt |
+| **UI Phase 2 (`live.py`, `web/index.html`)** | `tests/test_ui_live.py` (5 test, gồm trọn vòng 6 màn hình Menu/DayIntro/Gather/EveningIntro/Quan/DayResult/Shop/Summary, Pause, Shop v1.1, chữ `≥ 18px`) | [ui-live-p2.md](../proof/phase-2/ui-live-p2.md) | Đạt |
 | **Tích hợp kho `gather → inventory → quan` & determinism** | `check-contract` (`gather` & `quan` byte-identical) + smoke tích hợp CLI | [chur04/inventory.json](../proof/phase-2/chur04/inventory.json), [chur04/integration-quan.txt](../proof/phase-2/chur04/integration-quan.txt) | Đạt |
-| **Regression P1 trên số chuẩn v1.1** | `tests/test_smoke_p1.py` (cập nhật `fish_initial` đọc từ contract, `attack`/`day` hợp lệ ở v1.1), `tests/test_quan_service.py` (đứng trái `B1` tránh `B2 [5,8]`), `tests/test_ui_live.py` | Toàn bộ 118 test lõi + `check-contract` PASS | Đạt |
-| **UI Phase 2 (`live.py`, `index.html`) & gắn tag `phase-2`** | Chờ gộp nhánh `origin/duhocsinh` và chạy kiểm chứng cuối trên `main` trước khi gắn tag `phase-2` | Đang tích hợp | Đang hoàn thiện |
+| **Regression P1 trên số chuẩn v1.1** | `tests/test_smoke_p1.py` (cập nhật `fish_initial` đọc từ contract, `attack`/`day` hợp lệ ở v1.1), `tests/test_quan_service.py` (đứng trái `B1` tránh `B2 [5,8]`), `tests/test_ui_live.py` | Toàn bộ 119 test lõi + `check-contract` PASS | Đạt |
+
+## Bổ sung QA — Nguyễn Minh Thành
+
+| AC/P2 kiểm chứng | Cách kiểm | Bằng chứng | Kết quả |
+|---|---|---|---|
+| Regression P1 + P2 | `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` | [Log đầy đủ](../proof/phase-2/chur04/tests.txt) | Đạt |
+| Contract determinism `gather`/`quan` | `python3 .agents/skills/check-contract/check_contract.py` | Kết quả công cụ Contract command | Đạt: `gather` và `quan` byte-giống-byte |
+| `day`, Shop, pause, nhiều Ngày, fixture/inventory | `python3 tools/verify_chur04_phase2.py` | [summary.json](../proof/phase-2/chur04/summary.json) | Đạt cho backend/fixture |
+| Hai tiến trình `day` cùng seed/input | CLI trong verify script | [summary.json](../proof/phase-2/chur04/summary.json) | Đạt; SHA-256 `56b42d48b76d961fd6b2b526300ef3840e082c16fd87ea73f630e880db9cae4f` |
+| 22.200 tick không pause | CLI trong verify script | [summary.json](../proof/phase-2/chur04/summary.json) | Đạt: `0.422347 s` |
+| Tích hợp `gather → inventory → quan` | Hai CLI thật | [inventory.json](../proof/phase-2/chur04/inventory.json), [quan](../proof/phase-2/chur04/integration-quan.txt) | Đạt |
