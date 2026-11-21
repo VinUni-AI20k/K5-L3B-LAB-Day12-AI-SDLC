@@ -117,7 +117,12 @@ class FreshnessAndIndividualItems(unittest.TestCase):
                                          "--inventory", inv, "--out", w.path("q.jsonl"))
             self.assertEqual(code_q, 0, err_q)
             q_snap = snapshots(read_jsonl(w.path("q.jsonl")))[0]
-            self.assertEqual(q_snap["stock"], data["items"])
+            # File kho giữ đủ độ chính xác (TICKET-03 mục 1), JSONL làm tròn 3 số -> id/kind khớp
+            # chính xác, fresh theo dung sai quan sát ±0.01.
+            self.assertEqual([(x["id"], x["kind"]) for x in q_snap["stock"]],
+                             [(x["id"], x["kind"]) for x in data["items"]])
+            for a, b in zip(q_snap["stock"], data["items"]):
+                self.assertAlmostEqual(a["fresh"], b["fresh"], delta=0.01)
 
     def test_reject_count_inventory_in_v12(self):
         """Contract v1.2 từ chối file kho đếm kiểu cũ {"items": {"ca_loc": 1}} với mã thoát 2."""

@@ -1,0 +1,1 @@
+\u0111\u1ea7u vào sai: items ph\u1ea3i là m\u1ea3ng cá th\u1ec3 {id, kind, fresh} (contract v1.2)

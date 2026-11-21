@@ -106,6 +106,7 @@
       "lau_mam": {"recipe": {"ca_linh": 2, "ca_keo": 1, "keo_neo": 1, "bong_dien_dien": 1}, "cook_s": 12, "price": 200}
     },
     "score": {"reputation_multiplier": 100},
+    "freshness": {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30},
     "day_plan": [
       {"day": 1, "dishes": {"ca_loc_nuong_trui": 3, "goi_bong_sung": 3}, "ingredients": {"ca_loc": 3, "bong_sung": 6}},
       {"day": 2, "dishes": {"ca_loc_nuong_trui": 2, "lau_ca_linh_dien_dien": 2}, "ingredients": {"ca_loc": 2, "ca_linh": 6, "bong_dien_dien": 2}},

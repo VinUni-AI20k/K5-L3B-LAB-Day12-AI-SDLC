@@ -1,27 +1,29 @@
-"""Buổi sáng — Lặn & Hái (`gather`). Hỗ trợ Contract v1.0, v1.1 và v1.2.
+"""Buổi sáng — Lặn & Hái (`gather`). Hỗ trợ Contract v1.0 và v1.1.
 
 Mặt cắt dòng sông nhìn NGANG: vị trí [x, d] (x sang phải, d độ sâu hướng xuống, d=0 là mặt nước).
 move = [x, d]: thành phần thứ hai DƯƠNG = bơi xuống.
 
 Lát 1: bơi, oxy, dive/surface, ngạt (choke), faint, giỏ LIFO.
-Lát 2: hái nút mặt nước (N1..N6), bắt cá dưới nước (linh, lóc, kèo), cá bơi và sinh cá theo lịch,
-       độ tươi giỏ, cá thể I1..In, hao tươi 0.5/s, ươn < 30 (spoiled), cập bến, xuất kho cá thể.
+Lát 2: hái nút mặt nước (N1..N6), bắt cá dưới nước (linh, lóc, kèo), cá bơi và sinh cá theo lịch, cập bến, ghi kho.
 
-Thứ tự xử lý mỗi bước (PRD Phase 3 mục 1 & Phase 2 mục 4.5):
-  1. Giảm đồng hồ, timer, nút mọc lại, giảm cooldown và bất tử.
-     Hao tươi hàng có sẵn trong giỏ (0.5/s kẹp đáy 0), phát `spoiled` khi vượt ngưỡng < 30.
+v1.2: giỏ là mảng cá thể {id, kind, fresh} (fresh là Fraction trong sim), hao 0.5/s, ươn < 30.
+
+Thứ tự xử lý mỗi bước (PRD Phase 2 mục 4.5, Phase 3 mục 1):
+  1. Giảm đồng hồ, timer, nút mọc lại, giảm cooldown và bất tử; hao tươi hàng có sẵn → spoiled.
   2. Bơi + chặn biên, so vị trí đầu/cuối → dive/surface.
   3. Tính oxy theo d cuối bước → oxygen_empty, choke, faint.
-  4. interact: bến trước → docked; ngoài bến + mặt nước → hái (cá thể mới fresh=100).
-  5. catch: dưới nước + hết hồi → bắt cá (theo vị trí cá trước khi bơi, cá thể mới fresh=100).
-  6. Hết giờ → time.
-  7. Nếu còn giờ: cá bơi, sinh cá theo lịch (phase_tick = 360*k).
+  4. Cập nhật quái (Cá Sấu) theo id rồi xét tối đa một hit → monster_hit/faint.
+  5. interact: bến trước → docked; ngoài bến + mặt nước → hái.
+  6. catch: dưới nước + hết hồi → bắt cá (theo vị trí cá trước khi bơi).
+  7. Hết giờ → time.
+  8. Nếu còn giờ: cá bơi, sinh cá theo lịch (phase_tick = 360*k).
 """
 
 import math
+from fractions import Fraction
 
 from ..ids import sort_by_id
-from ..inventory import hold_to_items
+from ..inventory import item_out, items_out
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -62,13 +64,6 @@ class GatherSim:
         self.ids = ids
         self.phase_tick = int(scenario.get("phase_tick", 0))
         self.random_fish = bool(scenario.get("random_fish", True))
-
-        # Xác định phiên bản contract để tương thích cả v1.0/v1.1 và v1.2
-        self.contract_version = str(scenario.get("contract_version") or tuning.get("contract_version") or "1.0")
-        raw_hold = scenario.get("hold", [])
-        if raw_hold and isinstance(raw_hold[0], dict):
-            self.contract_version = "1.2"
-
         p = scenario.get("player", {})
         self.pos = [float(c) for c in p.get("pos", t["start_pos"])]
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
@@ -81,26 +76,15 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-
-        # Giỏ cá thể: mỗi phần tử là dict {id, kind, fresh}
-        self.hold = []
-        for item in raw_hold:
-            if isinstance(item, dict):
-                iid = str(item["id"])
-                ids.reserve(iid)
-                self.hold.append({
-                    "id": iid,
-                    "kind": str(item["kind"]),
-                    "fresh": float(item.get("fresh", 100.0)),
-                })
-            else:
-                iid = ids.new("I")
-                self.hold.append({
-                    "id": iid,
-                    "kind": str(item),
-                    "fresh": 100.0,
-                })
-
+        # v1.2: giỏ là mảng cá thể; thứ tự mảng = thứ tự vào giỏ (LIFO: cuối mảng = mới nhất).
+        # scenario.load_scenario đã đổi fresh sang Fraction; id I.. giữ chỗ để cấp tiếp.
+        fr = tuning["freshness"]
+        self.fresh_initial = Fraction(str(fr["initial"]))
+        self.spoiled_below = Fraction(str(fr["spoiled_below"]))
+        self.fresh_decay = Fraction(str(fr["gather_decay_per_s"])) / int(TICK)  # mỗi tick
+        self.hold = [dict(it) for it in scenario.get("hold", [])]
+        for it in self.hold:
+            ids.reserve(it["id"])
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
 
         # Nút hái
@@ -127,6 +111,27 @@ class GatherSim:
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
+
+        # v1.1: Cá Sấu Năm Chèo — gather độc lập dùng bố trí Ngày 1 (from_day <= 1);
+        # scenario gather.monsters[] thay danh sách mặc định (PRD mục D, 1.2).
+        mconf = t.get("monsters", {})
+        self.monster_species = mconf.get("species", {})
+        self.monster_cfg = mconf
+        if "monsters" in scenario:
+            src_monsters = scenario["monsters"]
+        else:
+            src_monsters = [s for s in mconf.get("spawns", []) if int(s.get("from_day", 1)) <= 1]
+        self.monsters = [{
+            "id": s["id"], "kind": s["kind"],
+            "pos": [float(c) for c in s["pos"]],
+            "waypoints": [[float(c) for c in wp] for wp in s.get("waypoints", [s["pos"], s["pos"]])],
+            "target_idx": int(s.get("target_idx", 1)),
+            "state": s.get("state", "patrol"),
+            "state_ticks_left": int(s.get("state_ticks_left", 0)),
+            "recoil_dir": s.get("recoil_dir"),
+        } for s in src_monsters]
+        for m in self.monsters:
+            ids.reserve(m["id"])
 
         self.money = 0
         self.earned = 0
@@ -188,41 +193,37 @@ class GatherSim:
             })
         return initial_fish
 
-    # --- giao diện cho runner & inventory ---------------------------------------
-    def inventory_items(self):
-        if self.contract_version == "1.2":
-            return sort_by_id(self.hold)
-        return hold_to_items(self.hold)
+    # --- giao diện cho runner ---------------------------------------------------
+    def inventory_items(self) -> list:
+        return self.hold
 
     def snapshot(self) -> dict:
-        if self.contract_version == "1.2":
-            hold_snap = [{"id": it["id"], "kind": it["kind"], "fresh": it["fresh"]} for it in self.hold]
-        else:
-            hold_snap = [it["kind"] for it in self.hold]
-
         return {
             "player": {"pos": self.pos, "vel": self.vel, "heading_deg": self.heading,
                        "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": hold_snap,
-            "hold_count": len(self.hold),
+            "hold": [item_out(it) for it in self.hold], "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
             "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"],
-                      "age_ticks": f.get("age_ticks", 0)}
-                     for f in sort_by_id(self.fish)],
+                       "age_ticks": f.get("age_ticks", 0)}
+                      for f in sort_by_id(self.fish)],
+            "monsters": [{"id": m["id"], "kind": m["kind"], "pos": m["pos"], "waypoints": m["waypoints"],
+                          "target_idx": m["target_idx"], "state": m["state"],
+                          "state_ticks_left": m["state_ticks_left"], "recoil_dir": m["recoil_dir"]}
+                         for m in sort_by_id(self.monsters)],
         }
 
-    # --- một bước (PRD Phase 3 mục 1 & Phase 2 mục 4.5) -------------------------
+    # --- một bước (PRD-0 mục F & Phase 2 mục 4.5) -------------------------------
     def step(self, inp):
         events = []
         self.phase_tick += 1
 
-        # ── 1. Đồng hồ, timer, nút mọc lại, hao tươi giỏ ───────────────────────
+        # ── 1. Đồng hồ, timer, nút mọc lại ─────────────────────────────────────
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
@@ -231,26 +232,7 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-
-        # Hao tươi hàng có sẵn trong giỏ (0.5/s kẹp đáy 0)
-        fresh_cfg = self.t.get("freshness", {})
-        decay = float(fresh_cfg.get("gather_decay_per_s", 0.5)) / TICK
-        spoiled_below = float(fresh_cfg.get("spoiled_below", 30.0))
-        spoiled_items = []
-
-        for it in self.hold:
-            was = it["fresh"]
-            now = max(0.0, was - decay)
-            it["fresh"] = now
-            if was >= spoiled_below and now < spoiled_below:
-                spoiled_items.append(it)
-
-        for it in sort_by_id(spoiled_items):
-            events.append(("spoiled", {
-                "item_id": it["id"],
-                "kind": it["kind"],
-                "location": "hold",
-            }))
+        self._decay_hold(events)
 
         # ── 2. Bơi + chặn biên, ghi nhận vị trí trước để so dive/surface ───────
         was_surface = self._at_surface()
@@ -284,15 +266,18 @@ class GatherSim:
                     self.hp -= 1
                     events.append(("choke", {"hp": self.hp}))
                     if self.hp <= 0:
-                        # Faint: bỏ giỏ theo LIFO (mảng đảo ngược), kho rỗng
-                        lost = list(reversed(self.hold))
-                        self.hold.clear()
-                        lost_payload = lost if self.contract_version == "1.2" else [it["kind"] for it in lost]
-                        events.append(("faint", {"cause": "choke", "lost": lost_payload, "hp": 0}))
-                        self._finish("fainted", events)
+                        self._faint(events, "choke")
                         return events
 
-        # ── 4. Lát 2: interact — bến trước, rồi hái ─────────────────────────────
+        # ── 4. v1.1: cập nhật quái theo id rồi xét tối đa một hit (mục 1.2, 4.5) ─
+        just_recoiled = set()
+        for m in sort_by_id(self.monsters):
+            if self._update_monster(m):
+                just_recoiled.add(m["id"])  # hết recoil đúng bước này: xét chạm từ bước kế
+        if self._monster_hit(events, just_recoiled):
+            return events
+
+        # ── 5. Lát 2: interact — bến trước, rồi hái ─────────────────────────────
         if inp.pressed("interact"):
             if self._in_dock():
                 self._finish("docked", events)
@@ -313,12 +298,7 @@ class GatherSim:
                         }))
                     else:
                         for _ in range(amount):
-                            new_id = self.ids.new("I")
-                            self.hold.append({
-                                "id": new_id,
-                                "kind": node["kind"],
-                                "fresh": 100.0,
-                            })
+                            self._add_item(node["kind"])
                         node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
                         events.append(("gather", {
                             "node_id": node["id"],
@@ -326,7 +306,7 @@ class GatherSim:
                             "amount": amount,
                         }))
 
-        # ── 5. Lát 2: catch — chỉ dưới nước, hết hồi chiêu ─────────────────────
+        # ── 6. Lát 2: catch — chỉ dưới nước, hết hồi chiêu ─────────────────────
         # (Thực hiện theo vị trí cá TRƯỚC khi cá bơi ở bước này)
         if inp.pressed("catch"):
             if not self._at_surface() and self.catch_cd_ticks == 0:
@@ -347,12 +327,7 @@ class GatherSim:
                     else:
                         # Đủ chỗ: thêm toàn bộ yield, xóa đàn, đặt cooldown
                         for _ in range(yield_count):
-                            new_id = self.ids.new("I")
-                            self.hold.append({
-                                "id": new_id,
-                                "kind": fish["kind"],
-                                "fresh": 100.0,
-                            })
+                            self._add_item(fish["kind"])
                         self.fish.remove(fish)
                         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
                         events.append(("fish_caught", {
@@ -361,12 +336,12 @@ class GatherSim:
                             "yield": yield_count,
                         }))
 
-        # ── 6. Hết giờ ──────────────────────────────────────────────────────────
+        # ── 7. Hết giờ ──────────────────────────────────────────────────────────
         if self.time_left_ticks <= 0:
             self._finish("time", events)
             return events
 
-        # ── 7. Cá bơi & Sinh cá theo lịch (khi ca còn tiếp tục) ─────────────────
+        # ── 8. Cá bơi & Sinh cá theo lịch (khi ca còn tiếp tục) ─────────────────
         self._move_fish()
         self._spawn_fish(events)
 
@@ -511,13 +486,129 @@ class GatherSim:
                 best, best_dist, best_id = f, d, f["id"]
         return best
 
+    # --- v1.2: độ tươi giỏ (Phase 3 mục 1) ----------------------------------------
+    def _add_item(self, kind):
+        """Hàng mới: id I.. tăng theo thứ tự vào giỏ, fresh = initial, hao từ bước sau."""
+        self.hold.append({"id": self.ids.new("I"), "kind": kind, "fresh": self.fresh_initial})
+
+    def _decay_hold(self, events):
+        """Giỏ giảm gather_decay_per_s, kẹp đáy 0; spoiled đúng một lần khi đi từ >= 30
+        xuống < 30, nhiều cá thể thì theo id."""
+        for it in sort_by_id(self.hold):
+            before = it["fresh"]
+            it["fresh"] = max(Fraction(0), before - self.fresh_decay)
+            if before >= self.spoiled_below > it["fresh"]:
+                events.append(("spoiled", {"item_id": it["id"], "kind": it["kind"], "location": "hold"}))
+
+    # --- v1.1: Cá Sấu Năm Chèo (mục 1.2) ------------------------------------------
+    def _monster_zone(self, m):
+        """Miền chặn của quái: biên map x + dải độ sâu của loài; ngưỡng sâu = mép dải."""
+        sp = self.monster_species.get(m["kind"], {})
+        xlo, xhi = self.t["bounds"]["x"]
+        dlo, dhi = sp.get("depths", (10.0, 30.0))
+        return float(xlo), float(xhi), float(dlo), float(dhi)
+
+    def _update_monster(self, m):
+        """Di chuyển một con quái (patrol/chase/recoil). Trả True nếu nó vừa HẾT recoil
+        đúng bước này (không xét phát hiện/chạm ở bước đó — PRD 'xét ... từ bước kế')."""
+        sp = self.monster_species.get(m["kind"], {})
+        xlo, xhi, dlo, dhi = self._monster_zone(m)
+        if m["state"] == "recoil":
+            if m["state_ticks_left"] > 0:
+                step = float(sp.get("recoil_dist", 2.0)) / TICK  # mỗi bước recoil_dist/60 m
+                direction = m["recoil_dir"] or [1.0, 0.0]
+                self._move_entity(m["pos"], direction, step, xlo, xhi, dlo, dhi)
+                m["state_ticks_left"] -= 1
+                if m["state_ticks_left"] <= 0:
+                    m["state"] = "patrol"
+                    m["recoil_dir"] = None
+                    return True
+            return False
+        dist_player = math.dist(m["pos"], self.pos)
+        if m["state"] == "chase":
+            # Trở về patrol khi cách > exit_radius hoặc người chơi lên trên dải sâu
+            if dist_player > float(sp.get("exit_radius", 16.0)) or self.pos[1] < dlo:
+                m["state"] = "patrol"
+        elif (self.pos[1] >= dlo and dist_player <= float(sp.get("detect_radius", 10.0))):
+            m["state"] = "chase"
+        if m["state"] == "chase":
+            step = float(sp.get("chase_speed", 3.0)) / TICK
+            dx, dd = self.pos[0] - m["pos"][0], self.pos[1] - m["pos"][1]
+            norm = math.hypot(dx, dd) or 1.0
+            self._move_entity(m["pos"], [dx / norm, dd / norm], step, xlo, xhi, dlo, dhi)
+        else:
+            # patrol: tới waypoint hiện tại, đến thì đổi mục tiêu cho bước sau
+            tgt = m["waypoints"][m["target_idx"]]
+            step = float(sp.get("patrol_speed", 1.0)) / TICK
+            dx, dd = tgt[0] - m["pos"][0], tgt[1] - m["pos"][1]
+            dist_t = math.hypot(dx, dd)
+            if dist_t <= step + 1e-9:  # dung sai cộng dồn float: 240 bước × 1/60 phải chạm đúng 4 m
+                m["pos"] = list(tgt)
+                m["target_idx"] = 1 - m["target_idx"]
+            else:
+                self._move_entity(m["pos"], [dx / dist_t, dd / dist_t], step, xlo, xhi, dlo, dhi)
+        return False
+
+    def _monster_hit(self, events, just_recoiled):
+        """Tối đa MỘT hit mỗi bước: con gần nhất trong hit_radius, hòa theo id; người chơi
+        phải ở dải sâu và hết bất tử; con đang recoil (hoặc vừa hết) không gây hit.
+        Trả True nếu người chơi ngất (đã phát faint + gather_end)."""
+        if self.invuln_ticks > 0 or not self.monsters:
+            return False
+        best, best_dist = None, None
+        for m in sort_by_id(self.monsters):
+            if m["state"] == "recoil" or m["id"] in just_recoiled:
+                continue  # đang lùi / vừa hết lùi: không gây hit
+            sp = self.monster_species.get(m["kind"], {})
+            d = math.dist(self.pos, m["pos"])
+            dlo, _ = self._monster_zone(m)[2:]
+            if d > float(sp.get("hit_radius", 1.5)) or self.pos[1] < dlo:
+                continue
+            if best is None or d < best_dist:
+                best, best_dist = m, d
+            elif d == best_dist and m["id"] < best["id"]:
+                best, best_dist = m, d
+        if best is None:
+            return False
+        sp = self.monster_species.get(best["kind"], {})
+        self.hp -= 1
+        # bỏ floor(số đang mang × loss_ratio) nguyên liệu theo LIFO (nhặt sau mất trước)
+        drop = math.floor(len(self.hold) * float(self.monster_cfg.get("loss_ratio", 0.5)))
+        lost = [self.hold.pop() for _ in range(drop)]
+        self.invuln_ticks = int(self.monster_cfg.get("invuln_ticks", 90))
+        # recoil 60 bước tính từ bước sau, lùi theo hướng xa người chơi chốt lúc chạm
+        best["state"] = "recoil"
+        best["state_ticks_left"] = int(sp.get("recoil_ticks", 60))
+        dx, dd = best["pos"][0] - self.pos[0], best["pos"][1] - self.pos[1]
+        norm = math.hypot(dx, dd)
+        if norm == 0:
+            dx, dd, norm = 1.0, 0.0, 1.0  # trùng tâm dùng +x
+        best["recoil_dir"] = [dx / norm, dd / norm]
+        events.append(("monster_hit", {"monster_id": best["id"], "hp": self.hp,
+                                       "lost": [item_out(it) for it in lost], "pos": list(self.pos)}))
+        if self.hp <= 0:
+            self._faint(events, "monster")
+            return True
+        return False
+
+    def _move_entity(self, pos, direction, step, xlo, xhi, dlo, dhi):
+        """Di chuyển thẳng theo vector đơn vị rồi chặn biên map + dải sâu của loài."""
+        pos[0] += direction[0] * step
+        pos[1] += direction[1] * step
+        pos[0] = min(max(pos[0], xlo), xhi)
+        pos[1] = min(max(pos[1], dlo), dhi)
+
+    def _faint(self, events, cause):
+        """Máu về 0: bỏ giỏ LIFO, phát faint (cause choke|monster) rồi gather_end kho rỗng.
+        lost là mảng cá thể v1.2 (test so luật qua kinds())."""
+        lost = [item_out(self.hold.pop()) for _ in range(len(self.hold))]  # LIFO
+        events.append(("faint", {"cause": cause, "lost": lost, "hp": 0}))
+        self._finish("fainted", events)
+
     def _finish(self, reason, events):
         self.done = True
         self.reason = reason
-        if self.contract_version == "1.2":
-            inv = {"items": []} if reason == "fainted" else {"items": self.inventory_items()}
-        else:
-            inv = {"items": {}} if reason == "fainted" else {"items": self.inventory_items()}
+        inv = {"items": [] if reason == "fainted" else items_out(self.hold)}
         events.append(("gather_end", {"reason": reason, "inventory": inv}))
 
     def _move(self, inp):

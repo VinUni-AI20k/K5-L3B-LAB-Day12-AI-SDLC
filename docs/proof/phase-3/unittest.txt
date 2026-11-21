@@ -1,0 +1,208 @@
+test_random_fish_false_dung_yen_va_khong_sinh (test_gather_fish.Spawn.test_random_fish_false_dung_yen_va_khong_sinh)
+random_fish:false: cá fixture \u0111\u1ee9ng yên, KHÔNG sinh \u0111àn (v1.1 m\u1ee5c D). ... ok
+test_sinh_dung_lich_360_va_clearance (test_gather_fish.Spawn.test_sinh_dung_lich_360_va_clearance)
+phase_tick = 360: \u0111úng 1 \u0111àn sinh ra, id n\u1ed1i h\u1ecd (F9), \u0111i\u1ec3m thu\u1ed9c preset và ... ok
+test_tat_dinh_tung_byte (test_gather_fish.Spawn.test_tat_dinh_tung_byte)
+Cùng seed + inputs: cá b\u01a1i/sinh v\u1eabn t\u1ea5t \u0111\u1ecbnh, JSONL gi\u1ed1ng nhau t\u1eebng byte. ... ok
+test_tran_12_dan_thi_khong_sinh_them (test_gather_fish.Spawn.test_tran_12_dan_thi_khong_sinh_them)
+Sinh \u0111\u1ee7 t\u1edbi fish_max = 12 r\u1ed3i d\u1eebng: t\u1ed5ng 4 l\u1ea7n sinh (360·k), tick 1800 không sinh. ... ok
+test_ca_boi_dung_toc_do_va_huong (test_gather_fish.Swim.test_ca_boi_dung_toc_do_va_huong)
+\u0110àn heading 0 b\u01a1i +x \u0111úng fish_speed: 60 tick \u0111i \u0111\u01b0\u1ee3c 1.5 m, \u0111\u1ed9 sâu gi\u1eef nguyên. ... ok
+test_doi_huong_dung_buoc_boi_thu_120 (test_gather_fish.Swim.test_doi_huong_dung_buoc_boi_thu_120)
+B\u01b0\u1edbc b\u01a1i th\u1ee9 120 \u0111\u1ed5i h\u01b0\u1edbng theo seed TR\u01af\u1edaC khi di chuy\u1ec3n: tick 119 gi\u1eef h\u01b0\u1edbng c\u0169. ... ok
+test_phan_xa_dai_sau_theo_loai (test_gather_fish.Swim.test_phan_xa_dai_sau_theo_loai)
+ca_linh (d\u1ea3i [3,12]) b\u01a1i xu\u1ed1ng \u0111\u1ee5ng d = 12: ph\u1ea3n x\u1ea1, heading \u0111\u1ea3o ~270° (b\u01a1i lên). ... ok
+test_phan_xa_mep_x (test_gather_fish.Swim.test_phan_xa_mep_x)
+B\u01a1i \u0111\u1ee5ng mép x = 96: ph\u1ea3n x\u1ea1 ph\u1ea7n còn l\u1ea1i, \u0111\u1ea3o thành ph\u1ea7n ngang (heading ~180°). ... ok
+test_bat_ca_keo_yield_2 (test_gather_fish.V11Kinds.test_bat_ca_keo_yield_2)
+Loài m\u1edbi ca_keo: b\u1eaft \u0111\u01b0\u1ee3c \u0111àn, yield = 2 vào gi\u1ecf. ... ok
+test_hai_nut_keo_neo (test_gather_fish.V11Kinds.test_hai_nut_keo_neo)
+Nút m\u1edbi keo_neo (N5): hái \u0111\u01b0\u1ee3c \u1edf m\u1eb7t n\u01b0\u1edbc, vào gi\u1ecf \u0111úng kind, nút b\u1eaft \u0111\u1ea7u m\u1ecdc l\u1ea1i. ... ok
+test_hang_moi_fresh_100_hao_tu_buoc_sau_va_id_noi_tiep (test_gather_fresh.Decay.test_hang_moi_fresh_100_hao_tu_buoc_sau_va_id_noi_tiep)
+Hái \u1edf b\u01b0\u1edbc 1 -> fresh 100 \u1edf tick 1, 100 - 1/120 \u1edf tick 2; id n\u1ed1i ti\u1ebfp id l\u1edbn nh\u1ea5t \u0111ã n\u1ea1p. ... ok
+test_hao_0_5_moi_giay_va_kep_day_0 (test_gather_fresh.Decay.test_hao_0_5_moi_giay_va_kep_day_0) ... ok
+test_ngat_bo_toan_bo_lifo_roi_faint (test_gather_fresh.Faint.test_ngat_bo_toan_bo_lifo_roi_faint) ... ok
+test_file_kho_dem_cu_ma_2 (test_gather_fresh.Handoff.test_file_kho_dem_cu_ma_2) ... ok
+test_smoke_ban_giao_file_v1_2 (test_gather_fresh.Handoff.test_smoke_ban_giao_file_v1_2)
+Smoke \u0111\u1ec1 bài: fresh 100, interact frame 0 -> docked tick 1; file gi\u1eef \u0111úng 100 - 1/120. ... ok
+test_tick_limit_truoc_gather_end_khong_ghi_file (test_gather_fresh.Handoff.test_tick_limit_truoc_gather_end_khong_ghi_file) ... ok
+test_hold_sai_schema_ma_2 (test_gather_fresh.Scenario.test_hold_sai_schema_ma_2) ... ok
+test_fixture_de_bai_fresh_30_uon_o_tick_1 (test_gather_fresh.Spoil.test_fixture_de_bai_fresh_30_uon_o_tick_1)
+Fixture \u0111\u1ec1 bài: fresh \u0111úng 30, m\u1ed9t b\u01b0\u1edbc không input -> spoiled \u1edf tick 1. ... ok
+test_nguong_chinh_xac_khong_lam_tron (test_gather_fresh.Spoil.test_nguong_chinh_xac_khong_lam_tron)
+30.009 - 1/120 = 30.00067 (ch\u01b0a \u01b0\u01a1n); 30.008 - 1/120 = 29.99967 (\u01b0\u01a1n). ... ok
+test_spoiled_mot_lan_va_theo_id (test_gather_fresh.Spoil.test_spoiled_mot_lan_va_theo_id)
+Nhi\u1ec1u cá th\u1ec3 cùng v\u01b0\u1ee3t ng\u01b0\u1ee1ng: phát theo id (I2 tr\u01b0\u1edbc I10), m\u1ed7i cá th\u1ec3 \u0111úng m\u1ed9t l\u1ea7n. ... ok
+test_chase_3ms_khi_nguoi_choi_o_vung_sau (test_gather_monster.Chase.test_chase_3ms_khi_nguoi_choi_o_vung_sau)
+Ng\u01b0\u1eddi ch\u01a1i d \u2265 10 và cách \u2264 10 m: chuy\u1ec3n chase, b\u01a1i 3.0 m/s v\u1ec1 phía ng\u01b0\u1eddi ch\u01a1i. ... ok
+test_noi_qua_khong_chase_va_khong_hit (test_gather_monster.Chase.test_noi_qua_khong_chase_va_khong_hit)
+Ng\u01b0\u1eddi ch\u01a1i d < 10 (vùng nông): quái không chase, không hit dù trong hit_radius. ... ok
+test_dang_bat_tu_khong_hit_khong_recoil (test_gather_monster.Hit.test_dang_bat_tu_khong_hit_khong_recoil)
+Còn b\u1ea5t t\u1eed: không monster_hit, quái không chuy\u1ec3n recoil, Máu gi\u1eef nguyên. ... ok
+test_hai_quai_hit_con_gan_nhat (test_gather_monster.Hit.test_hai_quai_hit_con_gan_nhat)
+Hai con cùng trong hit_radius: ch\u1ec9 1 hit cho con G\u1ea6N nh\u1ea5t; con kia gi\u1eef tr\u1ea1ng thái. ... ok
+test_hit_mat_1_mau_bo_nua_gio_bat_tu_90_recoil (test_gather_monster.Hit.test_hit_mat_1_mau_bo_nua_gio_bat_tu_90_recoil)
+Ch\u1ea1m: -1 Máu, b\u1ecf floor(gi\u1ecf × 0.5) theo LIFO, b\u1ea5t t\u1eed 90, quái recoil 60 b\u01b0\u1edbc ... ok
+test_hp_0_ngat_ngay_kho_rong_van_mo_quan (test_gather_monster.Hit.test_hp_0_ngat_ngay_kho_rong_van_mo_quan)
+Máu ch\u1ea1m 0: monster_hit -> faint cause monster (ph\u1ea7n gi\u1ecf còn l\u1ea1i) -> gather_end ... ok
+test_recoil_60_buoc_khong_hit_roi_ve_patrol (test_gather_monster.Hit.test_recoil_60_buoc_khong_hit_roi_ve_patrol)
+Trong 60 b\u01b0\u1edbc recoil không gây hit; h\u1ebft recoil v\u1ec1 patrol, ch\u1ea1m xét t\u1eeb b\u01b0\u1edbc k\u1ebf. ... ok
+test_bo_tri_ngay_1_chi_co_M1 (test_gather_monster.Patrol.test_bo_tri_ngay_1_chi_co_M1)
+Gather \u0111\u1ed9c l\u1eadp dùng b\u1ed1 trí Ngày 1: ch\u1ec9 M1 (M2 from_day 3 b\u1ecb lo\u1ea1i). ... ok
+test_patrol_den_waypoint_roi_dao_muc_tieu (test_gather_monster.Patrol.test_patrol_den_waypoint_roi_dao_muc_tieu)
+1 m/s t\u1edbi [64,24]: \u0111\u1ebfn \u0111úng tick 240 (4 m), snap waypoint, \u0111\u1ed5i target cho b\u01b0\u1edbc sau. ... ok
+test_dive_surface_events_va_pos (test_gather_slice1.Oxygen.test_dive_surface_events_va_pos)
+L\u1eb7n xu\u1ed1ng r\u1ed3i n\u1ed5i lên: \u0111úng m\u1ed9t dive, m\u1ed9t surface, data pos kh\u1edbp snapshot cùng tick. ... ok
+test_ngat_bo_gio_lifo_va_kho_rong (test_gather_slice1.Oxygen.test_ngat_bo_gio_lifo_va_kho_rong)
+Máu 1, oxy 0 d\u01b0\u1edbi n\u01b0\u1edbc: choke tick 60 -> faint, gi\u1ecf b\u1ecf theo LIFO, kho r\u1ed7ng, d\u1eebng ngay. ... ok
+test_ngat_thang_truoc_het_gio (test_gather_slice1.Oxygen.test_ngat_thang_truoc_het_gio)
+Ng\u1ea1t \u0111úng b\u01b0\u1edbc ca c\u0169ng h\u1ebft gi\u1edd: faint th\u1eafng, ch\u1ec9 m\u1ed9t gather_end, không reason time. ... ok
+test_noi_dung_buoc_dang_le_ngat_khong_choke (test_gather_slice1.Oxygen.test_noi_dung_buoc_dang_le_ngat_khong_choke)
+N\u1ed5i lên \u0111úng b\u01b0\u1edbc mà \u0111\u1ebfm ng\u1ea1t s\u1ebd \u0111\u1ee7 60: h\u1ed3i oxy, không choke, không tr\u1eeb Máu. ... ok
+test_noi_hoi_oxy_va_reset_dem (test_gather_slice1.Oxygen.test_noi_hoi_oxy_va_reset_dem)
+\u1ede m\u1eb7t n\u01b0\u1edbc: h\u1ed3i oxygen_refill_per_tick/tick k\u1eb9p max, zero_oxy_ticks gi\u1eef 0. ... ok
+test_oxygen_empty_va_choke_dung_tick (test_gather_slice1.Oxygen.test_oxygen_empty_va_choke_dung_tick)
+oxy = 5, d\u01b0\u1edbi n\u01b0\u1edbc: oxygen_empty tick 5 (v\u1eeba ch\u1ea1m 0), choke tick 64 (= 5 + 59), \u0111\u1ebfm reset. ... ok
+test_bat_ca_yield_huy_dan_va_hoi_chieu (test_gather_slice2.Catch.test_bat_ca_yield_huy_dan_va_hoi_chieu)
+B\u1eaft ca_linh: yield 3 vào gi\u1ecf, \u0111àn bi\u1ebfn m\u1ea5t, cooldown 30 tick ch\u1eb7n cú ti\u1ebfp theo. ... ok
+test_bat_chi_khi_duoi_nuoc (test_gather_slice2.Catch.test_bat_chi_khi_duoi_nuoc)
+\u0110\u1ee9ng \u1edf m\u1eb7t n\u01b0\u1edbc (d \u2264 0.5): catch không b\u1eaft dù \u0111àn trong bán kính, không h\u1ed3i chiêu. ... ok
+test_bat_dung_mep_ban_kinh (test_gather_slice2.Catch.test_bat_dung_mep_ban_kinh)
+\u0110úng mép catch_radius (dist = 2.0) v\u1eabn b\u1eaft \u0111\u01b0\u1ee3c. ... ok
+test_hold_full_catch_giu_dan_va_cooldown (test_gather_slice2.Catch.test_hold_full_catch_giu_dan_va_cooldown)
+Gi\u1ecf thi\u1ebfu ch\u1ed7 cho yield: hold_full action catch, gi\u1eef \u0111àn, gi\u1eef cooldown, KHÔNG th\u1eed \u0111àn khác. ... ok
+test_ben_uu_tien_truoc_hai (test_gather_slice2.Dock.test_ben_uu_tien_truoc_hai)
+Nút n\u1eb1m trong vùng b\u1ebfn: interact \u01b0u tiên c\u1eadp b\u1ebfn, không hái. ... ok
+test_dung_mep_ben_van_docked (test_gather_slice2.Dock.test_dung_mep_ben_van_docked)
+Kho\u1ea3ng cách t\u1edbi tâm b\u1ebfn \u0111úng b\u1eb1ng dock_radius (3.0) v\u1eabn docked. ... ok
+test_hai_chi_khi_o_mat_nuoc (test_gather_slice2.Harvest.test_hai_chi_khi_o_mat_nuoc)
+Underwater trong bán kính: interact không hái, không hold_full, nút gi\u1eef nguyên. ... ok
+test_hai_dung_nut_gan_nhat_hoa_theo_id (test_gather_slice2.Harvest.test_hai_dung_nut_gan_nhat_hoa_theo_id)
+Hai nút cách \u0111\u1ec1u: ch\u1ecdn id nh\u1ecf h\u01a1n (N1 tr\u01b0\u1edbc N2). ... ok
+test_hold_full_hai_gio_day (test_gather_slice2.Harvest.test_hold_full_hai_gio_day)
+Gi\u1ecf \u0111\u1ea7y: hold_full (required, free = 0), không gather, nút v\u1eabn ready không m\u1ecdc l\u1ea1i. ... ok
+test_nut_moc_lai_dung_tick_va_hai_duoc_ngay (test_gather_slice2.Harvest.test_nut_moc_lai_dung_tick_va_hai_duoc_ngay)
+Hái tick 1 \u2192 regrow 1200 tick \u2192 node_regrown tick 1201 (= 1 + regrow_s × 60). ... ok
+test_het_gio_giu_gio_sau_hai_buoc_cuoi (test_gather_slice2.TimeEnd.test_het_gio_giu_gio_sau_hai_buoc_cuoi)
+Hái h\u1ee3p l\u1ec7 \u1edf b\u01b0\u1edbc cu\u1ed1i v\u1eabn vào kho tr\u01b0\u1edbc khi k\u1ebft thúc time. ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_ca_01_catch_takes_whole_school (test_rules_gather.Ca.test_ca_01_catch_takes_whole_school)
+D\u01b0\u1edbi n\u01b0\u1edbc, trong t\u1ea7m: +yield, \u0111àn b\u1ecb xóa, `fish_caught`, h\u1ed3i chiêu catch_cooldown_s × 60. ... ok
+test_ca_02_no_catch_at_surface (test_rules_gather.Ca.test_ca_02_no_catch_at_surface)
+\u1ede m\u1eb7t n\u01b0\u1edbc thì không b\u1eaft, không h\u1ed3i chiêu. ... ok
+test_ca_03_cooldown_usable_again_after_L_ticks (test_rules_gather.Ca.test_ca_03_cooldown_usable_again_after_L_ticks)
+H\u1ed3i chiêu L \u0111\u1eb7t \u1edf tick t dùng l\u1ea1i t\u1eeb t+L: b\u1ea5m \u1edf b\u01b0\u1edbc 29 ch\u01b0a \u0111\u01b0\u1ee3c, b\u01b0\u1edbc 30 \u0111\u01b0\u1ee3c (L = 30). ... ok
+test_ca_04_nearest_school_ties_by_id (test_rules_gather.Ca.test_ca_04_nearest_school_ties_by_id)
+Ch\u1ecdn \u0111úng m\u1ed9t \u0111àn g\u1ea7n nh\u1ea5t trong catch_radius; hòa kho\u1ea3ng cách thì id nh\u1ecf; \u0111àn khác còn nguyên. ... ok
+test_ca_05_out_of_radius_no_event_no_cooldown (test_rules_gather.Ca.test_ca_05_out_of_radius_no_event_no_cooldown)
+Không có \u0111àn trong t\u1ea7m: không event, không h\u1ed3i chiêu. ... ok
+test_ca_06_not_enough_room_keeps_school_and_cooldown (test_rules_gather.Ca.test_ca_06_not_enough_room_keeps_school_and_cooldown)
+Thi\u1ebfu ch\u1ed7 (không b\u1eaft m\u1ed9t ph\u1ea7n): `hold_full` {action:catch,fish_id,required,free}; gi\u1eef \u0111àn; không h\u1ed3i chiêu. ... ok
+test_ket_01_dock_radius_inclusive_beats_gather (test_rules_gather.KetThuc.test_ket_01_dock_radius_inclusive_beats_gather)
+\u0110úng mép dock_radius v\u1eabn `docked`; b\u1ebfn xét tr\u01b0\u1edbc hái (nút n\u1eb1m trong b\u1ebfn không b\u1ecb hái). ... ok
+test_ket_02_gather_on_last_step_still_counts (test_rules_gather.KetThuc.test_ket_02_gather_on_last_step_still_counts)
+H\u1ebft gi\u1edd \u1edf b\u01b0\u1edbc cu\u1ed1i: hái h\u1ee3p l\u1ec7 \u1edf b\u01b0\u1edbc \u0111ó v\u1eabn vào kho; lý do `time`. ... ok
+test_ket_03_time_end_at_depth_keeps_hold (test_rules_gather.KetThuc.test_ket_03_time_end_at_depth_keeps_hold)
+H\u1ebft gi\u1edd khi \u0111ang \u1edf d\u01b0\u1edbi n\u01b0\u1edbc: k\u1ebft thúc `time`, gi\u1eef nguyên gi\u1ecf (không ng\u1ea5t). ... ok
+test_ngat_01_choke_every_interval (test_rules_gather.Ngat.test_ngat_01_choke_every_interval)
+Oxy 0 d\u01b0\u1edbi n\u01b0\u1edbc liên t\u1ee5c: ng\u1ea1t l\u1ea7n \u0111\u1ea7u \u1edf tick 60 (= t+59 v\u1edbi t = tick ch\u1ea1m 0), -1 Máu, `choke.hp`. ... ok
+test_ngat_02_no_choke_at_surface (test_rules_gather.Ngat.test_ngat_02_no_choke_at_surface)
+Oxy 0 nh\u01b0ng \u1edf m\u1eb7t n\u01b0\u1edbc: không ng\u1ea1t, oxy h\u1ed3i. ... ok
+test_ngat_03_surfacing_on_choke_step_saves_player (test_rules_gather.Ngat.test_ngat_03_surfacing_on_choke_step_saves_player)
+N\u1ed5i lên \u0111úng b\u01b0\u1edbc \u0111áng l\u1ebd ng\u1ea1t (\u0111\u1ebfm 59): h\u1ed3i oxy, không ng\u1ea1t. ... ok
+test_ngat_04_faint_lifo_and_empty_inventory (test_rules_gather.Ngat.test_ngat_04_faint_lifo_and_empty_inventory)
+Máu v\u1ec1 0: choke(hp 0) \u2192 faint{cause:choke, lost theo LIFO, hp:0} \u2192 gather_end fainted, kho r\u1ed7ng. ... ok
+test_nut_01_gather_at_surface (test_rules_gather.Nut.test_nut_01_gather_at_surface)
+interact \u1edf m\u1eb7t n\u01b0\u1edbc trong t\u1ea7m: +node_yield, event `gather`, nút regrow_s × 60 tick. ... ok
+test_nut_02_no_gather_underwater (test_rules_gather.Nut.test_nut_02_no_gather_underwater)
+D\u01b0\u1edbi n\u01b0\u1edbc thì b\u1ecf qua interact (không ph\u1ea3i b\u1ebfn). ... ok
+test_nut_03_radius_is_inclusive (test_rules_gather.Nut.test_nut_03_radius_is_inclusive)
+\u0110úng mép interact_radius v\u1eabn hái \u0111\u01b0\u1ee3c; v\u01b0\u1ee3t mép thì không. ... ok
+test_nut_04_nearest_ready_node_ties_by_id (test_rules_gather.Nut.test_nut_04_nearest_ready_node_ties_by_id)
+Ch\u1ecdn nút ready g\u1ea7n nh\u1ea5t; b\u1eb1ng kho\u1ea3ng cách thì id nh\u1ecf; nút ch\u01b0a ready b\u1ecb b\u1ecf qua. ... ok
+test_nut_05_hold_full_keeps_node (test_rules_gather.Nut.test_nut_05_hold_full_keeps_node)
+Gi\u1ecf \u0111\u1ea7y: `hold_full` {action:gather,node_id,required,free}; nút gi\u1eef nguyên. ... ok
+test_nut_06_regrow_event_and_gather_again (test_rules_gather.Nut.test_nut_06_regrow_event_and_gather_again)
+Nút 1 \u2192 0 phát `node_regrown` r\u1ed3i hái l\u1ea1i \u0111\u01b0\u1ee3c (k\u1ec3 c\u1ea3 ngay b\u01b0\u1edbc \u0111ó). ... ok
+test_oxy_01_underwater_drops_one_per_tick (test_rules_gather.Oxy.test_oxy_01_underwater_drops_one_per_tick)
+D\u01b0\u1edbi n\u01b0\u1edbc (d > 0.5) oxy tr\u1eeb \u0111úng 1 m\u1ed7i tick. ... ok
+test_oxy_02_surface_refills_and_clamps (test_rules_gather.Oxy.test_oxy_02_surface_refills_and_clamps)
+M\u1eb7t n\u01b0\u1edbc (d \u2264 0.5): +oxygen_refill_per_tick m\u1ed7i tick, k\u1eb9p \u1edf oxy t\u1ed1i \u0111a. ... ok
+test_oxy_03_oxygen_empty_event (test_rules_gather.Oxy.test_oxy_03_oxygen_empty_event)
+`oxygen_empty` phát \u0111úng 1 l\u1ea7n \u1edf tick oxy t\u1eeb d\u01b0\u01a1ng xu\u1ed1ng 0, data.oxygen_ticks = 0. ... ok
+test_oxy_04_dive_and_surface_events (test_rules_gather.Oxy.test_oxy_04_dive_and_surface_events)
+\u0110\u1ed5i phía biên m\u1eb7t n\u01b0\u1edbc: `dive` khi xu\u1ed1ng, `surface` khi n\u1ed5i; data có `pos`; \u0111úng th\u1ee9 t\u1ef1. ... ok
+test_bep_01_cook_started_consumes_reserved_stock (test_rules_quan.Bep.test_bep_01_cook_started_consumes_reserved_stock)
+interact c\u1ea1nh b\u1ebfp idle: l\u1ea5y \u0111\u01a1n reserved, tiêu nguyên li\u1ec7u gi\u1eef, `cook_started`, b\u1ebfp cooking \u0111\u1ee7 cook_s × 60. ... ok
+test_bep_02_dish_ready_then_pick_up (test_rules_quan.Bep.test_bep_02_dish_ready_then_pick_up)
+Món n\u1ea5u xong \u2192 `dish_ready`, ready_ticks = 0; interact nh\u1eadn món: `dish_picked`, tay có payload, b\u1ebfp idle. ... ok
+test_bep_03_serve_order_to_customer_table (test_rules_quan.Bep.test_bep_03_serve_order_to_customer_table)
+Tay có món \u0111úng \u0111\u01a1n, interact c\u1ea1nh bàn: `served` {order_id,table_id,dish_id,patience_ticks_left,base_price,tip}; ... ok
+test_bep_04_wrong_order_not_served (test_rules_quan.Bep.test_bep_04_wrong_order_not_served)
+Món c\u1ee7a \u0111\u01a1n khác không ph\u1ee5c v\u1ee5 \u0111\u01b0\u1ee3c cho khách này (b\u1ecf l\u01b0\u1ee3t, tay gi\u1eef nguyên). ... ok
+test_di_01_walk_stays_in_bounds (test_rules_quan.Di.test_di_01_walk_stays_in_bounds)
+\u0110i chéo mãi vào góc: b\u1ecb ch\u1eb7n \u0111úng biên trên c\u1ee7a x và z. ... ok
+test_het_01_patience_runs_out (test_rules_quan.HetGio.test_het_01_patience_runs_out)
+Khách waiting h\u1ebft kiên nh\u1eabn khi ca còn gi\u1edd: `customer_left` reason patience, uy tín + left_reputation_delta, ... ok
+test_het_02_reputation_clamped_at_min (test_rules_quan.HetGio.test_het_02_reputation_clamped_at_min)
+Uy tín không xu\u1ed1ng d\u01b0\u1edbi reputation_min. ... ok
+test_het_03_closing_waiting_customer_leaves_without_penalty (test_rules_quan.HetGio.test_het_03_closing_waiting_customer_leaves_without_penalty)
+H\u1ebft ca: khách còn ch\u1edd r\u1eddi v\u1edbi reason closing, không tr\u1eeb uy tín; r\u1ed3i `quan_end`. ... ok
+test_het_04_closing_eating_customer_pays_immediately (test_rules_quan.HetGio.test_het_04_closing_eating_customer_pays_immediately)
+H\u1ebft ca: khách \u0111ang \u0103n tr\u1ea3 ngay (reason closing) r\u1ed3i `quan_end` v\u1edbi shift_earned \u0111úng. ... ok
+test_khach_01_first_customer_on_schedule_reserves_recipe (test_rules_quan.Khach.test_khach_01_first_customer_on_schedule_reserves_recipe)
+Tick first_customer_tick: `customer_arrived` \u1edf T1; khách gi\u1eef \u0111úng công th\u1ee9c; ch\u01b0a có khách tr\u01b0\u1edbc \u0111ó. ... ok
+test_khach_02_no_dish_when_stock_insufficient (test_rules_quan.Khach.test_khach_02_no_dish_when_stock_insufficient)
+Có bàn tr\u1ed1ng mà không món nào \u0111\u1ee7 nguyên li\u1ec7u: `no_dish` {}, không có khách. ... ok
+test_khach_03_no_free_table_skips_turn (test_rules_quan.Khach.test_khach_03_no_free_table_skips_turn)
+Không còn bàn tr\u1ed1ng thì b\u1ecf l\u01b0\u1ee3t: không `customer_arrived`, không `no_dish`. ... ok
+test_khach_04_random_customers_false_disables_arrivals (test_rules_quan.Khach.test_khach_04_random_customers_false_disables_arrivals)
+random_customers:false t\u1eaft khách t\u1ef1 sinh. ... ok
+test_tien_01_tip_when_patience_ratio_enough (test_rules_quan.Tien.test_tien_01_tip_when_patience_ratio_enough)
+Kiên nh\u1eabn còn \u2265 tip_min_patience_ratio: boa = floor(giá × tip_rate) (= 12 v\u1edbi giá 60, t\u1ef7 l\u1ec7 0.2). ... ok
+test_tien_02_no_tip_when_patience_low (test_rules_quan.Tien.test_tien_02_no_tip_when_patience_low)
+Kiên nh\u1eabn d\u01b0\u1edbi ng\u01b0\u1ee1ng boa: boa 0. ... ok
+test_tien_03_paid_after_eating_and_reputation_bonus (test_rules_quan.Tien.test_tien_03_paid_after_eating_and_reputation_bonus)
+\u0102n xong: `paid` {amount = giá + boa, reason finished_eating}, khách r\u1eddi bàn, ti\u1ec1n/earned t\u0103ng, uy tín +tip_reputation. ... ok
+test_tien_04_no_reputation_bonus_without_tip (test_rules_quan.Tien.test_tien_04_no_reputation_bonus_without_tip)
+Boa 0 thì uy tín không \u0111\u1ed5i khi thu ti\u1ec1n. ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví d\u1ee5 smoke test trong PRD-0 m\u1ee5c G: c\u1eadp b\u1ebfn \u1edf tick 0, quán \u0111\u1ecdc kho \u0111úng n\u1ed9i dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+B\u1ecf 6 tick t\u0103ng t\u1ed1c r\u1ed3i \u0111o 60 tick: quãng \u2248 swim_speed × 1 s (±0.1). Ngang, xu\u1ed1ng, chéo (không nhanh h\u01a1n). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Ch\u1eb7n t\u1eebng mép c\u1ee7a vùng n\u01b0\u1edbc, k\u1ec3 c\u1ea3 d không âm (không bay lên kh\u1ecfi m\u1eb7t n\u01b0\u1edbc) và \u0111áy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+\u0110\u1ea3o t\u1eeb +speed sang -speed: v\u1eadn t\u1ed1c ch\u1ea1m m\u1ee5c tiêu sau t\u1ed1i \u0111a ramp_max_ticks tick k\u1ec3 t\u1eeb lúc \u0111\u1ed5i input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 118 tests in 22.331s
+
+OK
