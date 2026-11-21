@@ -28,7 +28,7 @@ Cột kết quả ghi trung thực: **đạt**, **đạt một phần** hoặc *
 | Hạng mục | Bằng chứng | Kết quả |
 |---|---|---|
 | Mỗi người đóng góp Phase 3 bằng tài khoản của mình | D: P3-01, P3-02, P3-02b, P3-07, P3-08 (#43, #48, #50); A: P3-03, P3-05 (#45, #46); B: P3-04 (commit `a252647`, PR #49 do D mở); C: P3-06 (#44) | Đạt một phần: PR của B do D mở và thêm commit tích hợp |
-| Nhật ký AI, standup, retro Phase 3 | `docs/ai-usage-log.md` có dòng Phase 3 của C và D (A, B chưa ghi dòng Phase 3); `docs/standup.md` có dòng Phase 3 của cả 4 (C tổng hợp); `docs/retro.md` mục Phase 3 có phần của C và D, A gom (P3-10) | Đạt một phần: A và B chưa ghi nhật ký AI Phase 3, B chưa ghi retro Phase 3 |
+| Nhật ký AI, standup, retro Phase 3 | `docs/ai-usage-log.md` có dòng Phase 3 của C và D (A, B chưa ghi dòng Phase 3); `docs/standup.md` có dòng Phase 3 của cả 4 (C tổng hợp); `docs/retro.md` mục Phase 3 có phần của C và D; phần của A và B do D soạn từ lịch sử PR (P3-10), chờ hai bạn xác nhận | Đạt một phần: A và B chưa ghi nhật ký AI Phase 3, dòng retro của A và B do D soạn thay, chờ hai bạn xác nhận |
 | Hồ sơ cá nhân | `docs/members/` có C, B (`TuHoAnh.md`), D | **Chưa đạt** với A |
 | Tag `phase-3` | `git tag` | Chưa gắn |
 
