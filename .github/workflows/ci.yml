@@ -36,3 +36,16 @@ jobs:
           grep -q "Mở trình duyệt tại http://127.0.0.1:" live.log
           python3 -m chonoi.headless --mode day --days 1 --seed 1 --ticks 600 --out out.jsonl
           tail -1 out.jsonl
+      # P4-07: hồi quy Phase 1-3 và hai lệnh của contract 1.3 trên Ubuntu (bằng chứng ngoài máy Windows).
+      - name: Hồi quy Phase 1-3 (smoke, tất định, hard-code)
+        run: |
+          python3 tools/smoke_phase1.py
+          python3 tools/smoke_phase2.py
+          python3 tools/smoke_phase3.py
+          python3 tools/check_determinism.py
+          python3 tools/check_no_hardcode.py
+      - name: Lệnh bench_cmd và soak_cmd của contract 1.3 (bản ngắn)
+        run: |
+          python3 -m chonoi.bench --seed 42 --duration 1 --warmup 0 --out "$RUNNER_TEMP/bench.json"
+          python3 -m chonoi.soak --seed 7 --days 2 --out "$RUNNER_TEMP/soak.json"
+          cat "$RUNNER_TEMP/bench.json" "$RUNNER_TEMP/soak.json" | head -40
