@@ -38,7 +38,7 @@ class QuanPhase3PriceTests(unittest.TestCase):
         }
 
     def test_base_price_and_tip_single_item(self):
-        """1 nguyên liệu fresh=80: base_price = floor(60 * 80 / 100) = 48. Tip = floor(48 * 0.2) = 9."""
+        """Fresh=80 decays one tick before cooking; base_price floors to 47 and tip to 9."""
         sc = {
             "player": {"pos": [2, 8]},
             "stock": [
@@ -60,7 +60,8 @@ class QuanPhase3PriceTests(unittest.TestCase):
         self.assertEqual(cook_ev[0]["data"]["dish_id"], "ca_loc_nuong_trui")
         self.assertEqual(len(cook_ev[0]["data"]["items"]), 1)
         self.assertEqual(cook_ev[0]["data"]["items"][0]["id"], "I1")
-        self.assertEqual(cook_ev[0]["data"]["items"][0]["fresh"], 80)
+        # Phase 3 order decays raw stock before the first interaction tick.
+        self.assertAlmostEqual(cook_ev[0]["data"]["items"][0]["fresh"], 80 - 1 / 240)
 
         # 2. Tua qua nấu -> chín
         s.sim.stoves[0]["cook_ticks_left"] = 1
@@ -85,14 +86,14 @@ class QuanPhase3PriceTests(unittest.TestCase):
         all_evs = s.step(li.advance())
         paid_ev = [e for e in all_evs if e["name"] == "paid"]
         self.assertEqual(len(paid_ev), 1)
-        # Giá gốc menu 60 -> base_price = 48
-        self.assertEqual(paid_ev[0]["data"]["price"], 48)
-        # Tip 20% trên base_price 48 = floor(48 * 0.2) = 9
+        # One tick of Phase 3 stock decay makes floor(60 * fresh / 100) = 47.
+        self.assertEqual(paid_ev[0]["data"]["price"], 47)
+        # Tip remains floor(base_price * 0.2).
         self.assertEqual(paid_ev[0]["data"]["tip"], 9)
-        self.assertEqual(s.sim.money, 48 + 9)
+        self.assertEqual(s.sim.money, 47 + 9)
 
     def test_base_price_multi_item_and_cook_started_items_sorting(self):
-        """2 nguyên liệu fresh=73 và 64: trung bình = 68.5. base_price = floor(90 * 68.5 / 100) = 61.
+        """2 items start at fresh=73 and 64 and decay one tick; base_price still floors to 61.
         cook_started.items phải sắp xếp theo kind rồi id (bong_dien_dien trước ca_loc).
         """
         sc = {
@@ -149,7 +150,7 @@ class QuanPhase3PriceTests(unittest.TestCase):
         self.assertEqual(s.sim.money, 61 + 12)
 
     def test_tip_zero_when_patience_ratio_below_half(self):
-        """Khách được phục vụ khi kiên nhẫn thấp (< 50%) -> tip = 0, tiền chỉ bằng base_price."""
+        """Một tick decay cho giá 59; khách phục vụ dưới 50% patience nhận tip 0."""
         sc = {
             "player": {"pos": [2, 8]},
             "stock": [
@@ -182,9 +183,9 @@ class QuanPhase3PriceTests(unittest.TestCase):
         evs = s.step(li.advance())
         paid_ev = [e for e in evs if e["name"] == "paid"]
         self.assertEqual(len(paid_ev), 1)
-        self.assertEqual(paid_ev[0]["data"]["price"], 60)
+        self.assertEqual(paid_ev[0]["data"]["price"], 59)
         self.assertEqual(paid_ev[0]["data"]["tip"], 0)
-        self.assertEqual(s.sim.money, 60)
+        self.assertEqual(s.sim.money, 59)
 
     def test_ready_dish_does_not_decay_freshness(self):
         """Món đã nấu chín trên bếp không bị hao thêm độ tươi theo thời gian."""
