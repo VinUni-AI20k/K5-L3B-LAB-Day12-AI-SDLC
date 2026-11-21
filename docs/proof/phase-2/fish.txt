@@ -1,0 +1,5 @@
+# AC-P2-02/03: cá bơi + sinh cá theo lịch, gather 1500 tick không input · commit 1542e36 · 2026-11-21 12:46
+$ python3 -m chonoi.headless --mode gather --seed 3 --ticks 1500 --snapshot-every 1 --out g.jsonl
+đàn F1: tick 0 [90.0, 10.0] -> tick 60 [91.475, 11.475], quãng 2.086 m (chuẩn 1.5 m/s)
+fish_spawned: [(360, {'id': 'F9', 'kind': 'ca_keo', 'pos': [45.0, 27.0]}), (720, {'id': 'F10', 'kind': 'ca_keo', 'pos': [60.0, 24.0]}), (1080, {'id': 'F11', 'kind': 'ca_linh', 'pos': [60.0, 5.0]}), (1440, {'id': 'F12', 'kind': 'ca_linh', 'pos': [15.0, 5.0]})]
+số đàn tick 0 / 359 / 360 / 1500: 8 8 9 12

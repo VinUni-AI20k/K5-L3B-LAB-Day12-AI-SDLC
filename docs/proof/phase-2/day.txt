@@ -1,0 +1,8 @@
+# AC-P2-06/11: mode day, 1 Ngày đầy đủ không input (gather 10800 + quan 10800 + shop 600 = 22200 tick) và 5 Ngày · commit 1542e36 · 2026-11-21 12:45
+$ python3 -m chonoi.headless --mode day --seed 7 --ticks 30000  (lần 1): exit 0, 1.09 s (yêu cầu ≤ 20 s)
+$ python3 -m chonoi.headless --mode day --seed 7 --ticks 30000  (lần 2): exit 0, 1.44 s (yêu cầu ≤ 20 s)
+2 lần cùng seed: GIỐNG từng byte
+dòng end: {"type":"end","ticks":22200,"sim_tick":22200,"mode":"day","state":"finished","reason":"days_complete","money":0,"earned":0,"reputation":3.0,"score":300,"days_completed":1}
+$ python3 -m chonoi.headless --mode day --days 5 --seed 7 --ticks 200000: exit 0, 6.64 s
+day_plan theo Ngày: [(1, {'ca_loc_nuong_trui': 3, 'goi_bong_sung': 3}), (2, {'ca_loc_nuong_trui': 2, 'lau_ca_linh_dien_dien': 2}), (3, {'goi_bong_sung': 2, 'canh_chua_ca_loc': 2, 'ca_keo_nuong': 2}), (4, {'lau_mam': 1, 'ca_loc_nuong_trui': 2, 'goi_bong_sung': 1}), (5, {'lau_mam': 1, 'lau_ca_linh_dien_dien': 1, 'ca_loc_nuong_trui': 1})]
+dòng end: {"type": "end", "ticks": 111000, "sim_tick": 111000, "mode": "day", "state": "finished", "reason": "days_complete", "money": 0, "earned": 0, "reputation": 3.0, "score": 300, "days_completed": 5}
