@@ -1,0 +1,46 @@
+test_deterministic_inventory_and_jsonl_bytes (test_integration_gather_quan.GatherToQuan.test_deterministic_inventory_and_jsonl_bytes) ... ok
+test_empty_hold_gives_empty_inventory_and_empty_stock (test_integration_gather_quan.GatherToQuan.test_empty_hold_gives_empty_inventory_and_empty_stock) ... ok
+test_faint_writes_empty_inventory (test_integration_gather_quan.GatherToQuan.test_faint_writes_empty_inventory) ... skipped 'chờ lát 1 (oxy/ngạt/ngất) trong sim/gather.py'
+test_inventory_and_scenario_stock_together_exit_2 (test_integration_gather_quan.GatherToQuan.test_inventory_and_scenario_stock_together_exit_2) ... ok
+test_inventory_file_matches_gather_end_and_quan_stock (test_integration_gather_quan.GatherToQuan.test_inventory_file_matches_gather_end_and_quan_stock) ... ok
+test_quan_cooks_and_sells_with_ingredients_from_gather (test_integration_gather_quan.GatherToQuan.test_quan_cooks_and_sells_with_ingredients_from_gather)
+Hàng mang về thật sự được nấu và bán: kho từ gather + khách dựng sẵn -> nấu -> bưng -> phục vụ -> trả tiền. ... ok
+test_quan_rejects_bad_inventory_exit_2 (test_integration_gather_quan.GatherToQuan.test_quan_rejects_bad_inventory_exit_2) ... ok
+test_tick_limit_does_not_create_or_overwrite_inventory (test_integration_gather_quan.GatherToQuan.test_tick_limit_does_not_create_or_overwrite_inventory) ... ok
+test_time_out_writes_inventory (test_integration_gather_quan.GatherToQuan.test_time_out_writes_inventory) ... ok
+test_closer_table_blocks_stove (test_quan_kitchen.Kitchen.test_closer_table_blocks_stove) ... ok
+test_cook_started_consumes_reserved_and_locks_price (test_quan_kitchen.Kitchen.test_cook_started_consumes_reserved_and_locks_price) ... ok
+test_cooking_stove_ignores_interact (test_quan_kitchen.Kitchen.test_cooking_stove_ignores_interact) ... ok
+test_dish_ready_on_exact_tick_then_ready_ticks_grow (test_quan_kitchen.Kitchen.test_dish_ready_on_exact_tick_then_ready_ticks_grow) ... ok
+test_drop_order_dish_clears_stove_and_hand (test_quan_kitchen.Kitchen.test_drop_order_dish_clears_stove_and_hand) ... ok
+test_full_hand_cannot_pick (test_quan_kitchen.Kitchen.test_full_hand_cannot_pick) ... ok
+test_idle_stove_without_reserved_order_does_nothing (test_quan_kitchen.Kitchen.test_idle_stove_without_reserved_order_does_nothing) ... ok
+test_out_of_radius_does_nothing (test_quan_kitchen.Kitchen.test_out_of_radius_does_nothing) ... ok
+test_pick_up_ready_dish (test_quan_kitchen.Kitchen.test_pick_up_ready_dish) ... ok
+test_stove_wins_tie_with_table (test_quan_kitchen.Kitchen.test_stove_wins_tie_with_table) ... ok
+test_cook_and_pick_jsonl (test_quan_kitchen.KitchenHeadless.test_cook_and_pick_jsonl) ... ok
+test_eating_customer_pays_on_closing (test_quan_service.Closing.test_eating_customer_pays_on_closing) ... ok
+test_reserved_order_released_keeps_stock (test_quan_service.Closing.test_reserved_order_released_keeps_stock) ... ok
+test_served_on_last_tick_pays_on_closing (test_quan_service.Closing.test_served_on_last_tick_pays_on_closing) ... ok
+test_waiting_customer_leaves_without_penalty_and_dish_dropped (test_quan_service.Closing.test_waiting_customer_leaves_without_penalty_and_dish_dropped) ... ok
+test_cook_pick_serve_pay (test_quan_service.FullFlowHeadless.test_cook_pick_serve_pay) ... ok
+test_no_tip_keeps_reputation (test_quan_service.Pay.test_no_tip_keeps_reputation) ... ok
+test_paid_after_eating_and_reputation_up (test_quan_service.Pay.test_paid_after_eating_and_reputation_up) ... ok
+test_reputation_clamped_at_max (test_quan_service.Pay.test_reputation_clamped_at_max) ... ok
+test_empty_table_skips (test_quan_service.Serve.test_empty_table_skips) ... ok
+test_serve_at_zero_patience_still_valid (test_quan_service.Serve.test_serve_at_zero_patience_still_valid) ... ok
+test_served_with_tip_when_patient (test_quan_service.Serve.test_served_with_tip_when_patient) ... ok
+test_tip_threshold (test_quan_service.Serve.test_tip_threshold) ... ok
+test_wrong_order_or_empty_hand_skips (test_quan_service.Serve.test_wrong_order_or_empty_hand_skips) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+
+----------------------------------------------------------------------
+Ran 40 tests in 2.209s
+
+OK (skipped=1)
