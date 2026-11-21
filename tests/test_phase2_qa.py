@@ -12,7 +12,18 @@ from chonoi.rng import Streams
 from chonoi.sim.gather import GatherSim
 from chonoi.sim.quan import QuanSim
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+import sys
+from pathlib import Path
+
+# Đảm bảo import được helpers khi chạy trực tiếp mà không cần set PYTHONPATH
+_tests_dir = str(Path(__file__).parent)
+if _tests_dir not in sys.path:
+    sys.path.insert(0, _tests_dir)
+
+try:
+    from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+except ImportError:
+    from tests.helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
 
 class Input:

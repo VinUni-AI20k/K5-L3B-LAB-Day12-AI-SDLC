@@ -7,9 +7,17 @@ Chạy: python3 -m unittest discover -s tests -v
 
 import json
 import os
+import sys
 import unittest
 
-from helpers import (Workdir, close, events, frames, read_jsonl, run_headless, snapshots, write_json)
+_tests_dir = str(Path(__file__).parent)
+if _tests_dir not in sys.path:
+    sys.path.insert(0, _tests_dir)
+
+try:
+    from helpers import (Workdir, close, events, frames, read_jsonl, run_headless, snapshots, write_json)
+except ImportError:
+    from tests.helpers import (Workdir, close, events, frames, read_jsonl, run_headless, snapshots, write_json)
 
 
 def last_pos(rows):
