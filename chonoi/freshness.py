@@ -8,7 +8,7 @@ import math
 
 from .errors import BadInput
 from .ids import id_key, sort_by_id
-from .inventory import KINDS_P2
+from .inventory import KINDS_P2, decay_items
 
 
 def validate_unit(item, kinds=KINDS_P2):
@@ -55,15 +55,7 @@ def is_spoiled(fresh, spoiled_below=30) -> bool:
 
 def decay_units(units, decay_per_s, tick_hz, spoiled_below=30):
     """Hao tươi một bước; trả (units, list cá thể vừa qua ngưỡng spoilage)."""
-    delta = float(decay_per_s) / float(tick_hz)
-    crossed = []
-    for u in units:
-        before = float(u["fresh"])
-        after = max(0.0, before - delta)
-        u["fresh"] = after
-        if before >= spoiled_below and after < spoiled_below:
-            crossed.append(u)
-    crossed.sort(key=lambda u: id_key(u["id"]))
+    crossed = decay_items(units, decay_per_s, tick_hz=tick_hz, spoiled_below=spoiled_below)
     return units, crossed
 
 

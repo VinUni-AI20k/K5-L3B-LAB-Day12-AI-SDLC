@@ -5,6 +5,7 @@
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
+- Test TV4 Phase 3: `PYTHONPATH=tests:. python3 -m unittest tests.test_tv4_freshness_p3 -v` (ca day cá thể cần ghép TV2/TV3).
 - Smoke vòng ngày: `python3 -m chonoi.headless --mode day --seed 42 --days 1 --ticks 22200 --out out.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan|day` (mở địa chỉ in ra; WASD, E, Space, Esc pause; `--days N`, `--speed N` để tua nhanh)
 - QA Phase 2 (smoke liên tiến trình, tất định, thời gian headless, regression): `python3 tools/qa_p2.py`

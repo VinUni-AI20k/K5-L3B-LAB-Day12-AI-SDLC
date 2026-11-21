@@ -19,6 +19,7 @@ from ..freshness import (
     validate_units,
 )
 from ..ids import id_key, sort_by_id
+from ..inventory import price_for_items
 from ..inventory import validate_items
 from .ramp import ramp_velocity
 
@@ -41,6 +42,7 @@ class QuanSim:
         self.hz = tuning["tick_hz"]
         self.patience = round(t["patience_s"] * self.hz)
         self.menu = tuning["menu"]
+        self.freshness = tuning.get("freshness")
         self.rng = streams
         self.ids = ids
         fresh_cfg = tuning.get("freshness") or {
@@ -389,30 +391,29 @@ class QuanSim:
         if c is None:
             return
         menu = self.menu[c["dish_id"]]
-        if self.item_mode and isinstance(c.get("reserved"), list):
-            by_id = units_by_id(self.stock)
-            used = [by_id[iid] for iid in c["reserved"]]
-            avg = sum(u["fresh"] for u in used) / len(used)
-            base_price = int(menu["price"] * Decimal(str(avg)) / Decimal("100"))
-            items = sorted(
-                [{"id": u["id"], "kind": u["kind"], "fresh": u["fresh"]} for u in used],
-                key=lambda u: (u["kind"], id_key(u["id"])),
-            )
-            keep = {u["id"] for u in used}
-            self.stock = [u for u in self.stock if u["id"] not in keep]
-            c.update(order_status="assigned", reserved=[], base_price=base_price)
-            dish = {"order_id": c["id"], "dish_id": c["dish_id"], "base_price": base_price}
-            stove.update(state="cooking", dish=dish, cook_ticks_left=round(menu["cook_s"] * self.hz))
-            events.append(("cook_started", dict(self._stove_event(stove), items=items, base_price=base_price)))
-            return
-        items = []
-        for kind, amount in sorted(c["reserved"].items()):
-            self.stock[kind] -= amount
-            items.extend([kind] * amount)
-        dish = {"order_id": c["id"], "dish_id": c["dish_id"], "base_price": menu["price"]}
-        c.update(order_status="assigned", reserved={}, base_price=dish["base_price"])
+        if isinstance(c["reserved"], list):
+            items, base_price = self._consume_reserved_units(c["reserved"], menu["price"])
+            reserved = []
+        else:
+            items = []
+            for kind, amount in sorted(c["reserved"].items()):
+                self.stock[kind] -= amount
+                items.extend([kind] * amount)
+            base_price = menu["price"]
+            reserved = {}
+        dish = {"order_id": c["id"], "dish_id": c["dish_id"], "base_price": base_price}
+        c.update(order_status="assigned", reserved=reserved, base_price=base_price)
         stove.update(state="cooking", dish=dish, cook_ticks_left=round(menu["cook_s"] * self.hz))
-        events.append(("cook_started", dict(self._stove_event(stove), items=items, base_price=dish["base_price"])))
+        events.append(("cook_started", dict(self._stove_event(stove), items=items, base_price=base_price)))
+
+    def _consume_reserved_units(self, reserved, listed_price):
+        by_id = {item["id"]: item for item in self.stock}
+        used = sorted((by_id[iid] for iid in reserved), key=lambda item: (item["kind"], id_key(item["id"])))
+        # Tính trên độ tươi nội bộ, tránh làm tròn trung bình sát biên floor.
+        price = price_for_items(listed_price, used)
+        consumed = set(reserved)
+        self.stock[:] = [item for item in self.stock if item["id"] not in consumed]
+        return [dict(item) for item in used], price
 
     def _serve(self, c, events):
         price = self.hand["base_price"]
