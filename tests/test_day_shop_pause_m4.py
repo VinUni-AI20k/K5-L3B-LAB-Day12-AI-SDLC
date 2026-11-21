@@ -3,6 +3,7 @@
 Dùng fixture tuning v1.1 độc lập nên chạy xanh ngay cả khi game.contract.json vẫn ở v1.0 (Phase 1).
 """
 
+import os
 import time
 import unittest
 
@@ -10,6 +11,7 @@ from chonoi.contract import load_contract
 from chonoi.inputs import InputState
 from chonoi.jsonl import dumps
 from chonoi.runner import Session
+from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
 
 def _inp(move=(0.0, 0.0), edges=(), buy=None):
@@ -218,6 +220,121 @@ class ShopAndDayM4Tests(unittest.TestCase):
         elapsed = time.perf_counter() - t0
         self.assertEqual(outs[0], outs[1])
         self.assertLess(elapsed, 10.0, f"2 lần chạy full day mất {elapsed:.2f}s")
+
+
+class DayShopPauseCLIBlackBox(unittest.TestCase):
+    """Kiểm thử hộp đen qua CLI thật (`python3 -m chonoi.headless`) trên Contract v1.1."""
+
+    def test_cli_day_1_and_byte_determinism(self):
+        """CLI `--mode day --days 1`: chạy đủ gather -> quan -> shop -> days_complete và tất định từng byte."""
+        with Workdir() as w:
+            sc = write_json(w.path("sc.json"), {
+                "day": {"money": 200, "earned": 200},
+                "gather": {"hold": ["ca_loc"], "random_fish": False},
+                "quan": {"time_left_ticks": 1, "random_customers": False},
+            })
+            inp = write_json(w.path("in.json"), frames(
+                {"tick": 0, "interact": True},
+                {"tick": 1, "interact": False},
+                {"tick": 2, "buy": "oxygen", "shop_done": True},
+            ))
+            outs = []
+            for i in (1, 2):
+                out = w.path(f"day{i}.jsonl")
+                code, err = run_headless(
+                    "--mode", "day", "--days", "1", "--seed", "7", "--ticks", "20",
+                    "--scenario", sc, "--inputs", inp, "--snapshot-every", "1", "--out", out,
+                )
+                self.assertEqual(code, 0, err)
+                outs.append(out)
+            with open(outs[0], "rb") as a, open(outs[1], "rb") as b:
+                self.assertEqual(a.read(), b.read())
+            rows = read_jsonl(outs[0])
+            ev_names = [e["name"] for e in events(rows)]
+            self.assertEqual(
+                ev_names,
+                ["day_start", "day_plan", "phase_start", "gather_end", "phase_start",
+                 "quan_end", "phase_start", "bought", "shop_end"],
+            )
+            self.assertEqual(rows[-1]["reason"], "days_complete")
+            self.assertEqual(rows[-1]["days_completed"], 1)
+            self.assertEqual(rows[-1]["money"], 0)
+            self.assertEqual(rows[-1]["earned"], 200)
+
+    def test_cli_day_2_upgrades_effective_on_day_2(self):
+        """CLI `--mode day --days 2`: mua oxygen & hp ở Shop Ngày 1 -> có hiệu lực ở Ngày 2 (2700 oxy, 4 HP)."""
+        with Workdir() as w:
+            sc = write_json(w.path("sc.json"), {
+                "day": {"money": 450, "earned": 450},
+                "gather": {"hold": ["ca_loc"], "random_fish": False},
+                "quan": {"time_left_ticks": 1, "random_customers": False},
+            })
+            inp = write_json(w.path("in.json"), frames(
+                {"tick": 0, "interact": True},
+                {"tick": 1, "interact": False},
+                {"tick": 2, "buy": "oxygen"},
+                {"tick": 3, "buy": "hp", "shop_done": True},
+                {"tick": 4, "shop_done": False, "interact": True},
+                {"tick": 5, "interact": False},
+                {"tick": 6, "shop_done": True},
+            ))
+            out = w.path("day2.jsonl")
+            code, err = run_headless(
+                "--mode", "day", "--days", "2", "--seed", "7", "--ticks", "20",
+                "--scenario", sc, "--inputs", inp, "--snapshot-every", "1", "--out", out,
+            )
+            self.assertEqual(code, 0, err)
+            rows = read_jsonl(out)
+            day2_snaps = [s for s in snapshots(rows) if s["day"] == 2 and s["phase"] == "gather"]
+            self.assertTrue(day2_snaps)
+            d2 = day2_snaps[0]
+            self.assertEqual(d2["active_upgrades"], {"hp": 1, "oxygen": 1})
+            self.assertEqual(d2["player"]["oxygen_max_ticks"], 2700)
+            self.assertEqual(d2["player"]["hp_max"], 4)
+            self.assertEqual(rows[-1]["days_completed"], 2)
+            self.assertEqual(rows[-1]["reason"], "days_complete")
+
+    def test_cli_pause_and_resume_all_3_modes(self):
+        """CLI Pause/Resume hoạt động ở cả 3 mode gather, quan, day."""
+        with Workdir() as w:
+            inp = write_json(w.path("pause.json"), frames(
+                {"tick": 0, "pause": True},
+                {"tick": 1, "pause": False},
+                {"tick": 3, "pause": True},
+            ))
+            for mode in ("gather", "quan", "day"):
+                out = w.path(f"{mode}.jsonl")
+                args = ["--mode", mode, "--seed", "1", "--ticks", "4",
+                        "--inputs", inp, "--snapshot-every", "1", "--out", out]
+                code, err = run_headless(*args)
+                self.assertEqual(code, 0, f"{mode}: {err}")
+                rows = read_jsonl(out)
+                self.assertEqual([e["name"] for e in events(rows) if e["name"] in ("paused", "resumed")],
+                                 ["paused", "resumed"], mode)
+                by_tick = {s["tick"]: s for s in snapshots(rows)}
+                self.assertEqual(by_tick[1]["state"], "paused")
+                self.assertEqual(by_tick[1]["sim_tick"], 0)
+                self.assertEqual(by_tick[3]["sim_tick"], 0)
+                self.assertEqual(by_tick[4]["state"], "playing")
+                self.assertEqual(by_tick[4]["sim_tick"], 1)
+
+    def test_cli_day_quan_stock_conflict_exit_2(self):
+        """CLI `--mode day`: đơn reserved trong scenario.quan vượt kho thực lúc mở quán -> mã thoát 2."""
+        with Workdir() as w:
+            sc = write_json(w.path("sc_bad.json"), {
+                "gather": {"hold": [], "random_fish": False},
+                "quan": {
+                    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}],
+                    "random_customers": False,
+                },
+            })
+            inp = write_json(w.path("in.json"), frames({"tick": 0, "interact": True}))
+            out = w.path("bad.jsonl")
+            code, _err = run_headless(
+                "--mode", "day", "--days", "1", "--seed", "1", "--ticks", "5",
+                "--scenario", sc, "--inputs", inp, "--out", out,
+            )
+            self.assertEqual(code, 2)
 
 
 if __name__ == "__main__":
