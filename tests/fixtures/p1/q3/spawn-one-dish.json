@@ -1,0 +1,6 @@
+{
+  "quan": {
+    "stock": [{"id": "I1", "kind": "ca_loc", "fresh": 100}],
+    "random_customers": true
+  }
+}

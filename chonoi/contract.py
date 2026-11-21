@@ -17,13 +17,29 @@ def _between(name, v, lo, hi):
         raise BadInput(f"tuning.{name} phải trong [{lo}, {hi}], đang là {v!r}")
 
 
+def validate_contract(c: dict):
+    if not isinstance(c, dict):
+        raise BadInput("contract phải là object")
+    validate_tuning(c.get("tuning"))
+    ver = c.get("contract_version")
+    if ver == "1.3":
+        bench = c.get("bench_cmd")
+        if not isinstance(bench, str) or not bench.strip():
+            raise BadInput("contract v1.3 yêu cầu bench_cmd là chuỗi không rỗng")
+        soak = c.get("soak_cmd")
+        if not isinstance(soak, str) or not soak.strip():
+            raise BadInput("contract v1.3 yêu cầu soak_cmd là chuỗi không rỗng")
+
+
 def load_contract(path=DEFAULT_PATH) -> dict:
     try:
         with open(path, encoding="utf-8") as f:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    validate_contract(c)
+    # Inventory schema semantics follow the manifest version all the way into sims.
+    c["tuning"]["contract_version"] = c.get("contract_version", "1.1")
     return c
 
 
@@ -78,6 +94,14 @@ def _validate_gather(g):
         raise BadInput("tuning.gather.fish_yield phải có ca_linh và ca_loc")
     for k, v in fy.items():
         _int_between(f"gather.fish_yield.{k}", v, 1, g["hold_capacity"])
+    fish_motion = g.get("fish_motion")
+    if fish_motion is not None:
+        if not isinstance(fish_motion, dict):
+            raise BadInput("tuning.gather.fish_motion phải là object")
+        _between("gather.fish_motion.speed", fish_motion.get("speed"), 0.1, 10)
+        _int_between("gather.fish_motion.turn_every_ticks", fish_motion.get("turn_every_ticks"), 1, 10_000)
+        _between("gather.fish_motion.max_turn_deg", fish_motion.get("max_turn_deg"), 0, 180)
+        _between("gather.fish_motion.min_depth", fish_motion.get("min_depth"), 0, g["bounds"]["d"][1])
     nodes = g.get("nodes")
     if not isinstance(nodes, list) or not nodes:
         raise BadInput("tuning.gather.nodes phải là mảng không rỗng")
@@ -86,13 +110,13 @@ def _validate_gather(g):
         if not isinstance(n, dict) or not isinstance(n.get("id"), str) or n["id"] in seen:
             raise BadInput("tuning.gather.nodes: mỗi nút cần id duy nhất")
         seen.add(n["id"])
-        if n.get("kind") not in ("bong_dien_dien", "bong_sung"):
-            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind phải là bong_dien_dien hoặc bong_sung")
+        if n.get("kind") not in ("bong_dien_dien", "bong_sung", "keo_neo"):
+            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind phải là bong_dien_dien, bong_sung hoặc keo_neo")
         kinds.add(n["kind"])
         _pos_in(f"gather.nodes.{n['id']}.pos", n.get("pos"), b, ("x", "d"))
         if n["pos"][1] != 0:
             raise BadInput(f"tuning.gather.nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
-    if kinds != {"bong_dien_dien", "bong_sung"}:
+    if not ({"bong_dien_dien", "bong_sung"} <= kinds):
         raise BadInput("tuning.gather.nodes phải có ít nhất một nút mỗi loại (bong_dien_dien, bong_sung)")
     fish = g.get("fish_initial")
     if not isinstance(fish, list) or len(fish) != 6:
@@ -141,3 +165,11 @@ def validate_tuning(t):
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+    freshness = t.get("freshness")
+    if freshness is not None:
+        if not isinstance(freshness, dict):
+            raise BadInput("tuning.freshness phải là object")
+        _between("freshness.initial", freshness.get("initial"), 0, 100)
+        _between("freshness.gather_decay_per_s", freshness.get("gather_decay_per_s"), 0, 100)
+        _between("freshness.quan_decay_per_s", freshness.get("quan_decay_per_s"), 0, 100)
+        _between("freshness.spoiled_below", freshness.get("spoiled_below"), 0, 100)

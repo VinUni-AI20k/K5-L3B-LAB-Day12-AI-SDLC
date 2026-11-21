@@ -1,0 +1,6 @@
+# Quoosc — Phạm Trấn Quốc · MSSV 2A202604113
+
+- **Tôi đã làm (kèm link commit):** Tôi phát triển khách, lịch đến, giữ nguyên liệu và kiên nhẫn ở Phase 1; lọc món, `no_dish` và tích hợp DaySim ở Phase 2. Phase 3, tôi xử lý độ tươi và giữ nguyên liệu theo ID; Phase 4, tôi xây dựng soak 10 ngày và kiểm replay. [Q3](https://github.com/invzble-z/K5-L3B-DAY12-AI-SDLC-NhomF7/commit/4a89104), [Soak](https://github.com/invzble-z/K5-L3B-DAY12-AI-SDLC-NhomF7/commit/4b38c16), [tích hợp](https://github.com/invzble-z/K5-L3B-DAY12-AI-SDLC-NhomF7/commit/afb60c0).
+- **Tôi đã review (kèm link):** Tôi kiểm tra giao diện khách–bếp, phát hiện Q4-F1 khi khách rời lúc món đang nấu; sau đó bổ sung test tái sử dụng món, giải phóng reservation và tránh thanh toán lặp. [Finding](../proof/phase-1/q3/q4-review.md), [test](../../tests/test_p2_q4_f1_reuse.py).
+- **AI sai ở đâu và tôi phát hiện thế nào:** AI kiểm `paid.amount` trong khi event trả `price` và `tip`. Tôi đọc `_tick_customers()`, sửa assertion và chạy lại test.
+- **Điều tôi học được:** Tôi cần đối chiếu giả định với code và contract, rồi kiểm hành vi qua tích hợp thật. PR được merge chưa đồng nghĩa với QA phê duyệt. [Báo cáo chi tiết](../reports/Quoosc-Phase1-4-Detailed-Report.md).

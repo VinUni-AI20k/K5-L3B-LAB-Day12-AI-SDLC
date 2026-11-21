@@ -4,8 +4,14 @@
 
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
+- Phase 2, lát cá: `python -m unittest tests.test_p2_fish -v`
+- Phase 3, giỏ và độ tươi: `python -m unittest tests.test_p3_gather -v`
+- Phase 3, quán Q3 giữ chỗ theo ID: `python -m unittest tests.test_p3_q3_freshness -v`
+- Phase 4, soak DaySim: `python -m unittest tests.test_p4_soak -v`; chạy thật: `python -m chonoi.soak --seed 7 --days 10 --out docs/proof/phase-4/soak.json`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
-- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
+- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan|day` (mở địa chỉ in ra; WASD, E, Space, Esc tạm dừng, R chơi lại; `day` mặc định 5 Ngày, `--days N`)
+- Phase 3–4 phía client: `python -m unittest tests.test_p3_hud_fresh tests.test_p4_ui_bench_contrast -v`. Bench client: mở `/?bench=1` trên `chonoi.live --mode gather --seed 42`
+- Phase 2, lát 4b (bản chơi live): `python -m unittest tests.test_p2_ui_live -v`. Chạy đúng lệnh test ở trên, **đừng** thêm `-X utf8` (3 test `test_p1_contract` đọc stderr sẽ lỗi `NoneType.strip`, có sẵn trên `main`)
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
@@ -26,4 +32,7 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+Skill nằm trong `.agents/skills/<tên>/SKILL.md`; đọc SKILL.md trước khi làm việc tương ứng.
+- `python-fact-grounded-coding`: dùng trước khi sửa logic Python; phải lấy bằng chứng từ test/runtime trước rồi mới chốt thay đổi. Soát quy ước: `python .agents/skills/python-fact-grounded-coding/scripts/check_rules.py`.
+- `phase-1-verification`: chạy toàn bộ unittest, headless gather/quán (tất định, mã 2, nạp kho), ghi `docs/proof/phase-1/verify-run.txt` rồi cập nhật `docs/verification/phase-1.md`. Lệnh: `python .agents/skills/phase-1-verification/scripts/verify_phase1.py`.
+- Windows: `python3` thường là lối tắt Microsoft Store (mã 9009) nên 21 test hộp đen fail dù luật đúng; script kiểm chứng tự tạo shim `python3`, không sửa `game.contract.json`.

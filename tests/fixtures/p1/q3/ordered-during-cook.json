@@ -1,0 +1,23 @@
+{
+  "quan": {
+    "stock": [{"id": "I1", "kind": "ca_loc", "fresh": 100}],
+    "stoves": [
+      {
+        "id": "B1",
+        "state": "cooking",
+        "dish": "ca_loc_nuong_trui",
+        "cook_ticks_left": 12
+      }
+    ],
+    "customers": [
+      {
+        "id": "C2",
+        "table_id": "T1",
+        "dish_id": "ca_loc_nuong_trui",
+        "state": "ordered",
+        "patience_ticks_left": 120,
+        "reserved": {}
+      }
+    ]
+  }
+}

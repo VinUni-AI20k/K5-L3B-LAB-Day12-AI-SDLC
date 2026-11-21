@@ -1,0 +1,20 @@
+{
+  "quan": {
+    "stock": [
+      {"id": "I1", "kind": "ca_linh", "fresh": 100},
+      {"id": "I2", "kind": "ca_linh", "fresh": 100},
+      {"id": "I3", "kind": "ca_linh", "fresh": 100},
+      {"id": "I4", "kind": "bong_dien_dien", "fresh": 100}
+    ],
+    "customers": [
+      {
+        "id": "C2",
+        "table_id": "T1",
+        "dish_id": "lau_ca_linh_dien_dien",
+        "state": "waiting",
+        "patience_ticks_left": 2,
+        "reserved": ["I1", "I2", "I3"]
+      }
+    ]
+  }
+}

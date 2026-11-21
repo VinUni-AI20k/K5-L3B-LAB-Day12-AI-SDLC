@@ -22,13 +22,20 @@ def frames(*fr):
 
 def headless_cmd():
     """Lệnh headless khai trong game.contract.json — test chạy qua đây nên dùng được với MỌI ngôn ngữ."""
+    import sys
     with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
-        return shlex.split(json.load(f)["headless_cmd"])
+        cmd = shlex.split(json.load(f)["headless_cmd"])
+        if os.name == "nt" and cmd and cmd[0] == "python3":
+            cmd[0] = sys.executable
+        return cmd
 
 
 def run_headless(*args, cwd=ROOT):
     """Chạy `<headless_cmd> <args>`; trả (mã thoát, stderr)."""
-    p = subprocess.run([*headless_cmd(), *args], cwd=cwd, capture_output=True, text=True)
+    env = os.environ.copy()
+    pythonpath = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = ROOT if not pythonpath else os.pathsep.join((ROOT, pythonpath))
+    p = subprocess.run([*headless_cmd(), *args], cwd=cwd, env=env, capture_output=True, text=True)
     return p.returncode, p.stderr
 
 
