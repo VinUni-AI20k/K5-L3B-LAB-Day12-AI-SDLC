@@ -1,6 +1,6 @@
 === BẰNG CHỨNG KIỂM THỬ PHASE 3 ===
 
---- 1. KẾT QUẢ UNIT & SMOKE TESTS (Mã thoát: 1) ---
+--- 1. KẾT QUẢ UNIT & SMOKE TESTS (Mã thoát: 0) ---
 test_01_oxygen_decreases_underwater (test_gather_phase1.GatherPhase1Tests.test_01_oxygen_decreases_underwater) ... ok
 test_02_oxygen_refills_at_surface (test_gather_phase1.GatherPhase1Tests.test_02_oxygen_refills_at_surface) ... ok
 test_03_oxygen_is_capped (test_gather_phase1.GatherPhase1Tests.test_03_oxygen_is_capped) ... ok
@@ -51,7 +51,7 @@ test_inventory_preserves_freshness (test_gather_phase3_hold.GatherPhase3HoldTest
 test_new_item_objects (test_gather_phase3_hold.GatherPhase3HoldTests.test_new_item_objects) ... ok
 test_spoiled_exactly_once (test_gather_phase3_hold.GatherPhase3HoldTests.test_spoiled_exactly_once) ... ok
 test_headless_quan_accepts_v12_inventory_with_exit_code_0 (test_inventory_phase3.InventoryPhase3Tests.test_headless_quan_accepts_v12_inventory_with_exit_code_0) ... ok
-test_headless_quan_rejects_counting_inventory_with_exit_code_2 (test_inventory_phase3.InventoryPhase3Tests.test_headless_quan_rejects_counting_inventory_with_exit_code_2) ... FAIL
+test_headless_quan_rejects_counting_inventory_with_exit_code_2 (test_inventory_phase3.InventoryPhase3Tests.test_headless_quan_rejects_counting_inventory_with_exit_code_2) ... ok
 test_v12_empty_inventory_is_valid (test_inventory_phase3.InventoryPhase3Tests.test_v12_empty_inventory_is_valid) ... ok
 test_v12_rejects_counting_inventory (test_inventory_phase3.InventoryPhase3Tests.test_v12_rejects_counting_inventory) ... ok
 test_v12_rejects_duplicate_id (test_inventory_phase3.InventoryPhase3Tests.test_v12_rejects_duplicate_id) ... ok
@@ -95,41 +95,41 @@ test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_a
 test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
 test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
 test_closing_ca_end (test_quan.QuanSimTest.test_closing_ca_end)
-H\u1ebft gi\u1edd ca t\u1ed1i (180s = 10800 tick): khách \u0111ang \u0103n tr\u1ea3 ngay, khách ch\u1edd r\u1eddi, phát quan_end. ... ok
+Hết giờ ca tối (180s = 10800 tick): khách đang ăn trả ngay, khách chờ rời, phát quan_end. ... ok
 test_customer_arrival_and_reserved (test_quan.QuanSimTest.test_customer_arrival_and_reserved)
-Khách \u0111\u1ebfn \u1edf tick 120, ch\u1ecdn món n\u1ea5u \u0111\u01b0\u1ee3c và gi\u1eef ch\u1ed7 nguyên li\u1ec7u. ... ok
+Khách đến ở tick 120, chọn món nấu được và giữ chỗ nguyên liệu. ... ok
 test_customer_patience_and_left (test_quan.QuanSimTest.test_customer_patience_and_left)
-Khách \u0111\u1ee3i h\u1ebft 60s kiên nh\u1eabn mà không \u0111\u01b0\u1ee3c ph\u1ee5c v\u1ee5 -> b\u1ecf v\u1ec1, tr\u1eeb 0.5 uy tín, nh\u1ea3 reserved. ... ok
+Khách đợi hết 60s kiên nhẫn mà không được phục vụ -> bỏ về, trừ 0.5 uy tín, nhả reserved. ... ok
 test_full_cooking_serving_and_payment_flow (test_quan.QuanSimTest.test_full_cooking_serving_and_payment_flow)
-Lu\u1ed3ng hoàn ch\u1ec9nh: N\u1ea5u t\u1ea1i b\u1ebfp B1 -> B\u01b0ng món -> Ph\u1ee5c v\u1ee5 t\u1ea1i bàn T1 -> Nh\u1eadn ti\u1ec1n + Tip + Uy tín. ... ok
+Luồng hoàn chỉnh: Nấu tại bếp B1 -> Bưng món -> Phục vụ tại bàn T1 -> Nhận tiền + Tip + Uy tín. ... ok
 test_no_dish_when_stock_empty (test_quan.QuanSimTest.test_no_dish_when_stock_empty)
-Kho r\u1ed7ng: \u0111\u1ebfn tick 120 không \u0111\u1ee7 nguyên li\u1ec7u -> phát s\u1ef1 ki\u1ec7n no_dish, không có khách. ... ok
+Kho rỗng: đến tick 120 không đủ nguyên liệu -> phát sự kiện no_dish, không có khách. ... ok
 test_dynamic_pricing_and_cook_started_items (test_quan_freshness.QuanFreshnessTest.test_dynamic_pricing_and_cook_started_items)
-Ch\u1ed1t giá món theo trung bình fresh; cook_started có data.items s\u1eafp x\u1ebfp theo kind r\u1ed3i id. ... ok
+Chốt giá món theo trung bình fresh; cook_started có data.items sắp xếp theo kind rồi id. ... ok
 test_freshest_items_reservation (test_quan_freshness.QuanFreshnessTest.test_freshest_items_reservation)
-Gi\u1eef ch\u1ed7: Ch\u1ecdn các cá th\u1ec3 kh\u1ea3 d\u1ee5ng t\u01b0\u01a1i nh\u1ea5t (fresh cao nh\u1ea5t, n\u1ebfu b\u1eb1ng nhau thì theo id nh\u1ecf). ... ok
+Giữ chỗ: Chọn các cá thể khả dụng tươi nhất (fresh cao nhất, nếu bằng nhau thì theo id nhỏ). ... ok
 test_spoiled_event_and_removal (test_quan_freshness.QuanFreshnessTest.test_spoiled_event_and_removal)
-Phát event spoiled {item_id, kind, location: 'stock'} theo id khi fresh < 30 và xóa kh\u1ecfi kho. ... ok
+Phát event spoiled {item_id, kind, location: 'stock'} theo id khi fresh < 30 và xóa khỏi kho. ... ok
 test_spoiled_while_reserved_re_reserve_success (test_quan_freshness.QuanFreshnessTest.test_spoiled_while_reserved_re_reserve_success)
-\u01af\u01a1n khi \u0111ang gi\u1eef ch\u1ed7: nh\u1ea3 toàn b\u1ed9 reservation và gi\u1eef l\u1ea1i thành công n\u1ebfu kho còn cá th\u1ec3 t\u01b0\u01a1i. ... ok
+Ươn khi đang giữ chỗ: nhả toàn bộ reservation và giữ lại thành công nếu kho còn cá thể tươi. ... ok
 test_spoiled_while_reserved_unfulfillable (test_quan_freshness.QuanFreshnessTest.test_spoiled_while_reserved_unfulfillable)
-\u01af\u01a1n khi \u0111ang gi\u1eef ch\u1ed7: kho h\u1ebft cá th\u1ec3 thay th\u1ebf -> chuy\u1ec3n sang unfulfillable. ... ok
+Ươn khi đang giữ chỗ: kho hết cá thể thay thế -> chuyển sang unfulfillable. ... ok
 test_stock_freshness_decay_and_pause (test_quan_freshness.QuanFreshnessTest.test_stock_freshness_decay_and_pause)
-Hao t\u01b0\u01a1i kho quán: gi\u1ea3m 0.25 \u0111i\u1ec3m/s (0.25/60 m\u1ed7i tick), d\u1eebng khi pause. ... ok
+Hao tươi kho quán: giảm 0.25 điểm/s (0.25/60 mỗi tick), dừng khi pause. ... ok
 test_stock_individual_intake_and_snapshot (test_quan_freshness.QuanFreshnessTest.test_stock_individual_intake_and_snapshot)
-Kho cá th\u1ec3: ti\u1ebfp nh\u1eadn s.stock m\u1ea3ng cá th\u1ec3 {id, kind, fresh} và snapshot \u0111úng chu\u1ea9n. ... ok
+Kho cá thể: tiếp nhận s.stock mảng cá thể {id, kind, fresh} và snapshot đúng chuẩn. ... ok
 test_tip_calculated_on_locked_base_price (test_quan_freshness.QuanFreshnessTest.test_tip_calculated_on_locked_base_price)
-Ti\u1ec1n boa tính floor(base_price * 0.2) trên giá món \u0111ã ch\u1ed1t. ... ok
+Tiền boa tính floor(base_price * 0.2) trên giá món đã chốt. ... ok
 test_customer_spawning_tables_order_t1_to_t4 (test_quan_phase2.QuanPhase2Test.test_customer_spawning_tables_order_t1_to_t4)
-Khách \u0111\u1ebfn \u1edf tick 120 + 900*k l\u1ea7n l\u01b0\u1ee3t ng\u1ed3i vào bàn tr\u1ed1ng có ID nh\u1ecf nh\u1ea5t (T1 -> T2 -> T3 -> T4). ... ok
+Khách đến ở tick 120 + 900*k lần lượt ngồi vào bàn trống có ID nhỏ nhất (T1 -> T2 -> T3 -> T4). ... ok
 test_menu_6_dishes_defined (test_quan_phase2.QuanPhase2Test.test_menu_6_dishes_defined)
-Ki\u1ec3m tra th\u1ef1c \u0111\u01a1n 6 món chu\u1ea9n trong game.contract.json. ... ok
+Kiểm tra thực đơn 6 món chuẩn trong game.contract.json. ... ok
 test_mode_day_plan_filtering_d1_to_d5 (test_quan_phase2.QuanPhase2Test.test_mode_day_plan_filtering_d1_to_d5)
-Trong mode day, món khách g\u1ecdi bám sát theo K\u1ebf ho\u1ea1ch ngày (D1–D5) và t\u1ed3n kh\u1ea3 d\u1ee5ng. ... ok
+Trong mode day, món khách gọi bám sát theo Kế hoạch ngày (D1–D5) và tồn khả dụng. ... ok
 test_new_space_stoves_and_tables (test_quan_phase2.QuanPhase2Test.test_new_space_stoves_and_tables)
-Ki\u1ec3m tra không gian quán m\u1edbi: 2 b\u1ebfp B1, B2 và 4 bàn T1, T2, T3, T4. ... ok
+Kiểm tra không gian quán mới: 2 bếp B1, B2 và 4 bàn T1, T2, T3, T4. ... ok
 test_stoves_order_priority_oldest_order_tick_then_table_id (test_quan_phase2.QuanPhase2Test.test_stoves_order_priority_oldest_order_tick_then_table_id)
-B\u1ebfp \u01b0u tiên l\u1ea5y \u0111\u01a1n reserved c\u0169 nh\u1ea5t theo order_tick, n\u1ebfu b\u1eb1ng nhau thì theo ID bàn nh\u1ecf h\u01a1n. ... ok
+Bếp ưu tiên lấy đơn reserved cũ nhất theo order_tick, nếu bằng nhau thì theo ID bàn nhỏ hơn. ... ok
 test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
 test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
 test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
@@ -137,19 +137,19 @@ test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_ol
 test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
 test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
 test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
-Ví d\u1ee5 smoke test trong PRD-0 m\u1ee5c G: c\u1eadp b\u1ebfn \u1edf tick 0, quán \u0111\u1ecdc kho \u0111úng n\u1ed9i dung. ... ok
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
 test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
 test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
 test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
 test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
 test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
-B\u1ecf 6 tick t\u0103ng t\u1ed1c r\u1ed3i \u0111o 60 tick: quãng \u2248 swim_speed × 1 s (±0.1). Ngang, xu\u1ed1ng, chéo (không nhanh h\u01a1n). ... ok
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
 test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
 test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
-Ch\u1eb7n t\u1eebng mép c\u1ee7a vùng n\u01b0\u1edbc, k\u1ec3 c\u1ea3 d không âm (không bay lên kh\u1ecfi m\u1eb7t n\u01b0\u1edbc) và \u0111áy d = 30. ... ok
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
 test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
 test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
-\u0110\u1ea3o t\u1eeb +speed sang -speed: v\u1eadn t\u1ed1c ch\u1ea1m m\u1ee5c tiêu sau t\u1ed1i \u0111a ramp_max_ticks tick k\u1ec3 t\u1eeb lúc \u0111\u1ed5i input. ... ok
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
 test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
 test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
 test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
@@ -159,19 +159,10 @@ test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) 
 test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
-======================================================================
-FAIL: test_headless_quan_rejects_counting_inventory_with_exit_code_2 (test_inventory_phase3.InventoryPhase3Tests.test_headless_quan_rejects_counting_inventory_with_exit_code_2)
 ----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\HUST\VIN\lab12\tests\test_inventory_phase3.py", line 70, in test_headless_quan_rejects_counting_inventory_with_exit_code_2
-    self.assertIn("Contract v1.2 không h\u1ed7 tr\u1ee3 kho \u0111\u1ebfm theo lo\u1ea1i", err)
-    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-AssertionError: 'Contract v1.2 không h\u1ed7 tr\u1ee3 kho \u0111\u1ebfm theo lo\u1ea1i' not found in '\\u0111\\u1ea7u vào sai: Contract v1.2 không h\\u1ed7 tr\\u1ee3 kho \\u0111\\u1ebfm theo lo\\u1ea1i; ph\\u1ea3i dùng m\\u1ea3ng cá th\\u1ec3 {id, kind, fresh}\n'
+Ran 135 tests in 8.923s
 
-----------------------------------------------------------------------
-Ran 135 tests in 8.001s
-
-FAILED (failures=1)
+OK
 
 
 --- 2. TÍNH TẤT ĐỊNH BYTE-FOR-BYTE ---
