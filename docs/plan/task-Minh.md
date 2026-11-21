@@ -11,18 +11,19 @@
 |---|---|---|---|---|---|
 | **Phase 1** | 0:00–1:00 | `phase-1` | `sim/quan` (bếp, bàn, bưng, tiền, tip, uy tín, hết ca) + ghép M3 | **100%** | ✅ Đã gắn tag `phase-1` |
 | **Phase 2** | 1:00–1:55 | `phase-2` | `day`, `Shop`, `Pause` 3 mode *(+ tùy chọn `burn`)* | **100%** | ✅ Đã gắn tag `phase-2` |
-| **Phase 3** | 1:55–2:30 | `phase-3` | Độ tươi v1.2: giá `floor(giá × avg_fresh/100)`, `cook_started.items` cá thể, kho cá thể trong `day`/Shop *(+ tùy chọn `reservations`)* | **95%** | ✅ Xong `P3-M4.1`–`P3-M4.3` (hỗ trợ song song v1.1/v1.2, 40/40 tests xanh) + bằng chứng `proof/phase-3/m4-test-log.txt`; chờ `M3.3` & `M6.4` bật `1.2` |
+| **Phase 3** | 1:55–2:30 | `phase-3` | Độ tươi v1.2: giá `floor(giá × avg_fresh/100)`, `cook_started.items` cá thể, kho cá thể trong `day`/Shop *(+ tùy chọn `reservations`)* | **95%** | ✅ Xong `P3-M4.1`–`P3-M4.3` & ghép `M3.3` (`FreshStockMixin`: `item_mode`, `_consume_reserved`, `stock_items_out`, **111/111 tests M3+M4+M6 xanh**) + `proof/phase-3/m4-test-log.txt`; chỉ còn chờ `M2.3` (`gather` giỏ cá thể) & `M6.4` bật `1.2` để chạy smoke 2 tiến trình + `day` hộp đen |
 | **Phase 4** | 2:30–3:00 | `phase-4` + `v1.0.0` | Bot tất định cho `soak_cmd` 10 Ngày (cùng Quang M2), Retro & chốt báo cáo *(+ tùy chọn `leaderboard`)* | **60%** | 🟡 Đã dựng sẵn `chonoi/soak.py` + `test_soak_m4.py` (10 ngày lặp D1–D5, 0 crash, tất định); chờ tag `phase-3` & khai `soak_cmd` |
 
 ---
 
-## 2. Cần hỏi / phối hợp ai ngay bây giờ?
+## 2. Cần hỏi / đang chờ đồng đội (Phase 3 → Phase 4)
 
-| Hỏi ai | Nội dung cần hỏi / chốt | Để mở khóa task nào của M4 |
+| Đang chờ ai | Việc đồng đội chưa xong | Mở khóa task nào của M4 |
 |---|---|---|
-| **An (`K0heii` — M6)** | Đã có bằng chứng `docs/proof/phase-2/m4-test-log.txt` (26/26 tests xanh) + CLI `--mode day` chạy xanh, nhờ An cập nhật vào `docs/verification/phase-2.md` ở `M6.5`. | Chốt `M6.5` & gắn tag `phase-2` |
-| **Cao (`ththanh8888` — M3)** | 1. Khi nào đẩy `M3.3` (cập nhật 4 test P1 theo 4 bàn v1.1 + kiểm `day_plan`)?<br>2. Có làm chung mở rộng `burn` (Cháy món) trước 1:35 không? | Xanh 100% toàn bộ regression M3+M4 · Chốt mở rộng `burn` |
-| **Thanh (`thanhvu101` — M5)** | Schema `Shop`/`Pause`/`day` đã chạy thật qua `chonoi.headless --mode day`, Thanh kiểm tra khớp UI `M5.3` nhé. | Khớp UI Shop/Pause ở cuối Phase 2 |
+| **Quang (`QuangNEU` — M2)** | `P3-M2.3`: giỏ cá thể `I1, I2…` trong `gather.py` & xuất `inventory_items()` dạng mảng cá thể `{id, kind, fresh}` | `P3-M4.4` kiểm ghép `gather → quan → shop` đầu-cuối trong `--mode day` trên kho cá thể v1.2 |
+| **Huy (`huyvu-03` — M1)** | `P3-M1.3`: hao tươi giỏ (`-0.5/s`) & `spoiled` / rơi cá thể LIFO trong `gather.py` *(chờ M2.3)* | Hoàn tất lõi `gather` v1.2 để An bật `contract_version: "1.2"` |
+| **An (`K0heii` — M6)** | `P3-M6.4`: bật `"contract_version": "1.2"` trong `game.contract.json` & chốt `verification/phase-3.md` + tag `phase-3` *(chờ M1.3 + M2.3)* | `P3-M4.4` chạy test hộp đen CLI v1.2 + mở khóa Phase 4 (`contract_version: "1.3"`, `soak_cmd`) |
+| **Cao (`ththanh8888` — M3)** | *(Review chéo)* Xác nhận phần nối `FreshStockMixin` (`_consume_reserved`, `stock_items_out`) và quyết định có làm mở rộng `reservations` không | Review chéo C ↔ D cuối Phase 3 *(+ mở rộng `reservations` nếu nhóm chốt làm)* |
 
 ---
 
@@ -67,20 +68,22 @@ flowchart LR
 
 ---
 
-## 5. PHASE 3 — Độ tươi & Kho cá thể (`1:55–2:30 · v1.2 — Mùa Nước Nổi`) ⏳ CHỜ TAG `phase-2`
+## 5. PHASE 3 — Độ tươi & Kho cá thể (`1:55–2:30 · v1.2 — Mùa Nước Nổi`) 🟢 XONG PHẦN M4 + GHÉP M3.3
 
 > **Lưu ý Breaking Change (`phase-3-task.md` & `Ticket03.md`):** Đổi kho đếm sang kho cá thể `{"items":[{"id":"I1","kind":"...","fresh":100}]}` (v1.2 từ chối kho đếm mã `2`). Dùng chung đơn vị nguyên (`fresh_units = fresh × 240`, trừ 2/tick ở gather và 1/tick ở quán) để tránh sai số float ở ngưỡng `30` và phép `floor`.
 
 ### Phụ thuộc Phase 3
 ```mermaid
 flowchart LR
-    T2["Tag phase-2"] --> M61["M6.1–M6.2 Schema & inventory.py v1.2 (An)"]
-    P31["P0: P3-M4.1 Spec giá theo fresh & kho cá thể"] --> P32["P0: P3-M4.2 Tests chốt giá & day v1.2"]
+    T2["Tag phase-2 ✅"] --> M61["M6.1–M6.3 Helper & Adapter v1.2 (An) ✅"]
+    P31["P0: P3-M4.1 Spec giá theo fresh ✅"] --> P32["P0: P3-M4.2 Tests chốt giá & day v1.2 ✅"]
     M61 --> P32
-    P32 --> P33["P0: P3-M4.3 Code quan.py + day.py + shop.py v1.2"]
+    P32 --> P33["P0: P3-M4.3 Code quan/day/shop + FreshStockMixin ✅"]
     M61 --> P33
-    M33["M3.3 Hao tươi & giữ chỗ theo id (Cao)"] --> P33
-    P33 --> P34["P1: P3-M4.4 Test & Bằng chứng P3"] --> M65["M6.5–M6.6 Tag phase-3 (An)"]
+    M33["M3.3 FreshStockMixin (Cao) ✅"] --> P33
+    P33 --> P34["P1: P3-M4.4 Ghép cuối CLI v1.2 (chờ M2.3 & M6.4)"] --> M65["M6.4–M6.6 Bật 1.2 & Tag phase-3 (An)"]
+    M23["M2.3 Giỏ cá thể gather (Quang) ⏳"] --> M65
+    M13["M1.3 Hao tươi gather (Huy) ⏳"] --> M65
 ```
 
 - [x] **P3-M4.1** *(P0 — không chờ ai — đã lưu tại `docs/plan/spec-p3-m4.md`)*: Chốt Spec/AC cho:
@@ -88,9 +91,11 @@ flowchart LR
   - Boa `floor(base_price × 0.2)` tính trên giá đã chốt; `cook_started.items` là mảng cá thể sắp theo `(kind, id)`.
   - Bàn giao kho cá thể `{id, kind, fresh}` trong `day` (`gather → quan → shop`, Shop không hao tươi).
 - [x] **P3-M4.2** *(P0 — sau `M6.1`–`M6.3`)*: Viết `tests/test_freshness_m4_v12.py` phủ đủ `AC-P3-M4-01` → `AC-P3-M4-07` (chốt `base_price` theo `avg_fresh`, `floor` nguyên, boa trên giá đã chốt, `cook_started.items` sắp `(kind, id)`, Shop không hao tươi & bàn giao kho cá thể trong `day`).
-- [x] **P3-M4.3** *(P0 — hỗ trợ song song v1.1/v1.2 không phá `main`)*: Cập nhật `chonoi/sim/quan.py`, `chonoi/sim/day.py`, `chonoi/sim/shop.py` dùng `chonoi/freshness.py` (`FRESH_SCALE = 240`, `calc_fresh_base_price`, `from_units`, `to_units`).
-- [x] **P3-M4.4 (bằng chứng lõi M4)** — Chạy xanh **40/40 test** (`test_freshness_m4_v12`, `test_freshness_v12_m6`, regression P1–P2) và lưu `docs/proof/phase-3/m4-test-log.txt`.
-- [ ] **P3-M4.4 (ghép cuối)** — Kiểm chung sau khi `M2.3`/`M3.3` xong và `M6.4` bật `contract_version: "1.2"`, review chéo C ↔ D.
+- [x] **P3-M4.3** *(P0 — đã nối hoàn chỉnh với `FreshStockMixin` của M3.3)*:
+  - `chonoi/sim/quan.py`: dùng `self.item_mode`, gọi `self._consume_reserved(cust)` trong `_cook_on_stove`, chốt `base_price = calc_fresh_base_price(spec["price"], units)`, xuất `cook_started.items` sắp `(kind, id)`, xóa các override tạm để `CustomerMixin` + `FreshStockMixin` chạy thống nhất.
+  - `chonoi/sim/day.py` & `chonoi/sim/shop.py`: bàn giao kho `quan → shop` qua `self._sub.stock_items_out()`, Shop giữ nguyên `fresh` không hao tươi.
+- [x] **P3-M4.4 (bằng chứng M3 + M4 + M6)** — Chạy xanh **111/111 test** (`test_freshness_m4_v12`, 34 test `test_quan_m3_v12`, `test_freshness_v12_m6`, regression P1–P2, Soak, `check_team`) và lưu `docs/proof/phase-3/m4-test-log.txt`.
+- [ ] **P3-M4.4 (ghép cuối hộp đen CLI v1.2)** — Chờ **Quang (`M2.3`)** + **Huy (`M1.3`)** hoàn tất `gather` v1.2 và **An (`M6.4`)** bật `"contract_version": "1.2"` để chạy smoke 2 tiến trình + `--mode day` hộp đen & review chéo C ↔ D.
 - [ ] *(Tùy chọn nếu lõi v1.2 xanh sớm)* **Mở rộng `reservations`** (Khách đặt trước `R1, R2` mỗi Ngày, giá `×1.5`, lỡ đơn uy tín `-1`) cùng Cao (`M3`).
 
 ---
