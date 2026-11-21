@@ -20,11 +20,14 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids, day=1):
+    def __init__(self, tuning, scenario, streams, ids, day=1, item_ids=None):
         t = tuning["gather"]
         self.t = t
         self.rng = streams
         self.ids = ids
+        # v1.2: id cá thể họ "I" dùng bộ cấp riêng để --mode day giữ xuyên Ngày (day.py truyền vào);
+        # gather chạy độc lập dùng chung `ids` như trước.
+        self.item_ids = item_ids if item_ids is not None else ids
         self.day = day
         p = scenario.get("player", {})
         self.pos = [float(c) for c in p.get("pos", t["start_pos"])]
@@ -55,7 +58,7 @@ class GatherSim:
                 for item in validate_fresh_items(seed_hold, name="gather.hold")
             ]
             for item in self.hold:
-                ids.reserve(item["id"])
+                self.item_ids.reserve(item["id"])
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
@@ -211,7 +214,7 @@ class GatherSim:
             return
         for _ in range(amount):
             self.hold.append({
-                "id": self.ids.new("I"), "kind": kind, "fresh": self._fresh_initial,
+                "id": self.item_ids.new("I"), "kind": kind, "fresh": self._fresh_initial,
             })
 
     def _update_oxygen(self, at_surface, events):

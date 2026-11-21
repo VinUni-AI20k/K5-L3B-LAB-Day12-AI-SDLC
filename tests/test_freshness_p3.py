@@ -11,7 +11,7 @@ import unittest
 from fractions import Fraction
 
 from chonoi.contract import load_contract
-from chonoi.inputs import BUTTONS_V11, InputPlayer
+from chonoi.inputs import BUTTONS_V11, InputPlayer, InputState
 from chonoi.runner import Session
 
 from helpers import Workdir, events, frames, items, read_jsonl, run_headless, snapshots, write_json
@@ -121,6 +121,33 @@ class QuanFreshness(unittest.TestCase):
             self.assertEqual(code, 0, err)
             last = snapshots(read_jsonl(w.path("q.jsonl")))[-1]
             self.assertAlmostEqual(last["stock"][0]["fresh"], float(90 - HZ * Q_STEP), places=9)  # 89.75
+
+
+class DayItemIdsAcrossDays(unittest.TestCase):
+    def test_gather_allocates_new_item_ids_on_day2_without_reusing_day1_ids(self):
+        # Chạy gather THẬT trong day (không chỉ _prepare_gather_scenario): mỗi Ngày hái 1 nút ở bước đầu.
+        # Giỏ mẫu rỗng (như chơi thật): trước bản sửa, Ngày 2 cấp lại "I1" vì gather dùng IdAllocator mới.
+        n1 = next(n for n in T["gather"]["nodes"] if n["id"] == "N1")
+        sc = {"gather": {"random_fish": False,
+                         "player": {"pos": n1["pos"]}, "time_left_ticks": 3},
+              "quan": {"time_left_ticks": 1, "random_customers": False}}
+        sess = Session("day", copy.deepcopy(T), sc, 1, days=2)
+        sess.initial_events()
+        ends, prev = [], None
+        for _ in range(50):
+            if sess.done:
+                break
+            sn = sess.snapshot()
+            want = "interact" if sn["phase"] == "gather" and sn["phase_tick"] == 0 else (
+                "shop_done" if sn["phase"] == "shop" else None)
+            edge = {want} if want and want != prev else set()
+            prev = want
+            held = {b: (b == want) for b in BUTTONS_V11}
+            for e in sess.step(InputState((0.0, 0.0), held, edge)):
+                if e["name"] == "gather_end":
+                    ends.append([x["id"] for x in e["data"]["inventory"]["items"]])
+        self.assertEqual(len(ends), 2)
+        self.assertEqual(ends, [["I1"], ["I2"]])  # id họ I nối tiếp xuyên Ngày, không dùng lại
 
 
 class PauseFreezesFreshness(unittest.TestCase):

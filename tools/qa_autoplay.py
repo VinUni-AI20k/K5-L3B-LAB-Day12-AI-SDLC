@@ -48,7 +48,8 @@ class Bot:
         pl = sn["player"]
         p = pl["pos"]
         want = Counter(self.want_fixed or sn.get("day_plan", {}).get("ingredients", {}))
-        have = Counter(sn["hold"])
+        # v1.2: hold là mảng cá thể {id, kind, fresh}; v1.1 là mảng chuỗi
+        have = Counter(x["kind"] if isinstance(x, dict) else x for x in sn["hold"])
         need = {k: want[k] - have[k] for k in want if want[k] > have[k]}
         room = sn["hold_capacity"] - sn["hold_count"]
         speed = g["swim_speed"] / 60.0
@@ -189,7 +190,8 @@ def main():
     want = None
     if a.want:
         want = {k: int(v) for k, v in (x.split("=") for x in a.want.split(","))}
-    inv = read_inventory(a.inventory) if a.inventory else None
+    ver = load_contract().get("contract_version", "1.1")
+    inv = read_inventory(a.inventory, contract_version=ver) if a.inventory else None
     data, ticks, end = autoplay(a.mode, a.seed, a.days, inv, want)
     with open(a.out_inputs, "w", encoding="utf-8") as f:
         json.dump(data, f)
