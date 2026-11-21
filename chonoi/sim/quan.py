@@ -17,11 +17,13 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, *, allowed_dishes=None,
+                 money=0, earned=0, shift_earned=0, reputation=None):
         t = tuning["quan"]
         self.t = t
         self.tick_hz = tuning["tick_hz"]
         self.menu = tuning["menu"]
+        self.allowed_dishes = None if allowed_dishes is None else frozenset(allowed_dishes)
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -33,7 +35,8 @@ class QuanSim:
         self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * self.tick_hz)))
-        self.reputation = scenario.get("reputation", t["reputation_initial"])
+        self.reputation = (reputation if reputation is not None else
+                           scenario.get("reputation", t["reputation_initial"]))
         self.stoves = [dict(s, state=s.get("state", "idle"), dish=s.get("dish"),
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
@@ -59,9 +62,9 @@ class QuanSim:
         self.random_customers = scenario.get("random_customers", True)
         self.sim_tick = 0
         self.phase_tick = 0
-        self.money = 0
-        self.earned = 0
-        self.shift_earned = 0
+        self.money = money
+        self.earned = earned
+        self.shift_earned = shift_earned
         self.done = False
         self.reason = None
         self.end_reason = None
@@ -304,6 +307,8 @@ class QuanSim:
                 available[ingredient] = available.get(ingredient, 0) - amount
         dishes = []
         for dish_id in sorted(self.menu):
+            if self.allowed_dishes is not None and dish_id not in self.allowed_dishes:
+                continue
             recipe = self.menu[dish_id]["recipe"]
             if all(available.get(ingredient, 0) >= amount for ingredient, amount in recipe.items()):
                 dishes.append(dish_id)
