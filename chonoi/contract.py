@@ -31,10 +31,14 @@ def load_contract(path=DEFAULT_PATH) -> dict:
         raise BadInput(f"không đọc được {path}: {e}")
     validate_tuning(c.get("tuning"))
     version = c.get("contract_version")
-    if version not in ("1.1", "1.2"):
-        raise BadInput(f"contract_version phải là 1.1 hoặc 1.2, đang là {version!r}")
-    if (version == "1.2") != ("freshness" in c["tuning"]):
-        raise BadInput("contract v1.2 cần khối tuning.freshness (và chỉ v1.2 có khối này)")
+    if version not in ("1.1", "1.2", "1.3"):
+        raise BadInput(f"contract_version phải là 1.1, 1.2 hoặc 1.3, đang là {version!r}")
+    if (version in ("1.2", "1.3")) != ("freshness" in c["tuning"]):
+        raise BadInput("contract v1.2+ cần khối tuning.freshness (và chỉ v1.2+ có khối này)")
+    if version == "1.3":  # TICKET-04: gameplay theo v1.2, thêm lệnh bench / soak ở gốc manifest
+        for key in ("bench_cmd", "soak_cmd"):
+            if not isinstance(c.get(key), str) or not c[key].strip():
+                raise BadInput(f"contract v1.3 cần {key} (chuỗi lệnh) ở gốc manifest")
     return c
 
 
