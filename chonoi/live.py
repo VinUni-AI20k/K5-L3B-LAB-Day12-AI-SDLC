@@ -24,11 +24,12 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
-from .inventory import read_inventory
+from .inventory import KINDS_P1, read_inventory
 from .runner import Session
 from .scenario import load_scenario
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
+EXTRA_CONTENT_PATH = os.path.join(os.path.dirname(WEB_DIR), "extra_content.json")
 TICK_S = 1.0 / 60.0
 MAX_BODY = 4096
 RECENT_EVENTS = 40
@@ -154,6 +155,12 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
+        elif path == "/assets/cho-noi-sprites.png":
+            try:
+                with open(os.path.join(WEB_DIR, "assets", "cho-noi-sprites.png"), "rb") as f:
+                    self._send(200, f.read(), "image/png")
+            except OSError:
+                self._send(404, b'{"error":"khong co sprite"}')
         else:
             self._send(404, b'{"error":"khong co"}')
 
@@ -220,6 +227,7 @@ def main(argv=None) -> int:
     p.add_argument("--port", type=int, default=8000, help="0 = cổng ngẫu nhiên")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--scenario")
+    p.add_argument("--extra-content", action="store_true", help="bật nguyên liệu và món ăn mở rộng")
     p.add_argument("--inventory", help="chỉ với quan: nạp kho từ file")
     p.add_argument("--inventory-out", dest="inventory_out", help="chỉ với gather: ghi kho khi kết thúc buổi")
     a = p.parse_args(argv)
@@ -229,8 +237,20 @@ def main(argv=None) -> int:
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
         tuning = load_contract()["tuning"]
+        inventory_kinds = KINDS_P1
+        if a.extra_content:
+            with open(EXTRA_CONTENT_PATH, encoding="utf-8") as content_file:
+                extra = json.load(content_file)
+            gather = tuning["gather"]
+            extra_gather = extra["gather"]
+            gather["nodes"].extend(extra_gather["nodes"])
+            gather["fish_initial"].extend(extra_gather["fish_initial"])
+            gather["fish_yield"].update(extra_gather["fish_yield"])
+            tuning["menu"].update(extra["menu"])
+            inventory_kinds += tuple(extra_gather["fish_yield"])
+            inventory_kinds += tuple(node["kind"] for node in extra_gather["nodes"])
         scenario = load_scenario(a.scenario, a.mode, tuning)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        inventory = read_inventory(a.inventory, inventory_kinds) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)

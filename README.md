@@ -27,6 +27,10 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
 
+## Sáng tạo của nhóm
+
+Bản trình duyệt có thêm cá kèo, cá rô đồng, kèo nèo và rau muống, cùng ba công thức cá kèo kho tộ, canh chua cá rô kèo nèo và rau muống xào. Dữ liệu nằm trong `chonoi/extra_content.json`. Bật bằng `python -m chonoi.live --mode gather --extra-content` hoặc dùng `--mode quan` để nạp thực đơn mở rộng.
+
 ## Lịch 3 giờ
 
 | Mốc | Phase | Hạn tag |
