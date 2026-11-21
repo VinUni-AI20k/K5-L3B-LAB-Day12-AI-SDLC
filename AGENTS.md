@@ -26,4 +26,5 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `verify-contract` (`.agents/skills/verify-contract/`): Dùng để tự động kiểm tra tính toàn vẹn của `game.contract.json`, schema kho (`docs/contracts/`), và kiểm tra tính tất định từng byte (byte-by-byte determinism) của headless simulation. Chạy: `python3 .agents/skills/verify-contract/verify.py`.
+- `qa-blackbox-check` (`.agents/skills/qa-blackbox-check/`): Dùng cho QA Lead hoặc agent tự động chạy bộ test hồi quy, kiểm thử các kịch bản biên và mã thoát lỗi (`0`, `2`), sau đó tự động lưu kết quả vào `docs/proof/phase-n/`. Chạy: `python3 .agents/skills/qa-blackbox-check/run_qa.py`.
