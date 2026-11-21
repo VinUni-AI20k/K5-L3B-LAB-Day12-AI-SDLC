@@ -1,0 +1,1 @@
+{"gather": {"player": {"pos": [62, 24], "hp": 1}, "random_fish": false, "hold": ["ca_loc", "bong_sung", "ca_linh", "bong_sung"], "monsters": [{"id": "M1", "kind": "ca_sau", "pos": [62, 24], "waypoints": [[60, 24], [64, 24]]}]}}
