@@ -224,6 +224,22 @@ class LiveGame:
         with self._lock:
             self._reset()
 
+    def skip_phase(self):
+        """Kết thúc sớm pha hiện tại (gather -> quan -> shop -> ngày kế) từ phím tắt trên chonoi.live."""
+        with self._lock:
+            if self.session.done:
+                return
+            self.session.paused = False
+            phase = self.session.sim.phase
+            sub = getattr(self.session.sim, "_sub", self.session.sim)
+            if phase == "shop":
+                self.inputs.set(shop_done=True)
+                self._tick_once()
+                self.inputs.set(shop_done=False)
+            else:
+                sub.time_left_ticks = 1
+                self._tick_once()
+
     def switch_mode(self, mode: str, days: int = 5, seed: int = None, sample_stock: bool = False):
         if mode not in ("gather", "quan", "day"):
             raise ValueError("mode phải là gather, quan hoặc day")
@@ -301,6 +317,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self.game.set_input(body)
             elif path == "/restart":
                 self.game.restart()
+            elif path == "/skip_phase":
+                self.game.skip_phase()
             elif path == "/start":
                 body = json.loads(raw.decode("utf-8") or "{}")
                 if not isinstance(body, dict):

@@ -73,6 +73,7 @@ class LiveM5Test(unittest.TestCase):
             "player": {"pos": [12.0, 0.0]},
             "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [12.0, 0.0], "regrow_ticks": 0}],
             "fish": [{"id": "F1", "kind": "ca_linh", "pos": [12.0, 2.0], "heading_deg": 0}],
+            "random_fish": False,
         }
         game = LiveGame("gather", tuning, scenario, seed=1)
         server = LiveServer(game, port=0)
@@ -230,6 +231,27 @@ class LiveM5Test(unittest.TestCase):
             self.assertEqual(st_d2["day"], 2)
             self.assertEqual(st_d2["phase"], "gather")
             self.assertEqual(st_d2["player"]["oxygen_max_ticks"], 2700)
+
+            # 6. Kiểm chứng cá chuyển động khi random_fish=True và phím tắt kết thúc sớm (POST /skip_phase)
+            pos_before = list(st_d2["fish"][0]["pos"])
+            with game._lock:
+                for _ in range(10):
+                    game._tick_once()
+            st_d2_moved = json.loads(_get(base + "/state")[2])
+            self.assertNotEqual(st_d2_moved["fish"][0]["pos"], pos_before, "Đàn cá phải tự bơi khi random_fish=True")
+
+            code, _ = _post(base + "/skip_phase", {})
+            self.assertEqual(code, 200)
+            st_skip_q = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_skip_q["phase"], "quan")
+            code, _ = _post(base + "/skip_phase", {})
+            self.assertEqual(code, 200)
+            st_skip_s = json.loads(_get(base + "/state")[2])
+            self.assertEqual(st_skip_s["phase"], "shop")
+            code, _ = _post(base + "/skip_phase", {})
+            self.assertEqual(code, 200)
+            st_skip_end = json.loads(_get(base + "/state")[2])
+            self.assertTrue(st_skip_end["finished"])
         finally:
             server.httpd.shutdown()
             server.httpd.server_close()
