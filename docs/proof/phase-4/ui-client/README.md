@@ -19,7 +19,7 @@ Chạy lại: `python -X utf8 docs/proof/phase-4/ui-client/cdp_p4.py . docs/proo
 
 | frames | measured_s | avg_fps | p1_low_fps | khung đầu sau khi mở trang |
 |---|---|---|---|---|
-| 1799 | 30.0 | 59.97 | 50.65 | 42 ms |
+| 1800 | 30.017 | 59.97 | 51.4 | 91 ms |
 
 - `avg_fps` và `p1_low_fps` ở đây tính theo công thức `docs/plan/phase-4.md` §0 **chỉ để đối chiếu**. `bench.json` chính thức (5 trường, `load_ms` tính từ lúc chạy lệnh) do `chonoi/bench.py` của Kiên tính; file này **chưa có trên `main`**, nên AC-P4-02 chưa đạt đầu-cuối.
 - Ảnh: [`bench-running.png`](bench-running.png), [`bench-done.png`](bench-done.png).
@@ -54,4 +54,4 @@ Mỗi cảnh báo có **biểu tượng tam giác "!" + chữ** trong khung vi�
 - `python -m unittest tests.test_p4_ui_bench_contrast -v`: 7 test.
   - `/bench`: chưa có kết quả, payload 30 s (> 4 KB) được nhận, 6 payload sai bị 400, giới hạn `/input` không đổi.
   - `index.html` nạp `bench.js` đúng thứ tự; đủ chữ 3 cảnh báo; phím H; `localStorage` có try/catch.
-- Cả bộ: 148/148 (`PYTHONPATH=tests;. python -m unittest discover -s tests`).
+- Cả bộ sau khi gộp `main` @ `48c96b3`: 182 test OK, gồm 5 expected failure của lát khác (`PYTHONPATH=tests;. python -m unittest discover -s tests`).
