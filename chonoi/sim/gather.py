@@ -255,7 +255,7 @@ class GatherSim:
             before = item["fresh"]
             item["fresh"] = max(0, before - decay)
             if not f.is_spoiled(before) and f.is_spoiled(item["fresh"]):
-                events.append(("spoiled", self._visible_item(item)))
+                events.append(("spoiled", {"item_id": item["id"], "kind": item["kind"], "location": "hold"}))  # Ticket-03
 
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:

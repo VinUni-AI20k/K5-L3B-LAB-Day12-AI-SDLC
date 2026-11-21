@@ -49,5 +49,5 @@ Không làm (nhóm 4 người không bắt buộc): bảng xếp hạng cục b�
 - **Đạt:** contract 1.3 và hai lệnh, soak 10 Ngày không sập, bench đúng lệnh và đạt mốc báo cáo, ba cảnh báo và tương phản cao, đóng gói và clone sạch, hồi quy Phase 1–3 xanh trên Windows và CI Ubuntu.
 - **Đạt một phần:** bench (hiệu ứng mặc định chưa rõ, A chưa xác nhận), cảnh báo (mốc 25% giả định), đóng gói (giấy phép MIT giả định), clone sạch (chưa thử macOS/Linux thật).
 - **Chưa đạt:** ghi chép cá nhân và retro Phase 4, tag `phase-4`, Release `v1.0.0`.
-- **Hạn chế chung:** Ticket-02 và Ticket-03 không đọc được trong repo nên nhiều luật là giả định (`docs/clarify.md`); chưa có bộ test ẩn của giảng viên; soak không kiểm luồng nấu, phục vụ, Shop; bench đo bộ vẽ phần mềm.
+- **Hạn chế chung:** Ticket-03 và Ticket-04 đã đối chiếu với đề trên lab board; Ticket-02 chưa nên một số luật Phase 2 vẫn là giả định (`docs/clarify.md`); chưa có bộ test ẩn của giảng viên; soak không kiểm luồng nấu, phục vụ, Shop; bench đo bộ vẽ phần mềm.
 - **Checklist trước khi gắn tag:** (1) A, B, C nộp ghi chép và retro Phase 4; (2) cập nhật các dòng **[CHỜ]** còn lại (số liệu và liên kết CI tại commit gắn tag); (3) chạy lại lệnh ở đầu file tại commit gắn tag và dán kết quả; (4) tag `phase-4` và Release `v1.0.0` cùng commit, đính kèm bản đóng gói (người dùng đồng ý trước khi đẩy tag và tạo Release).
