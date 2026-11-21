@@ -1,0 +1,55 @@
+# Lát 3 Phase 3 (trongnghia2304) — giữ chỗ theo id cá thể, giữ lại khi vừa ươn
+# commit nền bf7cbf8 (main sau PR #18 lát 0 v1.2) + thay đổi lát 3 chưa commit · 2026-11-21 14:53
+# v1.2 chạy bằng manifest tạm (test_lat0_v12.manifest_v12) qua CHONOI_CONTRACT, vì main còn contract 1.1
+
+$ QA_STRICT=1 CHONOI_CONTRACT=<v1.2> python3 -m unittest test_fresh_p3.ReserveById test_fresh_p3.SpoilRetry test_fresh_p3.SpoiledNotCookable test_fresh_p3.FixtureValidation -v   # test QA, AC-P3-12/13/16/17
+test_ac_p3_12_cap_theo_order_tick_roi_id_ban (test_fresh_p3.ReserveById.test_ac_p3_12_cap_theo_order_tick_roi_id_ban) ... ok
+test_ac_p3_12_fixture_thieu_reserved_lay_tuoi_nhat_hoa_id_nho (test_fresh_p3.ReserveById.test_ac_p3_12_fixture_thieu_reserved_lay_tuoi_nhat_hoa_id_nho) ... ok
+test_ac_p3_12_khach_moi_giu_ca_the_tuoi_nhat (test_fresh_p3.ReserveById.test_ac_p3_12_khach_moi_giu_ca_the_tuoi_nhat) ... ok
+test_ac_p3_13_giu_cho_vua_uon_thi_nha_het_va_giu_lai_mot_lan (test_fresh_p3.SpoilRetry.test_ac_p3_13_giu_cho_vua_uon_thi_nha_het_va_giu_lai_mot_lan) ... ok
+test_ac_p3_13_khong_du_thi_unfulfillable_khach_van_cho (test_fresh_p3.SpoilRetry.test_ac_p3_13_khong_du_thi_unfulfillable_khach_van_cho) ... ok
+test_ac_p3_16_hang_uon_khong_dung_nau_no_dish (test_fresh_p3.SpoiledNotCookable.test_ac_p3_16_hang_uon_khong_dung_nau_no_dish) ... ok
+test_ac_p3_17_giu_cho_mau_thuan_ma_2 (test_fresh_p3.FixtureValidation.test_ac_p3_17_giu_cho_mau_thuan_ma_2) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 1.439s
+
+OK
+(trước khi làm lát 3: 5/7 FAIL — ReserveById ×3, SpoilRetry ×2)
+
+$ python3 -m unittest test_quan_p3 -v   # test bổ sung của lát 3 (tự dựng manifest v1.2)
+test_ac_p3_12_kho_tu_inventory_cap_giu_cho_tuoi_nhat (test_quan_p3.FromInventory.test_ac_p3_12_kho_tu_inventory_cap_giu_cho_tuoi_nhat) ... ok
+test_ac_p3_17_kho_tu_inventory_giu_cho_mau_thuan_ma_2 (test_quan_p3.FromInventory.test_ac_p3_17_kho_tu_inventory_giu_cho_mau_thuan_ma_2) ... ok
+test_ac_p3_17_kho_tu_inventory_khong_du_de_cap_ma_2 (test_quan_p3.FromInventory.test_ac_p3_17_kho_tu_inventory_khong_du_de_cap_ma_2) ... ok
+test_ac_p3_12_cong_thuc_nhieu_loai_lay_tuoi_nhat_moi_loai (test_quan_p3.MultiKind.test_ac_p3_12_cong_thuc_nhieu_loai_lay_tuoi_nhat_moi_loai) ... ok
+test_ac_p3_13_hai_don_cung_uon_don_som_hon_giu_lai_truoc (test_quan_p3.SpoilRetryOrder.test_ac_p3_13_hai_don_cung_uon_don_som_hon_giu_lai_truoc)
+I1, I2 cùng ươn ở tick 1; chỉ còn I3 dùng được -> đơn order_tick nhỏ hơn (C2) giữ lại được, C1 unfulfillable. ... ok
+test_ac_p3_13_khong_dung_ca_the_cua_don_khac_dang_giu (test_quan_p3.SpoilRetryOrder.test_ac_p3_13_khong_dung_ca_the_cua_don_khac_dang_giu)
+C1 vừa ươn chỉ được giữ lại từ cá thể chưa ai giữ; I3 đang thuộc C2 (không ươn) thì không lấy. ... ok
+test_ac_p3_13_nha_het_moi_don_bi_anh_huong_roi_moi_giu_lai (test_quan_p3.SpoilRetryOrder.test_ac_p3_13_nha_het_moi_don_bi_anh_huong_roi_moi_giu_lai)
+Gỏi bông súng cần 2. C1 giữ [I1 ươn, I2], C2 (order_tick nhỏ hơn) giữ [I3 ươn, I4]. Nhả hết cả hai đơn ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 1.169s
+
+OK
+kiểm đột biến: (M1) giữ lại theo thứ tự ngược -> FAIL hai_don_cung_uon_don_som_hon_giu_lai_truoc; (M2) không nhả phần giữ trước khi giữ lại -> FAIL nha_het_moi_don_bi_anh_huong_roi_moi_giu_lai; đã hoàn nguyên
+
+$ python3 -m unittest discover -s tests   # manifest thật v1.1: không hồi quy
+Ran 233 tests in 60.458s
+
+OK (skipped=28)
+
+$ QA_STRICT=1 CHONOI_CONTRACT=<v1.2> python3 -m unittest test_fresh_p3   # toàn bộ test QA Phase 3
+FAIL: test_ac_p3_08_ban_giao_cung_tick_hang_khong_hao_them (test_fresh_p3.DayHandoff.test_ac_p3_08_ban_giao_cung_tick_hang_khong_hao_them)
+FAIL: test_ac_p3_08_ngay_ke_cap_id_moi_theo_thu_tu_mang (test_fresh_p3.DayHandoff.test_ac_p3_08_ngay_ke_cap_id_moi_theo_thu_tu_mang)
+FAIL: test_ac_p3_09_shop_giu_kho_ca_the_va_khong_hao (test_fresh_p3.DayHandoff.test_ac_p3_09_shop_giu_kho_ca_the_va_khong_hao)
+FAIL: test_ac_p3_03_gio_hao_0_5_moi_giay (test_fresh_p3.GatherDecay.test_ac_p3_03_gio_hao_0_5_moi_giay)
+FAIL: test_ac_p3_03_hang_moi_hai_duoc_fresh_100_hao_tu_buoc_sau (test_fresh_p3.GatherDecay.test_ac_p3_03_hang_moi_hai_duoc_fresh_100_hao_tu_buoc_sau)
+FAIL: test_ac_p3_10_pause_dung_hao_tuoi (test_fresh_p3.PauseFresh.test_ac_p3_10_pause_dung_hao_tuoi)
+FAIL: test_ac_p3_02_nhieu_ca_the_cung_vuot_nguong_phat_theo_id_dung_mot_lan (test_fresh_p3.SpoiledOnce.test_ac_p3_02_nhieu_ca_the_cung_vuot_nguong_phat_theo_id_dung_mot_lan)
+FAIL: test_ac_p3_01_fresh_30_5_chua_uon_den_buoc_61 (test_fresh_p3.Threshold.test_ac_p3_01_fresh_30_5_chua_uon_den_buoc_61)
+FAIL: test_ac_p3_01_vi_du_ticket_uon_o_buoc_dau_dung_nguong_30 (test_fresh_p3.Threshold.test_ac_p3_01_vi_du_ticket_uon_o_buoc_dau_dung_nguong_30)
+Ran 28 tests in 8.688s
+FAILED (failures=9)
+-> 19/28 đạt. 9 FAIL còn lại thuộc gather v1.2 (hao giỏ, spoiled — mhoo40) và day v1.2 (tiepnnk01-10), không thuộc lát 3.

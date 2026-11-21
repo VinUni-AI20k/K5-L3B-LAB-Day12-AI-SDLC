@@ -90,11 +90,12 @@ Test Contract **v1.2** · hạn tag `phase-3` 2:30. Chia việc theo vai trong [
   - [x] **PO:** chốt 2 giả định Tiệp nêu + thứ tự bước + id trong day theo ticket → `docs/clarify.md` #15–#17, #19
   - [ ] **PO:** nhóm xác nhận ở standup: **không** làm mở rộng Phase 3 (clarify #18)
 - Sau lát 0 (nhánh `feat/p3-quan`, chung với Hùng như Phase 2):
-  - [ ] `_reserve` giữ theo id bằng `pick_freshest`; khách mới giữ cá thể tươi nhất; fixture thiếu `reserved` cấp theo `order_tick` rồi id bàn
-  - [ ] `_spawn_customers` chọn món bằng `usable_by_kind` (bỏ hàng ươn, hàng đã giữ) → `no_dish` khi không món nào đủ
-  - [ ] `_retry_spoiled`: đơn có cá thể giữ vừa ươn → nhả hết, giữ lại một lần, thiếu → `unfulfillable`, khách vẫn chờ
-  - [ ] `_init_customers` kiểm `reserved` mảng id (id lạ, trỏ hàng ươn, sai công thức, dùng chung, kiểu cũ → mã 2)
-  - [ ] Sửa `tests/test_quan_lat3.py`, `tests/test_quan_p2.py` sang kho cá thể
+  - [x] `_reserve` giữ theo id bằng `pick_freshest`; khách mới giữ cá thể tươi nhất; fixture thiếu `reserved` cấp theo `order_tick` rồi id bàn
+  - [x] `_spawn_customers` chọn món bằng `usable_by_kind` (bỏ hàng ươn, hàng đã giữ) → `no_dish` khi không món nào đủ
+  - [x] `_retry_spoiled`: đơn có cá thể giữ vừa ươn → nhả hết, giữ lại một lần, thiếu → `unfulfillable`, khách vẫn chờ
+  - [x] `_init_customers` kiểm `reserved` mảng id (id lạ, trỏ hàng ươn, sai công thức, dùng chung, kiểu cũ → mã 2)
+  - [x] Test v1.2 của lát 3: `test_fresh_p3` (ReserveById, SpoilRetry, SpoiledNotCookable, FixtureValidation) 7/7 + `tests/test_quan_p3.py` 7 test, bằng chứng `docs/proof/phase-3/lat3.txt`
+  - [ ] Khi bật v1.2 trên `main`: chuyển `tests/test_quan_lat3.py`, `tests/test_quan_p2.py` sang kho cá thể (chạy cùng PR bật v1.2)
 - AC: P3-12, 13, 16, 17 (phần khách).
 
 ### nguyenhung1901 — lát 4 (bếp, tiền)
