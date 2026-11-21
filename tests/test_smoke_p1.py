@@ -42,7 +42,9 @@ class Contract(unittest.TestCase):
             for key in ("oxygen_ticks", "hp", "oxygen_max_ticks", "hp_max", "at_surface"):
                 self.assertIn(key, s["player"])
             self.assertEqual(s["hold_capacity"], tuning_gather()["hold_capacity"])
-            self.assertEqual(len(s["fish"]), 6)
+            initial = tuning_gather()["fish_initial"]
+            # v1.0 bị khóa ở tag P1 dùng danh sách, v1.1 dùng số đàn cần sinh.
+            self.assertEqual(len(s["fish"]), len(initial) if isinstance(initial, list) else initial)
             self.assertTrue(all(n["pos"][1] == 0 for n in s["nodes"]))
 
     def test_con_02_deterministic_bytes(self):
@@ -68,9 +70,12 @@ class Contract(unittest.TestCase):
             self.assertFalse(os.path.exists(out))
 
     def test_con_03_old_and_future_modes_rejected(self):
+        with open("game.contract.json", encoding="utf-8") as f:
+            ver = json.load(f).get("contract_version", "1.0")
+        rejected_modes = ("river", "day") if ver == "1.0" else ("river",)
         with Workdir() as w:
             out = w.path("o.jsonl")
-            for mode in ("river", "day"):
+            for mode in rejected_modes:
                 self.assertEqual(run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out)[0], 2, mode)
             self.assertFalse(os.path.exists(out))
             old = write_json(w.path("old.json"), {"river": {"hold": []}})

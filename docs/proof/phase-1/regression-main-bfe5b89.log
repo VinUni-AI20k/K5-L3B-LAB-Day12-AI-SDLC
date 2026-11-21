@@ -1,0 +1,528 @@
+test_dive_from_surface_boundary_counts_first_empty_tick (test_gather_oxygen.GatherOxygen.test_dive_from_surface_boundary_counts_first_empty_tick) ... FAIL
+test_faint_precedes_docking_and_timeout_and_empties_inventory (test_gather_oxygen.GatherOxygen.test_faint_precedes_docking_and_timeout_and_empties_inventory) ... FAIL
+test_invulnerability_is_not_a_v10_fixture_field (test_gather_oxygen.GatherOxygen.test_invulnerability_is_not_a_v10_fixture_field) ... ok
+test_surface_on_choke_tick_refills_and_clears_counter (test_gather_oxygen.GatherOxygen.test_surface_on_choke_tick_refills_and_clears_counter) ... FAIL
+test_catch_fish_underwater_cooldown_and_hold_full (test_gather_rules.GatherHarvestAndCatchTests.test_catch_fish_underwater_cooldown_and_hold_full) ... ok
+test_harvest_blocked_underwater_and_dock_priority (test_gather_rules.GatherHarvestAndCatchTests.test_harvest_blocked_underwater_and_dock_priority) ... ok
+test_harvest_nearest_node_tiebreak_regrow_and_lifo (test_gather_rules.GatherHarvestAndCatchTests.test_harvest_nearest_node_tiebreak_regrow_and_lifo) ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ERROR
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ERROR
+test_arrival_reserves_stock_and_new_customer_waits_from_next_step (test_quan_customers.QuanCustomers.test_arrival_reserves_stock_and_new_customer_waits_from_next_step) ... ok
+test_closing_does_not_penalize_waiting_customer (test_quan_customers.QuanCustomers.test_closing_does_not_penalize_waiting_customer) ... ok
+test_waiting_customer_leaves_and_releases_order (test_quan_customers.QuanCustomers.test_waiting_customer_leaves_and_releases_order) ... ok
+test_closing_pays_eating_and_leaves_waiting_without_rep_loss (test_quan_slice4.QuanSlice4Tests.test_closing_pays_eating_and_leaves_waiting_without_rep_loss) ... ok
+test_cook_picks_oldest_order_then_table_id (test_quan_slice4.QuanSlice4Tests.test_cook_picks_oldest_order_then_table_id) ... ok
+test_full_cook_pick_serve_pay_with_tip (test_quan_slice4.QuanSlice4Tests.test_full_cook_pick_serve_pay_with_tip) ... ok
+test_interact_priority_does_not_fall_through (test_quan_slice4.QuanSlice4Tests.test_interact_priority_does_not_fall_through) ... ok
+test_no_tip_when_patience_below_threshold (test_quan_slice4.QuanSlice4Tests.test_no_tip_when_patience_below_threshold) ... ok
+test_patience_leave_cleans_hand_and_reduces_reputation_without_refund (test_quan_slice4.QuanSlice4Tests.test_patience_leave_cleans_hand_and_reduces_reputation_without_refund) ... ok
+test_serve_at_exact_zero_patience_tick_succeeds (test_quan_slice4.QuanSlice4Tests.test_serve_at_exact_zero_patience_tick_succeeds) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... FAIL
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... FAIL
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... FAIL
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... FAIL
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... FAIL
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... FAIL
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... FAIL
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... FAIL
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... FAIL
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... FAIL
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... FAIL
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+======================================================================
+ERROR: test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_live.py", line 32, in test_state_input_and_clean_stop
+    server = LiveServer(LiveGame("gather", tuning, {}, 1), port=0)  # cổng ngẫu nhiên
+                        ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/live.py", line 50, in __init__
+    self._reset()
+    ~~~~~~~~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/live.py", line 54, in _reset
+    self.session = Session(*self._args)
+                   ~~~~~~~^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+======================================================================
+ERROR: test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_python_starter_units.py", line 65, in test_session_steps_gather_and_dock
+    s = Session("gather", tuning, {"hold": ["ca_loc"]}, 1)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+======================================================================
+FAIL: test_dive_from_surface_boundary_counts_first_empty_tick (test_gather_oxygen.GatherOxygen.test_dive_from_surface_boundary_counts_first_empty_tick)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_gather_oxygen.py", line 34, in test_dive_from_surface_boundary_counts_first_empty_tick
+    rows = self.run_gather(w, {"player": {
+        "pos": [20, self.g["surface_depth"]], "oxygen_ticks": 1,
+    }}, 2 * self.interval, {"tick": 0, "move": [0, 1]})
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_gather_oxygen.py", line 28, in run_gather
+    self.assertEqual(code, 0, stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_faint_precedes_docking_and_timeout_and_empties_inventory (test_gather_oxygen.GatherOxygen.test_faint_precedes_docking_and_timeout_and_empties_inventory)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_gather_oxygen.py", line 74, in test_faint_precedes_docking_and_timeout_and_empties_inventory
+    rows = self.run_gather(w, {
+        "player": {
+    ...<4 lines>...
+        "time_left_ticks": 1,
+    }, 3, {"tick": 0, "interact": True}, inventory_out=inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_gather_oxygen.py", line 28, in run_gather
+    self.assertEqual(code, 0, stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_surface_on_choke_tick_refills_and_clears_counter (test_gather_oxygen.GatherOxygen.test_surface_on_choke_tick_refills_and_clears_counter)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_gather_oxygen.py", line 55, in test_surface_on_choke_tick_refills_and_clears_counter
+    rows = self.run_gather(w, {"player": {
+        "pos": [20, self.g["surface_depth"] + 0.001],
+        "oxygen_ticks": 0, "zero_oxy_ticks": self.interval - 1, "hp": 1,
+    }}, 1, {"tick": 0, "move": [0, -1]})
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_gather_oxygen.py", line 28, in run_gather
+    self.assertEqual(code, 0, stderr)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 28, in test_con_01_ticks_zero_and_end_line
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 54, in test_con_02_deterministic_bytes
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 38, in test_gather_snapshot_has_gather_fields
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 209, in test_inv_01_gather_writes_inventory_quan_reads_it
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 226, in test_inv_01_not_written_when_tick_limit_first
+    self.assertEqual(code, 0)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^
+AssertionError: 1 != 0
+
+======================================================================
+FAIL: test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn).
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 150, in test_move_01_swim_speed_after_ramp
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 161, in test_move_02_heading_positive_is_down
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 179, in test_move_03_edge_clamp
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 136, in test_move_mep_vel_ve_0
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 125, in test_move_ramp_doi_huong_trong_tran
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+======================================================================
+FAIL: test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/tests/test_smoke_p1.py", line 189, in test_time_ends_gather_and_keeps_hold
+    self.assertEqual(code, 0, err)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+AssertionError: 1 != 0 : Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 85, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/headless.py", line 73, in main
+    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
+    ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        inventory=inventory, inventory_out=a.inventory_out)
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 78, in run
+    sess = Session(mode, tuning, scenario, seed, inventory)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 44, in __init__
+    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+               ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/runner.py", line 24, in build_sim
+    return GatherSim(tuning, scenario, streams, ids)
+  File "/home/trihung/WORKSPACE/K5-L3B-LAB-Day12-AI-SDLC-4npc/chonoi/sim/gather.py", line 63, in __init__
+    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                                                     ^^^^^^^^
+TypeError: 'int' object is not iterable
+
+
+----------------------------------------------------------------------
+Ran 49 tests in 6.250s
+
+FAILED (failures=14, errors=2)
