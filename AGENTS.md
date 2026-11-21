@@ -8,6 +8,7 @@
 - Smoke vòng ngày: `python3 -m chonoi.headless --mode day --days 1 --seed 17 --ticks 22200 --out day.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 - Kiểm chứng P1-04 và lưu bằng chứng: `python3 tools/verify_p1_04.py` (cần `python3` trên PATH).
+- Kiểm chứng P2-04: `python3 tools/verify_p2_04.py --integration-ref origin/lehuyanh` (xuất ref vào thư mục tạm, không đổi nhánh). Windows: thêm `.venv/Scripts` vào PATH, đặt `PYTHONPATH=tests;.` và `PYTHONUTF8=1`.
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
@@ -16,6 +17,7 @@
 - Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.
 - P1-03/P1-04 đã tích hợp: helper `chonoi/sim/kitchen.py`; `dish.order_id == customer.id`. Timer, validation và cleanup chạy qua helper một lần; lịch khách trong `quan.py` chạy sau settlement khi chưa đóng ca. Regression: `tests/test_quan_integration.py`. Xem `docs/notes/P1-04.md`.
+- P2-04: Quán 2 bếp/4 bàn/6 món; kho v1.1 nhận thêm `ca_keo`, `keo_neo`, giữ schema `items`. API cũ P2-03 vẫn dùng được; hook tùy chọn `QuanSim(..., day_plan=plan, economy=state)` và `economy_state()` được mô tả trong `docs/notes/P2-04.md`. Đã ghép Day/Shop/Gather/Monster từ main; cần kiểm chứng theo commit tích hợp.
 - P2-03: `DaySim` gọi Gather/Quán và giữ dữ liệu xuyên ngày. `Session` xử lý pause trước mọi timer và phát snapshot `phase_tick: 0` khi đổi pha. Gather nhận `day` và tuning đã áp cấp oxy/Máu. Quán nhận menu lọc theo ngày và kho vật lý.
 
 ## Nên tránh

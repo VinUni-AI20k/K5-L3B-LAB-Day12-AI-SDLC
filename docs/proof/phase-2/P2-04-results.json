@@ -1,0 +1,913 @@
+{
+  "runs": [
+    {
+      "label": "P2-04-tests",
+      "command": [
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\.venv\\Scripts\\python3.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "seconds": 20.229,
+      "stdout": "",
+      "stderr": "",
+      "log": "docs/proof/phase-2/P2-04-tests.txt"
+    },
+    {
+      "label": "default",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "quan",
+        "--seed",
+        "42",
+        "--ticks",
+        "10800",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-default.jsonl"
+      ],
+      "exit_code": 0,
+      "seconds": 0.2847,
+      "stdout": "",
+      "stderr": "",
+      "output": "docs\\proof\\phase-2\\P2-04-default.jsonl",
+      "sha256": "ab7ec0492da333ff89326ac853d9d61eb29cea17cb20be790cee2c3a5713b861",
+      "event_counts": {
+        "no_dish": 12,
+        "quan_end": 1
+      },
+      "end": {
+        "type": "end",
+        "ticks": 10800,
+        "sim_tick": 10800,
+        "mode": "quan",
+        "state": "finished",
+        "reason": "time",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      }
+    },
+    {
+      "label": "service-a",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "quan",
+        "--seed",
+        "42",
+        "--ticks",
+        "10800",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-service-a.jsonl",
+        "--scenario",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\tests\\fixtures\\p2_04_quan.json",
+        "--inputs",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\tests\\fixtures\\p2_04_inputs.json",
+        "--snapshot-every",
+        "1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.6797,
+      "stdout": "",
+      "stderr": "",
+      "output": "docs\\proof\\phase-2\\P2-04-service-a.jsonl",
+      "sha256": "63d6157f406a8540e65974f11a7823f7f7f251d4012d3c5da830d61184e17406",
+      "event_counts": {
+        "cook_started": 4,
+        "dish_ready": 4,
+        "dish_picked": 4,
+        "served": 4,
+        "paid": 4,
+        "quan_end": 1
+      },
+      "end": {
+        "type": "end",
+        "ticks": 10800,
+        "sim_tick": 10800,
+        "mode": "quan",
+        "state": "finished",
+        "reason": "time",
+        "money": 480,
+        "earned": 480,
+        "reputation": 3.8,
+        "score": 780
+      }
+    },
+    {
+      "label": "service-b",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "quan",
+        "--seed",
+        "42",
+        "--ticks",
+        "10800",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-service-b.jsonl",
+        "--scenario",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\tests\\fixtures\\p2_04_quan.json",
+        "--inputs",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\tests\\fixtures\\p2_04_inputs.json",
+        "--snapshot-every",
+        "1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.6899,
+      "stdout": "",
+      "stderr": "",
+      "output": "docs\\proof\\phase-2\\P2-04-service-b.jsonl",
+      "sha256": "63d6157f406a8540e65974f11a7823f7f7f251d4012d3c5da830d61184e17406",
+      "event_counts": {
+        "cook_started": 4,
+        "dish_ready": 4,
+        "dish_picked": 4,
+        "served": 4,
+        "paid": 4,
+        "quan_end": 1
+      },
+      "end": {
+        "type": "end",
+        "ticks": 10800,
+        "sim_tick": 10800,
+        "mode": "quan",
+        "state": "finished",
+        "reason": "time",
+        "money": 480,
+        "earned": 480,
+        "reputation": 3.8,
+        "score": 780
+      }
+    },
+    {
+      "label": "gather-a",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "gather",
+        "--seed",
+        "42",
+        "--ticks",
+        "1",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-gather-a.jsonl",
+        "--scenario",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-dock-scenario.json",
+        "--inputs",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-dock-inputs.json",
+        "--inventory-out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-inventory-a.json"
+      ],
+      "exit_code": 0,
+      "seconds": 0.1615,
+      "stdout": "",
+      "stderr": "",
+      "output": "docs\\proof\\phase-2\\P2-04-gather-a.jsonl",
+      "sha256": "9de906bff7da0869e043908f6726368158519026716fb0f186a7aaeca56725a2",
+      "event_counts": {
+        "gather_end": 1
+      },
+      "end": {
+        "type": "end",
+        "ticks": 1,
+        "sim_tick": 1,
+        "mode": "gather",
+        "state": "finished",
+        "reason": "docked",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      }
+    },
+    {
+      "label": "gather-b",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "gather",
+        "--seed",
+        "42",
+        "--ticks",
+        "1",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-gather-b.jsonl",
+        "--scenario",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-dock-scenario.json",
+        "--inputs",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-dock-inputs.json",
+        "--inventory-out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-inventory-b.json"
+      ],
+      "exit_code": 0,
+      "seconds": 0.1477,
+      "stdout": "",
+      "stderr": "",
+      "output": "docs\\proof\\phase-2\\P2-04-gather-b.jsonl",
+      "sha256": "9de906bff7da0869e043908f6726368158519026716fb0f186a7aaeca56725a2",
+      "event_counts": {
+        "gather_end": 1
+      },
+      "end": {
+        "type": "end",
+        "ticks": 1,
+        "sim_tick": 1,
+        "mode": "gather",
+        "state": "finished",
+        "reason": "docked",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      }
+    },
+    {
+      "label": "inventory-quan",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "quan",
+        "--seed",
+        "42",
+        "--ticks",
+        "0",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-inventory-quan.jsonl",
+        "--inventory",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-inventory-a.json"
+      ],
+      "exit_code": 0,
+      "seconds": 0.1485,
+      "stdout": "",
+      "stderr": "",
+      "output": "docs\\proof\\phase-2\\P2-04-inventory-quan.jsonl",
+      "sha256": "cc113d765784e80d2325494cd42f29a0d5e37b6001e550112498b9285bea6d77",
+      "event_counts": {},
+      "end": {
+        "type": "end",
+        "ticks": 0,
+        "sim_tick": 0,
+        "mode": "quan",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      }
+    },
+    {
+      "label": "current-day-probe",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "day",
+        "--seed",
+        "42",
+        "--ticks",
+        "22200",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-current-day-probe.jsonl",
+        "--days",
+        "1"
+      ],
+      "exit_code": 2,
+      "seconds": 0.147,
+      "stdout": "",
+      "stderr": "usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS\n                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]\n                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]\n                       [--snapshot-every SNAPSHOT_EVERY]\nlỗi: unrecognized arguments: --days 1\n"
+    },
+    {
+      "label": "P2-04-integrated-tests",
+      "command": [
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\.venv\\Scripts\\python3.exe",
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        "tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "seconds": 26.4768,
+      "stdout": "",
+      "stderr": "",
+      "log": "docs/proof/phase-2/P2-04-integrated-tests.txt"
+    },
+    {
+      "label": "day-default",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "day",
+        "--seed",
+        "42",
+        "--ticks",
+        "22200",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-day-default.jsonl",
+        "--days",
+        "1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.5243,
+      "stdout": "",
+      "stderr": "",
+      "output": "docs\\proof\\phase-2\\P2-04-day-default.jsonl",
+      "sha256": "a2e0b1ea1b318e6c3e7f8da988319c4de2cd52816e731f213f70454e085d8e7f",
+      "event_counts": {
+        "day_start": 1,
+        "day_plan": 1,
+        "phase_start": 3,
+        "gather_end": 1,
+        "no_dish": 12,
+        "quan_end": 1,
+        "shop_end": 1
+      },
+      "end": {
+        "type": "end",
+        "ticks": 22200,
+        "sim_tick": 22200,
+        "mode": "day",
+        "state": "finished",
+        "reason": "days_complete",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300,
+        "days_completed": 1
+      }
+    },
+    {
+      "label": "day-service-a",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "day",
+        "--seed",
+        "42",
+        "--ticks",
+        "22200",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-day-service-a.jsonl",
+        "--days",
+        "1",
+        "--scenario",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-day-scenario.json",
+        "--inputs",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-day-inputs.json",
+        "--snapshot-every",
+        "1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.821,
+      "stdout": "",
+      "stderr": "",
+      "output": "docs\\proof\\phase-2\\P2-04-day-service-a.jsonl",
+      "sha256": "f92cff93727be6448dc2748e0e53549dec23bfd5186f6ac34a07b3b7f9d187b0",
+      "event_counts": {
+        "day_start": 1,
+        "day_plan": 1,
+        "phase_start": 3,
+        "gather_end": 1,
+        "cook_started": 4,
+        "dish_ready": 4,
+        "dish_picked": 4,
+        "served": 4,
+        "paid": 4,
+        "quan_end": 1,
+        "bought": 1,
+        "shop_end": 1
+      },
+      "end": {
+        "type": "end",
+        "ticks": 10802,
+        "sim_tick": 10802,
+        "mode": "day",
+        "state": "finished",
+        "reason": "days_complete",
+        "money": 480,
+        "earned": 930,
+        "reputation": 3.8,
+        "score": 1230,
+        "days_completed": 1
+      }
+    },
+    {
+      "label": "day-service-b",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "day",
+        "--seed",
+        "42",
+        "--ticks",
+        "22200",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-day-service-b.jsonl",
+        "--days",
+        "1",
+        "--scenario",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-day-scenario.json",
+        "--inputs",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-day-inputs.json",
+        "--snapshot-every",
+        "1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.8013,
+      "stdout": "",
+      "stderr": "",
+      "output": "docs\\proof\\phase-2\\P2-04-day-service-b.jsonl",
+      "sha256": "f92cff93727be6448dc2748e0e53549dec23bfd5186f6ac34a07b3b7f9d187b0",
+      "event_counts": {
+        "day_start": 1,
+        "day_plan": 1,
+        "phase_start": 3,
+        "gather_end": 1,
+        "cook_started": 4,
+        "dish_ready": 4,
+        "dish_picked": 4,
+        "served": 4,
+        "paid": 4,
+        "quan_end": 1,
+        "bought": 1,
+        "shop_end": 1
+      },
+      "end": {
+        "type": "end",
+        "ticks": 10802,
+        "sim_tick": 10802,
+        "mode": "day",
+        "state": "finished",
+        "reason": "days_complete",
+        "money": 480,
+        "earned": 930,
+        "reputation": 3.8,
+        "score": 1230,
+        "days_completed": 1
+      }
+    },
+    {
+      "label": "two-days-service",
+      "command": [
+        "python3",
+        "-m",
+        "chonoi.headless",
+        "--mode",
+        "day",
+        "--seed",
+        "42",
+        "--ticks",
+        "44400",
+        "--out",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-two-days-service.jsonl",
+        "--days",
+        "2",
+        "--scenario",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-day-scenario.json",
+        "--inputs",
+        "C:\\Users\\admin\\Downloads\\AIthucchien\\K5-L3B-LAB-Day12-AI-SDLC-CodexGemini\\docs\\proof\\phase-2\\P2-04-two-days-inputs.json",
+        "--snapshot-every",
+        "100"
+      ],
+      "exit_code": 0,
+      "seconds": 0.3517,
+      "stdout": "",
+      "stderr": "",
+      "output": "docs\\proof\\phase-2\\P2-04-two-days-service.jsonl",
+      "sha256": "50c38a98c03b4d5dabbe5d6640a67f9cbe05d646f34d0c0fd96792e25095ef1b",
+      "event_counts": {
+        "day_start": 2,
+        "day_plan": 2,
+        "phase_start": 6,
+        "gather_end": 2,
+        "cook_started": 8,
+        "dish_ready": 8,
+        "dish_picked": 8,
+        "served": 8,
+        "paid": 8,
+        "quan_end": 2,
+        "bought": 2,
+        "shop_end": 2
+      },
+      "end": {
+        "type": "end",
+        "ticks": 21604,
+        "sim_tick": 21604,
+        "mode": "day",
+        "state": "finished",
+        "reason": "days_complete",
+        "money": 710,
+        "earned": 1410,
+        "reputation": 4.6,
+        "score": 1810,
+        "days_completed": 2
+      }
+    }
+  ],
+  "base_commit": "14cb40f3b4affa147b95a4621a2635beb442ed02",
+  "branch": "RESTAURANTEXPANSION",
+  "python": "3.14.10 (tags/v3.14.10:b703b2c, Oct 25 2026, 17:36:52) [MSC v.1944 64 bit (AMD64)]",
+  "current_branch_day": "PARTIAL: P2-03 is not integrated on this branch",
+  "source_sha256": {
+    "game.contract.json": "e8099bb1171c3b712ed70f365ffb85fb3d90c27cb0918c993e057aa1ad76b4c0",
+    "chonoi/sim/quan.py": "b121a08b4e74bceb0dcb83cabf77485d6b43ffe6d0517f2e477084358db3c9ad",
+    "chonoi/sim/kitchen.py": "c51f9318d15afdc9876ee8f55149e7cad4ac988934a7571a6adbd27723e0e981",
+    "chonoi/inventory.py": "7f2f41433efdbfb20796079043472674633e69e25d8068ff50539ba333a67fee",
+    "chonoi/scenario.py": "b11e76dd3874dd96ffe85dcd348ecf64ca2d4a41880f9528a05ec866bf079083",
+    "tests/test_restaurant_expansion.py": "938cc0367dc62520d6b6dd128e03e0b46a9d082aadeedc2e07f843bf6fa02bc7",
+    "tests/test_quan_integration.py": "a82603113e5140fdb015a4b791832eea1c025408c47de81bb6950834571a5fc3",
+    "tests/fixtures/p2_04_quan.json": "c9e644552f416811b08c8798129deb3c6fda73037b17339032ae16835b33b0e5",
+    "tests/fixtures/p2_04_inputs.json": "9ef7c2a310fcc5564b8471eb439c50e242074fda92c2e7fec059a70e2075c69e",
+    "tools/verify_p2_04.py": "673d086ff9d662c3d06249006f972540808ca0dcaa5cf60ee9c6a05fdf6511dd"
+  },
+  "standalone": {
+    "status": "PASS",
+    "deterministic_bytes": true,
+    "events": [
+      {
+        "type": "event",
+        "tick": 1,
+        "phase": "quan",
+        "name": "cook_started",
+        "data": {
+          "stove_id": "B1",
+          "order_id": "C10",
+          "dish_id": "canh_chua_ca_loc",
+          "base_price": 90,
+          "items": [
+            "bong_dien_dien",
+            "ca_loc"
+          ]
+        }
+      },
+      {
+        "type": "event",
+        "tick": 54,
+        "phase": "quan",
+        "name": "cook_started",
+        "data": {
+          "stove_id": "B2",
+          "order_id": "C2",
+          "dish_id": "ca_keo_nuong",
+          "base_price": 70,
+          "items": [
+            "ca_keo",
+            "ca_keo"
+          ]
+        }
+      },
+      {
+        "type": "event",
+        "tick": 414,
+        "phase": "quan",
+        "name": "dish_ready",
+        "data": {
+          "stove_id": "B2",
+          "order_id": "C2",
+          "dish_id": "ca_keo_nuong"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 481,
+        "phase": "quan",
+        "name": "dish_ready",
+        "data": {
+          "stove_id": "B1",
+          "order_id": "C10",
+          "dish_id": "canh_chua_ca_loc"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 481,
+        "phase": "quan",
+        "name": "dish_picked",
+        "data": {
+          "stove_id": "B1",
+          "order_id": "C10",
+          "dish_id": "canh_chua_ca_loc"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 483,
+        "phase": "quan",
+        "name": "cook_started",
+        "data": {
+          "stove_id": "B1",
+          "order_id": "C30",
+          "dish_id": "lau_mam",
+          "base_price": 200,
+          "items": [
+            "bong_dien_dien",
+            "ca_keo",
+            "ca_linh",
+            "ca_linh",
+            "keo_neo"
+          ]
+        }
+      },
+      {
+        "type": "event",
+        "tick": 692,
+        "phase": "quan",
+        "name": "served",
+        "data": {
+          "order_id": "C10",
+          "dish_id": "canh_chua_ca_loc",
+          "base_price": 90,
+          "table_id": "T1",
+          "patience_ticks_left": 2908,
+          "tip": 18
+        }
+      },
+      {
+        "type": "event",
+        "tick": 856,
+        "phase": "quan",
+        "name": "dish_picked",
+        "data": {
+          "stove_id": "B2",
+          "order_id": "C2",
+          "dish_id": "ca_keo_nuong"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 858,
+        "phase": "quan",
+        "name": "cook_started",
+        "data": {
+          "stove_id": "B2",
+          "order_id": "C4",
+          "dish_id": "goi_bong_sung",
+          "base_price": 40,
+          "items": [
+            "bong_sung",
+            "bong_sung"
+          ]
+        }
+      },
+      {
+        "type": "event",
+        "tick": 1082,
+        "phase": "quan",
+        "name": "served",
+        "data": {
+          "order_id": "C2",
+          "dish_id": "ca_keo_nuong",
+          "base_price": 70,
+          "table_id": "T2",
+          "patience_ticks_left": 2518,
+          "tip": 14
+        }
+      },
+      {
+        "type": "event",
+        "tick": 1098,
+        "phase": "quan",
+        "name": "dish_ready",
+        "data": {
+          "stove_id": "B2",
+          "order_id": "C4",
+          "dish_id": "goi_bong_sung"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 1203,
+        "phase": "quan",
+        "name": "dish_ready",
+        "data": {
+          "stove_id": "B1",
+          "order_id": "C30",
+          "dish_id": "lau_mam"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 1292,
+        "phase": "quan",
+        "name": "paid",
+        "data": {
+          "order_id": "C10",
+          "table_id": "T1",
+          "base_price": 90,
+          "tip": 18,
+          "amount": 108,
+          "reason": "finished_eating"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 1351,
+        "phase": "quan",
+        "name": "dish_picked",
+        "data": {
+          "stove_id": "B1",
+          "order_id": "C30",
+          "dish_id": "lau_mam"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 1500,
+        "phase": "quan",
+        "name": "served",
+        "data": {
+          "order_id": "C30",
+          "dish_id": "lau_mam",
+          "base_price": 200,
+          "table_id": "T3",
+          "patience_ticks_left": 2100,
+          "tip": 40
+        }
+      },
+      {
+        "type": "event",
+        "tick": 1604,
+        "phase": "quan",
+        "name": "dish_picked",
+        "data": {
+          "stove_id": "B2",
+          "order_id": "C4",
+          "dish_id": "goi_bong_sung"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 1682,
+        "phase": "quan",
+        "name": "paid",
+        "data": {
+          "order_id": "C2",
+          "table_id": "T2",
+          "base_price": 70,
+          "tip": 14,
+          "amount": 84,
+          "reason": "finished_eating"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 1768,
+        "phase": "quan",
+        "name": "served",
+        "data": {
+          "order_id": "C4",
+          "dish_id": "goi_bong_sung",
+          "base_price": 40,
+          "table_id": "T4",
+          "patience_ticks_left": 1832,
+          "tip": 8
+        }
+      },
+      {
+        "type": "event",
+        "tick": 2100,
+        "phase": "quan",
+        "name": "paid",
+        "data": {
+          "order_id": "C30",
+          "table_id": "T3",
+          "base_price": 200,
+          "tip": 40,
+          "amount": 240,
+          "reason": "finished_eating"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 2368,
+        "phase": "quan",
+        "name": "paid",
+        "data": {
+          "order_id": "C4",
+          "table_id": "T4",
+          "base_price": 40,
+          "tip": 8,
+          "amount": 48,
+          "reason": "finished_eating"
+        }
+      },
+      {
+        "type": "event",
+        "tick": 10800,
+        "phase": "quan",
+        "name": "quan_end",
+        "data": {
+          "reason": "time",
+          "money": 480,
+          "earned": 480,
+          "shift_earned": 480,
+          "reputation": 3.8
+        }
+      }
+    ],
+    "end": {
+      "type": "end",
+      "ticks": 10800,
+      "sim_tick": 10800,
+      "mode": "quan",
+      "state": "finished",
+      "reason": "time",
+      "money": 480,
+      "earned": 480,
+      "reputation": 3.8,
+      "score": 780
+    }
+  },
+  "inventory": {
+    "deterministic_bytes": true,
+    "stock": {
+      "bong_dien_dien": 1,
+      "bong_sung": 1,
+      "ca_keo": 1,
+      "ca_linh": 1,
+      "ca_loc": 1,
+      "keo_neo": 1
+    }
+  },
+  "integration_ref": {
+    "ref": "origin/lehuyanh",
+    "commit": "380e679395d5d5bd0d523f16948e6428e3ed8f34",
+    "overlay": [
+      "chonoi/sim/quan.py",
+      "chonoi/sim/kitchen.py",
+      "chonoi/inventory.py",
+      "tests/test_restaurant_expansion.py",
+      "tests/test_quan_integration.py",
+      "tests/fixtures/p2_04_quan.json",
+      "tests/fixtures/p2_04_inputs.json",
+      "game.contract.json: quan/menu/version only"
+    ]
+  },
+  "day_integration": {
+    "status": "PASS in isolated export; not merged into working branch",
+    "one_day_deterministic_bytes": true,
+    "one_day_end": {
+      "type": "end",
+      "ticks": 10802,
+      "sim_tick": 10802,
+      "mode": "day",
+      "state": "finished",
+      "reason": "days_complete",
+      "money": 480,
+      "earned": 930,
+      "reputation": 3.8,
+      "score": 1230,
+      "days_completed": 1
+    },
+    "two_days_end": {
+      "type": "end",
+      "ticks": 21604,
+      "sim_tick": 21604,
+      "mode": "day",
+      "state": "finished",
+      "reason": "days_complete",
+      "money": 710,
+      "earned": 1410,
+      "reputation": 4.6,
+      "score": 1810,
+      "days_completed": 2
+    }
+  },
+  "overall": "PARTIAL: restaurant PASS; current branch awaits P2-03 integration",
+  "commit_manifest": {
+    "sha256": "4d352d40bda491ee217ed3365e48adc72536902087e1194f08647075cbf321b4",
+    "excluded_preexisting_fields": [
+      "team",
+      "team_size"
+    ],
+    "tuning_matches_tested_working_tree": true,
+    "note": "source_sha256 records the tested working tree, including the user's local metadata; only team/team_size are excluded from the committed manifest."
+  }
+}

@@ -8,6 +8,7 @@ from copy import deepcopy
 
 from ..errors import BadInput
 from ..ids import sort_by_id
+from ..inventory import validate_items
 from .kitchen import KitchenServingMixin
 from .ramp import ramp_velocity
 
@@ -16,14 +17,36 @@ class QuanSim(KitchenServingMixin):
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, *, day_plan=None, economy=None):
+        """Standalone by default; P2-03 can pass a per-day plan and economy.
+
+        day_plan uses its existing {dishes: {dish_id: servings}} object. Counts
+        are gathering goals, never sales caps. economy is a copied map with
+        money/earned/reputation; hand it back via economy_state() after closing.
+        These are Python integration hooks, not additional scenario fields.
+        """
         # LiveGame restart must not reuse mutated customers, reservations or dishes.
         scenario = deepcopy(scenario)
         t = tuning["quan"]
         self.t = t
         self.tick_hz = tuning["tick_hz"]
         self.tick = 0
-        self.menu = tuning["menu"]
+        self.menu = deepcopy(tuning["menu"])
+        self.allowed_dishes = tuple(sorted(self.menu))
+        if day_plan is not None:
+            dishes = day_plan.get("dishes") if isinstance(day_plan, dict) else None
+            if (not isinstance(dishes, dict) or not dishes
+                    or any(d not in self.menu or type(count) is not int or count <= 0
+                           for d, count in dishes.items())):
+                raise BadInput("day_plan.dishes cần các món hợp lệ với số suất nguyên dương")
+            self.allowed_dishes = tuple(sorted(dishes))
+        if (day_plan is not None or economy is not None) and {"stock", "reputation"} & scenario.keys():
+            raise BadInput("day không nhận quan.stock/reputation; dùng inventory và economy")
+        if economy is not None:
+            if (not isinstance(economy, dict) or set(economy) != {"money", "earned", "reputation"}
+                    or any(type(economy[k]) is not int for k in ("money", "earned"))
+                    or not 0 <= economy["money"] <= economy["earned"]):
+                raise BadInput("economy cần money/earned nguyên, 0 <= money <= earned và reputation")
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -32,7 +55,9 @@ class QuanSim(KitchenServingMixin):
         self._tgt = None
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
-        self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
+        if inventory is not None and "stock" in scenario:
+            raise BadInput("vừa có quan.stock vừa có inventory")
+        self.stock = validate_items(inventory if inventory is not None else scenario.get("stock", {}))
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", self._ticks(t["duration_s"]))
         self.phase_tick = 0
@@ -41,7 +66,8 @@ class QuanSim(KitchenServingMixin):
         self.random_customers = scenario.get("random_customers", True)
         if not isinstance(self.random_customers, bool):
             raise BadInput("random_customers phải là boolean")
-        self.reputation = scenario.get("reputation", t["reputation_initial"])
+        self.reputation = (economy["reputation"] if economy is not None
+                           else scenario.get("reputation", t["reputation_initial"]))
         self.stoves = [dict(s, state=s.get("state", "idle"), dish=s.get("dish"),
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
@@ -49,12 +75,16 @@ class QuanSim(KitchenServingMixin):
         self.customers = [dict(c) for c in scenario.get("customers", [])]
         for e in self.customers:
             ids.reserve(e["id"])
-        self.money = 0
-        self.earned = 0
+        self.money = economy["money"] if economy is not None else 0
+        self.earned = economy["earned"] if economy is not None else 0
         self.shift_earned = 0
         self.done = False
         self.reason = None
         self._validate_kitchen_state()
+
+    def economy_state(self):
+        """Copy totals to P2-03/Shop without sharing mutable restaurant state."""
+        return {"money": self.money, "earned": self.earned, "reputation": self.reputation}
 
     @staticmethod
     def _merge(defaults, updates):
@@ -110,7 +140,7 @@ class QuanSim(KitchenServingMixin):
             return
         table_id = table["id"]
         available = self._available_stock()
-        dishes = [dish_id for dish_id in sorted(self.menu)
+        dishes = [dish_id for dish_id in self.allowed_dishes
                   if all(available.get(kind, 0) >= count for kind, count in self.menu[dish_id]["recipe"].items())]
         if not dishes:
             events.append(("no_dish", {}))

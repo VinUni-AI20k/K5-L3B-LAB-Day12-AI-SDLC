@@ -1,0 +1,671 @@
+{
+  "frames": [
+    {
+      "tick": 0,
+      "interact": true
+    },
+    {
+      "tick": 1,
+      "interact": false
+    },
+    {
+      "tick": 2,
+      "interact": true
+    },
+    {
+      "tick": 3,
+      "interact": false
+    },
+    {
+      "tick": 4,
+      "move": [
+        1,
+        0
+      ]
+    },
+    {
+      "tick": 49,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 55,
+      "interact": true
+    },
+    {
+      "tick": 56,
+      "interact": false
+    },
+    {
+      "tick": 57,
+      "move": [
+        -1,
+        0
+      ]
+    },
+    {
+      "tick": 102,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 482,
+      "interact": true
+    },
+    {
+      "tick": 483,
+      "interact": false
+    },
+    {
+      "tick": 484,
+      "interact": true
+    },
+    {
+      "tick": 485,
+      "interact": false
+    },
+    {
+      "tick": 486,
+      "move": [
+        1,
+        0
+      ]
+    },
+    {
+      "tick": 591,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 597,
+      "move": [
+        0,
+        -1
+      ]
+    },
+    {
+      "tick": 687,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 693,
+      "interact": true
+    },
+    {
+      "tick": 694,
+      "interact": false
+    },
+    {
+      "tick": 695,
+      "move": [
+        -1,
+        0
+      ]
+    },
+    {
+      "tick": 755,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 761,
+      "move": [
+        0,
+        1
+      ]
+    },
+    {
+      "tick": 851,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 857,
+      "interact": true
+    },
+    {
+      "tick": 858,
+      "interact": false
+    },
+    {
+      "tick": 859,
+      "interact": true
+    },
+    {
+      "tick": 860,
+      "interact": false
+    },
+    {
+      "tick": 861,
+      "move": [
+        1,
+        0
+      ]
+    },
+    {
+      "tick": 981,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 987,
+      "move": [
+        0,
+        -1
+      ]
+    },
+    {
+      "tick": 1077,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 1083,
+      "interact": true
+    },
+    {
+      "tick": 1084,
+      "interact": false
+    },
+    {
+      "tick": 1085,
+      "move": [
+        -1,
+        0
+      ]
+    },
+    {
+      "tick": 1250,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 1256,
+      "move": [
+        0,
+        1
+      ]
+    },
+    {
+      "tick": 1346,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 1352,
+      "interact": true
+    },
+    {
+      "tick": 1353,
+      "interact": false
+    },
+    {
+      "tick": 1354,
+      "move": [
+        1,
+        0
+      ]
+    },
+    {
+      "tick": 1459,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 1465,
+      "move": [
+        0,
+        -1
+      ]
+    },
+    {
+      "tick": 1495,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 1501,
+      "interact": true
+    },
+    {
+      "tick": 1502,
+      "interact": false
+    },
+    {
+      "tick": 1503,
+      "move": [
+        -1,
+        0
+      ]
+    },
+    {
+      "tick": 1563,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 1569,
+      "move": [
+        0,
+        1
+      ]
+    },
+    {
+      "tick": 1599,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 1605,
+      "interact": true
+    },
+    {
+      "tick": 1606,
+      "interact": false
+    },
+    {
+      "tick": 1607,
+      "move": [
+        1,
+        0
+      ]
+    },
+    {
+      "tick": 1727,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 1733,
+      "move": [
+        0,
+        -1
+      ]
+    },
+    {
+      "tick": 1763,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 1769,
+      "interact": true
+    },
+    {
+      "tick": 1770,
+      "interact": false
+    },
+    {
+      "tick": 10801,
+      "buy": "oxygen",
+      "shop_done": true
+    },
+    {
+      "tick": 10802,
+      "shop_done": false,
+      "interact": true
+    },
+    {
+      "tick": 10803,
+      "interact": false
+    },
+    {
+      "tick": 10804,
+      "interact": true
+    },
+    {
+      "tick": 10805,
+      "interact": false
+    },
+    {
+      "tick": 10806,
+      "move": [
+        1,
+        0
+      ]
+    },
+    {
+      "tick": 10851,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 10857,
+      "interact": true
+    },
+    {
+      "tick": 10858,
+      "interact": false
+    },
+    {
+      "tick": 10859,
+      "move": [
+        -1,
+        0
+      ]
+    },
+    {
+      "tick": 10904,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 11284,
+      "interact": true
+    },
+    {
+      "tick": 11285,
+      "interact": false
+    },
+    {
+      "tick": 11286,
+      "interact": true
+    },
+    {
+      "tick": 11287,
+      "interact": false
+    },
+    {
+      "tick": 11288,
+      "move": [
+        1,
+        0
+      ]
+    },
+    {
+      "tick": 11393,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 11399,
+      "move": [
+        0,
+        -1
+      ]
+    },
+    {
+      "tick": 11489,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 11495,
+      "interact": true
+    },
+    {
+      "tick": 11496,
+      "interact": false
+    },
+    {
+      "tick": 11497,
+      "move": [
+        -1,
+        0
+      ]
+    },
+    {
+      "tick": 11557,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 11563,
+      "move": [
+        0,
+        1
+      ]
+    },
+    {
+      "tick": 11653,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 11659,
+      "interact": true
+    },
+    {
+      "tick": 11660,
+      "interact": false
+    },
+    {
+      "tick": 11661,
+      "interact": true
+    },
+    {
+      "tick": 11662,
+      "interact": false
+    },
+    {
+      "tick": 11663,
+      "move": [
+        1,
+        0
+      ]
+    },
+    {
+      "tick": 11783,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 11789,
+      "move": [
+        0,
+        -1
+      ]
+    },
+    {
+      "tick": 11879,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 11885,
+      "interact": true
+    },
+    {
+      "tick": 11886,
+      "interact": false
+    },
+    {
+      "tick": 11887,
+      "move": [
+        -1,
+        0
+      ]
+    },
+    {
+      "tick": 12052,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 12058,
+      "move": [
+        0,
+        1
+      ]
+    },
+    {
+      "tick": 12148,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 12154,
+      "interact": true
+    },
+    {
+      "tick": 12155,
+      "interact": false
+    },
+    {
+      "tick": 12156,
+      "move": [
+        1,
+        0
+      ]
+    },
+    {
+      "tick": 12261,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 12267,
+      "move": [
+        0,
+        -1
+      ]
+    },
+    {
+      "tick": 12297,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 12303,
+      "interact": true
+    },
+    {
+      "tick": 12304,
+      "interact": false
+    },
+    {
+      "tick": 12305,
+      "move": [
+        -1,
+        0
+      ]
+    },
+    {
+      "tick": 12365,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 12371,
+      "move": [
+        0,
+        1
+      ]
+    },
+    {
+      "tick": 12401,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 12407,
+      "interact": true
+    },
+    {
+      "tick": 12408,
+      "interact": false
+    },
+    {
+      "tick": 12409,
+      "move": [
+        1,
+        0
+      ]
+    },
+    {
+      "tick": 12529,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 12535,
+      "move": [
+        0,
+        -1
+      ]
+    },
+    {
+      "tick": 12565,
+      "move": [
+        0,
+        0
+      ]
+    },
+    {
+      "tick": 12571,
+      "interact": true
+    },
+    {
+      "tick": 12572,
+      "interact": false
+    },
+    {
+      "tick": 21603,
+      "buy": "hp",
+      "shop_done": true
+    }
+  ]
+}
