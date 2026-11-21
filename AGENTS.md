@@ -17,6 +17,7 @@
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.
 - P1-03/P1-04 đã tích hợp: helper `chonoi/sim/kitchen.py`; `dish.order_id == customer.id`. Timer, validation và cleanup chạy qua helper một lần; lịch khách trong `quan.py` chạy sau settlement khi chưa đóng ca. Regression: `tests/test_quan_integration.py`. Xem `docs/notes/P1-04.md`.
 - P2-03: `DaySim` gọi Gather/Quán và giữ dữ liệu xuyên ngày. `Session` xử lý pause trước mọi timer và phát snapshot `phase_tick: 0` khi đổi pha. Gather nhận `day` và tuning đã áp cấp oxy/Máu. Quán nhận menu lọc theo ngày và kho vật lý.
+- P3-02: file kho v1.2 dùng `{"items":[{"id":"I1","kind":"ca_linh","fresh":100.0}]}`; `IdRegistry` giữ bộ đếm I xuyên pha/ngày. `headless.py` và `live.py` là CLI thực tế; `--inventory` từ chối object đếm cũ. Xem `docs/plan/phase-3.md` và `docs/verification/phase-3.md`.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).
