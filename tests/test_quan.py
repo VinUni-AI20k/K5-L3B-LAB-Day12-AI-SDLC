@@ -257,6 +257,15 @@ class FreshStock(unittest.TestCase):
         self.assertEqual([x["id"] for x in d["items"]], ["I1"])
         self.assertEqual(s.sim.snapshot()["stock"], [])  # cá thể đã vào bếp, ra khỏi kho
 
+    def test_cook_started_items_sorted_by_kind_then_id(self):
+        # goi_bong_sung: bông súng ×? — dùng món nhiều loại: lẩu cá linh = ca_linh ×3 + bong_dien_dien ×1
+        sc = {"quan": {"player": {"pos": [2, 8]}, "random_customers": False,
+                       "stock": [fx("I1", "ca_linh"), fx("I2", "bong_dien_dien"), fx("I3", "ca_linh"), fx("I10", "ca_linh")],
+                       "customers": [dict(CUST, dish_id="lau_ca_linh_dien_dien")]}}
+        ev = run(make(sc), 1, press())
+        self.assertEqual([(x["kind"], x["id"]) for x in ev[0][2]["items"]],
+                         [("bong_dien_dien", "I2"), ("ca_linh", "I1"), ("ca_linh", "I3"), ("ca_linh", "I10")])
+
     def test_reserved_spoiled_or_unknown_in_fixture_exit_2(self):
         from chonoi.errors import BadInput
         for st, rs in (([fx("I1", fresh=20)], ["I1"]), ([fx("I1")], ["I9"])):

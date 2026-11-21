@@ -218,7 +218,7 @@ class QuanSim:
             c = min(waiting, key=lambda c: (c["order_tick"], id_key(c["table_id"])))
             used = by_id([it for it in self.stock if it["id"] in set(c["reserved"])])
             self.stock = [it for it in self.stock if it["id"] not in set(c["reserved"])]
-            items = [public(it) for it in used]
+            items = [public(it) for it in sorted(used, key=lambda it: (it["kind"], id_key(it["id"])))]  # theo kind rồi id
             price = fresh_price(self.menu[c["dish_id"]]["price"], used)  # giá theo độ tươi lúc bắt đầu nấu
             c["reserved"] = []
             c["order_status"] = "assigned"
