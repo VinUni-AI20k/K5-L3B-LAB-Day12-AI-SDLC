@@ -7,6 +7,7 @@ Liệt kê asset ngoài (nguồn, giấy phép CC0/CC-BY/MIT) và công cụ AI 
 | Asset | Nguồn / cách tạo | Giấy phép |
 |---|---|---|
 | 21 hình SVG trong `chonoi/web/assets/` (Út Sen, cá linh / lóc / kèo, Cá Sấu Năm Chèo, bông điên điển / súng, kèo nèo, bến, bếp, bàn, khách, 6 món, 3 biểu tượng cảnh báo) | Vẽ bằng code, sinh bởi `tools/gen_assets.py` (chạy lại được, có test so khớp) | Tự tạo, cùng giấy phép với repo |
+| Giao diện mode `day` "Sạp đêm chợ nổi" (Shop, màn chuyển pha, tạm dừng, tổng kết; sprite pixel đồng xu, bình oxy, áo phao, đèn lồng, sao) | Vẽ bằng code trong `chonoi/web/day.js` (lưới pixel + canvas), không có file ảnh | Tự tạo, cùng giấy phép với repo |
 | 24 hiệu ứng âm thanh | Tổng hợp bằng Web Audio trong `chonoi/web/assets/sfx.js` (dao động + nhiễu), không có file âm thanh | Tự tạo, cùng giấy phép với repo |
 
 ## Công cụ AI

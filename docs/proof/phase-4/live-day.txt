@@ -1,0 +1,29 @@
+# AC-P4-11 — live --mode day: chơi trọn Ngày trên giao diện (trongnghia2304) · commit nền 80ce549 + thay đổi chưa commit · 2026-11-21 16:56
+
+Lệnh demo (Ngày chuẩn 180 s sáng + 180 s tối + Shop 10 s):  python3 -m chonoi.live --mode day [--days 1..5]
+Phím: WASD/mũi tên đi · E cập bến/hái/bếp/bàn · Space bắt cá · P hoặc Esc tạm dừng · Shop: 1 mua Bình oxy, 2 mua Áo phao, Enter đóng Shop (hoặc bấm chuột) · R chơi lại
+
+$ python3 -m unittest test_live_day test_live -v
+test_ac_p4_11_mot_ngay_qua_shop_mua_va_dong (test_live_day.LiveDayTest.test_ac_p4_11_mot_ngay_qua_shop_mua_va_dong) ... ok
+test_input_sai_va_file_tinh (test_live_day.LiveDayTest.test_input_sai_va_file_tinh) ... ok
+test_pause_qua_live (test_live_day.LiveDayTest.test_pause_qua_live) ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+Ran 4 tests in 2.454s
+OK
+
+$ python3 -m unittest discover -s tests
+Ran 236 tests in 58.523s
+
+OK
+
+## Chơi thử trên trình duyệt (Ngày ngắn: scenario day money 300, gather/quan time_left_ticks 300, --days 2)
+- live-day-1-dayintro.jpg: 'Ngày 1/2', món Má Tư định nấu, nguyên liệu cần; HUD góc phải 'Cần lấy' đã lấy/cần
+- live-day-2-eveningintro.jpg: 'Mở quán — tối Ngày 1', kho mang về; cảnh quán 2 bếp / 4 bàn vẽ đúng trong mode day
+- live-day-3-dayresult-shop.jpg: 'Kết thúc Ngày 1' (phục vụ/bỏ đi, thu, boa, uy tín) đè trên Shop
+- live-day-4-shop-mua.jpg: Shop sau khi mua Áo phao cấp 1 (−250): tiền 50, nút mua mờ khi thiếu tiền, thông báo bought
+- live-day-5-tam-dung.jpg: P -> 'Tạm dừng', mờ nền
+- live-day-6-tong-ket.jpg: Tổng kết 2/2 Ngày, tiền, tổng thu, uy tín, điểm, từng Ngày
+- /state sau Ngày 1 mua Bình oxy: Ngày 2 active_upgrades {oxygen: 1}, money 300 -> 100; sự kiện bought t1177, shop_end t1200, day_start t1200
+- Console trình duyệt: không có lỗi.
+- live-day-7-asset-tiep.jpg: sau khi gộp asset của Tiệp (PR #22): HUD Ngày dời xuống dưới dòng âm thanh/phụ đề (y 44/64), cá/Cá Sấu/nút vẽ bằng SVG; Shop, màn chuyển pha vẫn đúng.
+- Giao diện 'Sạp đêm chợ nổi' (pixel indie, vẽ hoàn toàn bằng code trong day.js, không asset ngoài): live-day-8-indie-shop.jpg (Shop sau khi mua Bình oxy: thẻ giấy, vạch cấp, giá xu đỏ khi thiếu tiền, nút xám 'thiếu … xu'), live-day-9-indie-dayintro.jpg (bảng gỗ 'Ngày 1 / 2'), live-day-10-indie-tong-ket.jpg (tổng kết dưới dây đèn lồng). Console không lỗi.

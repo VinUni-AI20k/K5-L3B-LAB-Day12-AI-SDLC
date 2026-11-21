@@ -50,8 +50,8 @@ Yêu cầu: [`docs/prd/phase-4.md`](../prd/phase-4.md) · Test Contract **v1.3**
 ### trongnghia2304 — lát 3, PO → **Bench/QA (ma trận) + Điều phối retro + `live --mode day`**
 
 - [ ] **PO:** chép Ticket-04 vào `docs/prd/phase-4.md` (đã làm); ghi chỗ mơ hồ vào `docs/clarify.md` (bench chạy ở đâu nếu máy chấm không có màn hình; soak có bắt buộc bot trong repo)
-- [ ] `live.py --mode day`: một `DaySim` cho cửa sổ chơi (sáng → tối → Shop), nhận nút `pause`, `shop_done`, `buy`; snapshot có `day`, `phase` để giao diện đổi cảnh
-- [ ] **Vẽ Shop + màn chuyển pha** (mức đủ demo, không cần đồ họa đẹp), viết trong **file riêng `chonoi/web/day.js`** nạp từ `index.html` bằng một dòng `<script>` (báo Tiệp, không sửa phần khác của `index.html`):
+- [x] `live.py --mode day`: một `DaySim` cho cửa sổ chơi (sáng → tối → Shop), nhận nút `pause`, `shop_done`, `buy`; snapshot có `day`, `phase` để giao diện đổi cảnh
+- [x] **Vẽ Shop + màn chuyển pha** (mức đủ demo, không cần đồ họa đẹp), viết trong **file riêng `chonoi/web/day.js`** nạp từ `index.html` bằng một dòng `<script>` (báo Tiệp, không sửa phần khác của `index.html`):
   - Shop: tiền hiện có, cấp đã mua / đang áp dụng, 2 nút mua `oxygen` / `hp` (giá cấp kế, mờ khi không đủ tiền hoặc tối đa), nút "Đóng Shop" (`shop_done`), đồng hồ Shop, thông báo `bought` / `buy_failed`
   - Màn chuyển pha theo event: `day_start` + `day_plan` → "Ngày N" + món Má Tư định nấu và nguyên liệu cần; `phase_start(quan)` → kho mang về; `quan_end` → khách đã phục vụ / bỏ đi, tiền, boa, uy tín; hết `--days` → tổng kết
   - Chơi thử trọn một Ngày (cập bến → mở quán → đóng Shop) trước phút 25, chụp ảnh vào `docs/proof/phase-4/`
