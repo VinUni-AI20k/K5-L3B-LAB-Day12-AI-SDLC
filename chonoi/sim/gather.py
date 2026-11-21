@@ -94,14 +94,6 @@ class GatherSim:
         self.random_fish = scenario.get("random_fish", True)
         if "fish" in scenario:
             src_fish = scenario["fish"]
-        elif self.random_fish:
-            src_fish = t["fish_initial"]
-        else:
-            src_fish = []
-        self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": float(f.get("heading_deg", 0)),
-                      "age_ticks": int(f.get("age_ticks", 0))} for f in src_fish]
-        for coll in (self.nodes, self.fish):
         elif scenario.get("random_fish", True):
             fi = t["fish_initial"]
             if isinstance(fi, list):
@@ -273,8 +265,11 @@ class GatherSim:
         if self.time_left_ticks <= 0:
             self._finish("time", events)
             return events
-        # 6. đàn cá bơi (tắt khi random_fish=False cho fixture đứng yên)
-        if self.random_fish:
+        # 6. đàn cá bơi & sinh thêm (tắt khi random_fish=False)
+        if "fish_speed" in self.t:
+            self._update_fish_swim()
+            self._update_fish_spawn(events)
+        elif self.random_fish:
             self._move_fish()
         return events
 
@@ -314,10 +309,6 @@ class GatherSim:
                 vx = -math.cos(rad) if flip_x else math.cos(rad)
                 vd = -math.sin(rad) if flip_d else math.sin(rad)
                 f["heading_deg"] = math.degrees(math.atan2(vd, vx)) % 360.0
-        if not self.done:
-            self._update_fish_swim()
-            self._update_fish_spawn(events)
-        return events
 
     # --- cá bơi & sinh cá (Phase 2) ---------------------------------------------
     def _update_fish_swim(self):
