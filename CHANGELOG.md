@@ -3,6 +3,10 @@
 
 ## v1.2 — Phase 3
 
+- **Test thay bởi luật mới** (mỗi chỗ có comment `# P3 [THAY THẾ]`): fixture/kỳ vọng kho đếm trong `tests/test_smoke_p1.py`, `test_gather*.py`, `test_quan*.py`, `test_day_p2.py`, `test_live.py` chuyển sang mảng cá thể; `test_python_starter_units.py` theo adapter mới.
+- **Sửa tích hợp:** `chonoi/jsonl.py` xuất `fresh` 6 chữ số, số thực khác 3 chữ số (sửa NameError sau khi gộp hai bản, 8073576).
+- **Smoke:** `tools/smoke_p3.sh` → `docs/proof/phase-3/smoke-<sha>/`.
+
 - **Breaking change:** kho đếm theo kind không còn hợp lệ (mã 2); file kho,
   gather.hold, quan.stock và snapshot chuyển sang mảng cá thể có id/kind/fresh.
   `customers[].reserved` chuyển từ lượng sang mảng id; món chốt giá theo độ tươi.

@@ -3,6 +3,7 @@
 > Cập nhật file này qua các phase (lịch sử git phải cho thấy điều đó). Ngắn gọn, có lệnh chạy thật.
 
 ## Lệnh
+- Smoke + bằng chứng phase 3: `tools/smoke_p3.sh` (v1.2: ngưỡng spoiled, bàn giao kho cá thể, kho đếm → mã 2, day, tất định, regression).
 - Smoke + bằng chứng phase 2: `tools/smoke_p2.sh` (regression, bàn giao kho, day tất định, nâng cấp ngày kế).
 - Vòng ngày: `python3 -m chonoi.headless --mode day --days 5 --seed 1 --ticks 111000 --out out.jsonl`
 - Chơi đầy đủ: `python3 -m chonoi.live --mode day` (Esc/P pause, Shop mua bằng nút).
