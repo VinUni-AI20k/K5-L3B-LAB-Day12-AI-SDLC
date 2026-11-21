@@ -1,0 +1,30 @@
+{
+  "quan": {
+    "stock": {
+      "ca_loc": 1,
+      "bong_sung": 2
+    },
+    "stoves": [
+      {
+        "id": "B1",
+        "state": "cooking",
+        "dish": {
+          "order_id": "C1",
+          "dish_id": "lau_ca_linh_dien_dien",
+          "base_price": 120
+        },
+        "cook_ticks_left": 240
+      }
+    ],
+    "customers": [
+      {
+        "id": "C1",
+        "table_id": "T1",
+        "state": "waiting",
+        "order_status": "assigned",
+        "dish_id": "lau_ca_linh_dien_dien",
+        "patience_ticks_left": 2280
+      }
+    ]
+  }
+}

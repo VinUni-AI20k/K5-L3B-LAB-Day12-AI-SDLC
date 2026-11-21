@@ -142,7 +142,7 @@ class QuanSim:
             elif c["state"] == "waiting":
                 c["patience_ticks_left"] = max(0, c["patience_ticks_left"] - 1)
 
-    def _interact(self, events):
+    def _interaction_target(self):
         """Tối đa một interact: chọn theo (khoảng cách, bếp trước bàn, id)."""
         r = self.t["interact_radius"]
         px, pz = self.pos
@@ -156,9 +156,27 @@ class QuanSim:
             if d <= r:
                 candidates.append((d, 1, id_key(tb["id"]), "table", tb))
         if not candidates:
-            return
+            return None
         candidates.sort(key=lambda item: (item[0], item[1], item[2]))
         _, _, _, kind, obj = candidates[0]
+        return kind, obj
+
+    def live_hints(self):
+        target = None if self.done else self._interaction_target()
+        if target is None:
+            return {}
+        kind, obj = target
+        if kind == "stove" and obj["state"] == "ready" and self.hand is None and self.t.get("carry_limit", 1) >= 1:
+            return {"interact_target": {"id": obj["id"], "action": "dish_picked"}}
+        if kind == "table" and self._serving_customer(obj) is not None:
+            return {"interact_target": {"id": obj["id"], "action": "served"}}
+        return {}
+
+    def _interact(self, events):
+        target = self._interaction_target()
+        if target is None:
+            return
+        kind, obj = target
         if kind == "stove":
             self._interact_stove(obj, events)
         else:
@@ -209,14 +227,17 @@ class QuanSim:
                 "dish_id": dish["dish_id"],
             }))
 
-    def _interact_table(self, table, events):
+    def _serving_customer(self, table):
         if self.hand is None:
-            return
-        cust = next(
+            return None
+        return next(
             (c for c in self.customers
              if c["table_id"] == table["id"] and c["state"] == "waiting" and c["id"] == self.hand["order_id"]),
             None,
         )
+
+    def _interact_table(self, table, events):
+        cust = self._serving_customer(table)
         if cust is None:
             return
         dish = self.hand
