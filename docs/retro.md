@@ -38,10 +38,15 @@ A gom và nộp (P3-10). Phần của A đã được đối chiếu và cập n
 
 ## Phase 4 (cuối)
 - Rà lại hành động Phase 2: đã làm chưa? vì sao?
+  - **luongvh2510 (D):** Hành động tôi chốt cho Phase 3 là "chốt câu hỏi còn mở với PO và mỗi người ghi nhật ký AI, hồ sơ trong chính PR của task mình". **Chưa làm đủ:** không có kênh PO nên các dòng `clarify` vẫn là giả định (riêng Ticket-04 đã đối chiếu khi đọc được đề); A và B vẫn nộp nhật ký AI và hồ sơ dồn cuối. C đã làm đúng hành động của mình (HUD độ tươi đẩy sớm). Hành động của TuHoAnh (gộp `main` trước khi mở PR) cũng chưa thành thói quen: nhánh P3-04 của B phải được D gộp `main` hộ.
 - Điều tốt / điều tệ:
+  - **luongvh2510 (D):** Tốt: khóa contract và schema vào `main` trước để làm song song; phá thử mỗi PR; smoke hộp đen và CI Ubuntu cho bằng chứng ngoài máy Windows; mở đề Phase 4 trong trình duyệt giúp đối chiếu đúng và sửa kịp. Tệ: không đọc được Ticket-02 và Ticket-03 nên nhiều luật là giả định, tên khóa `freshness` sai một lần; tôi vẫn ôm 8 việc riêng cùng việc soạn thay và sửa nhánh của A và B, nên cân tải vẫn lệch.
 - Số liệu: số commit theo người, cách đọc code của nhau, token theo người:
+  - **luongvh2510 (D):** Commit trên `main` (gồm cả commit gộp PR do GitHub tạo): D 115 (hai tên `luongvh2510` và `luongvh`, cùng email), C 23, A 11, B 8 (`HoAnhTu245` 7 và `TuHoAnh` 1), 9 của `Hai Duong` chưa rõ thuộc ai. Đọc code của nhau: D gộp thử và phá thử hầu hết PR; chưa thấy nhận xét review của A, B, C trên GitHub (C ghi review miệng). Token chưa đo.
 - Một lần AI sai và cách nhóm phát hiện:
+  - **luongvh2510 (D):** AI đặt tên khóa `freshness` theo trí nhớ (`fresh_max`, `units_per_point`, ...) vì không đọc được Ticket-03; B đọc đề và báo đúng 4 khóa khác tên, nên phải đổi ở #48 và sửa code của B và C. Phá thử không phát hiện được lỗi này vì test viết theo tên AI đã chọn; chỉ người có đề mới thấy.
 - Nếu làm lại, đổi gì:
+  - **luongvh2510 (D):** Xin hoặc dán đề của từng ticket vào repo ngay từ đầu để đối chiếu từng chữ; mỗi người ghi nhật ký AI và hồ sơ trong PR của mình; chia việc tích hợp đều cho cả nhóm thay vì dồn vào Integrator.
 
 ### Nguyễn Đức Nhật (A)
 

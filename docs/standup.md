@@ -27,3 +27,6 @@ Ghi chú Phase 3 (C, Scrum): tổng hợp từ PR #43 đến #47, nhánh `p3-04-
 | Phase | Người | Đã xong | Sắp làm | Vướng gì |
 |---|---|---|---|---|
 | 4 | A (NguyenDucNhat3006) | P4-03 benchmark đã gộp (#52, #56), contract nối `bench_cmd` ở #55. P4-10 đã chạy thử trọn một Ngày bằng phím mô phỏng trong Chrome. | Chơi bản demo trước nhóm, D mở kết quả test và ma trận, B và C trình bày bằng chứng. | Buổi trình bày trực tiếp theo lịch nhóm. |
+| 4 | D (luongvh2510) | P4-02 contract 1.3 (#55); P4-04 soak 10 Ngày (#54); P4-07 clone sạch và CI Ubuntu (#57); sửa bench theo Ticket-04 (#56); khung ma trận Phase 4 và release notes (#58) | Điền các ô CHỜ, chạy lại kiểm tại commit gắn tag, file đóng gói, tag `phase-4` và Release `v1.0.0` | Chờ A, B, C nộp hồ sơ, nhật ký AI, retro Phase 4; tag và Release cần người dùng đồng ý |
+
+Ghi chú Phase 4: A và D đã ghi dòng của mình. C (Scrum) tổng hợp phần còn lại khi đủ ghi chép.
