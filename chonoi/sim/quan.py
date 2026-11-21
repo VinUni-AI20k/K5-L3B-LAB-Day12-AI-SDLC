@@ -98,7 +98,7 @@ class QuanSim:
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self._step_stoves(events)
-        # TODO(nhóm, lát 4): cập nhật khách đang ăn theo thứ tự PRD-0 mục F.
+        self._step_eating_customers(events)
         self._update_patience(events)
         self._move(inp)
         if inp.pressed("interact"):
@@ -190,7 +190,51 @@ class QuanSim:
         return False
 
     def _interact_table(self, tb: dict, events: list) -> bool:
+        if self.hand is None:
+            return False
+        for c in sort_by_id(self.customers):
+            if (
+                c.get("table_id") == tb["id"]
+                and c.get("state") not in ("eating", "served")
+                and self._customer_dish(c) == self.hand
+            ):
+                served_dish = self.hand
+                self.hand = None
+                c["state"] = "eating"
+                c["eat_ticks_left"] = round(self.t["eat_s"] * self.tick_hz)
+                events.append(("served", {"table_id": tb["id"], "dish": served_dish}))
+                return True
         return False
+
+    def _step_eating_customers(self, events: list):
+        min_ratio = float(self.t["tip_min_patience_ratio"])
+        tip_rate = float(self.t["tip_rate"])
+        tip_rep = float(self.t["tip_reputation"])
+        rep_min = float(self.t["reputation_min"])
+        rep_max = float(self.t["reputation_max"])
+
+        finished = set()
+        for c in sort_by_id(self.customers):
+            if c.get("state") != "eating":
+                continue
+            c["eat_ticks_left"] = max(0, int(c.get("eat_ticks_left", 0)) - 1)
+            if c["eat_ticks_left"] <= 0:
+                dish = self._customer_dish(c)
+                price = int(self.menu[dish]["price"])
+                patience = float(self._customer_patience(c))
+                if self.patience_max_ticks > 0 and (patience / self.patience_max_ticks) >= min_ratio:
+                    tip = round(price * tip_rate)
+                    self.reputation = min(rep_max, max(rep_min, round(float(self.reputation) + tip_rep, 3)))
+                else:
+                    tip = 0
+                total = price + tip
+                self.money += total
+                self.earned += total
+                self.shift_earned += total
+                events.append(("paid", {"customer_id": c["id"], "money": price, "tip": tip}))
+                finished.add(c["id"])
+        if finished:
+            self.customers = [c for c in self.customers if c["id"] not in finished]
 
     def _try_interact(self, events: list):
         radius = float(self.t["interact_radius"])
