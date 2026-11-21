@@ -44,3 +44,13 @@
 2. **`ui-contract-sync`** (`.agents/skills/ui-contract-sync/SKILL.md`):
    - **Khi nào dùng**: Khi sửa HUD `chonoi/web/index.html`, cập nhật `docs/ui-contract.md`, hoặc thêm tài nguyên đồ họa / âm thanh (`chonoi/web/assets/`).
    - **Tác dụng**: Đối chiếu các trường UI đọc từ `GET /state` và lệnh gửi qua `POST /input` với `docs/contracts/README.md`, đảm bảo UI chịu lỗi khi thiếu trường/asset và không ảnh hưởng tới `chonoi.headless`.
+3. **`sdlc-spec`** (`.agents/skills/sdlc-spec/SKILL.md`):
+   - **Khi nào dùng**: Đầu mỗi Module/Task (M1.1, M2.1...) để phân tích yêu cầu và xuất Dev Spec + Test Spec ra `docs/specs/`.
+   - **Tác dụng**: Đọc `phase-1-task.md`, `game.contract.json`, code khung → sinh tài liệu đặc tả chi tiết + ma trận AC, tự cập nhật `docs/ai-usage-log.md`.
+4. **`sdlc-code`** (`.agents/skills/sdlc-code/SKILL.md`):
+   - **Khi nào dùng**: Khi bắt đầu viết code vào `chonoi/sim/gather.py` hoặc `chonoi/sim/quan.py`.
+   - **Tác dụng**: Đảm bảo 5 quy tắc bất biến (không hardcode, Streams RNG, sort_by_id, không phá framework, tắt sáng tạo ở headless). Tự cập nhật `docs/ai-usage-log.md`.
+5. **`sdlc-test-report`** (`.agents/skills/sdlc-test-report/SKILL.md`):
+   - **Khi nào dùng**: Sau khi code xong, trước khi commit/tag phase.
+   - **Tác dụng**: Chạy unit test, headless, xuất bằng chứng JSONL vào `docs/proof/phase-N/`, tự điền `docs/verification/phase-N.md` và `docs/ai-usage-log.md`.
+   - **Lệnh 1-click**: `python .agents/skills/sdlc-test-report/scripts/verify_and_report.py --phase 1 --mode gather --seed 1 --ticks 600 --pattern "test_smoke_*.py" --log-ai --author "QuangNEU"`
