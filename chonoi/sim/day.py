@@ -54,7 +54,9 @@ class DaySim:
         return self._sub.time_left_ticks
 
     def _current_plan(self):
-        return self.plans[self.day]
+        # v1.3 soak: kế hoạch D1–D5 lặp ở Ngày 6–10 (Ngày n dùng kế hoạch ((n - 1) mod 5) + 1).
+        keys = sorted(self.plans)
+        return self.plans[keys[(self.day - 1) % len(keys)]]
 
     def _day_tuning(self):
         t = copy.deepcopy(self.tuning)
