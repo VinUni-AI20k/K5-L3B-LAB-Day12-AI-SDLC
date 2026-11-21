@@ -1,8 +1,0 @@
-headless_cmd: python3 -m chonoi.headless
-seed=1 ticks=600
-gather: identical=True bytes=69657
-  run=1 sha256=72c30e63f0ca4f4d15de11305be5fae1a967aa6bcd9e00f3deef7d301e1c7ae3 end=tick_limit ticks=600
-  run=2 sha256=72c30e63f0ca4f4d15de11305be5fae1a967aa6bcd9e00f3deef7d301e1c7ae3 end=tick_limit ticks=600
-quan: identical=True bytes=24570
-  run=1 sha256=27c95215d88839fdc75af48fbfe1366a276f8d19cec66e4c5cf061c50ee5bdab end=tick_limit ticks=600
-  run=2 sha256=27c95215d88839fdc75af48fbfe1366a276f8d19cec66e4c5cf061c50ee5bdab end=tick_limit ticks=600

@@ -5,10 +5,10 @@
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
 | Đậu Hoàng Minh | justapea25 | `sim/gather` lát 1 (oxy, ngạt, Máu, giỏ) | Lead / Integrator | lát 2 |
-| | LETHESHIYING | `sim/gather_harvest` lát 2 (hái, bắt cá) | Developer | |
-| | viethoang126 | `sim/quan_customers` lát 3 (khách) | Developer | |
-| | minhthu27 | `sim/quan_service` lát 4 (bếp, phục vụ, tiền) | Developer, Scrum/Release | |
-| | Kaylez-TXL | `qa` (test hộp đen, verification) | QA lead | |
+| | | `sim/gather_harvest` lát 2 (hái, bắt cá) | Developer | |
+| | | `sim/quan_customers` lát 3 (khách) | Developer | |
+| | | `sim/quan_service` lát 4 (bếp, phục vụ, tiền) | Developer, Scrum/Release | |
+| | | `qa` (test hộp đen, verification) | QA lead | |
 | Nguyễn Xuân Khánh Linh | linkiewinkie | `docs` + harness AI, sau là `client/ui` | PO | |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
