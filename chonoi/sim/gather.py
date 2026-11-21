@@ -164,7 +164,8 @@ class GatherSim:
                     if free < req:
                         events.append(("hold_full", {"action": "gather", "node_id": target["id"], "required": req, "free": free}))
                     else:
-                        self.hold.append(target["kind"])
+                        for _ in range(req):
+                            self.hold.append(target["kind"])
                         target["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
                         events.append(("gather", {"node_id": target["id"], "kind": target["kind"], "amount": req}))
 
