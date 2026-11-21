@@ -30,3 +30,18 @@ python3 -m chonoi.headless --mode quan --seed 42 --ticks 0 --inventory $inventor
 - File kho xuất ra khớp inventory của sự kiện.
 - Snapshot đầu của quán ở tick 0 có `stock: {"bong_sung":2,"ca_loc":1}`.
 - Kết luận: đạt trên `751da31`. Chạy lại trên bản tích hợp Test Contract v1.1 để chốt kết quả bàn giao.
+
+## Kiểm chứng trên nhánh quán Phase 2
+
+- Bản kiểm thử: `origin/codex/quan-phase-2` tại `2090b6e`.
+- Môi trường: Windows PowerShell, Python 3.11.9.
+- Kết quả: 14/14 test đạt trong 0,901 giây, gồm 12 ca quán và 2 ca bàn giao kho.
+
+```powershell
+$env:PYTHONPATH = 'tests;.'
+python3 -m unittest -v tests.test_quan tests.test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it tests.test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first
+```
+
+- Snapshot quán có 2 bếp và 4 bàn. Các ca thứ tự nhận đơn, món mới, lọc món theo kế hoạch Ngày trong quán và dọn ca đều đạt.
+- Quán đọc đúng kho tại tick 0. Khi gather dừng do giới hạn tick trước khi kết thúc, file kho đích giữ nguyên.
+- Kết quả thuộc nhánh quán tại `2090b6e`. Chờ chạy lại trên bản tích hợp Phase 2.
