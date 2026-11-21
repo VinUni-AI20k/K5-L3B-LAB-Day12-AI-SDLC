@@ -21,6 +21,7 @@ import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+from . import leaderboard
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
@@ -213,16 +214,43 @@ class LiveServer:
         self.game.stop()
 
 
+def _export_leaderboard(a) -> int:
+    if a.export_leaderboard is None:
+        sys.stderr.write("đầu vào sai: --leaderboard chỉ dùng cùng --export-leaderboard\n")
+        return 2
+    store = a.leaderboard if a.leaderboard is not None else leaderboard.DEFAULT_STORE
+    if os.path.abspath(store) == os.path.abspath(a.export_leaderboard):
+        sys.stderr.write("đầu vào sai: file xuất phải khác file leaderboard\n")
+        return 2
+    try:
+        leaderboard.export(store, a.export_leaderboard)
+    except BadInput as e:
+        sys.stderr.write(f"đầu vào sai: {e}\n")
+        return 2
+    except OSError as e:
+        sys.stderr.write(f"lỗi ghi: {e}\n")
+        return 1
+    return 0
+
+
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="chonoi.live", description="Chơi trực tiếp trên trình duyệt (starter).")
-    p.add_argument("--mode", required=True, choices=["gather", "quan"])
+    p.add_argument("--mode", choices=["gather", "quan"])  # bắt buộc, trừ khi chỉ --export-leaderboard
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--port", type=int, default=8000, help="0 = cổng ngẫu nhiên")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--scenario")
     p.add_argument("--inventory", help="chỉ với quan: nạp kho từ file")
     p.add_argument("--inventory-out", dest="inventory_out", help="chỉ với gather: ghi kho khi kết thúc buổi")
+    # Mở rộng P4 (nhóm thêm, TICKET-04 mục 3): `<run_cmd> --export-leaderboard out.json [--leaderboard store.json]`
+    # xuất top 10 rồi thoát, không mở server. Store mặc định: chonoi.leaderboard.DEFAULT_STORE.
+    p.add_argument("--export-leaderboard", dest="export_leaderboard")
+    p.add_argument("--leaderboard")
     a = p.parse_args(argv)
+    if a.export_leaderboard is not None or a.leaderboard is not None:
+        return _export_leaderboard(a)
+    if a.mode is None:
+        p.error("cần --mode gather|quan")
     try:
         if a.inventory and a.mode != "quan":
             raise BadInput("--inventory chỉ dùng với quan")
