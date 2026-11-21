@@ -43,7 +43,6 @@ def one(test, rows, name) -> dict:
 
 
 class Customers(unittest.TestCase):
-    @pending("lát 3")
     def test_ac_p1_20_khach_dau_o_first_customer_tick_va_giu_cho(self):
         rows, _ = run_case(self, "quan", scenario={"stock": {"ca_loc": 1}}, ticks=121)
         arrived = events(rows, "customer_arrived")
@@ -59,27 +58,23 @@ class Customers(unittest.TestCase):
         self.assertEqual(s["stock"], {"ca_loc": 1}, "giữ chỗ chưa trừ tồn vật lý")
         self.assertEqual(snap_at(rows, 121)["customers"][0]["patience_ticks_left"], 3599)
 
-    @pending("lát 3")
     def test_ac_p1_21_chi_chon_mon_du_nguyen_lieu(self):
         for seed in range(1, 6):
             rows, _ = run_case(self, "quan", scenario={"stock": {"bong_sung": 2, "ca_linh": 3}}, ticks=120,
                                seed=seed, every=120)
             self.assertEqual([e["data"]["dish_id"] for e in events(rows, "customer_arrived")], ["goi_bong_sung"], seed)
 
-    @pending("lát 3")
     def test_ac_p1_22_khong_mon_nao_du_thi_no_dish(self):
         rows, _ = run_case(self, "quan", ticks=120, every=120)
         self.assertEqual(data_at(rows, "no_dish"), [(120, {})])
         self.assertEqual(events(rows, "customer_arrived"), [])
 
-    @pending("lát 3")
     def test_ac_p1_22_het_ban_thi_bo_luot_va_luot_sau_dung_lich(self):
         rows, _ = run_case(self, "quan", scenario={"stock": {"ca_loc": 5}}, ticks=3721, every=100)
         self.assertEqual([e["tick"] for e in events(rows, "customer_arrived")], [120, 3720])
         self.assertEqual(events(rows, "no_dish"), [])
         self.assertEqual([(e["tick"], e["data"]["reason"]) for e in events(rows, "customer_left")], [(3720, "patience")])
 
-    @pending("lát 3")
     def test_ac_p1_23_het_kien_nhan_roi_ban_tru_uy_tin_nha_giu_cho(self):
         scen = sc(stock={"bong_sung": 2}, customers=[customer(dish_id="goi_bong_sung", patience_ticks_left=5)])
         rows, _ = run_case(self, "quan", scenario=scen, ticks=6)
@@ -148,7 +143,6 @@ class ServeAndPay(unittest.TestCase):
 
 
 class Closing(unittest.TestCase):
-    @pending("lát 3 + lát 4")
     def test_ac_p1_28_het_ca_khach_cho_roi_closing_khong_tru_uy_tin(self):
         scen = sc(stock={"bong_sung": 2}, customers=[customer(dish_id="goi_bong_sung")], time_left_ticks=5)
         rows, _ = run_case(self, "quan", scenario=scen, ticks=10)
@@ -169,19 +163,38 @@ class Closing(unittest.TestCase):
 
 
 class FixtureValidation(unittest.TestCase):
-    @pending("lát 4 (_validate_quan)")
-    def test_ac_p1_29_fixture_quan_mau_thuan_ma_2(self):
-        bad = [sc(customers=[customer(dish_id="pho_bo")]),
-               sc(stock={"ca_loc": 2}, customers=[customer(reserved={"ca_loc": 2})]),
-               sc(stock={}, customers=[customer(reserved={"ca_loc": 1})]),
-               sc(hand=hand_payload(), customers=[customer(order_status="reserved")])]
+    """Mỗi fixture chỉ sai ĐÚNG MỘT điều (kho đủ), để mã 2 đến từ đúng luật cần kiểm."""
+
+    def _assert_exit_2(self, blocks):
         with Workdir() as w:
-            for block in bad:
+            for block in blocks:
                 path = write_json(w.path("sc.json"), {"quan": block})
                 code, _ = run_headless("--mode", "quan", "--seed", "1", "--ticks", "0",
                                        "--scenario", path, "--out", w.path("o.jsonl"))
                 self.assertEqual(code, 2, block)
                 self.assertFalse(os.path.exists(w.path("o.jsonl")))
+
+    def test_ac_p1_29_mon_la_giu_khac_cong_thuc_giu_qua_ton_ma_2(self):
+        self._assert_exit_2([
+            sc(stock={"ca_loc": 1}, customers=[customer(dish_id="pho_bo")]),
+            sc(stock={"ca_loc": 2}, customers=[customer(reserved={"ca_loc": 2})]),
+            sc(stock={}, customers=[customer(reserved={"ca_loc": 1})]),
+        ])
+
+    @pending("lát 3/4: kiểm đơn ↔ bếp/tay trong fixture")
+    def test_ac_p1_29_don_va_mon_tren_tay_bep_mau_thuan_ma_2(self):
+        stock = {"ca_loc": 1}
+        self._assert_exit_2([
+            # tay cầm món của đơn còn `reserved`
+            sc(stock=stock, hand=hand_payload(), customers=[customer(order_status="reserved")]),
+            # đơn assigned nhưng không có món ở bếp hay trên tay
+            sc(customers=[customer(order_status="assigned", reserved={})]),
+            # món trên tay khác món của đơn
+            sc(hand={"order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40},
+               customers=[customer(order_status="assigned", reserved={})]),
+            # khách eating thiếu timer ăn dương và base_price/tip đã chốt
+            sc(customers=[customer(state="eating", order_status="served")]),
+        ])
 
 
 class Determinism(unittest.TestCase):
