@@ -12,7 +12,7 @@ import urllib.request
 
 from chonoi import live
 from chonoi.contract import load_contract
-from chonoi.inputs import LiveInputs
+from chonoi.inputs import MAX_PENDING_BUYS, LiveInputs
 from chonoi.live import LiveGame, LiveServer
 
 TUNING = load_contract()["tuning"]
@@ -133,6 +133,22 @@ class Shop(unittest.TestCase):
         li.set(buy="hp")
         self.assertEqual(li.advance().buy, "hp")
         self.assertIsNone(li.advance().buy)
+        # hai lệnh mua tới trong cùng một tick: không ghi đè, dùng lần lượt mỗi tick một lệnh
+        li.set(buy="oxygen")
+        li.set(buy="hp")
+        self.assertEqual([li.advance().buy for _ in range(3)], ["oxygen", "hp", None])
+        for _ in range(MAX_PENDING_BUYS + 5):
+            li.set(buy="hp")
+        self.assertEqual(sum(li.advance().buy is not None for _ in range(MAX_PENDING_BUYS + 5)), MAX_PENDING_BUYS)
+
+    def test_two_quick_buys_both_apply_in_shop(self):
+        price = SHOP["oxygen"][0]["price"] + SHOP["hp"][0]["price"]
+        game = self.to_shop(price)
+        game.set_input({"buy": "oxygen"})
+        game.set_input({"buy": "hp"})
+        game._tick_once()
+        game._tick_once()
+        self.assertEqual(state(game)["upgrades"], {"oxygen": 1, "hp": 1})
 
 
 def _post(url, obj):

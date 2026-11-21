@@ -12,6 +12,7 @@ from .errors import BadInput
 
 BUTTONS_V10 = ("interact", "catch")  # v1.0
 BUTTONS = ("interact", "catch", "pause", "shop_done")  # v1.1; attack, photo chỉ có khi bật mở rộng
+MAX_PENDING_BUYS = 8  # cửa sổ live: số lệnh mua chờ tối đa
 
 
 class InputState:
@@ -106,13 +107,13 @@ class LiveInputs:
         self._move = (0.0, 0.0)
         self._held = {b: False for b in buttons}
         self._pending = set()
-        self._buy = None  # lệnh mua Shop (v1.1): một lần, dùng ở tick kế rồi bỏ
+        self._buys = []  # hàng đợi lệnh mua Shop (v1.1): mỗi tick dùng một lệnh, không ghi đè lệnh trước
 
     def set(self, move=None, buy=None, **buttons):
         if move is not None:
             self._move = normalize(move)
-        if buy is not None:
-            self._buy = buy
+        if buy is not None and len(self._buys) < MAX_PENDING_BUYS:
+            self._buys.append(buy)
         for b, v in buttons.items():
             if b not in self._held:
                 continue
@@ -122,5 +123,5 @@ class LiveInputs:
 
     def advance(self) -> InputState:
         edges, self._pending = self._pending, set()
-        buy, self._buy = self._buy, None
+        buy = self._buys.pop(0) if self._buys else None
         return InputState(self._move, dict(self._held), edges, buy)
