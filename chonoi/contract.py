@@ -157,7 +157,7 @@ def _validate_quan_layout(q):
     """Bếp, bàn, vị trí đầu, uy tín, giới hạn mang (P1-08)."""
     b = q["bounds"]
     _pos_in("quan.start_pos", q.get("start_pos"), b, ("x", "z"))
-    _int_between("quan.carry_limit", q.get("carry_limit"), 1, 99)
+    _int_between("quan.carry_limit", q.get("carry_limit"), 1, 10_000)
     for arr in ("stoves", "tables"):
         items = q.get(arr)
         if not isinstance(items, list) or not items:

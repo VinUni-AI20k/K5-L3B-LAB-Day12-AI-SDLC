@@ -173,11 +173,11 @@ def _validate_quan_rules(b, tuning):
         r = b["reputation"]
         if not _num(r) or not (q["reputation_min"] <= r <= q["reputation_max"]):
             raise BadInput(f"reputation phải trong [{q['reputation_min']}, {q['reputation_max']}]")
-    if b.get("hand") is not None and b["hand"] not in menu:
-        raise BadInput(f"hand phải là null hoặc một món trong menu, đang là {b['hand']!r}")
+    # `hand` chưa kiểm: PRD-0 chưa nói rõ dạng giá trị (id món hay object); hỏi PO ở docs/clarify.md.
     for s in b.get("stoves", []):
-        if s.get("dish") is not None and s["dish"] not in menu:
-            raise BadInput(f"stoves.{s['id']}: dish không có trong menu ({s['dish']!r})")
+        d = s.get("dish")
+        if d is not None and (not isinstance(d, str) or d not in menu):
+            raise BadInput(f"stoves.{s['id']}: dish phải là null hoặc một món trong menu ({d!r})")
         for key in ("cook_ticks_left", "ready_ticks"):
             if key in s:
                 _nonneg_int(f"stoves.{s['id']}.{key}", s[key])

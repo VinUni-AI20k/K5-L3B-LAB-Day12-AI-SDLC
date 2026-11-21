@@ -53,11 +53,6 @@ class QuanScenarioRules(unittest.TestCase):
         block = {"stock": {"ca_loc": 1}, "customers": [{"id": "K1", "table_id": "T1", "reserved": {"ca_la": 1}}]}
         self.assertIsNotNone(scenario_err(block))
 
-    def test_hand_must_be_known_dish(self):
-        self.assertIsNone(scenario_err({"hand": "goi_bong_sung"}))
-        self.assertIsNone(scenario_err({"hand": None}))
-        self.assertIn("hand", str(scenario_err({"hand": "pho_bo"})))
-
     def test_reputation_out_of_range(self):
         self.assertIsNone(scenario_err({"reputation": 5}))
         self.assertIsNotNone(scenario_err({"reputation": 5.5}))
@@ -66,6 +61,8 @@ class QuanScenarioRules(unittest.TestCase):
     def test_stove_dish_must_be_in_menu(self):
         self.assertIsNone(scenario_err({"stoves": [{"id": "B1", "dish": "goi_bong_sung", "cook_ticks_left": 30}]}))
         self.assertIsNotNone(scenario_err({"stoves": [{"id": "B1", "dish": "pho_bo"}]}))
+        # sai kiểu phải bị từ chối bằng BadInput (mã 2), không được văng TypeError
+        self.assertIsNotNone(scenario_err({"stoves": [{"id": "B1", "dish": ["goi_bong_sung"]}]}))
         self.assertIsNotNone(scenario_err({"stoves": [{"id": "B1", "cook_ticks_left": -1}]}))
 
 
