@@ -93,7 +93,7 @@ class QuanSim:
             cust.setdefault("patience_ticks_left", int(round(t["patience_s"] * TICK)))
             cust.setdefault("eat_ticks_left", int(round(t["eat_s"] * TICK)))
             if "reserved" not in cust:
-                if cust["state"] == "waiting" and cust.get("order_status") != "assigned":
+                if cust["state"] == "waiting" and cust.get("order_status", "reserved") == "reserved":
                     cust["reserved"] = dict(self.menu[d_id]["recipe"]) if d_id in self.menu else {}
                 else:
                     cust["reserved"] = {}

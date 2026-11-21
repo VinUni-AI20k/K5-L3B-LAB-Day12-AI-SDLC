@@ -321,6 +321,57 @@ class TestQuanCookingAndService(unittest.TestCase):
 
 
 class TestQuanHeadlessIntegration(unittest.TestCase):
+    def test_shortened_shift_keeps_customer_schedule_relative_to_tick_zero(self):
+        tuning = load_contract()["tuning"]
+        first_tick = tuning["quan"]["first_customer_tick"]
+        duration = round(tuning["quan"]["duration_s"] * tuning["tick_hz"])
+        with Workdir() as w:
+            scenario = write_json(w.path("scenario.json"), {
+                "quan": {"time_left_ticks": duration - first_tick + 1, "stock": {"ca_loc": 1}},
+            })
+            out = w.path("quan.jsonl")
+            code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", str(first_tick),
+                                     "--scenario", scenario, "--out", out)
+            self.assertEqual(code, 0, err)
+            self.assertEqual([event["tick"] for event in events(read_jsonl(out), "customer_arrived")], [first_tick])
+
+    def test_closing_and_patience_expiry_discard_dish_without_refund(self):
+        order = {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                 "patience_ticks_left": 1, "order_status": "assigned"}
+        dish = {"order_id": order["id"], "dish_id": order["dish_id"], "base_price": 60}
+        for ticks_left, reason, reputation in ((1, "closing", 3.0), (2, "patience", 2.5)):
+            for dish_location in ({"hand": dish}, {"stoves": [{"id": "B1", "state": "ready", "dish": dish}]}):
+                with self.subTest(ticks_left=ticks_left, dish_location=dish_location), Workdir() as w:
+                    scenario = write_json(w.path("scenario.json"), {
+                        "quan": {"customers": [order], "time_left_ticks": ticks_left, **dish_location},
+                    })
+                    out = w.path("quan.jsonl")
+                    code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "1",
+                                             "--scenario", scenario, "--out", out)
+                    self.assertEqual(code, 0, err)
+                    rows = read_jsonl(out)
+                    left = events(rows, "customer_left")[0]["data"]
+                    self.assertEqual((left["reason"], left["reputation"]), (reason, reputation))
+                    last = snapshots(rows)[-1]
+                    self.assertIsNone(last["hand"])
+                    self.assertEqual(last["stoves"][0]["state"], "idle")
+                    self.assertEqual(last["stock"], {})
+
+    def test_invalid_quan_fixtures_fail_before_writing_output(self):
+        order = {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+        with Workdir() as w:
+            inventory = write_json(w.path("inventory.json"), {"items": {}})
+            out = w.path("quan.jsonl")
+            for block in ({"stoves": [{"id": "B1", "state": "cooking"}]},
+                          {"customers": [dict(order, order_status="assigned")]},
+                          {"customers": [order]}):
+                with self.subTest(block=block):
+                    scenario = write_json(w.path("scenario.json"), {"quan": block})
+                    code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0",
+                                             "--inventory", inventory, "--scenario", scenario, "--out", out)
+                    self.assertEqual(code, 2, err)
+                    self.assertFalse(os.path.exists(out))
+
     def test_headless_quan_run_deterministic(self):
         """Chạy headless với quan xuất snapshot và event đầy đủ, tất định theo byte."""
         with Workdir() as w:
