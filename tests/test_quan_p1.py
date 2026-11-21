@@ -1,6 +1,6 @@
 """Test hộp đen buổi tối (quan) theo PRD-0 mục F "Quán", D (fixture), E (sự kiện).
 
-Mỗi test ghi mã AC-P1-xx (xem docs/verification/phase-1.md). @pending(...) -> skip mặc định; QA_STRICT=1 để chạy.
+Mỗi test ghi mã AC-P1-xx (bảng chi tiết: docs/verification/phase-1-qa-tests.md). Lát 1–4 đã merge nên mọi test chạy thật.
 Số trong test suy từ preset (patience 60 s = 3600 tick, eat 10 s = 600, cook cá lóc 6 s = 360, giá 60, boa 20%).
 """
 
@@ -8,7 +8,7 @@ import os
 import unittest
 
 from helpers import Workdir, close, events, run_headless, write_json
-from qa_helpers import pending, press, run_case, snap_at
+from qa_helpers import press, run_case, snap_at
 
 CA_LOC = "ca_loc_nuong_trui"
 NEAR_STOVE = [2, 8]       # đúng vị trí B1
@@ -88,7 +88,6 @@ class Customers(unittest.TestCase):
 
 
 class Kitchen(unittest.TestCase):
-    @pending("lát 4")
     def test_ac_p1_24_25_nau_xong_roi_bung(self):
         scen = sc(player={"pos": NEAR_STOVE}, stock={"ca_loc": 1}, customers=[customer()])
         rows, _ = run_case(self, "quan", scenario=scen, inputs=press(0, "interact") + press(365, "interact"), ticks=367)
@@ -109,11 +108,10 @@ class Kitchen(unittest.TestCase):
 
 class ServeAndPay(unittest.TestCase):
     def _serve(self, patience: int, ticks: int):
-        c = customer(order_status="assigned", reserved={}, patience_ticks_left=patience)
+        c = customer(order_status="assigned", reserved={}, base_price=60, patience_ticks_left=patience)
         scen = sc(player={"pos": NEAR_TABLE}, hand=hand_payload(), customers=[c])
         return run_case(self, "quan", scenario=scen, inputs=press(0, "interact"), ticks=ticks, every=100)[0]
 
-    @pending("lát 4")
     def test_ac_p1_26_27_phuc_vu_an_xong_tra_tien_co_boa(self):
         rows = self._serve(3600, 602)
         self.assertEqual(data_at(rows, "served"),
@@ -128,14 +126,12 @@ class ServeAndPay(unittest.TestCase):
         self.assertEqual((end["money"], end["earned"], end["score"]), (72, 72, 372))
         self.assertTrue(close(end["reputation"], 3.2, tol=0.01))
 
-    @pending("lát 4")
     def test_ac_p1_27_kien_nhan_duoi_nguong_khong_boa(self):
         rows = self._serve(1000, 602)
         self.assertEqual(one(self, rows, "served")["tip"], 0)
         self.assertEqual(one(self, rows, "paid")["amount"], 60)
         self.assertTrue(close(rows[-1]["reputation"], 3.0, tol=0.01))
 
-    @pending("lát 4")
     def test_ac_p1_26_phuc_vu_dung_tick_kien_nhan_ve_0_van_hop_le(self):
         rows = self._serve(1, 3)
         self.assertEqual(one(self, rows, "served")["patience_ticks_left"], 0)
@@ -152,7 +148,6 @@ class Closing(unittest.TestCase):
                          {"reason": "time", "money": 0, "earned": 0, "shift_earned": 0, "reputation": 3.0})
         self.assertEqual((rows[-1]["reason"], rows[-1]["ticks"]), ("time", 5))
 
-    @pending("lát 4")
     def test_ac_p1_28_het_ca_khach_dang_an_tra_tien_closing(self):
         c = customer(state="eating", order_status="served", eat_ticks_left=300, base_price=60, tip=12)
         rows, _ = run_case(self, "quan", scenario=sc(customers=[c], time_left_ticks=5), ticks=10)
@@ -181,17 +176,16 @@ class FixtureValidation(unittest.TestCase):
             sc(stock={}, customers=[customer(reserved={"ca_loc": 1})]),
         ])
 
-    @pending("lát 3/4: kiểm đơn ↔ bếp/tay trong fixture")
     def test_ac_p1_29_don_va_mon_tren_tay_bep_mau_thuan_ma_2(self):
         stock = {"ca_loc": 1}
         self._assert_exit_2([
             # tay cầm món của đơn còn `reserved`
             sc(stock=stock, hand=hand_payload(), customers=[customer(order_status="reserved")]),
             # đơn assigned nhưng không có món ở bếp hay trên tay
-            sc(customers=[customer(order_status="assigned", reserved={})]),
+            sc(customers=[customer(order_status="assigned", reserved={}, base_price=60)]),
             # món trên tay khác món của đơn
             sc(hand={"order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40},
-               customers=[customer(order_status="assigned", reserved={})]),
+               customers=[customer(order_status="assigned", reserved={}, base_price=60)]),
             # khách eating thiếu timer ăn dương và base_price/tip đã chốt
             sc(customers=[customer(state="eating", order_status="served")]),
         ])
