@@ -267,8 +267,8 @@ class Phase2Compatibility(unittest.TestCase):
                    'cook_ticks_left': 1},
                   {'id': 'B1', 'state': 'cooking', 'dish': dict(dish, order_id='C1'),
                    'cook_ticks_left': 1}]
-        customers = [customer(id='C1', table_id='T1', order_status='assigned', reserved={}, base_price=PRICE),
-                     customer(id='C2', table_id='T2', order_status='assigned', reserved={}, base_price=PRICE)]
+        customers = [_p3_customer(id='C1', table_id='T1', order_status='assigned', reserved={}, base_price=PRICE),
+                     _p3_customer(id='C2', table_id='T2', order_status='assigned', reserved={}, base_price=PRICE)]
         sim = QuanSim(t, {'random_customers': False, 'stoves': stoves,
                           'customers': customers}, Streams(1), IdAllocator())
         ev = step(sim)
@@ -332,9 +332,9 @@ class Phase2Acceptance(unittest.TestCase):
                         'player': {'pos': table_pos},
                         'tables': [{'id': 'T2', 'pos': table_pos}],
                         'hand': payload,
-                        'customers': [customer(id='C1', table_id='T1', order_status='assigned',
+                        'customers': [_p3_customer(id='C1', table_id='T1', order_status='assigned',
                                                reserved={}, base_price=PRICE),
-                                      customer(id='C2', table_id='T2', order_status='assigned',
+                                      _p3_customer(id='C2', table_id='T2', order_status='assigned',
                                                reserved={}, base_price=PRICE)]})
         ev = step(sim, True)
         self.assertEqual([x[0] for x in ev], ['served'])
@@ -419,7 +419,7 @@ class Phase2Acceptance(unittest.TestCase):
                               {'id': 'B1', 'state': 'ready', 'dish': dict(payload, order_id='C1'), 'ready_ticks': limit}],
                           'customers': [
                               customer(id='C1', table_id='T1', order_status='assigned', reserved={}, base_price=PRICE),
-                              customer(id='C2', table_id='T2', order_status='assigned', reserved={}, base_price=PRICE)]},
+                              _p3_customer(id='C2', table_id='T2', order_status='assigned', reserved={}, base_price=PRICE)]},
                       Streams(1), IdAllocator())
         ev = step(sim)
         self.assertEqual([(name, data['stove_id'], data['order_status']) for name, data in ev],
@@ -428,6 +428,178 @@ class Phase2Acceptance(unittest.TestCase):
                          {'C1': 'reserved', 'C2': 'unfulfillable'})
         self.assertEqual(sim.stock['ca_loc'], 1)  # phan giu chua tru kho
         self.assertEqual(sim.customers[0]['reserved'], {'ca_loc': 1})
+
+
+# Phase 3 - kiểm thử logic phần Lát 4 trước khi lát 0 merge items.py.
+# Test dùng adapter giả đúng chữ ký đã CHỐT trong docs/plan/phase-3.md;
+# khi chonoi.items xuất hiện, tự dùng module thật. KHÔNG thay cho QA_STRICT v1.2.
+from contextlib import contextmanager
+import importlib
+import sys
+import types
+from unittest.mock import patch
+from chonoi.ids import id_key
+
+
+@contextmanager
+def _p3_items_api():
+    try:
+        importlib.import_module('chonoi.items')
+    except ModuleNotFoundError as exc:
+        if exc.name != 'chonoi.items':
+            raise
+        module = types.ModuleType('chonoi.items')
+
+        def spoiled(item, tuning):
+            return item['fresh'] < tuning['freshness']['spoiled_below']
+
+        def decay(items, per_tick, tuning):
+            changed = []
+            for item in items:
+                was = spoiled(item, tuning)
+                item['fresh'] = max(0.0, item['fresh'] - per_tick)
+                if not was and spoiled(item, tuning):
+                    changed.append(item)
+            return list(reversed(changed))  # code Lát 4 phải sắp lại theo id
+
+        def pick_freshest(items, kind, count, excludes, tuning):
+            candidates = sorted((i for i in items if i['kind'] == kind and i['id'] not in excludes
+                                 and not spoiled(i, tuning)), key=lambda i: (-i['fresh'], id_key(i['id'])))
+            return [i['id'] for i in candidates[:count]] if len(candidates) >= count else None
+
+        module.is_spoiled = spoiled
+        module.decay = decay
+        module.pick_freshest = pick_freshest
+        with patch.dict(sys.modules, {'chonoi.items': module}):
+            yield
+    else:
+        yield
+
+
+def _p3_customer(**changes):
+    c = {'id': 'C1', 'table_id': TABLE['id'], 'dish_id': DISH,
+         'state': 'waiting', 'order_status': 'reserved', 'order_tick': 0,
+         'patience_ticks_left': int(round(Q['patience_s'] * 60)), 'eat_ticks_left': 0,
+         'reserved': [], 'base_price': None, 'tip': None}
+    c.update(changes)
+    return c
+
+
+def _p3_fixture():
+    t = copy.deepcopy(TUNING)
+    t['freshness'] = {'initial': 100, 'gather_decay_per_s': 0.5,
+                      'quan_decay_per_s': 0.25, 'spoiled_below': 30}
+    sim = QuanSim(TUNING, {'random_customers': False}, Streams(1), IdAllocator())
+    # Tránh đi qua _init_customers v1.1 do Lát 3 sở hữu và chưa migrate.
+    sim.tuning = t
+    sim.t = t['quan']
+    sim.freshness = t['freshness']
+    sim.stock = []
+    return sim
+
+
+class Phase3Staging(unittest.TestCase):
+    """Lát 4 v1.2: thử riêng các hàm sở hữu; chưa chạy smoke tích hợp v1.2."""
+
+    def test_p3_11_constructor_snapshot_and_step_keep_individual_stock(self):
+        with _p3_items_api():
+            t = copy.deepcopy(TUNING)
+            t['freshness'] = {'initial': 100, 'gather_decay_per_s': 0.5,
+                              'quan_decay_per_s': 0.25, 'spoiled_below': 30}
+            # Lát 3 chưa migrate _init_customers, nên tạm thay đúng hook của lát 3.
+            with patch.object(QuanSim, '_init_customers', return_value=[]):
+                sim = QuanSim(t, {'random_customers': False, 'stock': [
+                    {'id': 'I10', 'kind': 'ca_loc', 'fresh': 30.001},
+                    {'id': 'I2', 'kind': 'ca_loc', 'fresh': 30.001}]},
+                    Streams(1), IdAllocator())
+            ev = step(sim)
+            self.assertEqual([data['item_id'] for name, data in ev if name == 'spoiled'],
+                             ['I2', 'I10'])
+            self.assertIsInstance(sim.snapshot()['stock'], list)
+            self.assertEqual([item['id'] for item in sim.snapshot()['stock']], ['I2', 'I10'])
+
+    def test_p3_11_stock_decay_reserved_item_spoiled_once(self):
+        with _p3_items_api():
+            sim = _p3_fixture()
+            sim.stock = [{'id': 'I10', 'kind': 'ca_loc', 'fresh': 30.001},
+                         {'id': 'I2', 'kind': 'ca_loc', 'fresh': 30.001}]
+            sim.customers = [{'reserved': ['I10'], 'order_status': 'reserved'}]
+            ev = []
+            sim._tick_freshness(ev)
+            self.assertEqual([(name, d['item_id'], d['location']) for name, d in ev],
+                             [('spoiled', 'I2', 'stock'), ('spoiled', 'I10', 'stock')])
+            self.assertLess(sim.stock[0]['fresh'], 30)
+            ev = []
+            sim._tick_freshness(ev)
+            self.assertEqual(ev, [])
+
+    def test_p3_14_consumes_only_reserved_ids_and_freezes_fresh_price(self):
+        with _p3_items_api():
+            sim = _p3_fixture()
+            sim.pos = list(STOVE['pos'])
+            sim.stock = [{'id': 'I2', 'kind': 'bong_sung', 'fresh': 60},
+                         {'id': 'I1', 'kind': 'bong_sung', 'fresh': 90},
+                         {'id': 'I3', 'kind': 'ca_loc', 'fresh': 99}]
+            sim.customers = [_p3_customer(dish_id='goi_bong_sung', order_status='reserved',
+                                      reserved=['I1', 'I2'], state='waiting')]
+            ev = []
+            sim._interact(ev)
+            self.assertEqual([i['id'] for i in ev[0][1]['items']], ['I1', 'I2'])
+            self.assertEqual(ev[0][1]['base_price'], 30)  # floor(40 * 75 / 100)
+            self.assertEqual(sim.customers[0]['base_price'], 30)
+            self.assertEqual(sim.customers[0]['reserved'], [])
+            self.assertEqual([i['id'] for i in sim.stock], ['I3'])
+            self.assertEqual(sim.stoves[0]['dish']['base_price'], 30)
+
+    def test_p3_14_rejects_stale_or_spoiled_reserved_before_cook(self):
+        with _p3_items_api():
+            sim = _p3_fixture()
+            sim.pos = list(STOVE['pos'])
+            sim.stock = [{'id': 'I1', 'kind': 'ca_loc', 'fresh': 29.99}]
+            sim.customers = [_p3_customer(reserved=['I1'], order_status='reserved')]
+            ev = []
+            sim._interact(ev)
+            self.assertEqual(ev, [])
+            self.assertEqual([i['id'] for i in sim.stock], ['I1'])
+            self.assertEqual(sim.stoves[0]['state'], 'idle')
+
+    def test_p3_15_two_burns_same_tick_reserve_one_remaining_id(self):
+        with _p3_items_api():
+            sim = _p3_fixture()
+            limit = int(round(sim.t['burn_s'] * 60))
+            sim.stock = [{'id': 'I4', 'kind': 'ca_loc', 'fresh': 70},
+                         {'id': 'I5', 'kind': 'ca_loc', 'fresh': 29}]
+            sim.customers = [_p3_customer(id='C1', table_id='T1', order_status='assigned',
+                                      reserved=[], base_price=40),
+                             _p3_customer(id='C2', table_id='T2', order_status='assigned',
+                                      reserved=[], base_price=50)]
+            for stove, c in zip(sim.stoves, sim.customers):
+                stove.update(state='ready', ready_ticks=limit,
+                             dish={'order_id': c['id'], 'dish_id': DISH,
+                                   'base_price': c['base_price']})
+            ev = []
+            sim._tick_stoves_and_eating(ev)
+            self.assertEqual([(e, d['stove_id'], d['order_status']) for e, d in ev],
+                             [('dish_burnt', 'B1', 'reserved'),
+                              ('dish_burnt', 'B2', 'unfulfillable')])
+            self.assertEqual(sim.customers[0]['reserved'], ['I4'])
+            self.assertEqual(sim.customers[1]['reserved'], [])
+            self.assertEqual(len(sim.stock), 2)  # đồ đã cháy không hoàn lại kho
+
+    def test_p3_15_tip_uses_discounted_price_not_list_price(self):
+        sim = _p3_fixture()
+        sim.pos = list(TABLE['pos'])
+        sim.hand = {'order_id': 'C1', 'dish_id': DISH, 'base_price': 42}
+        sim.customers = [_p3_customer(order_status='assigned', state='waiting',
+                                  reserved=[], base_price=42, patience_ticks_left=sim.patience_full)]
+        ev = []
+        sim._interact(ev)
+        self.assertEqual(ev[0][1]['tip'], 8)  # floor(42 * 0.2), không phải 60 * 0.2
+        self.assertEqual(sim.customers[0]['base_price'], 42)
+        ev = []
+        sim._pay(sim.customers[0], 'finished_eating', ev)
+        self.assertEqual(ev[0][1]['amount'], 50)
+        self.assertEqual(sim.earned, 50)
 
 
 if __name__ == '__main__':
