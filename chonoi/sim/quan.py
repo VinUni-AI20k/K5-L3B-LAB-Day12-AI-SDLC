@@ -1,14 +1,21 @@
-"""Buổi tối — Mở Quán. KHUNG: đi lại, chặn biên, đồng hồ, kho nạp từ file/scenario.
+"""Buổi tối — Mở Quán (Phase 2 / Test Contract v1.1).
 
-Luật chơi Lát 3 và 4 (PRD-0 mục D–F, TEAM.md):
-  - Khách đến theo lịch (first_customer_tick, customer_interval_s), chọn món đủ nguyên liệu,
-    giữ chỗ nguyên liệu (reserved), kiên nhẫn, bỏ đi (customer_left), thiếu món (no_dish).
-  - Tương tác E: ưu tiên đối tượng theo (khoảng cách, bếp trước bàn, id).
-    Bếp idle nhận đơn reserved cũ nhất (cook_started). Nấu xong chín (dish_ready).
-    Bưng khi tay trống (dish_picked). Giao đúng bàn/khách (served).
-  - Khách ăn xong trả tiền (paid), tính boa và uy tín.
-  - Hết ca (time_left_ticks <= 0): thu tiền khách đang ăn, dọn khách chờ với lý do closing,
-    phát quan_end.
+Luật chơi Quán (TICKET-02):
+  - Bếp: B1 [2,8], B2 [5,8].
+  - Bàn: T1 [9,2], T2 [13,2], T3 [9,6], T4 [13,6].
+  - Tương tác E: ưu tiên đối tượng theo (khoảng cách <= 1.5m, bếp trước bàn, id).
+    Bếp idle nhận đơn reserved cũ nhất theo order_tick rồi id bàn (cook_started).
+    Nấu xong chín (dish_ready). Bưng khi tay trống (dish_picked). Giao đúng bàn/khách (served).
+  - Khách: Ghế trống ID nhỏ nhất. Lượt đầu tick 120, sau đó 120 + 900*k nếu có bàn trống.
+    Kiên nhẫn 60 s (3.600 tick), ăn 10 s (600 tick).
+  - Menu 6 món: ca_loc_nuong_trui, goi_bong_sung, lau_ca_linh_dien_dien,
+    canh_chua_ca_loc, ca_keo_nuong, lau_mam.
+  - Kế hoạch ngày (day_plan): trong day, lọc menu theo món trong kế hoạch trước khi lọc tồn kho.
+  - Boa: floor(giá * 0.2) nếu còn >= 50% kiên nhẫn lúc giao. Thu boa dương: uy tín +0.2.
+  - Hết kiên nhẫn: uy tín -0.5, nhả nguyên liệu đã giữ (customer_left, reason: patience).
+  - Đóng ca (time_left_ticks <= 0): thu tiền khách đang ăn (paid, reason: closing),
+    khách chờ rời không trừ uy tín (customer_left, reason: closing), phát quan_end.
+  - Mở rộng burn: nếu burn_s hữu hạn, ready_ticks > burn_s * 60 thì cháy (dish_burnt).
 """
 
 import math
@@ -23,12 +30,23 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, day_plan=None):
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
         self.rng = streams
         self.ids = ids
+
+        # Day plan (nếu chạy trong chế độ day hoặc truyền từ scenario)
+        dp = day_plan or scenario.get("day_plan")
+        if isinstance(dp, list):
+            day_num = scenario.get("day", 1)
+            matched = next((d for d in dp if isinstance(d, dict) and d.get("day") == day_num), None)
+            self.day_plan = matched if matched else (dp[0] if dp and isinstance(dp[0], dict) else None)
+        elif isinstance(dp, dict):
+            self.day_plan = dp
+        else:
+            self.day_plan = None
 
         p = scenario.get("player", {})
         self.pos = [float(c) for c in p.get("pos", t["start_pos"])]
@@ -57,7 +75,7 @@ class QuanSim:
         self.phase_tick = self.total_duration_ticks - self.time_left_ticks
         self.reputation = float(scenario.get("reputation", t["reputation_initial"]))
 
-        # Bếp
+        # Bếp (Phase 2 mặc định: B1 [2, 8], B2 [5, 8])
         self.stoves = []
         for s in self._merge(t["stoves"], scenario.get("stoves", [])):
             st = dict(s)
@@ -78,7 +96,7 @@ class QuanSim:
             self.stoves.append(st)
         self.stoves = sort_by_id(self.stoves)
 
-        # Bàn
+        # Bàn (Phase 2 mặc định: T1 [9, 2], T2 [13, 2], T3 [9, 6], T4 [13, 6])
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
 
         # Khách dựng sẵn từ scenario
@@ -171,7 +189,10 @@ class QuanSim:
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.phase_tick += 1
 
-        # 1. Timer & Bếp chín
+        # 1. Timer & Bếp chín / cháy món (nếu bật burn)
+        burn_s = self.t.get("burn_s")
+        burn_ticks = int(round(burn_s * TICK)) if burn_s is not None else None
+
         for s in sort_by_id(self.stoves):
             if s["state"] == "cooking":
                 s["cook_ticks_left"] -= 1
@@ -191,6 +212,45 @@ class QuanSim:
                     )
             elif s["state"] == "ready":
                 s["ready_ticks"] += 1
+                if burn_ticks is not None and s["ready_ticks"] > burn_ticks:
+                    # Món bị cháy sau burn_ticks!
+                    burnt_dish = s["dish"]
+                    s["state"] = "idle"
+                    s["dish"] = None
+                    s["cook_ticks_left"] = 0
+                    s["ready_ticks"] = 0
+
+                    new_status = "unfulfillable"
+                    target_cust = next(
+                        (cust for cust in self.customers if cust["id"] == burnt_dish["order_id"]),
+                        None,
+                    )
+                    if target_cust and target_cust["state"] == "waiting":
+                        recipe = self.menu[burnt_dish["dish_id"]]["recipe"]
+                        avail = dict(self.stock)
+                        for other_c in self.customers:
+                            for k, amt in other_c.get("reserved", {}).items():
+                                avail[k] = avail.get(k, 0) - amt
+                        if all(avail.get(k, 0) >= req for k, req in recipe.items()):
+                            target_cust["reserved"] = dict(recipe)
+                            target_cust["order_status"] = "reserved"
+                            new_status = "reserved"
+                        else:
+                            target_cust["reserved"] = {}
+                            target_cust["order_status"] = "unfulfillable"
+                            new_status = "unfulfillable"
+
+                    events.append(
+                        (
+                            "dish_burnt",
+                            {
+                                "stove_id": s["id"],
+                                "order_id": burnt_dish["order_id"],
+                                "dish_id": burnt_dish["dish_id"],
+                                "order_status": new_status,
+                            },
+                        )
+                    )
 
         for c in self.customers:
             if c["state"] == "waiting":
@@ -301,6 +361,13 @@ class QuanSim:
                             },
                         )
                     )
+            # Dọn món và phần giữ của đơn khi đóng ca
+            for s in self.stoves:
+                s["state"] = "idle"
+                s["dish"] = None
+                s["cook_ticks_left"] = 0
+                s["ready_ticks"] = 0
+            self.hand = None
             self.customers = []
             self.done = True
             self.reason = "time"
@@ -358,9 +425,9 @@ class QuanSim:
         if chosen[3] == "stove":
             s = chosen[4]
             if s["state"] == "idle":
-                # Nhận đơn reserved cũ nhất
+                # Nhận đơn reserved cũ nhất theo order_tick rồi id bàn
                 res_custs = [c for c in self.customers if c["order_status"] == "reserved"]
-                res_custs.sort(key=lambda c: (c.get("order_tick", 0), id_key(c["id"])))
+                res_custs.sort(key=lambda c: (c.get("order_tick", 0), id_key(c.get("table_id", "")), id_key(c["id"])))
                 target_cust = res_custs[0]
 
                 d_id = target_cust["dish_id"]
@@ -423,7 +490,7 @@ class QuanSim:
             ratio = patience_left / max_pat
             base_price = self.hand["base_price"]
             if ratio >= self.t["tip_min_patience_ratio"]:
-                tip = int(round(base_price * self.t["tip_rate"]))
+                tip = math.floor(base_price * self.t["tip_rate"])
             else:
                 tip = 0
             cust["tip"] = tip
@@ -464,8 +531,14 @@ class QuanSim:
                 for k, amt in c.get("reserved", {}).items():
                     avail[k] = avail.get(k, 0) - amt
 
+            # Lọc danh sách món: nếu có day_plan thì chỉ chọn từ món trong kế hoạch
+            if self.day_plan and "dishes" in self.day_plan:
+                pool = [d for d in sorted(self.day_plan["dishes"].keys()) if d in self.menu]
+            else:
+                pool = sorted(self.menu.keys())
+
             eligible = []
-            for d_id in sorted(self.menu):
+            for d_id in pool:
                 recipe = self.menu[d_id]["recipe"]
                 if all(avail.get(k, 0) >= req for k, req in recipe.items()):
                     eligible.append(d_id)

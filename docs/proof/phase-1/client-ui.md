@@ -18,4 +18,4 @@ Bản UI trên nhánh `codex/client-ui-phase-1`, đối chiếu với commit n�
 - Live: `python3 -m chonoi.live --mode gather`. Mở địa chỉ in ra và chọn **Chơi trọn ngày**. Nhấn **E** ở bến rồi chọn **Mở quán** để kiểm tra chuyển kho.
 - Snapshot mẫu: `python3 -m http.server 8000 --bind 127.0.0.1` ở gốc repo. Mở `http://127.0.0.1:8000/chonoi/web/?preview=1` và dùng **E** hoặc **Space** để duyệt các snapshot.
 
-`chonoi.live` được mở rộng để phục vụ tệp UI, cung cấp tuning từ contract, nhận xung phím ở 60 Hz và chuyển ca qua file kho. Luật thu hoạch, oxy và vòng đời khách còn TODO ở hai sim trong checkout này, nên các trạng thái đó được kiểm bằng snapshot mẫu. Luồng cập bến, bàn giao kho, di chuyển và hết giờ được kiểm bằng mô phỏng thật.
+Tại thời điểm triển khai UI trên commit nền, snapshot mẫu được dùng để kiểm thu hoạch, oxy và vòng đời khách. Sau khi gộp các sim, Chrome headless chạy lại luồng **Chơi trọn ngày** với mô phỏng thật và kiểm được hai HUD cùng kho ở màn chuyển ca. [Kết quả chạy lại](ban-giao.md)

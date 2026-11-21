@@ -22,4 +22,5 @@ python3 -m unittest discover -s tests -v
 - **Ngất ở tick biên:** Trên `cecbe8e`, tick 1 có `choke → faint → gather_end → snapshot`. Giỏ rơi theo LIFO và file kho xuất ra rỗng, khớp payload của `gather_end`.
 - **Fixture sai:** `player.hp=0` trả mã thoát 2 và giữ nguyên từng byte của hai file đầu ra đã có.
 - **Chuyển kho gather → quán:** Smoke seed 42 đạt. Snapshot quán tick 0 đọc đúng `{"bong_sung":2,"ca_loc":1}`.
+- **Kiểm lại sau tích hợp:** Bản `main` `fdc986b` đạt 45/45, gồm cả Gather và test QA. Bản bàn giao có thêm test biên Quán đạt 48/48. [Kết quả chạy lại](ban-giao.md)
 - **Xác nhận tích hợp:** Đã chạy lại full suite trên main tại fdc986b. Kết quả: 45/45 đạt trong 10,733 giây.

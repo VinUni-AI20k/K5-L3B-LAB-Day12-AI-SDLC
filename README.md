@@ -41,6 +41,8 @@ Buổi sáng ghi `inventory.json` khi kết thúc. Trong **Chơi trọn ngày**,
 PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
 ```
 
+Để kiểm danh sách thành viên và chạy cả suite bằng một lệnh, dùng `python3 tools/phase1.py verify`. Dùng `python3 tools/phase1.py smoke` nếu chỉ cần kiểm tra bàn giao kho giữa hai tiến trình. [Ma trận nghiệm thu Phase 1](docs/verification/phase-1.md)
+
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
 Khi cần kiểm tra UI riêng, chạy `python3 -m http.server 8000 --bind 127.0.0.1` ở gốc repo và mở `http://127.0.0.1:8000/chonoi/web/?preview=1`. Chọn chế độ, rồi nhấn **E** hoặc **Space** để duyệt các snapshot mẫu. Bản xem có thể đi qua luồng thu hoạch, chuyển kho, nấu, bưng, phục vụ, thanh toán và tổng kết.

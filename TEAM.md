@@ -1,15 +1,15 @@
 # TEAM — Spec triển khai Chợ Nổi
 
-**Nhóm Ba Khi · 4 người · 4 module · mỗi người điều phối 1 agent.** Điền tên và GitHub handle thật vào bốn dòng dưới đây trước khi mở PR. `team_size` trong [game.contract.json](game.contract.json) đã là 4.
+**Nhóm Ba Khi · 4 người · 4 module · mỗi người điều phối 1 agent.** Mã nhóm `nhom-ba-khi` và `team_size: 4` được khai trong [game.contract.json](game.contract.json).
 
 ## Phân công
 
 | **Thành viên** | **GitHub handle** | **Module chính** | **Vai quy trình** | **Dự phòng cho** |
 |---|---|---|---|---|
-|Nguyễn Trung Dũng | … | `sim/gather` | PO · hỏi giảng viên, ghi quyết định | `sim/quan` |
-|Nguyễn Văn Lâm | … | `sim/quan` | Integrator · điều phối file chung, tích hợp, gắn tag | `sim/gather` |
-|Nguyễn Duy Hưng | … | `client/ui` | Scrum/Release · giữ nhịp, chuẩn bị demo và release | `qa` |
-|Đặng Nguyễn Nhật Minh | … | `qa` | QA lead · kiểm thử hộp đen, tổng hợp bằng chứng | `client/ui` |
+| Nguyễn Trung Dũng | `bomgoa1102` | `sim/gather` | PO · hỏi giảng viên, ghi quyết định | `sim/quan` |
+| Nguyễn Văn Lâm | `lam2121` | `sim/quan` | Integrator · điều phối file chung, tích hợp, gắn tag | `sim/gather` |
+| Nguyễn Duy Hưng | `Hungnd1208` | `client/ui` | Scrum/Release · giữ nhịp, chuẩn bị demo và release | `qa` |
+| Đặng Nguyễn Nhật Minh | `MN-HD` | `qa` | QA lead · kiểm thử hộp đen, tổng hợp bằng chứng | `client/ui` |
 
 ## Phase 1
 
@@ -69,8 +69,8 @@ Các bảng dưới đây dùng cho Phase 1. Đối chiếu định dạng và h
 | Runner → Quán | `QuanSim(tuning, scenario, streams, ids, inventory=None)`. `inventory` là map đã đọc từ `items`. `scenario` đã được bóc khối theo mode, nên bên trong sim đọc `scenario.get("stock")`. |
 | Cả hai sim → runner | `step(inp: InputState)` trả danh sách `(name, data)` theo thứ tự xảy ra. `snapshot()` trả các trường riêng của mode. Runner đọc `mode`, `phase`, `done`, `reason`, `time_left_ticks`, `money`, `earned`, `reputation`. |
 | Runner → headless/live | Cùng dùng `Session(mode, tuning, scenario, seed, inventory=None)`. `Session.step(inp)` gắn `type`, `tick`, `phase` cho event. `Session.snapshot()` ghép trường chung với trường riêng. |
-| Live → UI | `GET /state` trả snapshot kèm `meta` (tuning của mode), `events` (các event gần đây, có thể lặp giữa lần đọc), `finished` (boolean), `reason` và `error` (chuỗi hoặc `null`). UI lấy snapshot làm trạng thái hiện tại. |
-| UI → live | `POST /input` gửi object như `{"move":[0,1],"interact":false,"catch":true}`. Trường có mặt cập nhật trạng thái phím đang giữ. `POST /restart` với body rỗng bắt đầu lại cùng seed, scenario và kho đầu lượt. Hai POST trả `200 {"ok":true}` khi thành công. Payload `/input` sai kiểu trả `400 {"error":"…"}`. |
+| Live → UI | `GET /state` trả snapshot kèm `meta`, `events`, `finished`, `reason`, `error`, `session_id`, `inventory_saved` và `inventory_file`. `session_id` tăng khi bắt đầu phiên mới. `inventory_saved` báo đã ghi kho và `inventory_file` là tên file hoặc `null`. UI lấy snapshot làm trạng thái hiện tại. |
+| UI → live | `POST /input` gửi object như `{"move":[0,1],"interact":false,"catch":true}`. `POST /play` nhận `mode` là `day`, `gather`, `quan` hoặc `menu`. `POST /continue` đọc kho đã chốt để mở quán sau buổi sáng trong `day`. `POST /restart` bắt đầu lại phiên hiện tại với cùng seed, scenario và kho đầu phiên. POST thành công trả `200 {"ok":true}`. Dữ liệu sai hoặc chuyển ca sai trạng thái trả `400 {"error":"…"}`. |
 
 `InputState.move` là vector đã chuẩn hóa. Hai thành phần trong `[-1,1]`; độ dài trên 1 được chuẩn hóa về 1. `pressed("interact")` và `pressed("catch")` báo cạnh nhấn `false → true`. E dùng cho cả hai mode, Space (`catch`) chỉ tác động trong gather, R chỉ gọi live restart.
 
@@ -137,7 +137,7 @@ Dòng cuối là `{type: "end", ticks, sim_tick, mode, state, reason, money, ear
 
 ### Khi thay đổi giao diện
 
-Integrator phối hợp với module phát và module đọc trước khi sửa file chung (`runner`, `scenario`, `inputs`, `inventory`, CLI, live adapter). Ghi tên trường, kiểu, trường hợp rỗng, ví dụ payload và fixture xác nhận trong cùng PR. UI kiểm snapshot qua `/state`, QA kiểm payload và tick qua headless. Starter hiện cần bổ sung `quan.player.vel` để khớp bảng. `gather.player.invuln_ticks` là trường riêng của starter, UI và QA dựa vào các trường v1.0 ở trên.
+Integrator phối hợp với module phát và module đọc trước khi sửa file chung (`runner`, `scenario`, `inputs`, `inventory`, CLI, live adapter). Ghi tên trường, kiểu, trường hợp rỗng, ví dụ payload và fixture xác nhận trong cùng PR. UI kiểm snapshot qua `/state`, QA kiểm payload và tick qua headless. API `/play` và `/continue` thuộc adapter trình duyệt; headless Phase 1 công bố `gather` và `quan`.
 
 ## Thỏa thuận làm việc
 
@@ -157,4 +157,4 @@ python3 -m chonoi.live --mode gather  # đổi thành quan để thử buổi t�
 python3 tools/check_team.py
 ```
 
-Lệnh suite trên dùng cú pháp Bash. Trên PowerShell, đặt `$env:PYTHONPATH = 'tests;.'` trước khi chạy. Suite hộp đen gọi `python3` theo `headless_cmd`, nên môi trường chạy suite cần tìm được lệnh này trên `PATH`. Lệnh `check_team.py` cần bốn tên và handle thật.
+Lệnh suite trên dùng cú pháp Bash. Trên PowerShell, đặt `$env:PYTHONPATH = 'tests;.'` trước khi chạy hoặc dùng `python3 tools/phase1.py verify`. Suite hộp đen gọi `python3` theo `headless_cmd`, nên môi trường chạy suite cần tìm được lệnh này trên `PATH`.
