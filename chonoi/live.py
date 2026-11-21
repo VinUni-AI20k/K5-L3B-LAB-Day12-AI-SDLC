@@ -19,6 +19,7 @@ import sys
 import threading
 import time
 import traceback
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 from .contract import load_contract
@@ -28,6 +29,8 @@ from .inventory import read_inventory
 from .runner import Session
 from .scenario import load_scenario
 
+ROOT_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ASSETS_DIR = os.path.join(ROOT_DIR, "assets")
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 TICK_S = 1.0 / 60.0
 MAX_BODY = 4096
@@ -154,6 +157,21 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
+        elif path.startswith("/assets/"):
+            rel = urllib.parse.unquote(path[len("/assets/"):].lstrip("/\\"))
+            filepath = os.path.normpath(os.path.join(ASSETS_DIR, rel))
+            if filepath.startswith(ASSETS_DIR) and os.path.isfile(filepath):
+                ctype = "application/octet-stream"
+                if filepath.lower().endswith(".png"):
+                    ctype = "image/png"
+                elif filepath.lower().endswith(".json"):
+                    ctype = "application/json"
+                elif filepath.lower().endswith(".jpg") or filepath.lower().endswith(".jpeg"):
+                    ctype = "image/jpeg"
+                with open(filepath, "rb") as f:
+                    self._send(200, f.read(), ctype)
+            else:
+                self._send(404, b'{"error":"asset khong ton tai"}')
         else:
             self._send(404, b'{"error":"khong co"}')
 
