@@ -1,6 +1,6 @@
-# Hợp đồng tích hợp — Test Contract v1.0 (Phase 1)
+# Hợp đồng tích hợp — Test Contract v1.1 (Phase 2)
 
-> **Người giữ:** Integrator. **Trạng thái:** CHỐT theo PRD-0 (phát hành 2026-11-21 08:02).
+> **Người giữ:** Integrator. **Trạng thái:** CHỐT theo TICKET-02 (Phase 2).
 > Nguồn chuẩn: PRD-0 mục A–G (Test Contract v1.0). File này là bản tóm tắt cho nhóm/agent; chỗ nào lệch PRD thì PRD thắng.
 > Đổi hợp đồng: báo cả nhóm trước, ghi lý do (ADR trong `docs/adr/` hoặc nhật ký cuối file), commit riêng.
 
@@ -121,3 +121,4 @@ Thứ tự một bước (mục F):
 |---|---|---|---|
 | 2026-11-21 | Chốt v1.0 bản nháp từ code khung | Kickoff, PRD chưa mở | Integrator |
 | 2026-11-21 | Đối chiếu PRD-0: sửa `data` sự kiện gather/quan, trường khách trong snapshot quan, thứ tự bước; bỏ toàn bộ nhãn [giả định] | PRD-0 phát hành 08:02 | QA (czx04) |
+| 2026-11-21 | Nâng cấp Test Contract v1.1 cho Phase 2: thêm N5/N6 kèo nèo, cá kèo, cá bơi phản xạ mép & đổi hướng tick 120, sinh cá tick 360, quái Cá Sấu Năm Chèo M1/M2 | TICKET-02 Phase 2 | Integrator (ToanLee5433) |
