@@ -5,7 +5,7 @@ import json
 from .errors import BadInput
 from .inventory import KINDS_P1, validate_items
 
-GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
+GATHER_KEYS = {"player", "hold", "nodes", "fish", "monsters", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "invuln_ticks", "catch_cd_ticks"}
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
@@ -79,7 +79,7 @@ def _pos(name, pos, bounds, axes=("x", "d")):
 def _validate_gather(b, tuning):
     g = tuning["gather"]
     bounds = g["bounds"]
-    for arr in ("nodes", "fish"):
+    for arr in ("nodes", "fish", "monsters"):
         if arr in b:
             _check_ids(arr, b[arr])
     if "random_fish" in b and not isinstance(b["random_fish"], bool):
@@ -133,6 +133,23 @@ def _validate_gather(b, tuning):
             raise BadInput(f"fish.{f['id']}: đàn cá phải ở dưới nước")
         if "heading_deg" in f and not _num(f["heading_deg"]):
             raise BadInput(f"fish.{f['id']}.heading_deg phải là số")
+        if "age_ticks" in f:
+            _nonneg_int(f"fish.{f['id']}.age_ticks", f["age_ticks"])
+    for m in b.get("monsters", []):
+        if m.get("kind") != "ca_sau":
+            raise BadInput("monsters.kind phải là ca_sau")
+        _pos(f"monsters.{m['id']}.pos", m.get("pos"), bounds)
+        points = m.get("waypoints")
+        if not isinstance(points, list) or len(points) != 2:
+            raise BadInput("monsters.waypoints phải có hai vị trí")
+        for point in points:
+            _pos("monsters.waypoints", point, bounds)
+        if m.get("state", "patrol") not in ("patrol", "chase", "recoil"):
+            raise BadInput("monsters.state không hợp lệ")
+        if m.get("target_idx", 1) not in (0, 1):
+            raise BadInput("monsters.target_idx không hợp lệ")
+        if m.get("state", "patrol") == "recoil" and (not isinstance(m.get("state_ticks_left"), int) or m["state_ticks_left"] <= 0):
+            raise BadInput("recoil cần state_ticks_left dương")
 
 
 def _validate_quan(b, tuning, inventory):
