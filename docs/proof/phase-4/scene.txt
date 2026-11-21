@@ -1,0 +1,21 @@
+# Cảnh nền hai buổi (scene.js, trongnghia2304) · nhánh feat/p4-scene-art trên 515ad51 + thay đổi chưa commit · 2026-11-21 21:18
+Bối cảnh theo PRD-0 mục 3, vẽ bằng code, không asset ngoài. index.html chỉ thêm hook gatherBack/Front, quanBack/Front (thiếu scene.js thì vẽ như cũ).
+- scene-1-song-phu-sa.jpg: buổi sáng, chế độ thường. scene-2-nha-be-dem.jpg: buổi tối (màn 'Mở quán' của day.js đè lên). scene-3-song-tuong-phan-cao.jpg: buổi sáng, phím H.
+
+## Bench (không chạy song song trình duyệt khác), 8 s:
+- scene.js: {"avg_fps":59.40124542947349,"p1_low_fps":30.048076923076824,"frames":476,"measured_s":8.013300000000001,"load_ms":689.37}
+- scene.js: {"avg_fps":60.0252080915478,"p1_low_fps":58.8235294117647,"frames":481,"measured_s":8.013300000000001,"load_ms":1300.913}
+- main (515ad51, trước khi đổi cảnh): {"avg_fps":60.02595717066839,"p1_low_fps":58.8235294117647,"frames":481,"measured_s":8.013200000000001,"load_ms":1053.404}
+-> FPS giữ ngang bản cũ (~60 avg); lần đo đầu có một lần khựng khởi động (1% low 30).
+
+$ python3 -m unittest discover -s tests
+Ran 272 tests in 65.838s
+
+OK
+
+## Lần 2 — camera zoom bám Út Sen + nhà bè isometric (2026-11-21)
+- scene-4-camera-theo-ut-sen.jpg: buổi sáng, camera zoom theo Út Sen (đang lặn ~7 m), bản đồ nhỏ góc phải dưới, thước độ sâu bên trái.
+- scene-5-nha-be-isometric.jpg: buổi tối nhìn isometric, kho mẫu 30 nguyên liệu để có khách (bàn T1 có khách + bong bóng gọi món).
+- Bench (cảnh Gather 1280x720, không chạy tab khác): {"avg_fps":60.02,"p1_low_fps":58.69,"frames":481,"measured_s":8.01,"load_ms":660.3}
+- Test: Ran 272 tests — OK
+- scene-6-hud-quan-khong-de-chu.jpg: HUD quán — "Trên tay" lên dòng tiền; dòng kho xuống dòng theo từng món, hiện đủ, khung HUD cao theo số dòng (trước đó chữ kho dài đè lên "Trên tay").

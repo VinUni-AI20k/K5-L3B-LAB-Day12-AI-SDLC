@@ -97,6 +97,10 @@ class LiveDayTest(unittest.TestCase):
         self.assertEqual(code, 200)
         self.assertIn(b"day_mode", js)
         self.assertIn(b'<script src="day.js">', _get(self.base + "/")[1])
+        code, js = _get(self.base + "/scene.js")   # cảnh nền sông phù sa / nhà bè đêm
+        self.assertEqual(code, 200)
+        self.assertIn(b"window.SCENE", js)
+        self.assertIn(b'<script src="scene.js">', _get(self.base + "/")[1])
 
 
 if __name__ == "__main__":

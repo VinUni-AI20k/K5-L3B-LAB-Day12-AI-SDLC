@@ -434,21 +434,26 @@
     rows.forEach((l, i) => t(l, cx, y + 218 + i * 26, { size: 15, color: "#4a3a2a" }));
     t("R để chơi lại", x + pw / 2, y + ph - 30, { size: 15, align: "center", color: "#6b5236" });
   }
-  function drawDayHud(s, w) {
+  function drawDayHud(s, w, h) {
     const plan = (s.day_plan && s.day_plan.ingredients) || {};
     const have = {};
     (s.hold || []).forEach((x) => { const k = typeof x === "string" ? x : x.kind; have[k] = (have[k] || 0) + 1; });
     const phase = { gather: "Lặn & Hái", quan: "Mở Quán", shop: "Sạp nâng cấp" }[s.phase] || s.phase;
-    // dưới dòng âm thanh / phụ đề của index.html (góc phải, y = 20)
+    // Góc TRÁI DƯỚI: góc phải trên là chỗ index.html xếp cảnh báo (y >= 36) và dòng âm thanh / phụ đề / tương phản.
+    // Gather: trên hàng ô giỏ (h-40 .. h-15). Quán: dưới phòng, bên trái dòng phím tắt canh phải ở h-14.
     const label = "NGÀY " + (s.day || "?") + (s.days_total ? "/" + s.days_total : "") + " · " + phase;
     const lw = measure(label, 16, true) + 26;
-    box(w - lw - 10, 28, lw, 28, C.wood1, { px: 2, light: "rgba(255,220,170,.2)" });
-    t(label, w - 23, 48, { size: 16, bold: true, align: "right", color: C.gold, outline: C.ink, outlineW: 3 });
-    if (s.phase === "gather") {
+    const gather = s.phase === "gather";
+    const by = gather ? h - 104 : h - 36;
+    box(10, by, lw, 28, C.wood1, { px: 2, light: "rgba(255,220,170,.2)" });
+    t(label, 23, by + 20, { size: 16, bold: true, color: C.gold, outline: C.ink, outlineW: 3 });
+    if (gather) {
       const need = Object.entries(plan).map(([k, n]) => kn(k) + " " + Math.min(have[k] || 0, n) + "/" + n);
-      t("Cần lấy: " + need.join(" · "), w - 12, 76, { size: 15, align: "right", color: C.light, outline: "rgba(0,0,0,.6)", outlineW: 3 });
+      t("Cần lấy: " + need.join(" · "), 12, h - 56, { size: 15, color: C.light, outline: "rgba(0,0,0,.6)", outlineW: 3 });
     }
   }
+  // Chế độ tương phản cao của index.html (biến toàn cục `HC`, phím H): áp cùng bộ lọc cho các màn của day.js
+  function highContrast() { try { return typeof HC !== "undefined" && !!HC; } catch (e) { return false; } }
 
   function frame(now) {
     requestAnimationFrame(frame);
@@ -457,12 +462,17 @@
     track(s);
     const w = innerWidth, h = innerHeight;
     g.imageSmoothingEnabled = false;
-    if (s.finished && s.reason === "days_complete") { drawSummary(s, w, h, now); return; }
-    if (s.phase === "shop") drawShop(s, w, h, now); else buttons.length = 0;
-    if (s.phase !== "shop") drawDayHud(s, w);
-    drawBanner(w, h);
-    drawToast(w);
-    if (s.state === "paused") drawPaused(w, h);
+    g.filter = highContrast() ? "contrast(1.35) saturate(1.25)" : "none";   // khớp index.html
+    try {
+      if (s.finished && s.reason === "days_complete") { drawSummary(s, w, h, now); return; }
+      if (s.phase === "shop") drawShop(s, w, h, now); else buttons.length = 0;
+      if (s.phase !== "shop") drawDayHud(s, w, h);
+      drawBanner(w, h);
+      drawToast(w);
+      if (s.state === "paused") drawPaused(w, h);
+    } finally {
+      g.filter = "none";
+    }
   }
   requestAnimationFrame(frame);
 

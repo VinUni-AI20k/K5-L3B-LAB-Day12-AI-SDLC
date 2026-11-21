@@ -27,3 +27,4 @@ OK
 - Console trình duyệt: không có lỗi.
 - live-day-7-asset-tiep.jpg: sau khi gộp asset của Tiệp (PR #22): HUD Ngày dời xuống dưới dòng âm thanh/phụ đề (y 44/64), cá/Cá Sấu/nút vẽ bằng SVG; Shop, màn chuyển pha vẫn đúng.
 - Giao diện 'Sạp đêm chợ nổi' (pixel indie, vẽ hoàn toàn bằng code trong day.js, không asset ngoài): live-day-8-indie-shop.jpg (Shop sau khi mua Bình oxy: thẻ giấy, vạch cấp, giá xu đỏ khi thiếu tiền, nút xám 'thiếu … xu'), live-day-9-indie-dayintro.jpg (bảng gỗ 'Ngày 1 / 2'), live-day-10-indie-tong-ket.jpg (tổng kết dưới dây đèn lồng). Console không lỗi.
+- live-day-11-hud-khong-de-canh-bao.jpg: HUD Ngày dời xuống góc trái dưới; cảnh báo 'Thủy quái!' của index.html (góc phải trên) không còn bị đè. live-day-12-tuong-phan-cao.jpg: phím H, day.js áp cùng bộ lọc tương phản cao.
