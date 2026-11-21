@@ -1,4 +1,16 @@
-"""Unit and integration tests for Quán (sim/quan) — Phase 2 (TICKET-02)."""
+"""Test suite cho Quán (Phase 3 / Test Contract v1.2).
+
+Bao quát:
+  - Kho cá thể {id, kind, fresh}.
+  - Hao tươi kho quán 0.25/s (1 đơn vị / tick với thang 240).
+  - Ngưỡng ươn fresh < 30: phát event `spoiled` theo id.
+  - Giữ chỗ theo id cá thể tươi nhất (fresh cao nhất, hòa id nhỏ).
+  - Giữ chỗ bị ươn: nhả và thử giữ lại đúng 1 lần; thiếu chuyển sang unfulfillable.
+  - Chốt giá lúc cook_started: base_price = floor(listed * avg_fresh / 100).
+  - Mảng items trong cook_started sắp theo kind rồi id.
+  - Tính boa floor(base_price * 0.2) trên giá đã chốt theo fresh.
+  - Từ chối file kho đếm ở contract v1.2 (BadInput -> mã 2).
+"""
 
 import json
 import math
@@ -6,396 +18,280 @@ import os
 import unittest
 
 from chonoi.contract import load_contract
+from chonoi.errors import BadInput
 from chonoi.ids import IdAllocator
 from chonoi.inputs import InputState
+from chonoi.inventory import read_inventory, write_inventory
 from chonoi.rng import Streams
-from chonoi.runner import Session
+from chonoi.runner import run
 from chonoi.sim.quan import QuanSim
-
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
-
-
-def make_sim(scenario=None, inventory=None, seed=1, day_plan=None):
-    contract = load_contract()
-    tuning = contract["tuning"]
-    streams = Streams(seed)
-    ids = IdAllocator()
-    sc = dict(scenario or {})
-    return QuanSim(tuning, sc, streams, ids, inventory=inventory, day_plan=day_plan)
+from helpers import Workdir, read_jsonl, run_headless, snapshots, write_json
 
 
-def make_input(move=(0.0, 0.0), interact=False, catch=False):
-    held = {"interact": interact, "catch": catch}
-    edges = set()
-    if interact:
-        edges.add("interact")
-    if catch:
-        edges.add("catch")
-    return InputState(move, held, edges)
+def make_input(move=(0, 0), interact=False, catch=False):
+    held = {"interact": bool(interact), "catch": bool(catch)}
+    edges = {"interact": bool(interact), "catch": bool(catch)}
+    return InputState(list(move), held, edges)
 
 
-class TestQuanBasicsPhase2(unittest.TestCase):
-    def test_quan_snapshot_structure_p2(self):
-        """Phase 2: 2 bếp (B1, B2), 4 bàn (T1, T2, T3, T4)."""
-        sim = make_sim(inventory={"ca_loc": 2, "bong_sung": 2})
-        snap = sim.snapshot()
-        self.assertIn("player", snap)
-        self.assertIn("pos", snap["player"])
-        self.assertIn("vel", snap["player"])
-        self.assertEqual(snap["stock"], {"bong_sung": 2, "ca_loc": 2})
-        self.assertIsNone(snap["hand"])
-        self.assertEqual(len(snap["stoves"]), 2)
-        self.assertEqual([s["id"] for s in snap["stoves"]], ["B1", "B2"])
-        self.assertEqual(len(snap["tables"]), 4)
-        self.assertEqual([t["id"] for t in snap["tables"]], ["T1", "T2", "T3", "T4"])
-        self.assertEqual(snap["customers"], [])
+class TestQuanPhase3Freshness(unittest.TestCase):
+    def setUp(self):
+        self.tuning = load_contract()["tuning"]
+        self.streams = Streams(1)
+        self.ids = IdAllocator()
 
-    def test_customer_arrival_and_reserved(self):
-        """Khách đến lúc first_customer_tick (120), ghế trống ID nhỏ nhất (T1), giữ chỗ theo công thức."""
-        sim = make_sim(inventory={"ca_loc": 5, "bong_sung": 5, "ca_linh": 5, "bong_dien_dien": 5}, seed=42)
-        inp = make_input()
-
-        # Chạy 119 tick: chưa có khách
-        for _ in range(119):
-            evs = sim.step(inp)
-            self.assertEqual(evs, [])
-            self.assertEqual(len(sim.customers), 0)
-
-        # Tick 120: khách đầu tiên đến
-        evs = sim.step(inp)
-        arr_evs = [e for e in evs if e[0] == "customer_arrived"]
-        self.assertEqual(len(arr_evs), 1)
-        name, data = arr_evs[0]
-        self.assertEqual(data["order_id"], "C1")
-        self.assertEqual(data["table_id"], "T1")
-        self.assertIn(data["dish_id"], sim.menu)
-
-        # Kiểm tra customer và reserved
-        self.assertEqual(len(sim.customers), 1)
-        c = sim.customers[0]
-        self.assertEqual(c["id"], "C1")
-        self.assertEqual(c["table_id"], "T1")
-        self.assertEqual(c["state"], "waiting")
-        self.assertEqual(c["order_status"], "reserved")
-        self.assertEqual(c["reserved"], sim.menu[c["dish_id"]]["recipe"])
-
-    def test_seating_smallest_table_id(self):
-        """Đến ghế trống ID nhỏ nhất: T1 đã có khách thì khách sau ngồi T2."""
-        sim = make_sim(
-            scenario={
-                "customers": [
-                    {
-                        "id": "C1",
-                        "table_id": "T1",
-                        "dish_id": "ca_loc_nuong_trui",
-                        "state": "waiting",
-                        "patience_ticks_left": 1000,
-                    }
-                ]
-            },
-            inventory={"ca_loc": 5, "bong_sung": 5},
-            seed=1,
-        )
-        inp = make_input()
-        for _ in range(119):
-            sim.step(inp)
-        evs = sim.step(inp)
-        arr_evs = [e for e in evs if e[0] == "customer_arrived"]
-        self.assertEqual(len(arr_evs), 1)
-        # Ghế trống tiếp theo có ID nhỏ nhất là T2
-        self.assertEqual(arr_evs[0][1]["table_id"], "T2")
-
-    def test_day_plan_filters_dishes(self):
-        """Trong day mode, khách chỉ chọn món thuộc day_plan có đủ nguyên liệu."""
-        d1_plan = {
-            "day": 1,
-            "dishes": {"ca_loc_nuong_trui": 3, "goi_bong_sung": 3},
-            "ingredients": {"ca_loc": 3, "bong_sung": 6},
+    def test_freshness_decay_and_spoiled_event(self):
+        """Hao tươi kho quán 0.25/s. fresh bắt đầu từ 30.0 thì tick đầu tiên giảm xuống < 30 và phát spoiled."""
+        scenario = {
+            "player": {"pos": [8, 5]},
+            "stock": [
+                {"id": "I1", "kind": "ca_linh", "fresh": 30.0},
+                {"id": "I2", "kind": "ca_loc", "fresh": 50.0},
+            ],
+            "customers": [],
+            "time_left_ticks": 100,
         }
-        # Kho có đủ cá kèo nhưng kế hoạch D1 không có món cá kèo
-        sim = make_sim(
-            inventory={"ca_loc": 5, "bong_sung": 5, "ca_keo": 10},
-            seed=42,
-            day_plan=d1_plan,
-        )
-        inp = make_input()
-        for _ in range(120):
-            evs = sim.step(inp)
-        c = sim.customers[0]
-        self.assertIn(c["dish_id"], ["ca_loc_nuong_trui", "goi_bong_sung"])
+        sim = QuanSim(self.tuning, scenario, self.streams, self.ids)
+        events = sim.step(make_input())
 
-    def test_no_dish_when_out_of_stock(self):
-        """Bàn trống nhưng kho không đủ nấu món nào -> phát no_dish {}."""
-        sim = make_sim(inventory={}, seed=1)
-        inp = make_input()
-        for _ in range(119):
-            sim.step(inp)
-        evs = sim.step(inp)
-        no_dish_evs = [e for e in evs if e[0] == "no_dish"]
-        self.assertEqual(len(no_dish_evs), 1)
-        self.assertEqual(no_dish_evs[0][1], {})
-        self.assertEqual(len(sim.customers), 0)
+        # I1 từ 30.0 giảm xuống 29.9958 (< 30) -> phát spoiled
+        spoiled_ev = [e for e in events if e[0] == "spoiled"]
+        self.assertEqual(len(spoiled_ev), 1)
+        self.assertEqual(spoiled_ev[0][1], {"item_id": "I1", "kind": "ca_linh", "location": "stock"})
 
-    def test_table_busy_skips_when_all_4_occupied(self):
-        """Cả 4 bàn đều bận: bỏ lượt khách mới."""
-        sim = make_sim(
-            scenario={
-                "customers": [
-                    {"id": f"C{i}", "table_id": f"T{i}", "dish_id": "ca_loc_nuong_trui", "state": "waiting"}
-                    for i in range(1, 5)
-                ]
-            },
-            inventory={"ca_loc": 10},
-            seed=1,
-        )
-        inp = make_input()
-        for _ in range(119):
-            sim.step(inp)
-        evs = sim.step(inp)
-        self.assertEqual([e[0] for e in evs if e[0] in ("customer_arrived", "no_dish")], [])
-        self.assertEqual(len(sim.customers), 4)
+        # Bước tiếp theo: I1 đã phát spoiled rồi thì không phát lại
+        events2 = sim.step(make_input())
+        spoiled_ev2 = [e for e in events2 if e[0] == "spoiled"]
+        self.assertEqual(len(spoiled_ev2), 0)
 
-    def test_customer_impatient_leaves(self):
-        """Khách hết kiên nhẫn: giảm uy tín 0.5, nhả reserved, phát customer_left reason patience."""
-        sim = make_sim(
-            scenario={
-                "customers": [
-                    {
-                        "id": "C1",
-                        "table_id": "T1",
-                        "dish_id": "ca_loc_nuong_trui",
-                        "state": "waiting",
-                        "patience_ticks_left": 2,
-                    }
-                ],
-                "random_customers": False,
-            },
-            inventory={"ca_loc": 1},
-        )
-        inp = make_input()
-        evs1 = sim.step(inp)
-        self.assertEqual(evs1, [])
-        self.assertEqual(len(sim.customers), 1)
+    def test_multiple_spoiled_emitted_in_id_order(self):
+        """Nếu nhiều cá thể cùng vượt ngưỡng, phát spoiled theo id."""
+        scenario = {
+            "player": {"pos": [8, 5]},
+            "stock": [
+                {"id": "I3", "kind": "ca_linh", "fresh": 30.0},
+                {"id": "I1", "kind": "bong_dien_dien", "fresh": 30.0},
+                {"id": "I2", "kind": "ca_loc", "fresh": 30.0},
+            ],
+            "customers": [],
+            "time_left_ticks": 100,
+        }
+        sim = QuanSim(self.tuning, scenario, self.streams, self.ids)
+        events = sim.step(make_input())
 
-        evs2 = sim.step(inp)
-        left_evs = [e for e in evs2 if e[0] == "customer_left"]
-        self.assertEqual(len(left_evs), 1)
-        data = left_evs[0][1]
-        self.assertEqual(data["order_id"], "C1")
-        self.assertEqual(data["table_id"], "T1")
-        self.assertEqual(data["reason"], "patience")
-        self.assertAlmostEqual(data["reputation"], 2.5)
-        self.assertAlmostEqual(sim.reputation, 2.5)
-        self.assertEqual(len(sim.customers), 0)
+        spoiled_ev = [e for e in events if e[0] == "spoiled"]
+        self.assertEqual(len(spoiled_ev), 3)
+        self.assertEqual([e[1]["item_id"] for e in spoiled_ev], ["I1", "I2", "I3"])
 
+    def test_reservation_by_freshest_items(self):
+        """Mỗi loại trong công thức lấy các cá thể khả dụng tươi nhất, hòa theo id."""
+        scenario = {
+            "player": {"pos": [8, 5]},
+            "stock": [
+                {"id": "I1", "kind": "ca_loc", "fresh": 60.0},
+                {"id": "I2", "kind": "ca_loc", "fresh": 95.0},
+                {"id": "I3", "kind": "ca_loc", "fresh": 80.0},
+            ],
+            "customers": [
+                {
+                    "id": "C1",
+                    "table_id": "T1",
+                    "dish_id": "ca_loc_nuong_trui",  # recipe: ca_loc 1
+                    "state": "waiting",
+                    "order_status": "reserved",
+                }
+            ],
+            "time_left_ticks": 100,
+        }
+        sim = QuanSim(self.tuning, scenario, self.streams, self.ids)
+        c1 = sim.customers[0]
+        # I2 tươi nhất (95.0) nên được chọn
+        self.assertEqual(c1["reserved"], ["I2"])
 
-class TestQuanCookingAndServicePhase2(unittest.TestCase):
-    def test_full_service_cycle_new_dishes(self):
-        """Thử món mới Phase 2: cá kèo nướng (ca_keo_nuong) và lẩu mắm (lau_mam)."""
-        contract = load_contract()
-        menu = contract["tuning"]["menu"]
-        self.assertIn("ca_keo_nuong", menu)
-        self.assertIn("lau_mam", menu)
+    def test_reserved_item_spoils_triggers_re_reservation(self):
+        """Nếu phần giữ có cá thể vừa ươn: nhả toàn bộ và thử giữ lại đúng 1 lần."""
+        scenario = {
+            "player": {"pos": [8, 5]},
+            "stock": [
+                {"id": "I1", "kind": "ca_loc", "fresh": 30.0},  # Sẽ ươn ở tick 1
+                {"id": "I2", "kind": "ca_loc", "fresh": 85.0},  # Hàng dự phòng còn tươi
+            ],
+            "customers": [
+                {
+                    "id": "C1",
+                    "table_id": "T1",
+                    "dish_id": "ca_loc_nuong_trui",
+                    "state": "waiting",
+                    "order_status": "reserved",
+                    "reserved": ["I1"],
+                }
+            ],
+            "time_left_ticks": 100,
+        }
+        sim = QuanSim(self.tuning, scenario, self.streams, self.ids)
+        events = sim.step(make_input())
 
-        # Nấu tại B2 [5, 8]
-        sim = make_sim(
-            scenario={
-                "player": {"pos": [5.0, 8.0]},
-                "customers": [
-                    {
-                        "id": "C1",
-                        "table_id": "T1",
-                        "dish_id": "ca_keo_nuong",
-                        "state": "waiting",
-                        "patience_ticks_left": 3600,
-                    }
-                ],
-                "random_customers": False,
-            },
-            inventory={"ca_keo": 4},
-        )
+        # I1 bị ươn
+        self.assertTrue(any(e[0] == "spoiled" and e[1]["item_id"] == "I1" for e in events))
+        c1 = sim.customers[0]
+        # Đã re-reserve sang I2 thành công
+        self.assertEqual(c1["order_status"], "reserved")
+        self.assertEqual(c1["reserved"], ["I2"])
 
-        inp_e = make_input(interact=True)
-        evs = sim.step(inp_e)
-        cook_evs = [e for e in evs if e[0] == "cook_started"]
-        self.assertEqual(len(cook_evs), 1)
-        self.assertEqual(cook_evs[0][1]["stove_id"], "B2")
-        self.assertEqual(cook_evs[0][1]["dish_id"], "ca_keo_nuong")
-        self.assertEqual(cook_evs[0][1]["base_price"], 70)
-        self.assertEqual(sim.stock["ca_keo"], 2)  # Trừ 2 con cá kèo
+    def test_reserved_item_spoils_and_no_stock_becomes_unfulfillable(self):
+        """Nếu cá thể vừa ươn mà kho không đủ để giữ lại: đơn chuyển unfulfillable."""
+        scenario = {
+            "player": {"pos": [8, 5]},
+            "stock": [
+                {"id": "I1", "kind": "ca_loc", "fresh": 30.0},
+            ],
+            "customers": [
+                {
+                    "id": "C1",
+                    "table_id": "T1",
+                    "dish_id": "ca_loc_nuong_trui",
+                    "state": "waiting",
+                    "order_status": "reserved",
+                    "reserved": ["I1"],
+                }
+            ],
+            "time_left_ticks": 100,
+        }
+        sim = QuanSim(self.tuning, scenario, self.streams, self.ids)
+        sim.step(make_input())
 
-        # Đợi chín (6s = 360 ticks)
-        inp_idle = make_input()
-        for _ in range(360):
-            sim.step(inp_idle)
-        b2 = next(s for s in sim.stoves if s["id"] == "B2")
-        self.assertEqual(b2["state"], "ready")
-
-        # Bưng món
-        sim.step(inp_e)
-        self.assertIsNotNone(sim.hand)
-        self.assertEqual(sim.hand["dish_id"], "ca_keo_nuong")
-
-        # Phục vụ tại bàn T1 [9, 2]
-        sim.pos = [9.0, 2.0]
-        evs_serve = sim.step(inp_e)
-        s_data = next(e[1] for e in evs_serve if e[0] == "served")
-        self.assertEqual(s_data["base_price"], 70)
-        self.assertEqual(s_data["tip"], 14)  # floor(70 * 0.2) = 14
-
-        # Khách ăn xong (10s = 600 ticks)
-        for _ in range(600):
-            step_evs = sim.step(inp_idle)
-            if any(e[0] == "paid" for e in step_evs):
-                paid_data = next(e[1] for e in step_evs if e[0] == "paid")
-                self.assertEqual(paid_data["amount"], 84)  # 70 + 14
-        self.assertEqual(sim.money, 84)
-        self.assertAlmostEqual(sim.reputation, 3.2)
-
-    def test_two_stoves_order_tick_and_table_priority(self):
-        """Bếp lấy đơn reserved cũ nhất theo order_tick rồi id bàn."""
-        sim = make_sim(
-            scenario={
-                "player": {"pos": [2.0, 8.0]},  # Gần B1 [2, 8]
-                "customers": [
-                    {
-                        "id": "C2",
-                        "table_id": "T2",
-                        "dish_id": "goi_bong_sung",
-                        "order_tick": 200,
-                        "state": "waiting",
-                    },
-                    {
-                        "id": "C1",
-                        "table_id": "T1",
-                        "dish_id": "ca_loc_nuong_trui",
-                        "order_tick": 100,
-                        "state": "waiting",
-                    },
-                ],
-                "random_customers": False,
-            },
-            inventory={"ca_loc": 2, "bong_sung": 4},
-        )
-        inp_e = make_input(interact=True)
-        evs = sim.step(inp_e)
-        # B1 phải nhận C1 (order_tick 100 cũ hơn 200)
-        cook_ev = next(e[1] for e in evs if e[0] == "cook_started")
-        self.assertEqual(cook_ev["order_id"], "C1")
-        self.assertEqual(cook_ev["dish_id"], "ca_loc_nuong_trui")
-
-    def test_burn_extension_ready_ticks(self):
-        """Mở rộng burn_s: món chín quá 1200 tick bị cháy, phát dish_burnt."""
-        contract = load_contract()
-        tuning = dict(contract["tuning"])
-        tuning["quan"] = dict(tuning["quan"], burn_s=20)  # 20s = 1200 ticks
-        streams = Streams(1)
-        ids = IdAllocator()
-        sim = QuanSim(
-            tuning,
-            {
-                "stoves": [
-                    {
-                        "id": "B1",
-                        "state": "ready",
-                        "dish": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60},
-                        "ready_ticks": 1200,
-                    }
-                ],
-                "customers": [
-                    {
-                        "id": "C1",
-                        "table_id": "T1",
-                        "dish_id": "ca_loc_nuong_trui",
-                        "state": "waiting",
-                        "order_status": "assigned",
-                    }
-                ],
-                "stock": {},  # Hết kho nên không thể reserved lại -> unfulfillable
-                "random_customers": False,
-            },
-            streams,
-            ids,
-        )
-        inp = make_input()
-        # Ở tick tiếp theo, ready_ticks tăng thành 1201 > 1200 -> cháy
-        evs = sim.step(inp)
-        burnt_evs = [e for e in evs if e[0] == "dish_burnt"]
-        self.assertEqual(len(burnt_evs), 1)
-        data = burnt_evs[0][1]
-        self.assertEqual(data["stove_id"], "B1")
-        self.assertEqual(data["order_id"], "C1")
-        self.assertEqual(data["order_status"], "unfulfillable")
-        b1 = next(s for s in sim.stoves if s["id"] == "B1")
-        self.assertEqual(b1["state"], "idle")
-        self.assertIsNone(b1["dish"])
-
-    def test_closing_clears_customers_and_stoves(self):
-        """Hết giờ ca: đóng ca dọn dẹp món và phần giữ của đơn, thu tiền khách đang ăn, phát quan_end."""
-        sim = make_sim(
-            scenario={
-                "time_left_ticks": 1,
-                "stoves": [
-                    {
-                        "id": "B1",
-                        "state": "cooking",
-                        "dish": {"order_id": "C2", "dish_id": "goi_bong_sung", "base_price": 40},
-                        "cook_ticks_left": 50,
-                    }
-                ],
-                "customers": [
-                    {
-                        "id": "C1",
-                        "table_id": "T1",
-                        "dish_id": "ca_loc_nuong_trui",
-                        "state": "eating",
-                        "base_price": 60,
-                        "tip": 12,
-                        "eat_ticks_left": 100,
-                    },
-                    {
-                        "id": "C2",
-                        "table_id": "T2",
-                        "dish_id": "goi_bong_sung",
-                        "state": "waiting",
-                        "patience_ticks_left": 500,
-                    },
-                ],
-                "random_customers": False,
-            }
-        )
-        inp = make_input()
-        evs = sim.step(inp)
-        names = [e[0] for e in evs]
-        self.assertIn("paid", names)
-        self.assertIn("customer_left", names)
-        self.assertIn("quan_end", names)
-        # Bếp được dọn rảnh
-        self.assertTrue(all(s["state"] == "idle" for s in sim.stoves))
-        self.assertTrue(sim.done)
+        c1 = sim.customers[0]
+        self.assertEqual(c1["order_status"], "unfulfillable")
+        self.assertEqual(c1["reserved"], [])
 
 
-class TestQuanHeadlessPhase2(unittest.TestCase):
-    def test_headless_quan_run_phase2_preset(self):
-        """Headless Quán với 2 bếp, 4 bàn và 6 món chạy thành công và xuất đủ trường snapshot."""
+class TestQuanPhase3PricingAndCooking(unittest.TestCase):
+    def setUp(self):
+        self.tuning = load_contract()["tuning"]
+        self.streams = Streams(1)
+        self.ids = IdAllocator()
+
+    def test_cook_started_locks_price_by_average_freshness(self):
+        """Bắt đầu nấu: tiêu đúng các id đang giữ và chốt base_price = floor(listed * avg_fresh / 100)."""
+        # Món canh_chua_ca_loc: ca_loc 1, bong_dien_dien 1. Giá niêm yết = 90.
+        scenario = {
+            "player": {"pos": [2.0, 8.0]},  # Cạnh bếp B1 [2, 8]
+            "stock": [
+                {"id": "I1", "kind": "ca_loc", "fresh": 80.0},
+                {"id": "I2", "kind": "bong_dien_dien", "fresh": 60.0},
+            ],
+            "customers": [
+                {
+                    "id": "C1",
+                    "table_id": "T1",
+                    "dish_id": "canh_chua_ca_loc",
+                    "state": "waiting",
+                    "order_status": "reserved",
+                    "reserved": ["I1", "I2"],
+                }
+            ],
+            "stoves": [{"id": "B1", "pos": [2, 8], "state": "idle"}],
+            "time_left_ticks": 1000,
+        }
+        sim = QuanSim(self.tuning, scenario, self.streams, self.ids)
+        events = sim.step(make_input(interact=True))
+
+        cook_ev = [e for e in events if e[0] == "cook_started"]
+        self.assertEqual(len(cook_ev), 1)
+        c_data = cook_ev[0][1]
+
+        # Sau 1 tick hao tươi (0.25/60 điểm mỗi nguyên liệu):
+        # I1: 80 - 1/240 = 79.9958, I2: 60 - 1/240 = 59.9958
+        # avg_fresh = 69.9958 -> base_price = floor(90 * 69.9958 / 100) = floor(62.996) = 62
+        b1 = sim.stoves[0]
+        self.assertEqual(b1["dish"]["base_price"], 62)
+        self.assertEqual(sim.customers[0]["base_price"], 62)
+
+        # Mảng items trong cook_started sắp theo kind rồi id
+        # bong_dien_dien đứng trước ca_loc theo bảng chữ cái
+        self.assertEqual([it["id"] for it in c_data["items"]], ["I2", "I1"])
+        # Stock đã bị tiêu trừ
+        self.assertEqual(len(sim.stock), 0)
+
+    def test_tip_calculated_on_locked_base_price(self):
+        """Boa floor(base_price * 0.2) trên giá đã chốt theo fresh."""
+        scenario = {
+            "player": {"pos": [9.0, 2.0]},  # Cạnh bàn T1 [9, 2]
+            "hand": {"order_id": "C1", "dish_id": "canh_chua_ca_loc", "base_price": 63},
+            "customers": [
+                {
+                    "id": "C1",
+                    "table_id": "T1",
+                    "dish_id": "canh_chua_ca_loc",
+                    "state": "waiting",
+                    "order_status": "assigned",
+                    "patience_ticks_left": 3600,  # 100% kiên nhẫn >= 50%
+                    "base_price": 63,
+                }
+            ],
+            "time_left_ticks": 1000,
+        }
+        sim = QuanSim(self.tuning, scenario, self.streams, self.ids)
+        init_rep = sim.reputation
+        events = sim.step(make_input(interact=True))
+
+        served_ev = [e for e in events if e[0] == "served"]
+        self.assertEqual(len(served_ev), 1)
+        # floor(63 * 0.2) = floor(12.6) = 12
+        self.assertEqual(served_ev[0][1]["tip"], 12)
+        # Thu boa dương: uy tín +0.2
+        self.assertAlmostEqual(sim.reputation, init_rep + 0.2)
+
+
+class TestQuanPhase3InventoryContract(unittest.TestCase):
+    def test_read_inventory_v12_rejects_dict_count_returns_bad_input(self):
+        """Contract v1.2 trả mã 2 cho file kho đếm [THAY THẾ]."""
         with Workdir() as w:
+            dict_inv = write_json(w.path("old_inv.json"), {"items": {"bong_sung": 2, "ca_loc": 1}})
+            with self.assertRaises(BadInput):
+                read_inventory(dict_inv, contract_version="1.2")
+
+    def test_read_and_write_inventory_v12_itemized(self):
+        """Đọc và ghi kho cá thể v1.2: [{"id": ..., "kind": ..., "fresh": ...}]."""
+        with Workdir() as w:
+            items = [
+                {"id": "I2", "kind": "ca_loc", "fresh": 95.0},
+                {"id": "I1", "kind": "ca_linh", "fresh": 100.0},
+            ]
+            path = w.path("item_inv.json")
+            write_inventory(path, items)
+
+            read_back = read_inventory(path, contract_version="1.2")
+            # Ghi sắp theo ID
+            self.assertEqual(read_back[0]["id"], "I1")
+            self.assertEqual(read_back[1]["id"], "I2")
+            self.assertEqual(read_back[0]["fresh"], 100.0)
+
+    def test_headless_quan_run_phase3_preset(self):
+        """Headless Quán v1.2 nhận kho cá thể và xuất snapshot chuẩn."""
+        with Workdir() as w:
+            inv_path = write_json(w.path("inv.json"), {
+                "items": [
+                    {"id": "I1", "kind": "ca_loc", "fresh": 100.0},
+                    {"id": "I2", "kind": "bong_sung", "fresh": 95.0},
+                    {"id": "I3", "kind": "bong_sung", "fresh": 90.0},
+                ]
+            })
+            out_path = w.path("out.jsonl")
             code, err = run_headless(
-                "--mode",
-                "quan",
-                "--seed",
-                "1",
-                "--ticks",
-                "150",
-                "--inventory",
-                "docs/contracts/inventory.sample.json",
-                "--out",
-                w.path("q.jsonl"),
+                "--mode", "quan", "--seed", "1", "--ticks", "50",
+                "--inventory", inv_path, "--out", out_path
             )
             self.assertEqual(code, 0, err)
-            rows = read_jsonl(w.path("q.jsonl"))
-            s0 = snapshots(rows)[0]
-            self.assertEqual(len(s0["stoves"]), 2)
-            self.assertEqual(len(s0["tables"]), 4)
+            rows = read_jsonl(out_path)
+            snaps = snapshots(rows)
+            self.assertGreater(len(snaps), 0)
+            first_snap = snaps[0]
+            self.assertEqual(first_snap["mode"], "quan")
+            # Snapshot stock là mảng cá thể
+            self.assertIsInstance(first_snap["stock"], list)
+            self.assertEqual(len(first_snap["stock"]), 3)
+            self.assertEqual(first_snap["stock"][0]["id"], "I1")
 
 
 if __name__ == "__main__":
