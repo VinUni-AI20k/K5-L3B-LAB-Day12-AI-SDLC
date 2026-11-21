@@ -128,6 +128,10 @@ def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, i
     player = InputPlayer(frames)
     w = JsonlWriter(out_path)
     try:
+        # day: event mở Ngày 1 (day_start, day_plan, phase_start) nằm ở tick 0, ghi trước snapshot tick 0
+        # như mọi bước (event rồi snapshot). gather/quan không có start_rows.
+        for row in getattr(sess, "start_rows", list)():
+            w.write(row)
         w.write(sess.snapshot())  # tick 0: sau khi dựng scenario, trước mọi input
         last_snapped = 0
         while sess.tick < ticks and not sess.done:
