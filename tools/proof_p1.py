@@ -70,9 +70,9 @@ def main():
 
     # 1. toàn bộ test
     code, out, err = sh([PY, "-m", "unittest", "discover", "-s", "tests", "-v"])
-    write(p("tests.txt"), err + out)
+    write(p("tests-full.txt"), err + out)
     summary = [ln for ln in (err + out).splitlines() if ln.startswith("Ran ") or ln in ("OK",) or ln.startswith("FAILED")]
-    lines.append(f"| Toàn bộ test (`unittest discover -s tests -v`) | [`tests.txt`](tests.txt) | {' · '.join(summary)} |")
+    lines.append(f"| Toàn bộ test (`unittest discover -s tests -v`) | [`tests-full.txt`](tests-full.txt) | {' · '.join(summary)} |")
 
     # 2. smoke 2 tiến trình dock → quán (PRD-0 mục G)
     sm = p("smoke")

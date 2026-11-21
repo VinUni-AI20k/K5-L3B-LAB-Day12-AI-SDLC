@@ -1,3 +1,5 @@
+# commit: 47a673f · Python 3.12.7 · Windows 11 (Git Bash)
+# lệnh: PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
 test_l1_06_first_choke_at_t_plus_59 (test_gather_lat1.Lat1ChokeFaint.test_l1_06_first_choke_at_t_plus_59) ... ok
 test_l1_07_surface_on_choke_step_no_choke (test_gather_lat1.Lat1ChokeFaint.test_l1_07_surface_on_choke_step_no_choke) ... ok
 test_l1_08_choke_without_surfacing (test_gather_lat1.Lat1ChokeFaint.test_l1_08_choke_without_surfacing) ... ok
@@ -92,6 +94,6 @@ test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 88 tests in 7.711s
+Ran 88 tests in 8.824s
 
 OK

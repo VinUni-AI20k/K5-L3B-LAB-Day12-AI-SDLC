@@ -1,0 +1,40 @@
+# Tất định + chạy trọn ca + mã thoát · commit 47a673f
+
+## 1. Cùng seed -> giống từng byte (chạy 2 lần, so sha256)
+gather seed 7: run1=978eda29b02039d2 run2=978eda29b02039d2 -> GIỐNG
+quan seed 7: run1=7ec50a8a32c30969 run2=7ec50a8a32c30969 -> GIỐNG
+quan seed 8 (đối chứng): f127a80fc4164be3 -> khác seed 7 (đúng: seed đổi lượt khách)
+
+## 2. Chạy trọn ca, không điều khiển (10800 tick = 180 s)
+$ python3 -m chonoi.headless --mode gather --seed 7 --ticks 10800 --out gather.jsonl
+{"type":"end","ticks":10800,"sim_tick":10800,"mode":"gather","state":"finished","reason":"time","money":0,"earned":0,"reputation":3.0,"score":300}
+$ python3 -m chonoi.headless --mode quan --seed 7 --scenario q.json --ticks 10800 --out quan.jsonl   # q.json: {"quan":{"stock":{"ca_loc":2,"bong_sung":4,"ca_linh":3,"bong_dien_dien":1}}}
+sự kiện quán:
+{'customer_arrived': 3, 'customer_left': 3, 'quan_end': 1}
+{"type":"end","ticks":10800,"sim_tick":10800,"mode":"quan","state":"finished","reason":"time","money":0,"earned":0,"reputation":2.0,"score":200}
+chi tiết sự kiện quán:
+120   customer_arrived C1 T1 ca_loc_nuong_trui
+3720  customer_left    C1 reason=patience reputation=2.5   (đúng 3600 tick = patience_s sau khi đến)
+3720  customer_arrived C2 T1 goi_bong_sung                 (lịch 120 + 4×900; rời trước, khách mới sau trong cùng bước)
+7320  customer_left    C2 reason=patience reputation=2.0
+7320  customer_arrived C3 T1 ca_loc_nuong_trui
+10800 customer_left    C3 reason=closing  reputation=2.0   (closing không trừ uy tín)
+10800 quan_end time money=0 earned=0 reputation=2.0 -> score = 0 + 100×floor(2.0) = 200
+
+## 3. Mã thoát
+$ python3 -m chonoi.headless --mode gather --seed 1 --ticks 0 --out o.jsonl
+exit=0 stderr: 
+$ python3 -m chonoi.headless --mode day --seed 1 --ticks 0 --out o.jsonl
+exit=2 stderr: đầu vào sai: --mode day chưa hỗ trợ ở contract v1.0 (có từ v1.1)
+$ python3 -m chonoi.headless --mode gather --seed 1 --out o.jsonl
+exit=2 stderr: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
+                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
+                       [--inventory INVENTORY]
+$ python3 -m chonoi.headless --mode quan --seed 1 --ticks 0 --out o.jsonl --inventory-out x.json
+exit=2 stderr: đầu vào sai: --inventory-out chỉ dùng với gather
+$ python3 -m chonoi.headless --mode gather --seed 1 --ticks 0 --scenario bad1.json --out o.jsonl
+exit=2 stderr: đầu vào sai: nodes.N1.regrow_ticks phải trong [0, 1200]
+$ python3 -m chonoi.headless --mode quan --seed 1 --ticks 0 --scenario bad2.json --out o.jsonl
+exit=2 stderr: đầu vào sai: giữ chỗ bong_sung ×2 vượt tồn (0)
+$ python3 -m chonoi.headless --mode quan --seed 1 --ticks 0 --inventory badinv.json --out o.jsonl
+exit=2 stderr: đầu vào sai: nguyên liệu lạ: ca_tra
