@@ -17,7 +17,8 @@ let CONTRACT = null, MANIFEST = [];
 // paused = { sel } while the pause overlay is open (Esc/P in gather, quán, shop): scene.update is skipped, so
 // every gameplay timer (clock, O₂, cooldowns, shop auto-close) is frozen.
 // overlay = meta overlay ({ update, draw, done }: phone / Bà Tư) opened from main; it freezes the scene like pause.
-const state = { scene: null, mode: "boot", t: 0, haul: null, menu: null, campaign: false, dayPaid: false, paused: null, overlay: null };
+// haulItems = v1.2 freshness handover from gather ([{ id, kind, fresh }], spoiled included); null = quán makes fresh items from haul
+const state = { scene: null, mode: "boot", t: 0, haul: null, haulItems: null, menu: null, campaign: false, dayPaid: false, paused: null, overlay: null };
 
 // ---------- title screen ----------
 // key art for the title screen (16:9, drawn on the hi-res UI layer); falls back to the procedural title if missing
@@ -134,8 +135,8 @@ function go(where) {
   } else if (where === "intro") {
     demo(); transition(() => { state.mode = "cut"; state.scene = new Cutscene(introScript(), toTitle); });
   } else if (where === "gather") { demo(); transition(startGather); }
-  else if (where === "quan") { demo(); state.haul = null; state.menu = null; transition(() => startQuan(null)); }
-  else if (where === "evening") { campaign(); state.haul = state.haul || {}; transition(startEvening); }
+  else if (where === "quan") { demo(); state.haul = null; state.haulItems = null; state.menu = null; transition(() => startQuan(null)); }
+  else if (where === "evening") { campaign(); if (!state.haul) state.haulItems = null; state.haul = state.haul || {}; transition(startEvening); }
   else if (where === "shop") { campaign(); transition(startShop); }
   else if (where === "summary") { campaign(); transition(startSummary); }
 }
@@ -149,7 +150,7 @@ function startDay() {
   if (s.day > planDays(CONTRACT)) return startSummary();
   progress.activateUpgrades(); // levels bought in yesterday's Shop take effect now
   if (s.day > 1) { const w = meta.payWages(); if (!w.skipped && !w.owed && s.day % 2 === 0) meta.pushMessage("Bà Tư", BA_TU_REMIND[s.day % BA_TU_REMIND.length]); } // yesterday's wages (once per day)
-  state.mode = "intro"; state.haul = {}; state.menu = null; state.dayPaid = false;
+  state.mode = "intro"; state.haul = {}; state.haulItems = null; state.menu = null; state.dayPaid = false;
   state.scene = new DayIntro(CONTRACT, s.day, progress.stats(CONTRACT), () => transition(startGather));
 }
 function startGather() {
@@ -161,16 +162,17 @@ function onGatherEnd(res) {
   if (res.restart) return transition(startGather);
   meta.gatherFallback(res.by); // chore progress from the haul, unless the gather scene reported it itself
   state.haul = res.by || {}; // fainted = {} (basket lost); quán still opens
+  state.haulItems = Array.isArray(res.items) ? res.items : null; // v1.2: same tick handover, ids + fresh kept
   transition(() => { state.mode = "cut"; state.scene = new Cutscene(duskScript(flat(state.haul)), () => state.campaign ? startEvening() : startQuan(state.haul)); });
 }
 function startEvening() {
   state.mode = "evening";
-  state.scene = new EveningIntro(CONTRACT, progress.save.day, state.haul || {}, (ids) => { state.menu = ids; transition(() => startQuan(state.haul, state.menu)); });
+  state.scene = new EveningIntro(CONTRACT, progress.save.day, state.haul || {}, (ids) => { state.menu = ids; transition(() => startQuan(state.haul, state.menu)); }, state.haulItems);
 }
 // opts.menu = dish ids allowed tonight (the day plan); opts.rep = reputation carried from the previous day
 function startQuan(stock, menu = null) {
   state.mode = "quan"; meta.beginPhase();
-  const opts = {}; if (menu) opts.menu = menu; if (state.campaign) opts.rep = progress.repNow(CONTRACT);
+  const opts = {}; if (menu) opts.menu = menu; if (stock && state.haulItems) opts.items = state.haulItems; // QuanScene copies them (R replays the same items) if (state.campaign) opts.rep = progress.repNow(CONTRACT);
   state.scene = new QuanScene(CONTRACT, stock, onQuanEnd, opts);
 }
 function onQuanEnd(res) {
