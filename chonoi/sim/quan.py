@@ -1,13 +1,13 @@
 """Buổi tối — Mở Quán. KHUNG: đi lại, chặn biên, đồng hồ, kho nạp từ file/scenario.
 
-Nhóm viết tiếp (PRD-0 mục F, Quán):
-  TODO(nhóm, lát 3): khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, kiên nhẫn,
-                     bỏ đi (customer_left), no_dish, vòng đời khách.
-  TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
-                     ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
+Luật theo PRD-0 mục F, Quán. Thứ tự một bước: timer, bếp chín, di chuyển, tối đa một interact,
+khách (trả tiền, rời), sinh khách mới.
+  Lát 3: khách đến theo lịch, giữ chỗ nguyên liệu, kiên nhẫn, customer_left, no_dish.
+  Lát 4: interact bếp/bàn (cook_started, dish_ready, dish_picked, served), paid, boa, uy tín, hết ca (quan_end).
 """
 
 import math
+from fractions import Fraction
 
 from ..ids import id_key, sort_by_id
 from .ramp import ramp_velocity
@@ -164,7 +164,8 @@ class QuanSim:
         state = stove.get("state")
         if state == "idle":
             orders = [c for c in self.customers
-                      if c.get("state") == "waiting" and c.get("order_status") == "reserved"]
+                      if c.get("state") == "waiting" and c.get("order_status") == "reserved"
+                      and c.get("dish_id") in self.menu]  # đơn không rõ món thì không nấu được
             orders.sort(key=lambda c: (c.get("order_tick", 0), self._table_order(c)))
             if not orders:
                 return
@@ -209,10 +210,11 @@ class QuanSim:
         dish = self.hand
         self.hand = None
         patience_left = customer.get("patience_ticks_left", 0)
-        full_patience = self.t["patience_s"] * self.tick_hz
+        full_patience = int(round(self.t["patience_s"] * self.tick_hz))
         base_price = dish["base_price"]
-        tip = (math.floor(base_price * self.t["tip_rate"])
-               if patience_left / full_patience >= self.t["tip_min_patience_ratio"] else 0)
+        # Tính chính xác (không dùng số thực nhị phân) để floor và so ngưỡng không lệch 1 đơn vị.
+        enough_patience = Fraction(patience_left, full_patience) >= Fraction(str(self.t["tip_min_patience_ratio"]))
+        tip = math.floor(base_price * Fraction(str(self.t["tip_rate"]))) if enough_patience else 0
         customer.update({
             "state": "eating", "order_status": "served",
             "eat_ticks_left": int(round(self.t["eat_s"] * self.tick_hz)),
@@ -269,8 +271,6 @@ class QuanSim:
                     continue
                 if customer.get("state") == "eating":
                     self._pay_customer(customer, "closing", events)
-                elif customer.get("state") == "waiting":
-                    self._leave_customer(customer, "closing", events)
                 else:
                     self._leave_customer(customer, "closing", events)
             self.done = True
