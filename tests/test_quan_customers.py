@@ -12,6 +12,8 @@ class QuanCustomers(unittest.TestCase):
     def setUp(self):
         self.tuning = load_contract()["tuning"]
         self.quan = self.tuning["quan"]
+        # These Phase 1 fixtures start with one table and add others explicitly.
+        self.quan["tables"] = self.quan["tables"][:1]
         self.inputs = InputPlayer([])
 
     def session(self, scenario, seed=1):
