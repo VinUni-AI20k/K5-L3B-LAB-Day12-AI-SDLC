@@ -2,7 +2,7 @@
 
 Test Contract **v1.2** · hạn tag `phase-3` 2:30. Chia việc theo vai trong [`TEAM.md`](../../TEAM.md), dựa trên phần QA (tiepnnk01-10) đã làm ở nhánh `feat/p3-qa`.
 
-> **Nguồn yêu cầu:** Ticket-03 chưa có trong repo. Bản này dựa trên tóm tắt của Tiệp (`docs/verification/phase-3.md`, `CHANGELOG.md` ở `feat/p3-qa`, đọc từ file `phase3.md`). **PO chép toàn văn vào `docs/prd/phase-3.md` ngay phút 0–5**; chỗ nào lệch thì ticket thắng, PO sửa plan này.
+> **Nguồn yêu cầu:** [`docs/prd/phase-3.md`](../prd/phase-3.md) (toàn văn Ticket-03, PO đã chép). Plan đã đối chiếu ticket; quyết định PO ở `docs/clarify.md` #15–#19.
 
 ## 0. Hiện trạng
 | Ở đâu | Có gì |
@@ -33,11 +33,31 @@ Test Contract **v1.2** · hạn tag `phase-3` 2:30. Chia việc theo vai trong [
 | `pick_freshest(items, kind, n, exclude_ids, tuning)` | chọn `n` id tươi nhất chưa ươn, hòa theo `id_key`; thiếu → `None` |
 | `to_file(items)` / `from_file(obj)` | đọc/ghi `{"items": [...]}`, kiểm schema, mã 2 cho kho đếm cũ |
 
-**B. Định dạng:** cá thể là dict `{id, kind, fresh}`; `fresh` lưu số thực đầy đủ, chỉ làm tròn khi xuất JSONL (khung lo); `hold`, `stock`, `lost`, `cook_started.items`, `gather_end.inventory.items` là **mảng cá thể**; `customers[].reserved` là **mảng id**. Mảng sắp theo id, trừ `hold`/`lost` theo thứ tự nhặt (LIFO cho `lost`).
+**B. Định dạng:** cá thể là dict `{id, kind, fresh}`. **Trong mô phỏng `fresh` là số nguyên đơn vị, 240 đơn vị = 1 điểm tươi** (gợi ý của Ticket-03, clarify #16): gather −2/tick, quán −1/tick, ngưỡng ươn `30 × 240`; chỉ đổi ra số thực `units / 240` khi xuất snapshot/event/file kho, đọc vào thì `round(fresh × 240)`. `items.py` lo việc đổi này; người khác không tự nhân/chia; `hold`, `stock`, `lost`, `cook_started.items`, `gather_end.inventory.items` là **mảng cá thể**; `customers[].reserved` là **mảng id**. Mảng sắp theo id, trừ `hold`/`lost` theo thứ tự nhặt (LIFO cho `lost`).
 
-**C. Sự kiện mới:** `spoiled {item_id, kind, location}` (`location`: `hold` / `stock` — PO chốt theo Ticket). Phát theo id khi nhiều cá thể cùng ươn.
+**C. Sự kiện mới:** `spoiled {item_id, kind, location}`, `location` là `hold` (giỏ) hoặc `stock` (kho quán/Shop); vỏ event mang pha đang chạy. Phát đúng một lần khi đi từ ≥ 30 xuống < 30, theo id khi nhiều cá thể cùng ươn (clarify #15).
 
-**D. Thứ tự bước quán v1.2 (PO chốt với Ticket-03):** đồng hồ → kiên nhẫn → **hao kho + `spoiled` (lát 4, `_tick_freshness`)** → **giữ lại đơn vừa ươn (lát 3, `_retry_spoiled`)** → nấu/ăn → di chuyển + một interact → trả tiền/rời bàn → đóng ca hoặc khách mới. Gather: hao giỏ ở bước đồng hồ (trước hái/bắt), nên hàng mới hái hao từ bước sau.
+**D. Thứ tự một bước (đã chốt theo Ticket-03 "Thứ tự trong tick", clarify #17):**
+- Quán: đồng hồ + timer (kiên nhẫn, nấu, ăn) → **hao kho thô + phát hết `spoiled` theo id (lát 4, `_tick_freshness`)** → **giữ lại đơn có cá thể vừa ươn, theo `order_tick` rồi id bàn (lát 3, `_retry_spoiled`)** → món chín/cháy theo id bếp → di chuyển + tối đa một tương tác → thanh toán, kiên nhẫn/đóng ca → còn giờ thì khách mới. Món chín, món trên tay không hao.
+- Gather: đồng hồ, cooldown, hồi nút **và hao giỏ** ở đầu bước (hàng mới hái/bắt hao từ bước sau) → bơi, oxy, ngạt → quái/hit → bến trước hái → bắt cá → hết giờ → cá bơi/sinh.
+
+**F. Bảng tác động và thứ tự tích hợp (Ticket-03 mục 3 yêu cầu)**
+
+| Module | File cần đổi | Test giữ / đổi / thêm | Người phụ trách |
+|---|---|---|---|
+| Adapter + schema | `game.contract.json`, `chonoi/items.py` (mới), `chonoi/inventory.py`, `chonoi/contract.py`, `chonoi/scenario.py` (phần chung + gather) | **đổi:** `test_smoke_p1.py`, `test_lat0_v11.py`, `test_python_starter_units.py` (kho đếm → kho cá thể, file kho đếm giờ là mã 2); **thêm:** unit test `items.py` | s0ra1n0 |
+| Lặn | `chonoi/sim/gather.py` (`_add_to_hold`, hao giỏ, `spoiled`, `lost`) | **đổi:** `test_gather_p1.py`, `test_gather_lat1.py`, `test_gather_lat1_p2.py`, `test_lat2.py`, `test_p2_lat2_fish.py` (giỏ là mảng cá thể); **thêm:** bỏ `@pending` nhóm gather của `test_fresh_p3.py` | mhoo40 (giỏ, hao), s0ra1n0 (`lost`) |
+| Quán — khách | `chonoi/sim/quan.py` (`_reserve`, `_spawn_customers`, `_retry_spoiled`, `_init_customers`) | **đổi:** `test_quan_lat3.py`, `test_quan_p2.py`, `test_quan_p1.py` (phần khách); **thêm:** bỏ `@pending` `ReserveById`, `SpoilRetry`, `SpoiledNotCookable` | trongnghia2304 |
+| Quán — bếp | `chonoi/sim/quan.py` (`_tick_freshness`, `_interact`, `_pay`), `chonoi/scenario.py` (`_validate_quan`) | **đổi:** `test_quan_lat4.py`, `test_quan_p1.py` (phần bếp); **thêm:** bỏ `@pending` `QuanDecay`, `PriceByFreshness` | nguyenhung1901 |
+| day + Shop | `chonoi/sim/day.py`, `chonoi/sim/shop.py` | **đổi:** `test_day_p2.py`; **thêm:** bỏ `@pending` `DayHandoff` | tiepnnk01-10 |
+| HUD / QA | `chonoi/web/index.html`, `CHANGELOG.md`, `docs/verification/phase-3.md` | **giữ** các test không đụng kho (Cá Sấu, cá bơi, pause, live) | tiepnnk01-10 |
+
+**Thứ tự tích hợp để `main` luôn chạy được:**
+1. `feat/p3-qa` (test còn `@pending`, HUD đọc cả hai schema) — không phá gì.
+2. `feat/p3-lat0`: `items.py` + adapter + bật v1.2 **cùng lúc với** sửa các test kho đếm cũ trong cùng PR (không để `main` đỏ). Trong PR này gather/quán chỉ cần **chuyển dạng** (đếm ↔ cá thể) cho test xanh, chưa cần hao tươi.
+3. `feat/p3-gather` và `feat/p3-quan` song song: thêm hao tươi, `spoiled`, giữ theo id, giá theo tươi; mỗi PR tự bỏ `@pending` test của mình.
+4. `day` v1.2 (Tiệp) sau khi gather + quán xong.
+5. Phút 20: smoke bàn giao file v1.2 (mẫu ticket: `hold` fresh 100, cập bến frame 0, `quan --inventory --ticks 0`, so id/kind/fresh sau một lần hao).
 
 **E. Sở hữu file** giữ như contracts mục A của Phase 2; thêm: `chonoi/items.py` — s0ra1n0; `_add_to_hold` (giỏ) — **mhoo40** từ Phase 3.
 
@@ -66,9 +86,9 @@ Test Contract **v1.2** · hạn tag `phase-3` 2:30. Chia việc theo vai trong [
 
 ### trongnghia2304 — lát 3 (khách, giữ chỗ), PO
 - Làm ngay:
-  - [ ] **PO:** chép Ticket-03 vào `docs/prd/phase-3.md` (xin `phase3.md` của Tiệp hoặc lưu từ lab board); sửa plan này nếu lệch
-  - [ ] **PO:** chốt 2 giả định Tiệp nêu (`spoiled` mang `phase` của pha chứa cá thể; `fresh` trong file kho là số thực, so ±0.01) và thứ tự mục 2D; ghi `docs/clarify.md`
-  - [ ] **PO:** chốt với nhóm có làm mở rộng Phase 3 hay không (gợi ý: **không**, 35 phút chỉ đủ lõi; burn đã là mở rộng của nhóm)
+  - [x] **PO:** chép Ticket-03 vào `docs/prd/phase-3.md`; đối chiếu và sửa plan (mục 2B, 2C, 2D, bảng tác động 2F)
+  - [x] **PO:** chốt 2 giả định Tiệp nêu + thứ tự bước + id trong day theo ticket → `docs/clarify.md` #15–#17, #19
+  - [ ] **PO:** nhóm xác nhận ở standup: **không** làm mở rộng Phase 3 (clarify #18)
 - Sau lát 0 (nhánh `feat/p3-quan`, chung với Hùng như Phase 2):
   - [ ] `_reserve` giữ theo id bằng `pick_freshest`; khách mới giữ cá thể tươi nhất; fixture thiếu `reserved` cấp theo `order_tick` rồi id bàn
   - [ ] `_spawn_customers` chọn món bằng `usable_by_kind` (bỏ hàng ươn, hàng đã giữ) → `no_dish` khi không món nào đủ
