@@ -6,7 +6,7 @@
 |---|---|---|---|---|
 | | | `sim/gather` | | |
 | | | `sim/quan` | | |
-| | | `client/ui` | | |
+|Nguyễn Anh Tú| comtrang378-ship-it | `client/ui` | | |
 | | | `qa` | | |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
