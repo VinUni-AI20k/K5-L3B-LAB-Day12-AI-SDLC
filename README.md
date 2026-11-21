@@ -40,6 +40,8 @@ python3 tools/check_determinism.py                                              
 
 Các lệnh khai trong [`game.contract.json`](game.contract.json) (`build_cmd`, `run_cmd`, `headless_cmd`). Chi tiết khung kỹ thuật: [`docs/STARTER.md`](docs/STARTER.md); hướng dẫn cho agent AI: [`AGENTS.md`](AGENTS.md).
 
+Chạy thử độ bền 10 Ngày liền bằng `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json` (ghi `soak.json`; xem [cách chạy và kết quả](docs/proof/phase-4/p4-04-soak.md)).
+
 ## Cấu trúc
 
 - `chonoi/sim/`: luật chơi của nhóm (`gather.py`, `fish.py`, `monsters.py`, `quan.py`, `shop.py`, `day.py`).
