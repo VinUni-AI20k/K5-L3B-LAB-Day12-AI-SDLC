@@ -30,3 +30,7 @@
 - Tôi bổ sung 13 test Gather Core; toàn bộ 45 test hiện có đều qua. Tôi lưu lệnh chạy, fixture và kết quả tại [bằng chứng thành viên 2](../proof/phase-1/member-2/README.md).
 - Tôi bàn giao `_store_in_hold(kind, count)` cho thành viên 3 tích hợp hái/bắt cá. Các tính năng thu hoạch và tag `phase-1` vẫn thuộc lượt tiếp theo.
 - Tôi ghi nhận `check_team.py` chưa đạt vì thành viên 3–6 còn placeholder; kết quả này không được tính là đã hoàn tất hồ sơ cả nhóm.
+
+## 5. Bàn giao sang Phase 2
+
+- [Kế hoạch của TV4](phase-2.md) tiếp nối hợp đồng kho của Phase 1. Kiểm chứng phần quán dùng cả fixture riêng và file kho mẫu theo schema tích hợp.

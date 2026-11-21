@@ -1,14 +1,15 @@
-"""Buổi tối — Mở Quán. KHUNG: đi lại, chặn biên, đồng hồ, kho nạp từ file/scenario.
+"""Buổi tối — Mở Quán: đi lại, khách gọi món, giữ chỗ nguyên liệu và kiên nhẫn.
 
 Nhóm viết tiếp (PRD-0 mục F, Quán):
-  TODO(nhóm, lát 3): đếm kiên nhẫn, bỏ đi (customer_left).
   TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
                      ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
 """
 
 from collections import Counter
 
+from ..errors import BadInput
 from ..ids import sort_by_id
+from ..inventory import validate_items
 from .ramp import ramp_velocity
 
 
@@ -25,6 +26,8 @@ class QuanSim:
         self.tick_hz = tuning["tick_hz"]
         self.phase_tick = 0
         self.random_customers = scenario.get("random_customers", True)
+        if not isinstance(self.random_customers, bool):
+            raise BadInput("random_customers phải là boolean")
         self.customer_interval_ticks = round(t["customer_interval_s"] * self.tick_hz)
         self.patience_max_ticks = round(t["patience_s"] * self.tick_hz)
         p = scenario.get("player", {})
@@ -51,18 +54,26 @@ class QuanSim:
         self.reason = None
 
     def _load_customer(self, customer):
-        if "reserved" not in customer and customer.get("state", "waiting") == "waiting":
-            recipe = self.menu.get(customer.get("dish"), {}).get("recipe", {})
-        else:
-            recipe = customer.get("reserved", {})
-        return dict(customer, reserved=dict(recipe))
+        loaded = dict(customer)
+        loaded.setdefault("dish", loaded.pop("dish_id", None))
+        loaded.setdefault("state", "waiting")
+        loaded.setdefault("patience_ticks", loaded.pop("patience_ticks_left", self.patience_max_ticks))
+        loaded.setdefault("eat_ticks_left", 0)
+        patience = loaded["patience_ticks"]
+        if type(patience) is not int or patience < 0:
+            raise BadInput(f"customers.{loaded['id']}.patience_ticks phải là số nguyên không âm")
+        if loaded["dish"] is not None and not isinstance(loaded["dish"], str):
+            raise BadInput(f"customers.{loaded['id']}.dish phải là tên món hoặc null")
+        if "reserved" not in loaded and loaded["state"] == "waiting":
+            loaded["reserved"] = self.menu.get(loaded["dish"], {}).get("recipe", {})
+        loaded["reserved"] = validate_items(loaded.get("reserved", {}))
+        return loaded
 
     @staticmethod
     def _merge(defaults, updates):
         by_id = {d["id"]: dict(d) for d in defaults}
         for u in updates:
             if u["id"] not in by_id:
-                from ..errors import BadInput
                 raise BadInput(f"id bếp/bàn không tồn tại: {u['id']}")
             by_id[u["id"]].update(u)
         return sort_by_id(list(by_id.values()))
@@ -76,14 +87,15 @@ class QuanSim:
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
             "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in self.tables],
-            "customers": sort_by_id(self.customers),
+            "customers": [dict(c, reserved=dict(c["reserved"])) for c in sort_by_id(self.customers)],
         }
 
     def step(self, inp):
         events = []
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # TODO(nhóm): giảm kiên nhẫn / nấu / ăn; bếp chín -> ready; xử lý khách theo thứ tự PRD-0 mục F.
+        # TODO(nhóm, lát 4): cập nhật bộ đếm của bếp / khách đang ăn theo thứ tự PRD-0 mục F.
+        self._update_patience(events)
         self._move(inp)
         # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
         table = self._arrival_table()
@@ -98,6 +110,18 @@ class QuanSim:
 
     def _occupied_tables(self):
         return {c["table_id"]: c["id"] for c in self.customers}
+
+    def _update_patience(self, events):
+        remaining = []
+        for customer in sort_by_id(self.customers):
+            if customer["state"] != "eating":
+                customer["patience_ticks"] = max(0, customer["patience_ticks"] - 1)
+                if customer["patience_ticks"] == 0:
+                    self.reputation = max(self.t["reputation_min"], self.reputation + self.t["left_reputation_delta"])
+                    events.append(("customer_left", {"customer_id": customer["id"], "reason": "patience_timeout"}))
+                    continue
+            remaining.append(customer)
+        self.customers = remaining
 
     def _arrival_table(self):
         since_first = self.phase_tick - self.t["first_customer_tick"]

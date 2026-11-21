@@ -1,6 +1,7 @@
 import unittest
 
 from chonoi.contract import load_contract
+from chonoi.errors import BadInput
 from chonoi.inputs import InputPlayer
 from chonoi.runner import Session
 
@@ -76,3 +77,69 @@ class QuanCustomers(unittest.TestCase):
         self.assertEqual(arrival["data"]["dish"], "goi_bong_sung")
         self.assertEqual([c["reserved"] for c in session.snapshot()["customers"]],
                          [{"ca_loc": 1}, {"bong_sung": 2}])
+
+    def test_new_customer_waits_full_patience_then_leaves(self):
+        self.quan["customer_interval_s"] += 1
+        first = self.quan["first_customer_tick"]
+        patience = round(self.quan["patience_s"] * self.tuning["tick_hz"])
+        session = self.session({"stock": {"ca_loc": 1}})
+        self.advance(session, first)
+        at_arrival = session.snapshot()
+        self.assertEqual(at_arrival["customers"][0]["patience_ticks"], patience)
+        self.assertEqual(self.advance(session, first + patience - 1), [])
+        self.assertEqual(session.snapshot()["customers"][0]["patience_ticks"], 1)
+
+        departure, = self.advance(session, first + patience)
+        self.assertEqual(departure["data"], {"customer_id": "C1", "reason": "patience_timeout"})
+        self.assertEqual(departure["name"], "customer_left")
+        state = session.snapshot()
+        self.assertEqual(state["customers"], [])
+        self.assertIsNone(state["tables"][0]["customer_id"])
+        self.assertEqual(state["stock"], {"ca_loc": 1})
+        self.assertEqual(state["reputation"], self.quan["reputation_initial"] + self.quan["left_reputation_delta"])
+        self.assertEqual(at_arrival["customers"][0]["patience_ticks"], patience)
+
+    def test_expiry_releases_reservation_before_same_tick_arrival(self):
+        first = self.quan["first_customer_tick"]
+        session = self.session({"stock": {"ca_loc": 1}, "customers": [
+            {"id": "C9", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "patience_ticks_left": first},
+        ]})
+        events = self.advance(session, first)
+        self.assertEqual([(row["tick"], row["name"], row["data"]["customer_id"]) for row in events], [
+            (first, "customer_left", "C9"), (first, "customer_arrived", "C10"),
+        ])
+        customer, = session.snapshot()["customers"]
+        self.assertEqual(customer["reserved"], {"ca_loc": 1})
+        self.assertEqual(session.snapshot()["tables"][0]["customer_id"], "C10")
+
+    def test_simultaneous_timeouts_are_sorted_and_eating_customer_stays(self):
+        self.quan["tables"].extend([{"id": "T2", "pos": [9, 4]}, {"id": "T3", "pos": [9, 6]}])
+        minimum = self.quan["reputation_min"]
+        penalty = self.quan["left_reputation_delta"]
+        session = self.session({"random_customers": False, "reputation": minimum - penalty / 2, "customers": [
+            {"id": "C10", "table_id": "T1", "patience_ticks": 1},
+            {"id": "C3", "table_id": "T2", "state": "eating", "patience_ticks": 1, "eat_ticks_left": 20},
+            {"id": "C2", "table_id": "T3", "patience_ticks": 1, "state": "assigned"},
+        ]})
+        events = self.advance(session, 1)
+        self.assertEqual([row["data"]["customer_id"] for row in events], ["C2", "C10"])
+        state = session.snapshot()
+        self.assertEqual(state["reputation"], minimum)
+        self.assertEqual([(c["id"], c["state"], c["patience_ticks"]) for c in state["customers"]],
+                         [("C3", "eating", 1)])
+
+    def test_multi_dish_choice_is_seeded_and_independent_of_menu_order(self):
+        stock = {"ca_loc": 1, "bong_sung": 2, "ca_linh": 3, "bong_dien_dien": 1}
+        first = self.quan["first_customer_tick"]
+        initial = self.advance(self.session({"stock": stock}, seed=42), first)
+        self.tuning["menu"] = dict(reversed(list(self.tuning["menu"].items())))
+        repeated = self.advance(self.session({"stock": stock}, seed=42), first)
+        self.assertEqual(initial, repeated)
+
+    def test_invalid_fixture_types_are_rejected_before_first_tick(self):
+        with self.assertRaisesRegex(BadInput, "random_customers"):
+            self.session({"random_customers": "false"})
+        for overrides in ({"patience_ticks": -1}, {"patience_ticks_left": "1"},
+                          {"dish": []}, {"reserved": {"ca_loc": -1}}):
+            with self.subTest(overrides=overrides), self.assertRaises(BadInput):
+                self.session({"customers": [dict({"id": "C1", "table_id": "T1"}, **overrides)]})
