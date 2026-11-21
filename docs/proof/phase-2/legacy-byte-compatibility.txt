@@ -1,0 +1,4 @@
+catch: JSONL and inventory byte-identical to 2b95df8
+gather: JSONL and inventory byte-identical to 2b95df8
+faint: JSONL and inventory byte-identical to 2b95df8
+Protected framework/contract unchanged; main ref unchanged; monster dependency unchanged.

@@ -54,3 +54,22 @@ Hết giờ mỗi phase thì gắn tag rồi đi tiếp; chỗ chưa xong ghi tr
 
 - Dùng AI thoải mái; **không sao chép repo của nhóm khác**; bằng chứng phải thật.
 - Nhân vật, bối cảnh là bản gốc của lab; asset ngoài chỉ dùng CC0/CC-BY/MIT hoặc tự tạo, ghi nguồn trong `CREDITS.md`. Không commit API key, token, `.env`.
+
+---
+
+## Nhóm MMMMV — chạy thử
+
+Ba lệnh từ clone sạch (macOS/Linux, Python 3.10+):
+
+```bash
+git clone https://github.com/PH31M/K5-L3B-LAB-Day12-AI-SDLC-MMMMV.git && cd K5-L3B-LAB-Day12-AI-SDLC-MMMMV
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+python3 -m chonoi.live --mode gather
+```
+
+**Điều khiển:** WASD hoặc mũi tên để bơi/đi · `E` tương tác (cập bến, hái) · `Space` bắt cá · `R` chơi lại.
+**Headless:** `python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out out.jsonl`
+**Tính điểm:** `score = earned + 100 × floor(reputation)`.
+**Chơi trọn hai buổi:** `--mode gather --inventory-out kho.json`, rồi `--mode quan --inventory kho.json`.
+
+Bằng chứng kiểm chứng: `python3 tools/run_checks.py` · ma trận: `docs/verification/phase-1.md` · kế hoạch: `docs/plan/`.

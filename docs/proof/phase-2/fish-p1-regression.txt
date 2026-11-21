@@ -1,0 +1,139 @@
+Actual feat/nhat-minh working tree; locked root contract v1.0 unchanged.
+Command: python3 -m unittest discover -s tests -v
+Exit code: 0
+
+setUpClass (test_fish_rules.FishRules) ... skipped 'P2 fish CLI tests require ticket 01 / contract v1.1; P1 regression still runs'
+test_actions_are_deterministic_bytes (test_gather_actions.GatherActions.test_actions_are_deterministic_bytes) ... ok
+test_catch_cooldown_boundary (test_gather_actions.GatherActions.test_catch_cooldown_boundary) ... ok
+test_catch_exact_capacity_succeeds (test_gather_actions.GatherActions.test_catch_exact_capacity_succeeds) ... ok
+test_catch_fixture_cooldown_decrements_before_action (test_gather_actions.GatherActions.test_catch_fixture_cooldown_decrements_before_action) ... ok
+test_catch_full_keeps_school_no_fallback_or_cooldown (test_gather_actions.GatherActions.test_catch_full_keeps_school_no_fallback_or_cooldown) ... ok
+test_catch_nearest_then_numeric_id (test_gather_actions.GatherActions.test_catch_nearest_then_numeric_id) ... ok
+test_catch_radius_includes_edge_and_excludes_outside (test_gather_actions.GatherActions.test_catch_radius_includes_edge_and_excludes_outside) ... ok
+test_catch_surface_is_noop (test_gather_actions.GatherActions.test_catch_surface_is_noop) ... ok
+test_catch_uses_unrounded_distance (test_gather_actions.GatherActions.test_catch_uses_unrounded_distance) ... ok
+test_catch_without_fish_is_noop (test_gather_actions.GatherActions.test_catch_without_fish_is_noop) ... ok
+test_catch_yield_removes_whole_school (test_gather_actions.GatherActions.test_catch_yield_removes_whole_school) ... ok
+test_dock_precedes_gather_and_time_and_writes_once (test_gather_actions.GatherActions.test_dock_precedes_gather_and_time_and_writes_once) ... ok
+test_gather_exact_capacity_succeeds (test_gather_actions.GatherActions.test_gather_exact_capacity_succeeds) ... ok
+test_gather_full_preserves_node_and_hold (test_gather_actions.GatherActions.test_gather_full_preserves_node_and_hold) ... ok
+test_gather_nearest_ready_then_numeric_id (test_gather_actions.GatherActions.test_gather_nearest_ready_then_numeric_id) ... ok
+test_gather_radius_includes_edge_and_excludes_outside (test_gather_actions.GatherActions.test_gather_radius_includes_edge_and_excludes_outside) ... ok
+test_gather_radius_uses_depth_as_well_as_horizontal_distance (test_gather_actions.GatherActions.test_gather_radius_uses_depth_as_well_as_horizontal_distance) ... ok
+test_gather_surface_threshold (test_gather_actions.GatherActions.test_gather_surface_threshold) ... ok
+test_gather_uses_unrounded_distance (test_gather_actions.GatherActions.test_gather_uses_unrounded_distance) ... ok
+test_held_interact_does_not_gather_again_after_regrow (test_gather_actions.GatherActions.test_held_interact_does_not_gather_again_after_regrow) ... ok
+test_last_tick_action_included_in_saved_inventory (test_gather_actions.GatherActions.test_last_tick_action_included_in_saved_inventory) ... ok
+test_no_ready_node_is_noop (test_gather_actions.GatherActions.test_no_ready_node_is_noop) ... ok
+test_regrow_exact_tick_and_gather_in_same_step (test_gather_actions.GatherActions.test_regrow_exact_tick_and_gather_in_same_step) ... ok
+test_submerged_dock_precedes_catch (test_gather_actions.GatherActions.test_submerged_dock_precedes_catch) ... ok
+test_tick_limit_does_not_create_or_overwrite_inventory (test_gather_actions.GatherActions.test_tick_limit_does_not_create_or_overwrite_inventory) ... ok
+test_choke_starts_59_ticks_after_empty_and_faint_drops_hold_lifo (test_gather_core.GatherCore.test_choke_starts_59_ticks_after_empty_and_faint_drops_hold_lifo) ... ok
+test_dive_event_precedes_oxygen_empty_at_end_position (test_gather_core.GatherCore.test_dive_event_precedes_oxygen_empty_at_end_position) ... ok
+test_faint_precedes_dock_catch_and_timeout (test_gather_core.GatherCore.test_faint_precedes_dock_catch_and_timeout) ... ok
+test_surface_refills_and_stays_at_maximum (test_gather_core.GatherCore.test_surface_refills_and_stays_at_maximum) ... ok
+test_surfacing_on_choke_tick_restores_oxygen (test_gather_core.GatherCore.test_surfacing_on_choke_tick_restores_oxygen) ... ok
+test_bat_ca_xoa_dan_va_hoi_chieu_30_tick (test_gather_rules.Catch.test_bat_ca_xoa_dan_va_hoi_chieu_30_tick)
+Bắt F1 (ca_linh, yield 3) ⇒ mất F1; bấm lại ngay bị hồi chiêu; tick 33 bắt F2. ... ok
+test_khong_co_dan_trong_tam_thi_khong_hoi_chieu (test_gather_rules.Catch.test_khong_co_dan_trong_tam_thi_khong_hoi_chieu)
+Bấm catch ở nơi không có cá: không event, không hồi chiêu. ... ok
+test_choke_lan_dau_o_t_plus_59 (test_gather_rules.Choke.test_choke_lan_dau_o_t_plus_59)
+Oxy chạm 0 ở tick 1800 ⇒ ngạt lần đầu ở 1859, không phải 1860. ... ok
+test_faint_bo_gio_lifo_va_kho_rong (test_gather_rules.Choke.test_faint_bo_gio_lifo_va_kho_rong)
+Máu 1 + đang ngạt: ngất ở tick 59, giỏ mất theo LIFO, kho rỗng. ... ok
+test_noi_len_dung_tick_dang_le_ngat_thi_khong_ngat (test_gather_rules.Choke.test_noi_len_dung_tick_dang_le_ngat_thi_khong_ngat)
+Oxy 0, tick 1 nổi lên mặt: hồi oxy, bộ đếm ngạt về 0, không có choke. ... ok
+test_cap_ben_thang_hai_khi_dang_lan (test_gather_rules.Dock.test_cap_ben_thang_hai_khi_dang_lan)
+Đứng [2,2] (trong bán kính 3, d = 2): interact ⇒ docked, không cần ở mặt nước. ... ok
+test_het_gio_duoi_sau_van_giu_gio (test_gather_rules.Dock.test_het_gio_duoi_sau_van_giu_gio)
+Hết giờ khi đang ở d = 20: gather_end 'time', kho vẫn có món. ... ok
+test_gio_day_thi_hold_full_khong_dat_regrow (test_gather_rules.Harvest.test_gio_day_thi_hold_full_khong_dat_regrow)
+Giỏ 12/12: hold_full có action/node_id/required/free, nút vẫn ready. ... ok
+test_hai_nut_hoa_khoang_cach_thi_theo_id_key (test_gather_rules.Harvest.test_hai_nut_hoa_khoang_cach_thi_theo_id_key)
+Player [12,0]; N2 ở 10 và N10 ở 14 cách đều ⇒ chọn N2 (id_key, không so chuỗi). ... ok
+test_moc_lai_sau_1200_tick (test_gather_rules.Harvest.test_moc_lai_sau_1200_tick)
+Hái ở tick 0 ⇒ node_regrown ở tick 1200, regrow_ticks = 1200. ... ok
+test_oxy_duoi_nuoc_ve_0_dung_tick_1800 (test_gather_rules.Oxygen.test_oxy_duoi_nuoc_ve_0_dung_tick_1800)
+Ở d = 10: mỗi tick -1, chạm 0 ở tick 1800 và phát oxygen_empty. ... ok
+test_oxy_mat_nuoc_khong_giam (test_gather_rules.Oxygen.test_oxy_mat_nuoc_khong_giam)
+Ở d = 0 suốt 10 giây: oxy giữ nguyên tối đa. ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... Exception in thread Thread-120 (_readerthread):
+Traceback (most recent call last):
+  File "C:\msys64\ucrt64\lib\python3.12\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "C:\msys64\ucrt64\lib\python3.12\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\msys64\ucrt64\lib\python3.12\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "C:\msys64\ucrt64\lib\python3.12\encodings\cp1258.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 35: character maps to <undefined>
+Exception in thread Thread-122 (_readerthread):
+Traceback (most recent call last):
+  File "C:\msys64\ucrt64\lib\python3.12\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "C:\msys64\ucrt64\lib\python3.12\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\msys64\ucrt64\lib\python3.12\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "C:\msys64\ucrt64\lib\python3.12\encodings\cp1258.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 35: character maps to <undefined>
+ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... Exception in thread Thread-142 (_readerthread):
+Traceback (most recent call last):
+  File "C:\msys64\ucrt64\lib\python3.12\threading.py", line 1075, in _bootstrap_inner
+    self.run()
+  File "C:\msys64\ucrt64\lib\python3.12\threading.py", line 1012, in run
+    self._target(*self._args, **self._kwargs)
+  File "C:\msys64\ucrt64\lib\python3.12\subprocess.py", line 1599, in _readerthread
+    buffer.append(fh.read())
+                  ^^^^^^^^^
+  File "C:\msys64\ucrt64\lib\python3.12\encodings\cp1258.py", line 23, in decode
+    return codecs.charmap_decode(input,self.errors,decoding_table)[0]
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeDecodeError: 'charmap' codec can't decode byte 0x9d in position 23: character maps to <undefined>
+ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 74 tests in 9.507s
+
+OK (skipped=1)

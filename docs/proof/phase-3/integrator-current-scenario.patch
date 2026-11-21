@@ -1,0 +1,23 @@
+--- a/chonoi/scenario.py
++++ b/chonoi/scenario.py
+@@ -11,7 +11,7 @@
+ from .inventory import KINDS_P1, validate_items
+ 
+ GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks",
+-               "monsters", "ca_ho"}
++               "monsters", "ca_ho", "random_current", "current_direction"}
+ GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
+                       "invuln_ticks", "catch_cd_ticks", "attack_cd_ticks"}
+ NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
+@@ -128,6 +128,11 @@
+             _check_ids(arr, b[arr])
+     if "random_fish" in b and not isinstance(b["random_fish"], bool):
+         raise BadInput("random_fish phải là boolean")
++    if "random_current" in b and not isinstance(b["random_current"], bool):
++        raise BadInput("random_current must be boolean")
++    if "current_direction" in b and (type(b["current_direction"]) is not int
++                                     or b["current_direction"] not in (-1, 1)):
++        raise BadInput("current_direction must be -1 or 1")
+     if "hold" in b:
+         h = b["hold"]
+         if not isinstance(h, list) or any(k not in KINDS_P1 for k in h):

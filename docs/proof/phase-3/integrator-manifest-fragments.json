@@ -1,0 +1,23 @@
+{
+  "extensions": [
+    "net",
+    "current"
+  ],
+  "freshness": {
+    "initial": 100,
+    "gather_decay_per_s": 0.5,
+    "quan_decay_per_s": 0.25,
+    "spoiled_below": 30
+  },
+  "tuning": {
+    "gather": {
+      "current": {
+        "interval_ticks": 1800,
+        "duration_ticks": 480,
+        "warning_ticks": 120,
+        "min_depth": 10,
+        "speed": 1.5
+      }
+    }
+  }
+}

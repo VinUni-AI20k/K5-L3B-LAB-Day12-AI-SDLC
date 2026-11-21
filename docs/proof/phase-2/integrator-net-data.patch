@@ -1,0 +1,13 @@
+--- a/game.contract.json
++++ b/game.contract.json
+@@ -130,7 +130,9 @@
+         "oxygen": [{"level": 1, "price": 200, "oxygen_max_s": 45},
+                    {"level": 2, "price": 400, "oxygen_max_s": 60}],
+         "hp": [{"level": 1, "price": 250, "hp_max": 4},
+-               {"level": 2, "price": 500, "hp_max": 5}]
++               {"level": 2, "price": 500, "hp_max": 5}],
++        "net": [{"level": 1, "price": 250, "radius": 4.0, "max_schools": 2},
++                {"level": 2, "price": 500, "radius": 6.0, "max_schools": 3}]
+       }
+     },
+     "score": {"reputation_multiplier": 100}

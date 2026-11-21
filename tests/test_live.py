@@ -27,6 +27,33 @@ def _post(url, obj):
 
 
 class LiveServerTest(unittest.TestCase):
+    def test_day_backend_accepts_shop_purchase_and_closes_day(self):
+        tuning = load_contract()["tuning"]
+        scenario = {"day": {"money": 200, "earned": 200},
+                    "gather": {"time_left_ticks": 1}, "quan": {"time_left_ticks": 1}}
+        server = LiveServer(LiveGame("day", tuning, scenario, 42), port=0)
+        server.start()
+        try:
+            def wait_for_state(predicate):
+                deadline = time.monotonic() + 3
+                while time.monotonic() < deadline:
+                    snapshot = json.loads(_get(server.url + "state")[1])
+                    if predicate(snapshot):
+                        return snapshot
+                    time.sleep(0.02)
+                self.fail("Không nhận được trạng thái live mong đợi")
+
+            shop = wait_for_state(lambda s: s["phase"] == "shop")
+            self.assertEqual(shop["meta"]["max_ticks"], 600)
+            self.assertEqual(_post(server.url + "input", {"buy": "oxygen", "shop_done": True}), 200)
+            end = wait_for_state(lambda s: s["finished"])
+            self.assertEqual(end["upgrades"], {"oxygen": 1})
+            self.assertEqual(end["money"], 0)
+            self.assertEqual(end["earned"], 200)
+            self.assertEqual(end["reason"], "days_complete")
+        finally:
+            server.stop()
+
     def test_state_input_and_clean_stop(self):
         tuning = load_contract()["tuning"]
         server = LiveServer(LiveGame("gather", tuning, {}, 1), port=0)  # cổng ngẫu nhiên
