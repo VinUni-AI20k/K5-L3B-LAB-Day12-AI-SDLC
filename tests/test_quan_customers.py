@@ -15,7 +15,9 @@ class QuanCustomersTest(unittest.TestCase):
     def test_headless_customer_reserves_from_inventory_at_scheduled_tick(self):
         first = self.tuning["quan"]["first_customer_tick"]
         with Workdir() as work:
-            inventory = write_json(work.path("kho.json"), {"items": {"ca_loc": 1, "bong_sung": 1}})
+            inventory = write_json(work.path("kho.json"), {"items": [
+                {"id": "I1", "kind": "ca_loc", "fresh": 100.0},
+                {"id": "I2", "kind": "bong_sung", "fresh": 100.0}]})
             out = work.path("out.jsonl")
             code, err = run_headless("--mode", "quan", "--seed", "17", "--ticks", str(first),
                                      "--snapshot-every", "1", "--inventory", inventory, "--out", out)
@@ -23,11 +25,13 @@ class QuanCustomersTest(unittest.TestCase):
             rows = read_jsonl(out)
         before, after = snapshots(rows)[-2:]
         self.assertEqual(before["customers"], [])
-        self.assertEqual(after["stock"], {"ca_loc": 1, "bong_sung": 1})
+        self.assertEqual([(item["id"], item["kind"]) for item in after["stock"]],
+                         [("I1", "ca_loc"), ("I2", "bong_sung")])
+        self.assertAlmostEqual(after["stock"][0]["fresh"], 100 - first * 0.25 / self.tuning["tick_hz"])
         self.assertEqual(len(after["customers"]), 1)
         customer = after["customers"][0]
         self.assertEqual(customer["dish_id"], "ca_loc_nuong_trui")
-        self.assertEqual(customer["reserved"], {"ca_loc": 1})
+        self.assertEqual(customer["reserved"], ["I1"])
         self.assertEqual(customer["state"], "waiting")
         self.assertEqual(customer["order_status"], "reserved")
         self.assertEqual(customer["order_tick"], first)

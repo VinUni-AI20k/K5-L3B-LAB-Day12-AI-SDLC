@@ -113,6 +113,8 @@ class LiveGame:
         with self._lock:
             snap = self.session.snapshot()
             snap["meta"] = self.tuning[self.mode]
+            if self.mode == "quan" and "inventory" in self.tuning:
+                snap["meta"] = {**snap["meta"], "spoil_threshold": self.tuning["inventory"]["spoil_threshold"]}
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None

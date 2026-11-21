@@ -3,7 +3,7 @@
 > Cập nhật file này qua các phase (lịch sử git phải cho thấy điều đó). Ngắn gọn, có lệnh chạy thật.
 
 ## Lệnh
-- P3-04: `python3 tools/verify_p3_04.py` — regression/CLI v1.1 thật + fixture/mock P3-03 được ghi nhãn; chưa phải smoke v1.2 tích hợp.
+- P3-04: `python3 tools/verify_p3_04.py` — regression, CLI v1.2 và trace dùng engine P3-03 thực sau tích hợp.
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
 - Smoke vòng ngày: `python3 -m chonoi.headless --mode day --days 1 --seed 17 --ticks 22200 --out day.jsonl`
@@ -13,7 +13,7 @@
 - Preview UI Phase 2: `python docs/proof/phase-2/day_fixture.py --real-scenes --days 5 --port 8782` (Gather/Quán thật; bỏ `--real-scenes` để kiểm fixture UI v1.1).
 
 ## Cấu trúc & quy ước
-- P3-04: `chonoi/sim/freshness_pricing.py` chỉ tiêu IDs và chốt giá sau decay. Người 3 cấp `sim.freshness` từ manifest root, stock items và reserved IDs; sở hữu validation/decay/re-reserve và wiring tick. Không gọi decay trong helper bếp. Xem `docs/notes/P3-04.md`.
+- P3-04 sau tích hợp: Kitchen dùng `RestaurantStock.consume` (Fraction, `tuning.inventory`) của người 3; giữ helper độc lập `freshness_pricing.py` để đối chiếu, không gọi cả hai consumer. Không double-decay/re-reserve. Xem `docs/notes/P3-04.md`.
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
 - Luật chơi của nhóm: `chonoi/sim/gather.py`, `chonoi/sim/quan.py` (tìm `TODO(nhóm)`).
 - **Số liệu chỉ đọc từ `game.contract.json` / dữ liệu**, không hard-code trong luật.
@@ -22,6 +22,8 @@
 - P1-03/P1-04 đã tích hợp: helper `chonoi/sim/kitchen.py`; `dish.order_id == customer.id`. Timer, validation và cleanup chạy qua helper một lần; lịch khách trong `quan.py` chạy sau settlement khi chưa đóng ca. Regression: `tests/test_quan_integration.py`. Xem `docs/notes/P1-04.md`.
 - P2-04: Quán 2 bếp/4 bàn/6 món; kho v1.1 nhận thêm `ca_keo`, `keo_neo`, giữ schema `items`. API cũ P2-03 vẫn dùng được; hook tùy chọn `QuanSim(..., day_plan=plan, economy=state)` và `economy_state()` được mô tả trong `docs/notes/P2-04.md`. Đã ghép Day/Shop/Gather/Monster từ main; cần kiểm chứng theo commit tích hợp.
 - P2-03: `DaySim` gọi Gather/Quán và giữ dữ liệu xuyên ngày. `Session` xử lý pause trước mọi timer và phát snapshot `phase_tick: 0` khi đổi pha. Gather nhận `day` và tuning đã áp cấp oxy/Máu. Quán nhận menu lọc theo ngày và kho vật lý.
+- P3-02: file kho v1.2 dùng `{"items":[{"id":"I1","kind":"ca_linh","fresh":100.0}]}`; `IdRegistry` giữ bộ đếm I xuyên pha/ngày. `headless.py` và `live.py` là CLI thực tế; `--inventory` từ chối object đếm cũ. Xem `docs/plan/phase-3.md` và `docs/verification/phase-3.md`.
+- P3-03: Quán dùng `RestaurantStock` với bộ đọc kho P3-02 và `tuning.inventory`. Chạy `PYTHONPATH=tests:. python3 -m unittest test_restaurant_stock -v` để kiểm hao tươi, giữ chỗ và chốt giá.
 - UI Phase 2 đọc cá sấu từ `snapshot.monsters`, lấy ảnh món theo `dish_id`. Ảnh WebP dùng chung giữa `chonoi.live` và fixture Day, nguồn ghi trong `CREDITS.md`.
 
 ## Nên tránh

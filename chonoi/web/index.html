@@ -526,6 +526,7 @@ function eventMessage({ name, data }) {
     case "gather": return kind ? `Đã hái ${itemName(kind)}` : "Đã hái nguyên liệu";
     case "fish_caught": return `Đã bắt ${kind ? itemName(kind) : "cá"}${num(count) ? " ×" + count : ""}`;
     case "hold_full": return "Giỏ không đủ chỗ";
+    case "spoiled": return `${capitalize(String(itemName(d.kind)))} ${d.item_id ?? ""} đã ươn`;
     case "monster_hit":
     case "crocodile_hit":
       hitUntil = performance.now() + 450;
@@ -658,11 +659,18 @@ function gatherHint(s) {
   }
   return cooldown;
 }
+// giỏ: mỗi phần tử là {id, kind, fresh} (hoặc chuỗi loại ở dạng cũ)
+function kindOf(unit) {
+  return typeof unit === "string" ? unit : unit?.kind;
+}
 function holdSummary(hold) {
   if (!Array.isArray(hold)) return "Đang chờ dữ liệu giỏ";
   if (!hold.length) return "Giỏ trống";
   const counts = new Map();
-  for (const item of hold) counts.set(item, (counts.get(item) ?? 0) + 1);
+  for (const unit of hold) {
+    const item = kindOf(unit);
+    counts.set(item, (counts.get(item) ?? 0) + 1);
+  }
   return Array.from(counts, ([item, count]) => `${capitalize(String(itemName(item)))} ×${count}`).join(" · ");
 }
 function itemList(items, empty) {
@@ -685,8 +693,11 @@ function renderGather(s) {
   setHTML("slots", capacity === null || !Array.isArray(s.hold) ? "" :
     Array.from({ length: capacity }, (_, index) => {
       if (index >= hold.length) return '<span class="slot"></span>';
-      const icon = known(itemIcons, hold[index]);
-      return `<span class="slot filled">${icon ? `<img alt="" src="${icon}">` : "?"}</span>`;
+      const unit = hold[index];
+      const icon = known(itemIcons, kindOf(unit));
+      // độ tươi chỉ hiển thị từ state (không hao ở client); ngưỡng ươn do sim đặt
+      const fresh = typeof unit === "object" && num(unit.fresh) ? `${Math.round(unit.fresh)}%` : "";
+      return `<span class="slot filled" title="${fresh}">${icon ? `<img alt="" src="${icon}">` : "?"}</span>`;
     }).join(""));
   setText("hold-summary", holdSummary(s.hold));
   const targets = record(day?.needed) ? Object.entries(day.needed).filter(([, count]) => num(count) && count > 0) : [];
@@ -702,14 +713,28 @@ function renderQuan(s) {
     metric("Tiền", num(s.money) ? number(s.money) + " nghìn đồng" : "—") +
     metric("Uy tín", number(s.reputation)));
   const customers = list(s.customers);
+  const stockItems = Array.isArray(s.stock) ? s.stock : null;
+  const claimedItems = new Set(customers.flatMap(c => list(c.reserved)));
+  const spoilThreshold = s.meta?.spoil_threshold;
   const stockKnown = record(s.stock) && Array.isArray(s.customers) && customers.every(c => record(c.reserved));
   setHTML("stock", "<h2>Kho khả dụng</h2>" + Object.entries(itemNames).filter(([id]) =>
-    (day && !day.live_scenes) || !["ca_keo", "keo_neo"].includes(id) || Object.hasOwn(s.stock ?? {}, id)).map(([id, label]) => {
-    const reserved = customers.map(c => c.reserved?.[id] ?? 0);
-    const total = Object.hasOwn(s.stock ?? {}, id) ? s.stock[id] : 0;
-    const available = stockKnown && num(total) && reserved.every(num) ?
-      total - reserved.reduce((sum, quantity) => sum + quantity, 0) : null;
-    return `<div class="stock-row" id="stock-${id}"><img alt="" src="${itemIcons[id]}"><span>${capitalize(label)}</span> <b>${number(available)}</b></div>`;
+    (day && !day.live_scenes) || !["ca_keo", "keo_neo"].includes(id) ||
+    (stockItems ? stockItems.some(item => item.kind === id) : Object.hasOwn(s.stock ?? {}, id))).map(([id, label]) => {
+    let available = null;
+    let spoiled = 0;
+    if (stockItems) {
+      const items = stockItems.filter(item => item.kind === id);
+      const usable = items.filter(item => !num(spoilThreshold) || item.fresh >= spoilThreshold);
+      available = usable.filter(item => !claimedItems.has(item.id)).length;
+      spoiled = items.length - usable.length;
+    } else if (stockKnown) {
+      const reserved = customers.map(c => c.reserved?.[id] ?? 0);
+      const total = s.stock[id] ?? 0;
+      if (num(total) && reserved.every(num)) {
+        available = total - reserved.reduce((sum, quantity) => sum + quantity, 0);
+      }
+    }
+    return `<div class="stock-row" id="stock-${id}"><img alt="" src="${itemIcons[id]}"><span>${capitalize(label)}</span> <b>${number(available)}</b>${spoiled ? `<small>${spoiled} ươn</small>` : ""}</div>`;
   }).join(""));
   setHTML("tickets", "<h2>Đơn hàng</h2>" + (customers.length ? customers.map(c => {
     const state = c.state === "eating" ? "Đang ăn" : known({

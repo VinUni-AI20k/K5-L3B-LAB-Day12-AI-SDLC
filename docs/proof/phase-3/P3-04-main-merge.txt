@@ -1,0 +1,15 @@
+Merged origin/main e41536b into FRESHNESSPRICING, previously ea2097c.
+Conflicts resolved in CHANGELOG.md (retain both histories) and kitchen.py.
+Keep main's RestaurantStock.consume with exact Fraction freshness and price;
+avoid duplicating stock decay, claims or consumption. Keep standalone P3-04
+helper for comparison. P3-04 tests now use the actual P3-03 stock engine;
+their retry hook only observes native processing, not mock selection/decay.
+
+Targeted command (Windows .venv/Scripts on PATH, PYTHONPATH=tests;., PYTHONUTF8=1):
+python3 -m unittest test_freshness_pricing test_restaurant_stock test_day test_inventory_v12 test_gather_freshness -v
+62 tests in 8.249s, OK, exit 0. Full suite not rerun per user preference.
+Output: P3-04-main-merge-tests.txt
+
+Six pre-existing untracked documents were moved to backup before merge:
+C:/Users/admin/AppData/Local/Temp/chonoi-main-e41536b-c837339f071c49c7a6957b1ac77c5f21
+Different local versions are restored after the merge commit as unstaged edits.

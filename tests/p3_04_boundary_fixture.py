@@ -1,8 +1,6 @@
-"""TEST ONLY: scripted P3-03 boundary, not a production inventory engine.
+"""P3-04 integration fixture using the real P3-03 stock engine after merge.
 
-Inject itemized stock after legacy construction. Before interaction, simulate
-decay and optionally replace spoiled claims with IDs explicitly supplied by
-the test. Does not implement freshest-item selection or fixture validation.
+Only observes retry calls; does not replace decay, selection or cooking.
 """
 from copy import deepcopy
 from fractions import Fraction
@@ -28,35 +26,30 @@ def order(ident="C1", table="T1", dish="ca_loc_nuong_trui", reserved=None):
 
 
 def session(stock=None, customers=None, replacements=None):
-    s = Session("quan", load_contract()["tuning"], {"random_customers": False, "player": {"pos": [2, 8]}}, 42)
+    s = Session("quan", load_contract()["tuning"], {
+        "random_customers": False, "player": {"pos": [2, 8]},
+        "stock": deepcopy([item()] if stock is None else stock),
+        "customers": deepcopy([order()] if customers is None else customers)}, 42)
     q = s.sim
-    q.stock = deepcopy([item()] if stock is None else stock)
-    q.customers = deepcopy([order()] if customers is None else customers)
     q.freshness = dict(FRESHNESS)
     q.retry_calls = []
-    advance = q._advance_kitchen_timers
+    age_stock = q._age_stock
 
     def scripted_p3_03(events):
-        ready_events = []
-        advance(ready_events)
-        spoiled = set()
+        affected = []
         decrement = Fraction(str(q.freshness["quan_decay_per_s"])) / q.tick_hz
         threshold = Fraction(str(q.freshness["spoiled_below"]))
-        for obj in sort_by_id(q.stock):
-            before = Fraction(str(obj["fresh"]))
-            after = max(0, before - decrement)
-            obj["fresh"] = float(after)
-            if before >= threshold > after:
-                spoiled.add(obj["id"])
-                events.append(("spoiled", {"item_id": obj["id"], "kind": obj["kind"], "location": "stock"}))
+        spoiled = {i["id"] for i in q.stock if i["fresh"] >= threshold > i["fresh"] - decrement}
         for c in sorted(sort_by_id(q.customers, key=lambda c: c["table_id"]), key=lambda c: c["order_tick"]):
             if c["order_status"] == "reserved" and spoiled.intersection(c["reserved"]):
-                q.retry_calls.append(c["id"])
-                c["reserved"] = list((replacements or {}).get(c["id"], []))
-                c["order_status"] = "reserved" if c["reserved"] else "unfulfillable"
-        events.extend(ready_events)
+                affected.append(c)
+        age_stock(events)
+        for c in affected:
+            q.retry_calls.append(c["id"])
+            if replacements and c["id"] in replacements:
+                assert c["reserved"] == replacements[c["id"]]
 
-    q._advance_kitchen_timers = scripted_p3_03
+    q._age_stock = scripted_p3_03
     return s
 
 

@@ -155,13 +155,14 @@ class MonsterSurvival(unittest.TestCase):
             self.assertEqual(code, 0, err)
             rows = read_jsonl(w.path("out.jsonl"))
             self.assertEqual([e["name"] for e in events(rows)], ["monster_hit", "faint", "gather_end"])
-            self.assertEqual(events(rows, "monster_hit")[0]["data"]["lost"],
+            self.assertEqual([u["kind"] for u in events(rows, "monster_hit")[0]["data"]["lost"]],
                              ["ca_loc", "bong_dien_dien"])
-            self.assertEqual(events(rows, "faint")[0]["data"],
+            faint = events(rows, "faint")[0]["data"]
+            self.assertEqual({**faint, "lost": [u["kind"] for u in faint["lost"]]},
                              {"cause": "monster", "lost": ["bong_sung", "ca_linh", "ca_loc"], "hp": 0})
-            self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": {}})
+            self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": []})
             with open(inventory, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
     def test_choke_before_monster_hit_and_choke_ignores_invuln(self):
         s = self.sim({"player": {"pos": [60, 24], "oxygen_ticks": 0,
@@ -170,8 +171,8 @@ class MonsterSurvival(unittest.TestCase):
         rows = s.step(InputPlayer([]).advance(0))
         self.assertEqual([name for name, _ in rows],
                          ["choke", "monster_hit", "faint", "gather_end"])
-        self.assertEqual(rows[1][1]["lost"], ["bong_dien_dien", "bong_sung"])
-        self.assertEqual(rows[2][1]["lost"], ["ca_linh", "ca_loc"])
+        self.assertEqual([u["kind"] for u in rows[1][1]["lost"]], ["bong_dien_dien", "bong_sung"])
+        self.assertEqual([u["kind"] for u in rows[2][1]["lost"]], ["ca_linh", "ca_loc"])
         s = self.sim({"player": {"pos": [20, 24], "oxygen_ticks": 0,
                                  "zero_oxy_ticks": 59, "invuln_ticks": 10, "hp": 2},
                       "monsters": []})
@@ -183,7 +184,7 @@ class MonsterSurvival(unittest.TestCase):
                       "hold": ["ca_loc"]})
         rows = s.step(InputPlayer([]).advance(0))
         self.assertEqual([name for name, _ in rows], ["choke", "faint", "gather_end"])
-        self.assertEqual(rows[-1][1]["inventory"], {"items": {}})
+        self.assertEqual(rows[-1][1]["inventory"], {"items": []})
 
     def test_active_upgrade_limits_and_day_spawn(self):
         s = self.sim(day=3, upgrades={"oxygen": 1, "hp": 2})

@@ -8,9 +8,10 @@ from copy import deepcopy
 
 from ..errors import BadInput
 from ..ids import sort_by_id
-from ..inventory import validate_items
+from ..inventory import clone_items, items_to_counts, materialize_items
 from .kitchen import KitchenServingMixin
 from .ramp import ramp_velocity
+from .restaurant_stock import RestaurantStock
 
 
 class QuanSim(KitchenServingMixin):
@@ -57,7 +58,15 @@ class QuanSim(KitchenServingMixin):
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có inventory")
-        self.stock = validate_items(inventory if inventory is not None else scenario.get("stock", {}))
+        legacy_orders = any(isinstance(c.get("reserved"), dict) for c in scenario.get("customers", []))
+        default_stock = {} if legacy_orders else []
+        stock_source = inventory if inventory is not None else scenario.get("stock", default_stock)
+        self.stock_items = materialize_items(stock_source, ids, allow_legacy=inventory is None)
+        inventory_tuning = tuning.get("inventory")
+        # Keep explicitly counted Phase 1/2 fixtures usable through the internal adapter.
+        self.item_stock = (RestaurantStock(self.stock_items, inventory_tuning, self.tick_hz)
+                           if isinstance(stock_source, list) and inventory_tuning is not None else None)
+        self.stock = self.item_stock.items if self.item_stock is not None else items_to_counts(self.stock_items)
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", self._ticks(t["duration_s"]))
         self.phase_tick = 0
@@ -97,15 +106,33 @@ class QuanSim(KitchenServingMixin):
 
     def snapshot(self) -> dict:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
+        items = self.inventory_items()
+        stock = items
+        if self.item_stock is None:
+            stock = {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}
         return {
             "player": {"pos": self.pos, "vel": self.vel},
-            "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
+            "stock": stock,
+            "stock_items": items,
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
             "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in self.tables],
             "customers": sort_by_id(self.customers),
         }
+
+    def inventory_items(self):
+        """Danh sách cá thể còn trong kho vật lý sau các lần nấu."""
+        if self.item_stock is not None:
+            return self.item_stock.snapshot()
+        remaining = self.stock.copy()
+        kept = []
+        for item in self.stock_items:
+            kind = item["kind"]
+            if remaining.get(kind, 0) > 0:
+                kept.append(item)
+                remaining[kind] -= 1
+        return clone_items(kept)
 
     def step(self, inp):
         if self.done:
@@ -114,7 +141,10 @@ class QuanSim(KitchenServingMixin):
         self.tick += 1
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        self._advance_kitchen_timers(events)
+        self._advance_kitchen_timers()
+        if self.item_stock is not None:
+            self._age_stock(events)
+        self._finish_cooking(events)
         self._move(inp)
         if inp.pressed("interact"):
             self._interact(events)
@@ -130,6 +160,28 @@ class QuanSim(KitchenServingMixin):
                 available[kind] = available.get(kind, 0) - count
         return available
 
+    def _claimed_items(self, *, exclude=None):
+        return {item_id for customer in self.customers if customer is not exclude for item_id in customer["reserved"]}
+
+    def _age_stock(self, events):
+        spoiled = self.item_stock.age()
+        if not spoiled:
+            return
+        for item in spoiled:
+            events.append(("spoiled", {"item_id": item["id"], "kind": item["kind"], "location": "stock"}))
+        expired = {item["id"] for item in spoiled}
+        by_table = sort_by_id(self.customers, key=lambda c: c["table_id"])
+        for customer in sorted(by_table, key=lambda c: c["order_tick"]):
+            if not expired.intersection(customer["reserved"]):
+                continue
+            customer["reserved"].clear()
+            recipe = self.menu[customer["dish_id"]]["recipe"]
+            claim = self.item_stock.reserve(recipe, self._claimed_items())
+            if claim is None:
+                customer["order_status"] = "unfulfillable"
+            else:
+                customer["reserved"] = claim
+
     def _maybe_add_customer(self, events):
         since_first = self.phase_tick - self.t["first_customer_tick"]
         if not self.random_customers or since_first < 0 or since_first % self.customer_interval_ticks:
@@ -139,14 +191,20 @@ class QuanSim(KitchenServingMixin):
         if table is None:
             return
         table_id = table["id"]
-        available = self._available_stock()
-        dishes = [dish_id for dish_id in self.allowed_dishes
-                  if all(available.get(kind, 0) >= count for kind, count in self.menu[dish_id]["recipe"].items())]
+        if self.item_stock is not None:
+            blocked = self._claimed_items()
+            claims = {dish_id: self.item_stock.reserve(self.menu[dish_id]["recipe"], blocked)
+                      for dish_id in self.allowed_dishes}
+        else:
+            available = self._available_stock()
+            claims = {dish_id: dict(self.menu[dish_id]["recipe"]) for dish_id in self.allowed_dishes
+                      if all(available.get(kind, 0) >= count for kind, count in self.menu[dish_id]["recipe"].items())}
+        dishes = [dish_id for dish_id, claim in claims.items() if claim is not None]
         if not dishes:
             events.append(("no_dish", {}))
             return
         dish_id = self.rng.get("customer_order").choice(dishes)
-        reserved = dict(self.menu[dish_id]["recipe"])
+        reserved = claims[dish_id]
         order_id = self.ids.new("C")
         self.customers.append({
             "id": order_id, "table_id": table_id, "dish_id": dish_id, "state": "waiting",

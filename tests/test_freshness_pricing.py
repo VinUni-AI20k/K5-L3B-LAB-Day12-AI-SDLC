@@ -1,4 +1,4 @@
-"""P3-04: real kitchen/lifecycle with explicitly mocked P3-03 boundary."""
+"""P3-04: kitchen/lifecycle integrated with the real P3-03 stock engine."""
 from copy import deepcopy
 import unittest
 

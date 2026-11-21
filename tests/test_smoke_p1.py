@@ -194,7 +194,9 @@ class Movement(unittest.TestCase):
             self.assertEqual(end_ev[0]["data"]["reason"], "time")
             self.assertEqual(rows[-1]["reason"], "time")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"ca_loc": 1}})
+                data = json.load(f)
+                self.assertEqual([(i["id"], i["kind"]) for i in data["items"]], [("I1", "ca_loc")])
+                self.assertAlmostEqual(data["items"][0]["fresh"], 100.0 - 3 * 0.5 / 60, delta=0.01)  # 3 tick ca, hao từ tick 1
 
 
 class Integration(unittest.TestCase):
@@ -209,14 +211,18 @@ class Integration(unittest.TestCase):
             self.assertEqual(code, 0, err)
             with open(inv, encoding="utf-8") as f:
                 saved = json.load(f)
-            self.assertEqual(saved, {"items": {"bong_sung": 2, "ca_loc": 1}})
+            self.assertEqual([item["kind"] for item in saved["items"]],
+                             ["ca_loc", "bong_sung", "bong_sung"])
             end = events(read_jsonl(w.path("r.jsonl")), "gather_end")[0]["data"]
             self.assertEqual(end["reason"], "docked")
-            self.assertEqual(end["inventory"], saved)
+            self.assertEqual([(i["id"], i["kind"]) for i in end["inventory"]["items"]],
+                             [(i["id"], i["kind"]) for i in saved["items"]])
+            for a, b in zip(end["inventory"]["items"], saved["items"]):
+                self.assertAlmostEqual(a["fresh"], b["fresh"], delta=0.01)
             code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], {"bong_sung": 2, "ca_loc": 1})
+            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], saved["items"])
 
     def test_inv_01_not_written_when_tick_limit_first(self):
         with Workdir() as w:

@@ -103,10 +103,10 @@ class Survival(unittest.TestCase):
             end = events(rows, "gather_end")
             self.assertEqual(len(end), 1)
             self.assertEqual(end[0]["data"]["reason"], "fainted")
-            self.assertEqual(end[0]["data"]["inventory"], {"items": {}})
+            self.assertEqual(end[0]["data"]["inventory"], {"items": []})
             self.assertEqual(rows[-1]["reason"], "fainted")
             with open(w.path("inv.json"), encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
 
 class Hold(unittest.TestCase):
@@ -117,7 +117,7 @@ class Hold(unittest.TestCase):
         with Workdir() as w:
             rows = run_gather(w, {"player": {"pos": [50, 10]}, "hold": ["ca_loc", "ca_linh", "ca_loc"]}, 1)
             s = snapshots(rows)[0]
-            self.assertEqual(s["hold"], ["ca_loc", "ca_linh", "ca_loc"])
+            self.assertEqual([u["kind"] for u in s["hold"]], ["ca_loc", "ca_linh", "ca_loc"])
             self.assertEqual(s["hold_count"], 3)
             self.assertEqual(s["hold_capacity"], 12)
 
@@ -139,13 +139,13 @@ class Hold(unittest.TestCase):
             rows = run_gather(w, {"player": {"pos": [50, 10]}, "hold": hold, "time_left_ticks": 2}, 5, inventory=True)
             self.assertEqual(events(rows, "gather_end")[0]["data"]["reason"], "time")
             with open(w.path("inv.json"), encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"bong_sung": 1, "ca_linh": 1, "ca_loc": 2}})
+                self.assertEqual([item["kind"] for item in json.load(f)["items"]], hold)
 
     def test_ngat_giỏ_day_mat_het(self):
         with Workdir() as w:
             rows = run_gather(w, {"player": {"pos": [50, 10], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
                                   "hold": ["ca_linh"] * 12}, 3, inventory=True)
-            self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": {}})
+            self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": []})
 
 
 if __name__ == "__main__":
