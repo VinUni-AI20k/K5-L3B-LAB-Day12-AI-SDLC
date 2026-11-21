@@ -41,7 +41,7 @@ class ScenarioQuanStatic(unittest.TestCase):
 
     def test_unknown_fields_and_ids(self):
         self.assertBad({"customers": [_customer(mood="happy")]})
-        self.assertBad({"stoves": [{"id": "B2"}]})
+        self.assertBad({"stoves": [{"id": "B9"}]})  # v1.1 đã có B2 thật
         self.assertBad({"tables": [{"id": "T1", "seats": 2}]})
         self.assertBad({"customers": [_customer(dish_id="pho")]})
 

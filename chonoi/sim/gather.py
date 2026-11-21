@@ -60,7 +60,9 @@ class GatherSim:
         if "fish" in scenario:
             src_fish = scenario["fish"]
         elif scenario.get("random_fish", True):
-            src_fish = t["fish_initial"]
+            # TẠM (Khuê, contract v1.1): fish_initial giờ là SỐ đàn (8), sinh theo seed ở fish_spawn_*.
+            # TODO(Phong): thay bằng sinh 8 đàn theo seed + cá bơi/sinh thêm (TICKET-02 mục 1.1).
+            src_fish = t["fish_initial"] if isinstance(t["fish_initial"], list) else []
         else:
             src_fish = []
         # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.

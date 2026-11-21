@@ -14,8 +14,8 @@ from .inventory import KINDS_P1, validate_items
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "invuln_ticks", "catch_cd_ticks"}
-NODE_KINDS = ("bong_dien_dien", "bong_sung")
-FISH_KINDS = ("ca_linh", "ca_loc")
+NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
+FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 NODE_KEYS = {"id", "kind", "pos", "regrow_ticks"}
 FISH_KEYS = {"id", "kind", "pos", "heading_deg"}
 QUAN_PLAYER_KEYS = {"pos", "vel"}
