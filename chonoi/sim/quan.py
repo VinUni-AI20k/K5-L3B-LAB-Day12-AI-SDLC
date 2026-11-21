@@ -8,7 +8,7 @@ Phân chia lát:
   Chỉ người làm lát 4 sửa file này (thứ tự gọi trong step); lát 3 KHÔNG cần sửa file này.
 """
 
-from ..ids import id_key, sort_by_id
+from ..ids import sort_by_id
 from . import quan_customers as customers
 from . import quan_service as service
 from .ramp import ramp_velocity
@@ -40,7 +40,10 @@ class QuanSim:
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        self.customers = self._load_customers(scenario.get("customers", []), t)
+        self.random_customers = scenario.get("random_customers", True)
+        self.phase_tick = 0
+        self.customers = customers.build_fixture_customers(
+            scenario.get("customers", []), tuning, self.stock, self.stoves, self.hand)
         for e in self.customers:
             ids.reserve(e["id"])
         self.money = 0
@@ -48,27 +51,6 @@ class QuanSim:
         self.shift_earned = 0
         self.done = False
         self.reason = None
-
-    def _load_customers(self, raw, t):
-        """Khách dựng sẵn từ scenario: điền mặc định (customer.md) và cấp `reserved` theo công thức;
-        khách có order_tick nhỏ hơn lấy kho trước (rồi theo id bàn)."""
-        full = int(round(t["patience_s"] * 60))
-        out = [dict(c, state=c.get("state", "waiting"), order_tick=c.get("order_tick", 0),
-                    order_status=c.get("order_status", "reserved"),
-                    patience_ticks_left=c.get("patience_ticks_left", full),
-                    eat_ticks_left=c.get("eat_ticks_left", 0)) for c in raw]
-        free = dict(self.stock)
-        todo = sorted((c for c in out if "reserved" not in c and c["order_status"] == "reserved"),
-                      key=lambda c: (c["order_tick"], id_key(c["table_id"])))
-        for c in todo:
-            recipe = self.menu[c["dish_id"]]["recipe"]
-            if all(free.get(k, 0) >= n for k, n in recipe.items()):
-                for k, n in recipe.items():
-                    free[k] -= n
-                c["reserved"] = dict(recipe)
-        for c in out:
-            c.setdefault("reserved", {})
-        return out
 
     @staticmethod
     def _merge(defaults, updates):
@@ -95,6 +77,7 @@ class QuanSim:
     def step(self, inp):
         events = []
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
+        self.phase_tick += 1
         # Thứ tự theo docs/contracts/customer.md mục 5 (PRD-0 F). Hàm lát 3 gọi nếu có.
         timers = getattr(customers, "tick_customers_timers", None) or getattr(customers, "tick_customers", None)
         leave = getattr(customers, "customers_leave", None)
@@ -108,7 +91,6 @@ class QuanSim:
         service.settle(self, events, closing=closing)   # 3. ăn xong -> paid, rời bàn (hết ca: trả hết)
         if leave:
             leave(self, events)                         # 4/5. bỏ đi vì kiên nhẫn / closing (lát 3)
-        service.drop_orphans(self)
         if not closing:
             customers.spawn_customers(self, events)     # 6. khách mới (lát 3)
         if self.time_left_ticks <= 0:

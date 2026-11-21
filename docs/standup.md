@@ -2,4 +2,4 @@
 
 | Phase | Người | Đã xong | Sắp làm | Vướng gì |
 |---|---|---|---|---|
-| 1 | @minhthu27 | `quan_service.py` + `quan.py` theo schema khách mới (`dish_id`, `order_status`, `*_ticks_left`) và thứ tự bước PRD-0 F; 8 test lát 4; đã rebase main (có hợp đồng sự kiện) | Ghép `quan_customers` thật của @viethoang126, chạy lại toàn bộ test, mở PR | Chờ @viethoang126 gộp `tick_customers_timers` / `customers_leave` / `spawn_customers`; cần chốt ai giảm `eat_ticks_left` (đã làm ở lát 4) |
+| 1 | @minhthu27 | Lát 4 xong và đã ghép với `quan_customers` của @viethoang126 + contract v1.1 (2 bếp/4 bàn); `stoves[].dish`/`hand` là payload `{order_id, dish_id, base_price}`; sự kiện `served`/`paid` theo test QA; 8 test lát 4 xanh | Mở PR, chờ Lead gộp sau PR lát 3; Phase 2: Cá Sấu (`gather_monsters.py`) | 6 test đỏ không thuộc lát 4: 5 test gather của QA (chờ lát 2 + payload oxygen/faint), 1 test của lát 3 giả định 1 bàn |

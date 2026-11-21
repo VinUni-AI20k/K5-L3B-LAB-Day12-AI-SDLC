@@ -32,7 +32,7 @@ class QuanService(unittest.TestCase):
             rows = run({"stock": {"ca_loc": 1}, "customers": [COOK], "player": AT_STOVE},
                        [{"tick": 0, "interact": True}], 400, w)
             cs = events(rows, "cook_started")[0]
-            self.assertEqual(cs["data"], {"stove_id": "B1", "dish": "ca_loc_nuong_trui", "customer_id": "C1"})
+            self.assertEqual(cs["data"], {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui"})
             self.assertEqual(cs["tick"], 1)
             self.assertEqual(events(rows, "dish_ready")[0]["tick"], 1 + 360)
             first = snapshots(rows)[1]  # sau khi nhận đơn
@@ -51,8 +51,8 @@ class QuanService(unittest.TestCase):
                 self.assertIn(e, n)
             self.assertEqual(n.index("dish_picked") < n.index("served") < n.index("paid"), True)
             paid = events(rows, "paid")[0]["data"]
-            self.assertEqual(paid, {"customer_id": "C1", "table_id": "T1", "dish": "ca_loc_nuong_trui",
-                                    "price": 60, "tip": 12, "total": 72})
+            self.assertEqual(paid, {"order_id": "C1", "table_id": "T1", "base_price": 60, "tip": 12,
+                                    "amount": 72, "reason": "eaten"})
             end = rows[-1]
             self.assertEqual(end["money"], 72)
             self.assertEqual(end["earned"], 72)
@@ -62,9 +62,10 @@ class QuanService(unittest.TestCase):
 
     def test_thieu_nguyen_lieu_khong_nau(self):
         with Workdir() as w:
-            rows = run({"stock": {}, "customers": [dict(COOK, reserved={})], "player": AT_STOVE},
-                       [{"tick": 0, "interact": True}], 5, w)
-            self.assertNotIn("cook_started", names(rows))
+            rows = run({"stock": {}, "customers": [dict(COOK, order_status="assigned", reserved={})],
+                        "hand": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60},
+                        "player": AT_STOVE}, [{"tick": 0, "interact": True}], 5, w)
+            self.assertNotIn("cook_started", names(rows))  # không có đơn reserved nào để nhận
 
     def test_khong_nau_don_unfulfillable(self):
         with Workdir() as w:
@@ -79,27 +80,32 @@ class QuanService(unittest.TestCase):
                      eat_ticks_left=3, base_price=40, tip=0, reserved={})
             rows = run({"customers": [c]}, [], 5, w)
             self.assertEqual(events(rows, "paid")[0]["tick"], 3)
-            self.assertEqual(events(rows, "paid")[0]["data"]["total"], 40)
+            self.assertEqual(events(rows, "paid")[0]["data"]["amount"], 40)
             self.assertAlmostEqual(rows[-1]["reputation"], 3.0)  # không boa: uy tín giữ nguyên
             self.assertEqual(snapshots(rows)[-1]["customers"], [])
 
     def test_kien_nhan_thap_khong_boa(self):
         with Workdir() as w:
             # tay đã cầm món của C1 và đứng cạnh T1; kiên nhẫn dưới 50% -> không boa
-            c = dict(COOK, patience_ticks_left=100, reserved={}, order_status="assigned")
+            c = dict(COOK, patience_ticks_left=100, reserved={}, order_status="assigned")  # hand giữ món của C1
             hand = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
             rows = run({"customers": [c], "hand": hand, "player": {"pos": [9, 2]}},
                        [{"tick": 0, "interact": True}], 2, w)
             self.assertEqual(events(rows, "served")[0]["data"],
-                             {"customer_id": "C1", "table_id": "T1", "dish": "ca_loc_nuong_trui"})
+                             {"order_id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                              "patience_ticks_left": 99, "base_price": 60, "tip": 0})
             cust = snapshots(rows)[-1]["customers"][0]
             self.assertEqual((cust["state"], cust["order_status"], cust["tip"]), ("eating", "served", 0))
 
-    def test_phuc_vu_nham_khach_khong_duoc(self):
+    def test_phuc_vu_nham_ban_khong_duoc(self):
         with Workdir() as w:
-            hand = {"order_id": "C9", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
-            rows = run({"customers": [dict(COOK, reserved={})], "hand": hand, "player": {"pos": [9, 2]}},
-                       [{"tick": 0, "interact": True}], 2, w)
+            # C1 ngồi T1 giữ món trên tay; C2 ngồi T2 (đang đứng cạnh T2) không phải chủ đơn
+            c1 = dict(COOK, order_status="assigned", reserved={})
+            c2 = {"id": "C2", "table_id": "T2", "dish_id": "goi_bong_sung", "stock": None}
+            c2.pop("stock")
+            hand = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
+            rows = run({"stock": {"bong_sung": 2}, "customers": [c1, c2], "hand": hand,
+                        "player": {"pos": [13, 2]}}, [{"tick": 0, "interact": True}], 2, w)
             self.assertNotIn("served", names(rows))
 
     def test_het_ca_khach_dang_an_tra_ngay_roi_quan_end(self):
@@ -109,6 +115,7 @@ class QuanService(unittest.TestCase):
             rows = run({"customers": [c], "time_left_ticks": 3}, [], 10, w)
             n = names(rows)
             self.assertEqual(n[-2:], ["paid", "quan_end"])
+            self.assertEqual(events(rows, "paid")[0]["data"]["reason"], "closing")
             end_ev = events(rows, "quan_end")[0]["data"]
             self.assertEqual((end_ev["reason"], end_ev["money"], end_ev["earned"]), ("time", 72, 72))
 

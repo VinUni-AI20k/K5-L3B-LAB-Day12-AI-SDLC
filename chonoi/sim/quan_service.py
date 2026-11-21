@@ -9,13 +9,14 @@ Thứ tự một bước (quan.py gọi):  1 `tick_service` (bếp nấu, khách
 Phần kiên nhẫn / rời đi / khách mới là của lát 3 (KHÔNG giảm `eat_ticks_left` ở lát 3, đã làm ở đây).
 
 `stock` là tồn vật lý gồm cả phần giữ chỗ: khi bếp nhận đơn, nguyên liệu bị trừ khỏi kho và `reserved` về {}.
-Bếp nhớ đơn của mình bằng khóa nội bộ `order_id` (không xuất ra snapshot). Món trên tay `hand` là
-`{order_id, dish_id, base_price}`.
+Món ở bếp (`stoves[].dish`) và trên tay (`hand`) đều là payload `{order_id, dish_id, base_price}`.
+Khách rời vì kiên nhẫn / closing thì `quan_customers.remove_customer` tự bỏ món của đơn đó.
 """
 
 import math
 
 from ..ids import id_key
+from .quan_customers import remove_customer
 
 TICK = 60
 
@@ -26,13 +27,13 @@ def _clamp_rep(sim, v):
 
 # --- bước 1: bếp nấu, khách ăn ----------------------------------------------------------
 def tick_service(sim, events):
-    drop_orphans(sim)
     for s in sim.stoves:  # theo id (sim.stoves đã sắp)
         if s["state"] == "cooking":
             s["cook_ticks_left"] = max(0, s["cook_ticks_left"] - 1)
             if s["cook_ticks_left"] == 0:
                 s["state"], s["ready_ticks"] = "ready", 0
-                events.append(("dish_ready", {"stove_id": s["id"], "dish": s["dish"]}))
+                events.append(("dish_ready", {"stove_id": s["id"], "order_id": s["dish"]["order_id"],
+                                          "dish_id": s["dish"]["dish_id"]}))
         elif s["state"] == "ready":
             s["ready_ticks"] += 1  # burn_s = null: không cháy
     for c in sim.customers:
@@ -40,19 +41,8 @@ def tick_service(sim, events):
             c["eat_ticks_left"] = max(0, c["eat_ticks_left"] - 1)
 
 
-def drop_orphans(sim):
-    """Khách đã rời: bỏ món đang nấu / ready / trên tay của đơn đó (nguyên liệu đã dùng không hoàn lại)."""
-    ids = {c["id"] for c in sim.customers}
-    for s in sim.stoves:
-        if s.get("order_id") and s["order_id"] not in ids:
-            _reset_stove(s)
-    if isinstance(sim.hand, dict) and sim.hand.get("order_id") not in ids:
-        sim.hand = None
-
-
 def _reset_stove(s):
     s["state"], s["dish"], s["cook_ticks_left"], s["ready_ticks"] = "idle", None, 0, 0
-    s.pop("order_id", None)
 
 
 # --- bước 3: trả tiền ---------------------------------------------------------------------
@@ -68,11 +58,10 @@ def settle(sim, events, closing=False):
         sim.money += total
         sim.earned += total
         sim.shift_earned += total
-        events.append(("paid", {"customer_id": c["id"], "table_id": c["table_id"], "dish": c["dish_id"],
-                                "price": c["base_price"], "tip": c["tip"], "total": total}))
-    gone = {c["id"] for c in eating}
-    if gone:
-        sim.customers = [c for c in sim.customers if c["id"] not in gone]
+        events.append(("paid", {"order_id": c["id"], "table_id": c["table_id"], "base_price": c["base_price"],
+                                "tip": c["tip"], "amount": total,
+                                "reason": "closing" if closing else "eaten"}))
+        remove_customer(sim, c)
 
 
 # --- bước 2: interact ----------------------------------------------------------------------
@@ -91,9 +80,9 @@ def interact(sim, events):
 def _use_stove(sim, s, events):
     if s["state"] == "ready":
         if sim.hand is None:  # carry_limit = 1
-            sim.hand = {"order_id": s.get("order_id"), "dish_id": s["dish"],
-                        "base_price": sim.menu[s["dish"]]["price"]}
-            events.append(("dish_picked", {"stove_id": s["id"], "dish": s["dish"]}))
+            sim.hand = s["dish"]
+            events.append(("dish_picked", {"stove_id": s["id"], "order_id": s["dish"]["order_id"],
+                                           "dish_id": s["dish"]["dish_id"]}))
             _reset_stove(s)
     elif s["state"] == "idle":
         _start_cooking(sim, s, events)
@@ -110,9 +99,10 @@ def _start_cooking(sim, s, events):
         for k, n in recipe.items():
             sim.stock[k] -= n
         c["reserved"], c["order_status"] = {}, "assigned"
-        s.update(state="cooking", dish=c["dish_id"], order_id=c["id"], ready_ticks=0,
+        s.update(state="cooking", ready_ticks=0,
+                 dish={"order_id": c["id"], "dish_id": c["dish_id"], "base_price": sim.menu[c["dish_id"]]["price"]},
                  cook_ticks_left=int(round(sim.menu[c["dish_id"]]["cook_s"] * TICK)))
-        events.append(("cook_started", {"stove_id": s["id"], "dish": c["dish_id"], "customer_id": c["id"]}))
+        events.append(("cook_started", {"stove_id": s["id"], "order_id": c["id"], "dish_id": c["dish_id"]}))
         return
 
 
@@ -128,6 +118,8 @@ def _use_table(sim, tb, events):
                 tip = int(math.floor(h["base_price"] * sim.t["tip_rate"]))
             c.update(state="eating", order_status="served", eat_ticks_left=int(round(sim.t["eat_s"] * TICK)),
                      base_price=h["base_price"], tip=tip)
-            events.append(("served", {"customer_id": c["id"], "table_id": tb["id"], "dish": h["dish_id"]}))
+            events.append(("served", {"order_id": c["id"], "table_id": tb["id"], "dish_id": h["dish_id"],
+                                      "patience_ticks_left": c["patience_ticks_left"],
+                                      "base_price": h["base_price"], "tip": tip}))
             sim.hand = None
             return
