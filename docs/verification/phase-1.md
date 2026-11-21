@@ -2,6 +2,8 @@
 
 | AC | Cách kiểm chứng | Bằng chứng (link `docs/proof/phase-1/...`) | Kết quả (đạt / chưa đạt — ghi trung thực) |
 |---|---|---|---|
+| Lát 1 — oxy, ngạt và ngất | `GatherSlice1Test` kiểm tick oxy vừa cạn, lên mặt đúng hạn ngạt và mất giỏ LIFO | [Kiểm tra bản bàn giao](../proof/phase-1/gather-handoff.md) | Đạt |
+| Lát 2 — hái, bắt cá, giỏ và cập bến | `GatherSlice2Test` kiểm hồi nút, ưu tiên bến, đủ chỗ cả đàn và cooldown | [Kiểm tra bản bàn giao](../proof/phase-1/gather-handoff.md) | Đạt |
 | Lát 4 — PRD F: tương tác sau di chuyển, đúng bán kính, ưu tiên khoảng cách/bếp/id; mỗi cạnh lên một lượt | `tests/test_quan_service.py`: radius, movement, priority, natural id, held input | [Log test](../proof/phase-1/chur04-tests.txt) | Đạt trong phạm vi lát 4 |
 | Lát 4 — PRD D/E/F: đơn cũ nhất, tiêu nguyên liệu giữ, payload theo order_id, nấu/bưng/phục vụ | Test service flow, sorted items, oldest order, full hand, wrong order | [Fixture, lệnh và kết quả](../proof/phase-1/chur04-service.md) | Đạt |
 | Lát 4 — PRD F: deadline kiên nhẫn, floor tip, chốt boa khi phục vụ, thu tiền khi ăn xong, kẹp uy tín | Test deadline, threshold, floor, frozen tip, reputation, single payment | [Log test](../proof/phase-1/chur04-tests.txt) | Đạt |

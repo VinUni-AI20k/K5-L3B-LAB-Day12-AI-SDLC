@@ -52,14 +52,15 @@ class GatherSlice1Test(unittest.TestCase):
             self.assertEqual(snaps2[1]["player"]["oxygen_ticks"], min(omax, omax - 10 + refill))
             self.assertEqual(snaps2[5]["player"]["oxygen_ticks"], omax)
 
-    def test_oxygen_empty_choke_and_surface_resets_zero_oxy(self):
+    def test_oxygen_empty_choke_counts_zero_tick_and_surface_resets(self):
         g = _tuning_gather()
         choke_iv = int(g["choke_interval_ticks"])
         with Workdir() as w:
+            # Oxy chạm 0 ở tick 2 -> zero_oxy_ticks tăng ngay ở tick 2 -> choke đầu ở tick 2 + 59
             sc = write_json(w.path("sc.json"), {"gather": {
-                "player": {"pos": [20, 5], "oxygen_ticks": 2, "hp": 3},
+                "player": {"pos": [20, 5], "oxygen_ticks": 2, "hp": 3, "invuln_ticks": 90},
             }})
-            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", str(2 + choke_iv + 5),
+            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", str(2 + choke_iv + 2),
                                      "--scenario", sc, "--snapshot-every", "1", "--out", w.path("o.jsonl"))
             self.assertEqual(code, 0, err)
             rows = read_jsonl(w.path("o.jsonl"))
@@ -67,16 +68,17 @@ class GatherSlice1Test(unittest.TestCase):
             chokes = events(rows, "choke")
             self.assertEqual(len(empties), 1)
             self.assertEqual(empties[0]["tick"], 2)
+            self.assertEqual(empties[0]["data"], {"oxygen_ticks": 0})
             self.assertEqual(len(chokes), 1)
-            self.assertEqual(chokes[0]["tick"], 2 + choke_iv)
-            self.assertEqual(chokes[0]["data"]["hp"], 2)
+            self.assertEqual(chokes[0]["tick"], 2 + choke_iv - 1)
+            self.assertEqual(chokes[0]["data"], {"hp": 2})
 
-            # Lên mặt nước reset zero_oxy_ticks về 0
+            # Lên mặt nước reset zero_oxy_ticks ngay cả đúng tick đáng lẽ ngạt
             sc2 = write_json(w.path("sc2.json"), {"gather": {
-                "player": {"pos": [20, 0.6], "oxygen_ticks": 0, "zero_oxy_ticks": 50, "hp": 3},
+                "player": {"pos": [20, 0.52], "vel": [0, -4.0], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 3},
             }})
             inp = write_json(w.path("in.json"), frames({"tick": 0, "move": [0, -1]}))
-            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "20",
+            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "5",
                                      "--scenario", sc2, "--inputs", inp, "--out", w.path("o2.jsonl"))
             self.assertEqual(code, 0, err)
             rows2 = read_jsonl(w.path("o2.jsonl"))
@@ -85,7 +87,7 @@ class GatherSlice1Test(unittest.TestCase):
             self.assertEqual(last_p["zero_oxy_ticks"], 0)
             self.assertGreater(last_p["oxygen_ticks"], 0)
 
-    def test_faint_clears_hold_and_writes_empty_inventory(self):
+    def test_faint_clears_hold_lifo_and_writes_empty_inventory(self):
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [20, 5], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
@@ -99,6 +101,8 @@ class GatherSlice1Test(unittest.TestCase):
             rows = read_jsonl(w.path("o.jsonl"))
             names = [e["name"] for e in events(rows)]
             self.assertEqual(names, ["choke", "faint", "gather_end"])
+            faint_ev = events(rows, "faint")[0]
+            self.assertEqual(faint_ev["data"], {"cause": "choke", "lost": ["bong_sung", "ca_loc"], "hp": 0})
             end_ev = events(rows, "gather_end")[0]
             self.assertEqual(end_ev["data"]["reason"], "fainted")
             self.assertEqual(end_ev["data"]["inventory"], {"items": {}})
@@ -113,7 +117,6 @@ class GatherSlice2Test(unittest.TestCase):
         g = _tuning_gather()
         regrow_ticks = int(round(g["regrow_s"] * 60))
         with Workdir() as w:
-            # Hai nút cùng khoảng cách -> chọn id nhỏ hơn (N2 trước N10)
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [20, 0]},
                 "nodes": [
@@ -129,15 +132,13 @@ class GatherSlice2Test(unittest.TestCase):
             rows = read_jsonl(w.path("o.jsonl"))
             ge = events(rows, "gather")
             self.assertEqual(len(ge), 1)
-            self.assertEqual(ge[0]["data"]["node_id"], "N2")
-            self.assertEqual(ge[0]["data"]["kind"], "bong_dien_dien")
+            self.assertEqual(ge[0]["data"], {"node_id": "N2", "kind": "bong_dien_dien", "amount": 1})
             self.assertEqual(snapshots(rows)[-1]["hold"], ["bong_dien_dien"])
             regrown = events(rows, "node_regrown")
             self.assertEqual(len(regrown), 1)
             self.assertEqual(regrown[0]["data"]["node_id"], "N2")
             self.assertEqual(regrown[0]["tick"], 1 + regrow_ticks)
 
-            # Dưới nước không hái được nút ở mặt nước
             sc_under = write_json(w.path("sc_under.json"), {"gather": {
                 "player": {"pos": [12, 1.0]},
                 "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [12, 0]}],
@@ -163,7 +164,9 @@ class GatherSlice2Test(unittest.TestCase):
             self.assertEqual(code, 0, err)
             rows = read_jsonl(w.path("o.jsonl"))
             self.assertEqual(events(rows, "gather"), [])
-            self.assertEqual(len(events(rows, "hold_full")), 1)
+            hf = events(rows, "hold_full")
+            self.assertEqual(len(hf), 1)
+            self.assertEqual(hf[0]["data"], {"action": "gather", "node_id": "N1", "required": 1, "free": 0})
             self.assertTrue(snapshots(rows)[-1]["nodes"][0]["ready"])
 
     def test_dock_has_priority_over_gather(self):
@@ -181,18 +184,18 @@ class GatherSlice2Test(unittest.TestCase):
             self.assertEqual(events(rows, "gather"), [])
             self.assertEqual(events(rows, "gather_end")[0]["data"]["reason"], "docked")
 
-    def test_catch_fish_yield_cooldown_surface_and_hold_full(self):
+    def test_catch_fish_requires_full_yield_and_cooldown_only_on_success(self):
         g = _tuning_gather()
         cap = int(g["hold_capacity"])
         cd = int(round(g["catch_cooldown_s"] * 60))
         with Workdir() as w:
-            # Bắt ca_linh (yield=3), rồi bấm lại ngay trong cooldown -> bị chặn; hết cooldown bắt tiếp F2
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [15, 5]},
                 "fish": [
                     {"id": "F1", "kind": "ca_linh", "pos": [15, 5]},
                     {"id": "F2", "kind": "ca_loc", "pos": [15.5, 5]},
                 ],
+                "random_fish": False,
             }})
             inp = write_json(w.path("in.json"), frames(
                 {"tick": 0, "catch": True},
@@ -208,12 +211,11 @@ class GatherSlice2Test(unittest.TestCase):
             rows = read_jsonl(w.path("o.jsonl"))
             caught = events(rows, "fish_caught")
             self.assertEqual(len(caught), 2)
-            self.assertEqual(caught[0]["data"], {"fish_id": "F1", "kind": "ca_linh", "count": 3})
-            self.assertEqual(caught[1]["data"], {"fish_id": "F2", "kind": "ca_loc", "count": 1})
+            self.assertEqual(caught[0]["data"], {"fish_id": "F1", "kind": "ca_linh", "yield": 3})
+            self.assertEqual(caught[1]["data"], {"fish_id": "F2", "kind": "ca_loc", "yield": 1})
             self.assertEqual(snapshots(rows)[-1]["hold"], ["ca_linh", "ca_linh", "ca_linh", "ca_loc"])
             self.assertEqual(snapshots(rows)[-1]["fish"], [])
 
-            # Mặt nước không bắt được cá
             sc_surf = write_json(w.path("sc_surf.json"), {"gather": {
                 "player": {"pos": [15, 0.5]},
                 "fish": [{"id": "F1", "kind": "ca_loc", "pos": [15, 1.0]}],
@@ -224,19 +226,29 @@ class GatherSlice2Test(unittest.TestCase):
             self.assertEqual(code, 0, err)
             self.assertEqual(events(read_jsonl(w.path("s.jsonl")), "fish_caught"), [])
 
-            # Giỏ còn 1 chỗ, bắt ca_linh (yield=3) -> lấy 1, không tràn giỏ, phát fish_caught + hold_full
+            # Giỏ còn 2 chỗ, bắt ca_linh (yield=3) -> phải đủ chỗ cho cả đàn: hold_full, giữ cá, không cooldown
             sc_part = write_json(w.path("sc_part.json"), {"gather": {
                 "player": {"pos": [15, 5]},
-                "hold": ["ca_loc"] * (cap - 1),
-                "fish": [{"id": "F1", "kind": "ca_linh", "pos": [15, 5]}],
+                "hold": ["ca_loc"] * (cap - 2),
+                "fish": [
+                    {"id": "F1", "kind": "ca_linh", "pos": [15, 5]},
+                    {"id": "F2", "kind": "ca_loc", "pos": [15.5, 5]},
+                ],
+                "random_fish": False,
             }})
+            inp_once = write_json(w.path("in1.json"), frames({"tick": 0, "catch": True}))
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "2",
                                      "--scenario", sc_part, "--inputs", inp_once, "--out", w.path("p.jsonl"))
             self.assertEqual(code, 0, err)
             rows_p = read_jsonl(w.path("p.jsonl"))
-            self.assertEqual(events(rows_p, "fish_caught")[0]["data"]["count"], 1)
-            self.assertEqual(len(events(rows_p, "hold_full")), 1)
-            self.assertEqual(len(snapshots(rows_p)[-1]["hold"]), cap)
+            self.assertEqual(events(rows_p, "fish_caught"), [])
+            hf = events(rows_p, "hold_full")
+            self.assertEqual(len(hf), 1)
+            self.assertEqual(hf[0]["data"], {"action": "catch", "fish_id": "F1", "required": 3, "free": 2})
+            last_snap = snapshots(rows_p)[-1]
+            self.assertEqual(last_snap["hold"], ["ca_loc"] * (cap - 2))
+            self.assertEqual(len(last_snap["fish"]), 2)
+            self.assertEqual(last_snap["player"]["catch_cd_ticks"], 0)
 
 
 if __name__ == "__main__":

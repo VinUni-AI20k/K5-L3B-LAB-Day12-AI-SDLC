@@ -143,6 +143,13 @@ class GatherSim:
     def _hold_space(self) -> int:
         return max(0, int(self.t["hold_capacity"]) - len(self.hold))
 
+    def _faint(self, cause: str, events: list):
+        """Ngất: mất toàn bộ giỏ còn lại (LIFO), phát faint + gather_end(fainted)."""
+        lost = list(reversed(self.hold))
+        self.hold.clear()
+        events.append(("faint", {"cause": cause, "lost": lost, "hp": 0}))
+        self._finish("fainted", events)
+
     def _try_gather_node(self, events: list):
         radius = float(self.t["interact_radius"])
         cands = [
@@ -155,16 +162,18 @@ class GatherSim:
         cands.sort(key=lambda item: (item[0], item[1]))
         node = cands[0][2]
         yield_amt = int(self.t["node_yield"])
-        space = self._hold_space()
-        if space <= 0:
-            events.append(("hold_full", {"kind": node["kind"], "source": "node", "node_id": node["id"]}))
+        free = self._hold_space()
+        if free < yield_amt:
+            events.append(("hold_full", {
+                "action": "gather",
+                "node_id": node["id"],
+                "required": yield_amt,
+                "free": free,
+            }))
             return
-        added = min(yield_amt, space)
-        self.hold.extend([node["kind"]] * added)
+        self.hold.extend([node["kind"]] * yield_amt)
         node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
-        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "count": added}))
-        if added < yield_amt:
-            events.append(("hold_full", {"kind": node["kind"], "source": "node", "node_id": node["id"]}))
+        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": yield_amt}))
 
     def _try_catch_fish(self, events: list):
         radius = float(self.t["catch_radius"])
@@ -178,17 +187,19 @@ class GatherSim:
         cands.sort(key=lambda item: (item[0], item[1]))
         fish = cands[0][2]
         yield_amt = int(self.t["fish_yield"][fish["kind"]])
-        space = self._hold_space()
-        if space <= 0:
-            events.append(("hold_full", {"kind": fish["kind"], "source": "fish", "fish_id": fish["id"]}))
+        free = self._hold_space()
+        if free < yield_amt:
+            events.append(("hold_full", {
+                "action": "catch",
+                "fish_id": fish["id"],
+                "required": yield_amt,
+                "free": free,
+            }))
             return
-        added = min(yield_amt, space)
-        self.hold.extend([fish["kind"]] * added)
+        self.hold.extend([fish["kind"]] * yield_amt)
         self.fish.remove(fish)
         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
-        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "count": added}))
-        if added < yield_amt:
-            events.append(("hold_full", {"kind": fish["kind"], "source": "fish", "fish_id": fish["id"]}))
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": yield_amt}))
 
     def _step_oxygen(self, now_at_surface: bool, events: list) -> bool:
         """Cập nhật oxy, ngạt và ngất theo độ sâu cuối bước. Trả True nếu đã ngất."""
@@ -200,17 +211,18 @@ class GatherSim:
         if self.oxygen_ticks > 0:
             self.oxygen_ticks -= 1
             if self.oxygen_ticks == 0:
-                events.append(("oxygen_empty", {"pos": list(self.pos)}))
+                events.append(("oxygen_empty", {"oxygen_ticks": 0}))
+        if self.oxygen_ticks > 0:
+            self.zero_oxy_ticks = 0
             return False
+        # Dưới nước với oxy == 0 (tính cả bước vừa chạm 0)
         self.zero_oxy_ticks += 1
         if self.zero_oxy_ticks >= int(self.t["choke_interval_ticks"]):
             self.zero_oxy_ticks = 0
             self.hp = max(0, self.hp - 1)
             events.append(("choke", {"hp": self.hp}))
             if self.hp <= 0:
-                self.hold.clear()
-                events.append(("faint", {"pos": list(self.pos)}))
-                self._finish("fainted", events)
+                self._faint("choke", events)
                 return True
         return False
 
