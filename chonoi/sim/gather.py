@@ -6,13 +6,7 @@ Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` đ�
 Đã làm sẵn để smoke test chạy được: bơi + tăng/giảm tốc, chặn mép (d không âm), đồng hồ và hết giờ,
 cập bến (`interact` trong vùng bến -> `gather_end` reason `docked`), xuất kho, snapshot đầy đủ trường gather.
 
-Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gather"):
-  TODO(nhóm, lát 1): bơi + oxy + biên + giỏ
-      - oxy: dưới nước (d > surface_depth) trừ 1 tick/tick, mặt nước hồi oxygen_refill_per_tick, kẹp [0, max]
-      - ngạt: oxy = 0 và đang dưới nước -> đếm zero_oxy_ticks, đủ choke_interval_ticks thì -1 Máu (choke)
-      - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
-      - sự kiện dive / surface / oxygen_empty / choke / faint
-      - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
+Xử lý oxy và ngạt sau khi bơi, trước khi tương tác (Test Contract mục F).
   TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
       - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
       - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
@@ -26,7 +20,6 @@ from ..ids import sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
-TICK = 60.0
 AXES = ("x", "d")
 
 
@@ -37,6 +30,7 @@ class GatherSim:
     def __init__(self, tuning, scenario, streams, ids):
         t = tuning["gather"]
         self.t = t
+        self.tick_hz = tuning["tick_hz"]
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -45,14 +39,14 @@ class GatherSim:
         self._tgt = None
         self._ramp_left = 0
         self.heading = float(p.get("heading_deg", t["start_heading_deg"]))
-        self.oxygen_max = int(round(t["oxygen_max_s"] * TICK))
+        self.oxygen_max = int(round(t["oxygen_max_s"] * self.tick_hz))
         self.oxygen_ticks = p.get("oxygen_ticks", self.oxygen_max)
         self.hp = p.get("hp", t["hp_max"])
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
-        self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
+        self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * self.tick_hz)))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
@@ -107,11 +101,15 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
-        # 2. bơi + chặn mép
+        # 2. bơi, chặn mép và tính oxy theo độ sâu cuối bước
+        was_at_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
+        at_surface = self._at_surface()
+        if was_at_surface != at_surface:
+            events.append(("surface" if at_surface else "dive", {"pos": self.pos.copy()}))
+        self._tick_oxygen(at_surface, events)
+        if self.done:
+            return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
@@ -134,6 +132,39 @@ class GatherSim:
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]
 
+    def _try_add_to_hold(self, kind: str, amount: int) -> bool:
+        if len(self.hold) + amount > self.t["hold_capacity"]:
+            return False
+        self.hold.extend([kind] * amount)
+        return True
+
+    def _tick_oxygen(self, at_surface, events):
+        if at_surface:
+            self.oxygen_ticks = min(
+                self.oxygen_max, self.oxygen_ticks + self.t["oxygen_refill_per_tick"]
+            )
+            self.zero_oxy_ticks = 0
+            return
+
+        if self.oxygen_ticks > 0:
+            self.oxygen_ticks -= 1
+            if self.oxygen_ticks > 0:
+                return
+            events.append(("oxygen_empty", {"oxygen_ticks": 0}))
+
+        self.zero_oxy_ticks += 1
+        if self.zero_oxy_ticks < self.t["choke_interval_ticks"]:
+            return
+
+        self.zero_oxy_ticks = 0
+        self.hp -= 1
+        events.append(("choke", {"hp": self.hp}))
+        if self.hp == 0:
+            lost = list(reversed(self.hold))
+            self.hold.clear()
+            events.append(("faint", {"cause": "choke", "lost": lost, "hp": self.hp}))
+            self._finish("fainted", events)
+
     def _finish(self, reason, events):
         self.done = True
         self.reason = reason
@@ -147,7 +178,7 @@ class GatherSim:
             self.heading = math.degrees(math.atan2(md, mx)) % 360
         b = self.t["bounds"]
         for i, axis in enumerate(AXES):
-            self.pos[i] += self.vel[i] / TICK
+            self.pos[i] += self.vel[i] / self.tick_hz
             lo, hi = b[axis]
             if self.pos[i] <= lo:
                 self.pos[i] = lo
