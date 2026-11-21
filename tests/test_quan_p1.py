@@ -70,10 +70,15 @@ class Customers(unittest.TestCase):
         self.assertEqual(events(rows, "customer_arrived"), [])
 
     def test_ac_p1_22_het_ban_thi_bo_luot_va_luot_sau_dung_lich(self):
-        rows, _ = run_case(self, "quan", scenario={"stock": {"ca_loc": 5}}, ticks=3721, every=100)
+        # v1.1 có 4 bàn (T1–T4): khách fixture ngồi sẵn T2–T4 (kiên nhẫn đầy, rời ở tick 3600) để chỉ còn T1,
+        # giữ đúng ý test P1 "hết bàn thì bỏ lượt" (lát 0 đổi: preset P1 chỉ có 1 bàn).
+        others = [customer(id=f"C{i}", table_id=f"T{i}") for i in (2, 3, 4)]
+        rows, _ = run_case(self, "quan", scenario={"stock": {"ca_loc": 5}, "customers": others}, ticks=3721, every=100)
         self.assertEqual([e["tick"] for e in events(rows, "customer_arrived")], [120, 3720])
         self.assertEqual(events(rows, "no_dish"), [])
-        self.assertEqual([(e["tick"], e["data"]["reason"]) for e in events(rows, "customer_left")], [(3720, "patience")])
+        self.assertEqual([(e["tick"], e["data"]["table_id"], e["data"]["reason"]) for e in events(rows, "customer_left")],
+                         [(3600, "T2", "patience"), (3600, "T3", "patience"), (3600, "T4", "patience"),
+                          (3720, "T1", "patience")])
 
     def test_ac_p1_23_het_kien_nhan_roi_ban_tru_uy_tin_nha_giu_cho(self):
         scen = sc(stock={"bong_sung": 2}, customers=[customer(dish_id="goi_bong_sung", patience_ticks_left=5)])

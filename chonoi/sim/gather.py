@@ -34,20 +34,24 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids):
+    def __init__(self, tuning, scenario, streams, ids, day=1, upgrades=None):
+        """`day`: số Ngày (bố trí Cá Sấu theo from_day; gather độc lập dùng Ngày 1).
+        `upgrades`: cấp ĐANG ÁP DỤNG {"oxygen": n, "hp": n} (Ticket-02 mục 2), mặc định cấp 0."""
         t = tuning["gather"]
         self.t = t
         self.rng = streams
         self.ids = ids
+        self.day = day
         p = scenario.get("player", {})
         self.pos = [float(c) for c in p.get("pos", t["start_pos"])]
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
         self._tgt = None
         self._ramp_left = 0
         self.heading = float(p.get("heading_deg", t["start_heading_deg"]))
-        self.oxygen_max = int(round(t["oxygen_max_s"] * TICK))
+        oxygen_s, self.hp_max = _apply_upgrades(t, tuning.get("shop"), upgrades or {})
+        self.oxygen_max = int(round(oxygen_s * TICK))
         self.oxygen_ticks = p.get("oxygen_ticks", self.oxygen_max)
-        self.hp = p.get("hp", t["hp_max"])
+        self.hp = p.get("hp", self.hp_max)
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
@@ -57,18 +61,29 @@ class GatherSim:
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
-        if "fish" in scenario:
-            src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
-            src_fish = t["fish_initial"]
-        else:
-            src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
+        # Cá (v1.1): random_fish (mặc định true) bật cá mặc định + bơi/sinh; false -> chỉ cá fixture, đứng yên.
+        # Khai `fish` khi cờ bật thì THAY đàn ban đầu, vẫn bơi/sinh.
+        self.random_fish = scenario.get("random_fish", True)
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-        for coll in (self.nodes, self.fish):
+                      "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)}
+                     for f in scenario.get("fish", [])]
+        # Cá Sấu: scenario.monsters thay bố trí mặc định của Ngày (spawns có from_day <= day).
+        if "monsters" in scenario:
+            src_m = scenario["monsters"]
+        else:
+            src_m = [s for s in t["monsters"]["spawns"] if s["from_day"] <= day]
+        self.monsters = [{"id": m["id"], "kind": m["kind"], "pos": [float(c) for c in m["pos"]],
+                          "waypoints": [[float(c) for c in w] for w in m["waypoints"]],
+                          "target_idx": m.get("target_idx", 1), "state": m.get("state", "patrol"),
+                          "state_ticks_left": m.get("state_ticks_left", 0),
+                          "recoil_dir": m.get("recoil_dir")} for m in src_m]
+        for coll in (self.nodes, self.fish, self.monsters):
             for e in coll:
                 ids.reserve(e["id"])
+        if "fish" not in scenario and self.random_fish:
+            for _ in range(t["fish_initial"]):
+                if not self._spawn_one():
+                    break
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -83,7 +98,7 @@ class GatherSim:
         return {
             "player": {"pos": self.pos, "vel": self.vel, "heading_deg": self.heading,
                        "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
-                       "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
+                       "hp": self.hp, "hp_max": self.hp_max, "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
             "hold": self.hold, "hold_count": len(self.hold),
@@ -91,8 +106,12 @@ class GatherSim:
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
+            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"],
+                      "age_ticks": f["age_ticks"]}
                      for f in sort_by_id(self.fish)],
+            "monsters": [{k: m[k] for k in ("id", "kind", "pos", "waypoints", "target_idx", "state",
+                                             "state_ticks_left", "recoil_dir")}
+                         for m in sort_by_id(self.monsters)],
         }
 
     # --- một bước ---------------------------------------------------------------
@@ -258,6 +277,42 @@ class GatherSim:
         self.hold.extend(kinds)
         return True
 
+    # --- dùng chung (lát 0 tạo; lát 2 gọi lại cho lịch sinh cá mỗi fish_spawn_ticks) ---------
+    def _spawn_one(self):
+        """Sinh MỘT đàn theo Ticket-02 mục 1.1 "Sinh cá". Trả đàn mới (dict), hoặc False nếu đủ trần / hết điểm.
+        Lát 2 phát sự kiện `fish_spawned {id, kind, pos}` khi gọi theo lịch (đàn đầu ca không phát).
+
+        Điểm hợp lệ của loài: (x, d) với x ∈ fish_spawn_x, d ∈ fish_spawn_depths[loài], cách MỌI đàn đang sống
+        > fish_spawn_clearance. Loài chọn theo fish_weights, chuẩn hóa lại trên các loài còn điểm; rồi chọn đều
+        một điểm của loài, hướng ban đầu theo seed. Mọi số ngẫu nhiên qua stream "fish_spawn".
+        """
+        t = self.t
+        if len(self.fish) >= t["fish_max"]:
+            return False
+        clear = t["fish_spawn_clearance"]
+        options = {}
+        for kind in sorted(t["fish_spawn_depths"]):
+            pts = [[float(x), float(d)] for x in t["fish_spawn_x"] for d in t["fish_spawn_depths"][kind]
+                   if all(math.dist((x, d), f["pos"]) > clear for f in self.fish)]
+            if pts and t["fish_weights"][kind] > 0:
+                options[kind] = pts
+        if not options:
+            return False
+        rng = self.rng.get("fish_spawn")
+        kinds = sorted(options)
+        total = sum(t["fish_weights"][k] for k in kinds)
+        r, acc, kind = rng.random() * total, 0.0, kinds[-1]
+        for k in kinds:
+            acc += t["fish_weights"][k]
+            if r < acc:
+                kind = k
+                break
+        pos = options[kind][rng.randrange(len(options[kind]))]
+        heading = rng.randrange(360)  # TODO(lát 2): thống nhất cách lấy hướng theo seed với luật đổi hướng
+        f = {"id": self.ids.new("F"), "kind": kind, "pos": pos, "heading_deg": heading, "age_ticks": 0}
+        self.fish.append(f)
+        return f
+
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
@@ -286,3 +341,16 @@ class GatherSim:
             elif self.pos[i] >= hi:
                 self.pos[i] = hi
                 self.vel[i] = min(0.0, self.vel[i])
+
+
+def _apply_upgrades(g, shop, active):
+    """(oxygen_max_s, hp_max) theo cấp ĐANG ÁP DỤNG (Ticket-02 mục 2 "Shop và nâng cấp"). Cấp 0 = số cơ sở."""
+    oxygen_s, hp_max = g["oxygen_max_s"], g["hp_max"]
+    ups = (shop or {}).get("upgrades", {})
+    lv = active.get("oxygen", 0)
+    if lv:
+        oxygen_s = ups["oxygen"][lv - 1]["oxygen_max_s"]
+    lv = active.get("hp", 0)
+    if lv:
+        hp_max = ups["hp"][lv - 1]["hp_max"]
+    return oxygen_s, hp_max

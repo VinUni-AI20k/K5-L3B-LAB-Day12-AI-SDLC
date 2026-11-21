@@ -162,6 +162,59 @@ UI gặp trường chưa có thì bỏ qua, không được vỡ. Thêm trườn
 
 Một tick có nhiều event thì ghi theo **thứ tự xử lý** (mục F), rồi mới tới snapshot.
 
+## 4. Thay đổi v1.1 (lát 0, Phase 2) — Ticket-02 mục 1, 2, 4
+
+**Cấu hình** (`game.contract.json`, `contract_version: "1.1"`):
+- **`gather`:**
+  - `fish_initial` giờ là **số đàn** (8), không còn danh sách.
+  - Thêm `fish_speed, fish_turn_ticks, fish_max, fish_spawn_ticks, fish_spawn_clearance, fish_x, fish_depths, fish_spawn_x, fish_spawn_depths, fish_weights`.
+  - `fish_yield` đủ 3 loài; thêm nút N5/N6 (`keo_neo`).
+- **`gather.monsters`:** `species.ca_sau`, `spawns[]` (M1 từ Ngày 1, M2 từ Ngày 3), `invuln_ticks: 90`, `loss_ratio: 0.5`.
+  - `recoil_dist: 2.0` là **tổng** quãng lùi trong `recoil_ticks` (60), tức 2/60 m mỗi bước.
+- **`quan`:** B1, B2; T1–T4. **`menu`:** 6 món. **`day_plan`:** 5 Ngày, `ingredients` = tổng công thức × số suất (code kiểm). **`shop`:** `max_ticks: 600`, `upgrades.oxygen[]`, `upgrades.hp[]`.
+- **`extensions: []`** ở gốc manifest; chưa bật mở rộng nào.
+
+**Kind nguyên liệu:** `chonoi/inventory.py:KINDS` thêm `ca_keo`, `keo_neo`. Schema file kho **không đổi**.
+
+**Giao diện sim** (chốt mục 3 kế hoạch Phase 2):
+- **`GatherSim(tuning, scenario, streams, ids, day=1, upgrades=None)`:**
+  - `upgrades` là cấp **đang áp dụng** `{"oxygen": n, "hp": n}` → `self.oxygen_max`, `self.hp_max`. Snapshot `hp_max` lấy theo cấp.
+  - Cá Sấu theo `day` (spawn có `from_day <= day`), hoặc `scenario.monsters` thay thế.
+- **`GatherSim._spawn_one()`** (dùng chung, lát 0 tạo):
+  - sinh một đàn theo luật "Sinh cá" (trọng số loài chuẩn hóa lại theo loài còn điểm, điểm cách mọi đàn > 1 m, stream `fish_spawn`);
+  - trả đàn mới hoặc `False`;
+  - đầu ca gọi 8 lần, không phát event. **Lát 2** gọi lại theo lịch `phase_tick = 360·k` và phát `fish_spawned`.
+- **Cá trong sim:** `{id, kind, pos, heading_deg, age_ticks}`. Cá Sấu: `{id, kind, pos, waypoints, target_idx, state, state_ticks_left, recoil_dir}`; chưa di chuyển, việc của **lát 1** (`_update_monsters`).
+- **`QuanSim(..., allowed_dishes, carry)`:** lát 3 và lát 5 đã làm (xem mục giao diện day ở dưới).
+
+**Inputs** (`chonoi/inputs.py`, mục 4.2):
+- **Nút boolean:** `interact, catch, pause, shop_done, attack, photo`. Tên lạ vẫn trả mã 2. Nút đúng kiểu nhưng sai pha hoặc mở rộng chưa bật thì sim bỏ qua.
+- **`buy`:** chuỗi khác rỗng, có trong `InputState.buy` **chỉ ở đúng frame khai báo**.
+
+**Scenario** (`chonoi/scenario.py`, mục 4.3):
+- `gather.monsters[]` (kiểm dải độ sâu loài, 2 waypoint, `recoil`/`stunned` cần timer dương, `recoil_dir` là vector đơn vị khi `recoil`).
+- `gather.fish[].age_ticks`; cá fixture không vượt `fish_max`.
+- `--mode day`: `load_scenario(..., "day", ...)` trả `{gather, quan, day}`.
+  - Cấm `quan.stock` / `quan.reputation`.
+  - Kiểm `0 ≤ money ≤ earned`, `upgrades` và `day_plan`.
+
+**Headless:** `--days` (chỉ với `day`, giá trị 1..5). `--mode day` do lát 5 cài (`chonoi/sim/day.py`); `day.py` truyền `day=` vào `GatherSim` để bố trí Cá Sấu đúng Ngày.
+
+**Event v1.1 mới** (mục 4.4; lát nào phát):
+
+| Event | Lát |
+|---|---|
+| `monster_hit`, `faint {cause: "monster"}` | 1 |
+| `fish_spawned` | 2 |
+| `day_start`, `phase_start`, `day_plan`, `paused`, `resumed`, `bought`, `buy_failed`, `shop_end` | 5 |
+
+Trong day, vỏ event có thêm `day`.
+
+**Test đổi vì luật mới** (lý do ghi ngay trong test):
+- `test_smoke_p1`: số đàn 6 → `fish_initial`; `attack` không còn mã 2; `day` không còn bị chặn ở mức CLI.
+- `test_python_starter_units`: test nút v1.1 thay cho test "attack là nút lạ".
+- `test_quan_p1::test_ac_p1_22_…`: 4 bàn, nên khách fixture ngồi kín T2–T4 để vẫn kiểm "hết bàn thì bỏ lượt".
+
 ## Chia hàm theo lát (khung đã tạo sẵn, mỗi người chỉ sửa hàm của mình)
 
 | Lát | File | Hàm sở hữu | Hàm dùng chung (sửa phải báo nhóm) |
