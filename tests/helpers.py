@@ -22,8 +22,12 @@ def frames(*fr):
 
 def headless_cmd():
     """Lệnh headless khai trong game.contract.json — test chạy qua đây nên dùng được với MỌI ngôn ngữ."""
+    import sys
     with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
-        return shlex.split(json.load(f)["headless_cmd"])
+        cmd = shlex.split(json.load(f)["headless_cmd"])
+    if os.name == "nt" and cmd and cmd[0] == "python3":
+        cmd[0] = sys.executable
+    return cmd
 
 
 def run_headless(*args, cwd=ROOT):
@@ -65,3 +69,22 @@ class Workdir:
 
     def path(self, name):
         return os.path.join(self._d.name, name)
+
+
+# --- v1.2: kho cá thể {id, kind, fresh} -------------------------------------------------
+def items(*kinds, fresh=100, start=1):
+    """Fixture giỏ/kho v1.2: I<start>, I<start+1>… theo thứ tự vào giỏ."""
+    return [{"id": f"I{start + i}", "kind": k, "fresh": fresh} for i, k in enumerate(kinds)]
+
+
+def kinds(lst):
+    """Chiếu mảng cá thể về mảng kind (giữ thứ tự) để so luật không phụ thuộc độ tươi."""
+    return [it["kind"] for it in lst]
+
+
+def counts(inv):
+    """{"items":[cá thể]} -> {"items":{kind: số}} để so với kỳ vọng kho đếm cũ."""
+    out = {}
+    for it in inv["items"]:
+        out[it["kind"]] = out.get(it["kind"], 0) + 1
+    return {"items": {k: out[k] for k in sorted(out)}}

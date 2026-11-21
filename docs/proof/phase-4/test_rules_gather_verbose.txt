@@ -1,0 +1,51 @@
+test_ca_01_catch_takes_whole_school (test_rules_gather.Ca.test_ca_01_catch_takes_whole_school)
+Dưới nước, trong tầm: +yield, đàn bị xóa, `fish_caught`, hồi chiêu catch_cooldown_s × 60. ... ok
+test_ca_02_no_catch_at_surface (test_rules_gather.Ca.test_ca_02_no_catch_at_surface)
+Ở mặt nước thì không bắt, không hồi chiêu. ... ok
+test_ca_03_cooldown_usable_again_after_L_ticks (test_rules_gather.Ca.test_ca_03_cooldown_usable_again_after_L_ticks)
+Hồi chiêu L đặt ở tick t dùng lại từ t+L: bấm ở bước 29 chưa được, bước 30 được (L = 30). ... ok
+test_ca_04_nearest_school_ties_by_id (test_rules_gather.Ca.test_ca_04_nearest_school_ties_by_id)
+Chọn đúng một đàn gần nhất trong catch_radius; hòa khoảng cách thì id nhỏ; đàn khác còn nguyên. ... ok
+test_ca_05_out_of_radius_no_event_no_cooldown (test_rules_gather.Ca.test_ca_05_out_of_radius_no_event_no_cooldown)
+Không có đàn trong tầm: không event, không hồi chiêu. ... ok
+test_ca_06_not_enough_room_keeps_school_and_cooldown (test_rules_gather.Ca.test_ca_06_not_enough_room_keeps_school_and_cooldown)
+Thiếu chỗ (không bắt một phần): `hold_full` {action:catch,fish_id,required,free}; giữ đàn; không hồi chiêu. ... ok
+test_ket_01_dock_radius_inclusive_beats_gather (test_rules_gather.KetThuc.test_ket_01_dock_radius_inclusive_beats_gather)
+Đúng mép dock_radius vẫn `docked`; bến xét trước hái (nút nằm trong bến không bị hái). ... ok
+test_ket_02_gather_on_last_step_still_counts (test_rules_gather.KetThuc.test_ket_02_gather_on_last_step_still_counts)
+Hết giờ ở bước cuối: hái hợp lệ ở bước đó vẫn vào kho; lý do `time`. ... ok
+test_ket_03_time_end_at_depth_keeps_hold (test_rules_gather.KetThuc.test_ket_03_time_end_at_depth_keeps_hold)
+Hết giờ khi đang ở dưới nước: kết thúc `time`, giữ nguyên giỏ (không ngất). ... ok
+test_ngat_01_choke_every_interval (test_rules_gather.Ngat.test_ngat_01_choke_every_interval)
+Oxy 0 dưới nước liên tục: ngạt lần đầu ở tick 60 (= t+59 với t = tick chạm 0), -1 Máu, `choke.hp`. ... ok
+test_ngat_02_no_choke_at_surface (test_rules_gather.Ngat.test_ngat_02_no_choke_at_surface)
+Oxy 0 nhưng ở mặt nước: không ngạt, oxy hồi. ... ok
+test_ngat_03_surfacing_on_choke_step_saves_player (test_rules_gather.Ngat.test_ngat_03_surfacing_on_choke_step_saves_player)
+Nổi lên đúng bước đáng lẽ ngạt (đếm 59): hồi oxy, không ngạt. ... ok
+test_ngat_04_faint_lifo_and_empty_inventory (test_rules_gather.Ngat.test_ngat_04_faint_lifo_and_empty_inventory)
+Máu về 0: choke(hp 0) → faint{cause:choke, lost theo LIFO, hp:0} → gather_end fainted, kho rỗng. ... ok
+test_nut_01_gather_at_surface (test_rules_gather.Nut.test_nut_01_gather_at_surface)
+interact ở mặt nước trong tầm: +node_yield, event `gather`, nút regrow_s × 60 tick. ... ok
+test_nut_02_no_gather_underwater (test_rules_gather.Nut.test_nut_02_no_gather_underwater)
+Dưới nước thì bỏ qua interact (không phải bến). ... ok
+test_nut_03_radius_is_inclusive (test_rules_gather.Nut.test_nut_03_radius_is_inclusive)
+Đúng mép interact_radius vẫn hái được; vượt mép thì không. ... ok
+test_nut_04_nearest_ready_node_ties_by_id (test_rules_gather.Nut.test_nut_04_nearest_ready_node_ties_by_id)
+Chọn nút ready gần nhất; bằng khoảng cách thì id nhỏ; nút chưa ready bị bỏ qua. ... ok
+test_nut_05_hold_full_keeps_node (test_rules_gather.Nut.test_nut_05_hold_full_keeps_node)
+Giỏ đầy: `hold_full` {action:gather,node_id,required,free}; nút giữ nguyên. ... ok
+test_nut_06_regrow_event_and_gather_again (test_rules_gather.Nut.test_nut_06_regrow_event_and_gather_again)
+Nút 1 → 0 phát `node_regrown` rồi hái lại được (kể cả ngay bước đó). ... ok
+test_oxy_01_underwater_drops_one_per_tick (test_rules_gather.Oxy.test_oxy_01_underwater_drops_one_per_tick)
+Dưới nước (d > 0.5) oxy trừ đúng 1 mỗi tick. ... ok
+test_oxy_02_surface_refills_and_clamps (test_rules_gather.Oxy.test_oxy_02_surface_refills_and_clamps)
+Mặt nước (d ≤ 0.5): +oxygen_refill_per_tick mỗi tick, kẹp ở oxy tối đa. ... ok
+test_oxy_03_oxygen_empty_event (test_rules_gather.Oxy.test_oxy_03_oxygen_empty_event)
+`oxygen_empty` phát đúng 1 lần ở tick oxy từ dương xuống 0, data.oxygen_ticks = 0. ... ok
+test_oxy_04_dive_and_surface_events (test_rules_gather.Oxy.test_oxy_04_dive_and_surface_events)
+Đổi phía biên mặt nước: `dive` khi xuống, `surface` khi nổi; data có `pos`; đúng thứ tự. ... ok
+
+----------------------------------------------------------------------
+Ran 23 tests in 3.811s
+
+OK
