@@ -6,6 +6,9 @@ Cấp vừa mua ghi vào `upgrades` ngay; DaySim chỉ chép sang `active_upgrad
 """
 
 
+from ..ids import sort_by_id
+
+
 class ShopSim:
     phase = "shop"
 
@@ -13,7 +16,12 @@ class ShopSim:
         self.table = shop_tuning["upgrades"]
         self.money = money
         self.upgrades = dict(upgrades)
-        self.stock = {k: n for k, n in sorted(stock.items()) if n > 0}  # kho dư từ ca tối, bỏ khi Shop đóng
+        # Kho dư từ ca tối, bỏ khi Shop đóng. Hàng thô ở Shop KHÔNG hao tươi (Ticket-03). v1.2: mảng cá thể
+        # theo id (giữ nguyên id, kind, fresh); v1.1: kho đếm.
+        if isinstance(stock, dict):
+            self.stock = {k: n for k, n in sorted(stock.items()) if n > 0}
+        else:
+            self.stock = [dict(i) for i in sort_by_id(stock)]
         self.time_left_ticks = int(shop_tuning["max_ticks"])
         self.done = False
         self.reason = None

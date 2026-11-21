@@ -1,0 +1,43 @@
+# Lát 5 Phase 3 (day bàn giao kho cá thể) — nhánh fix/p3-qa-day
+# Chạy với manifest v1.2 tạm: CHONOI_CONTRACT=<manifest v1.2> QA_STRICT=1 python -m unittest test_fresh_p3.DayHandoff test_day_p2 -v
+test_ac_p3_08_ban_giao_cung_tick_hang_khong_hao_them (test_fresh_p3.DayHandoff.test_ac_p3_08_ban_giao_cung_tick_hang_khong_hao_them) ... ok
+test_ac_p3_08_ngay_ke_cap_id_moi_theo_thu_tu_mang (test_fresh_p3.DayHandoff.test_ac_p3_08_ngay_ke_cap_id_moi_theo_thu_tu_mang) ... ok
+test_ac_p3_09_shop_giu_kho_ca_the_va_khong_hao (test_fresh_p3.DayHandoff.test_ac_p3_09_shop_giu_kho_ca_the_va_khong_hao) ... ok
+test_ac_p2_06_cap_ben_mo_quan_cung_tick_voi_kho_ban_giao (test_day_p2.DayFlow.test_ac_p2_06_cap_ben_mo_quan_cung_tick_voi_kho_ban_giao) ... ok
+test_ac_p2_06_cung_seed_giong_tung_byte (test_day_p2.DayFlow.test_ac_p2_06_cung_seed_giong_tung_byte) ... ok
+test_ac_p2_06_mot_ngay_day_du_22200_tick_duoi_20s (test_day_p2.DayFlow.test_ac_p2_06_mot_ngay_day_du_22200_tick_duoi_20s) ... ok
+test_ac_p2_06_ngat_van_mo_quan_voi_kho_rong (test_day_p2.DayFlow.test_ac_p2_06_ngat_van_mo_quan_voi_kho_rong) ... ok
+test_ac_p2_06_nhieu_ngay_dung_ke_hoach_D1_D5 (test_day_p2.DayFlow.test_ac_p2_06_nhieu_ngay_dung_ke_hoach_D1_D5) ... ok
+test_ac_p2_06_shop_tu_dong_sau_600_tick_va_ket_thuc_days_complete (test_day_p2.DayFlow.test_ac_p2_06_shop_tu_dong_sau_600_tick_va_ket_thuc_days_complete) ... ok
+test_ac_p2_06_tick0_cong_bo_ke_hoach_ngay_1 (test_day_p2.DayFlow.test_ac_p2_06_tick0_cong_bo_ke_hoach_ngay_1) ... ok
+test_ac_p2_07_pause_gather_dung_dong_ho_va_bo_qua_canh (test_day_p2.Pause.test_ac_p2_07_pause_gather_dung_dong_ho_va_bo_qua_canh) ... ok
+test_ac_p2_07_pause_quan_doi_lich_khach (test_day_p2.Pause.test_ac_p2_07_pause_quan_doi_lich_khach) ... ok
+test_ac_p2_07_pause_trong_shop_bo_qua_buy_va_mang_day (test_day_p2.Pause.test_ac_p2_07_pause_trong_shop_bo_qua_buy_va_mang_day) ... ok
+test_ac_p2_06_buy_ngoai_shop_bi_bo_qua (test_day_p2.Shop.test_ac_p2_06_buy_ngoai_shop_bi_bo_qua) ... ok
+test_ac_p2_06_cap_toi_da_thi_max_level (test_day_p2.Shop.test_ac_p2_06_cap_toi_da_thi_max_level) ... ok
+test_ac_p2_06_du_dung_gia_van_mua_duoc (test_day_p2.Shop.test_ac_p2_06_du_dung_gia_van_mua_duoc) ... ok
+test_ac_p2_06_mua_tru_money_giu_earned_cap_hien_ngay_hieu_luc_ngay_ke (test_day_p2.Shop.test_ac_p2_06_mua_tru_money_giu_earned_cap_hien_ngay_hieu_luc_ngay_ke) ... ok
+test_ac_p2_06_tien_va_uy_tin_giu_qua_ngay (test_day_p2.Shop.test_ac_p2_06_tien_va_uy_tin_giu_qua_ngay) ... ok
+test_ac_p2_06_co_days_sai_ma_2 (test_day_p2.Validation.test_ac_p2_06_co_days_sai_ma_2) ... ok
+test_ac_p2_06_scenario_day_hop_le (test_day_p2.Validation.test_ac_p2_06_scenario_day_hop_le) ... ok
+test_ac_p2_06_scenario_day_mau_thuan_ma_2 (test_day_p2.Validation.test_ac_p2_06_scenario_day_mau_thuan_ma_2) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 4.395s
+
+OK
+
+# test_fresh_p3 đầy đủ, QA_STRICT=1, manifest v1.2 tạm (6 đỏ = hao tươi gather, chưa merge)
+FAIL: test_ac_p3_03_gio_hao_0_5_moi_giay (test_fresh_p3.GatherDecay.test_ac_p3_03_gio_hao_0_5_moi_giay)
+FAIL: test_ac_p3_03_hang_moi_hai_duoc_fresh_100_hao_tu_buoc_sau (test_fresh_p3.GatherDecay.test_ac_p3_03_hang_moi_hai_duoc_fresh_100_hao_tu_buoc_sau)
+FAIL: test_ac_p3_10_pause_dung_hao_tuoi (test_fresh_p3.PauseFresh.test_ac_p3_10_pause_dung_hao_tuoi)
+FAIL: test_ac_p3_02_nhieu_ca_the_cung_vuot_nguong_phat_theo_id_dung_mot_lan (test_fresh_p3.SpoiledOnce.test_ac_p3_02_nhieu_ca_the_cung_vuot_nguong_phat_theo_id_dung_mot_lan)
+FAIL: test_ac_p3_01_fresh_30_5_chua_uon_den_buoc_61 (test_fresh_p3.Threshold.test_ac_p3_01_fresh_30_5_chua_uon_den_buoc_61)
+FAIL: test_ac_p3_01_vi_du_ticket_uon_o_buoc_dau_dung_nguong_30 (test_fresh_p3.Threshold.test_ac_p3_01_vi_du_ticket_uon_o_buoc_dau_dung_nguong_30)
+Ran 28 tests in 5.293s
+FAILED (failures=6)
+
+# Suite thường (v1.1)
+Ran 233 tests in 40.543s
+
+OK (skipped=6)
