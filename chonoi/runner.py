@@ -16,13 +16,18 @@ from .jsonl import JsonlWriter
 from .rng import Streams
 from .sim.gather import GatherSim
 from .sim.quan import QuanSim
+from .sim.day import DaySim
 
 
-def build_sim(mode, tuning, scenario, seed, inventory):
+def build_sim(mode, tuning, scenario, seed, inventory, days=1):
     streams, ids = Streams(seed), IdAllocator()
     if mode == "gather":
         return GatherSim(tuning, scenario, streams, ids)
-    return QuanSim(tuning, scenario, streams, ids, inventory=inventory, mode=mode)
+    elif mode == "quan":
+        return QuanSim(tuning, scenario, streams, ids, inventory=inventory, mode=mode)
+    elif mode == "day":
+        return DaySim(tuning, scenario, streams, ids, inventory=inventory, days=days)
+    raise ValueError(f"Chế độ chưa hỗ trợ: {mode}")
 
 
 def _common(sim, tick, sim_tick, phase_tick, tuning, state):
@@ -38,10 +43,10 @@ def _common(sim, tick, sim_tick, phase_tick, tuning, state):
 class Session:
     """Một lượt chơi: dựng sim, bước từng tick, lấy snapshot / dòng end."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, days=1):
         self.mode = mode
         self.tuning = tuning
-        self.sim = build_sim(mode, tuning, scenario, seed, inventory)
+        self.sim = build_sim(mode, tuning, scenario, seed, inventory, days=days)
         self.tick = 0
 
     @property
@@ -49,24 +54,41 @@ class Session:
         return self.sim.done
 
     def snapshot(self) -> dict:
-        s = _common(self.sim, self.tick, self.tick, self.tick, self.tuning, "finished" if self.sim.done else "playing")
+        state = "paused" if getattr(self.sim, "paused", False) else ("finished" if self.sim.done else "playing")
+        sim_tick = getattr(self.sim, "sim_tick", self.tick)
+        phase_tick = getattr(self.sim, "phase_tick", self.tick)
+        s = _common(self.sim, self.tick, sim_tick, phase_tick, self.tuning, state)
         s.update(self.sim.snapshot())
+        if self.mode == "day":
+            s["day"] = self.sim.day
+            s["state"] = state
+            s["sim_tick"] = sim_tick
+            s["phase_tick"] = phase_tick
         return s
 
     def step(self, inp) -> list:
         """Chạy một bước với `inp` (chonoi.inputs.InputState); trả các dòng event (tick = k + 1)."""
         events = self.sim.step(inp)
         self.tick += 1
-        return [{"type": "event", "tick": self.tick, "phase": self.sim.phase, "name": name, "data": data}
-                for name, data in events]
+        res = []
+        for name, data in events:
+            row = {"type": "event", "tick": self.tick, "phase": self.sim.phase, "name": name, "data": data}
+            if self.mode == "day":
+                row["day"] = self.sim.day
+            res.append(row)
+        return res
 
     def end_row(self) -> dict:
         sim = self.sim
         score = _common(sim, self.tick, self.tick, self.tick, self.tuning, "")["score"]
-        return {"type": "end", "ticks": self.tick, "sim_tick": self.tick, "mode": sim.mode,
+        row = {"type": "end", "ticks": self.tick, "sim_tick": getattr(sim, "sim_tick", self.tick), "mode": sim.mode,
                 "state": "finished" if sim.done else "playing",
                 "reason": sim.reason if sim.done else "tick_limit",
                 "money": sim.money, "earned": sim.earned, "reputation": sim.reputation, "score": score}
+        if self.mode == "day":
+            row["day"] = sim.day
+            row["days_completed"] = getattr(sim, "days_completed", 0)
+        return row
 
     def write_inventory_if_done(self, inventory_out):
         """File kho: ghi MỘT lần khi có gather_end; chưa kết thúc thì giữ nguyên file đích."""
@@ -74,8 +96,8 @@ class Session:
             write_inventory(inventory_out, self.sim.inventory_items())
 
 
-def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None):
-    sess = Session(mode, tuning, scenario, seed, inventory)
+def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None, days=1):
+    sess = Session(mode, tuning, scenario, seed, inventory, days=days)
     player = InputPlayer(frames)
     w = JsonlWriter(out_path)
     try:

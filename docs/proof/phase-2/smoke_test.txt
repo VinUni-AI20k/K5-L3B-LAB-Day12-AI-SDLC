@@ -1,46 +1,65 @@
 === BẰNG CHỨNG KIỂM THỬ PHASE 2 ===
 
---- 1. KẾT QUẢ UNIT & SMOKE TESTS (Mã thoát: 1) ---
-test_01_oxygen_decreases_underwater (test_gather_phase1.GatherPhase1Tests.test_01_oxygen_decreases_underwater) ... ERROR
-test_02_oxygen_refills_at_surface (test_gather_phase1.GatherPhase1Tests.test_02_oxygen_refills_at_surface) ... ERROR
-test_03_oxygen_is_capped (test_gather_phase1.GatherPhase1Tests.test_03_oxygen_is_capped) ... ERROR
-test_04_oxygen_empty_event (test_gather_phase1.GatherPhase1Tests.test_04_oxygen_empty_event) ... ERROR
-test_05_choke_reduces_hp (test_gather_phase1.GatherPhase1Tests.test_05_choke_reduces_hp) ... ERROR
-test_06_faint_clears_inventory (test_gather_phase1.GatherPhase1Tests.test_06_faint_clears_inventory) ... ERROR
-test_07_gather_plant (test_gather_phase1.GatherPhase1Tests.test_07_gather_plant) ... ERROR
-test_08_plant_regrowth (test_gather_phase1.GatherPhase1Tests.test_08_plant_regrowth) ... ERROR
-test_09_catch_ca_linh (test_gather_phase1.GatherPhase1Tests.test_09_catch_ca_linh) ... ERROR
-test_10_catch_cooldown (test_gather_phase1.GatherPhase1Tests.test_10_catch_cooldown) ... ERROR
-test_11_hold_full_plant (test_gather_phase1.GatherPhase1Tests.test_11_hold_full_plant) ... ERROR
-test_12_hold_full_fish (test_gather_phase1.GatherPhase1Tests.test_12_hold_full_fish) ... ERROR
-test_13_dock_ends_gather (test_gather_phase1.GatherPhase1Tests.test_13_dock_ends_gather) ... ERROR
-test_14_inventory_conversion (test_gather_phase1.GatherPhase1Tests.test_14_inventory_conversion) ... ERROR
+--- 1. KẾT QUẢ UNIT & SMOKE TESTS (Mã thoát: 0) ---
+test_01_oxygen_decreases_underwater (test_gather_phase1.GatherPhase1Tests.test_01_oxygen_decreases_underwater) ... ok
+test_02_oxygen_refills_at_surface (test_gather_phase1.GatherPhase1Tests.test_02_oxygen_refills_at_surface) ... ok
+test_03_oxygen_is_capped (test_gather_phase1.GatherPhase1Tests.test_03_oxygen_is_capped) ... ok
+test_04_oxygen_empty_event (test_gather_phase1.GatherPhase1Tests.test_04_oxygen_empty_event) ... ok
+test_05_choke_reduces_hp (test_gather_phase1.GatherPhase1Tests.test_05_choke_reduces_hp) ... ok
+test_06_faint_clears_inventory (test_gather_phase1.GatherPhase1Tests.test_06_faint_clears_inventory) ... ok
+test_07_gather_plant (test_gather_phase1.GatherPhase1Tests.test_07_gather_plant) ... ok
+test_08_plant_regrowth (test_gather_phase1.GatherPhase1Tests.test_08_plant_regrowth) ... ok
+test_09_catch_ca_linh (test_gather_phase1.GatherPhase1Tests.test_09_catch_ca_linh) ... ok
+test_10_catch_cooldown (test_gather_phase1.GatherPhase1Tests.test_10_catch_cooldown) ... ok
+test_11_hold_full_plant (test_gather_phase1.GatherPhase1Tests.test_11_hold_full_plant) ... ok
+test_12_hold_full_fish (test_gather_phase1.GatherPhase1Tests.test_12_hold_full_fish) ... ok
+test_13_dock_ends_gather (test_gather_phase1.GatherPhase1Tests.test_13_dock_ends_gather) ... ok
+test_14_inventory_conversion (test_gather_phase1.GatherPhase1Tests.test_14_inventory_conversion) ... ok
 test_15_no_catch_at_surface (test_gather_phase1.GatherPhase1Tests.test_15_no_catch_at_surface) ... ok
-test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ERROR
+test_deterministic_with_seed (test_gather_phase2_fish.GatherPhase2FishTests.test_deterministic_with_seed) ... ok
+test_fish_depth_stays_valid (test_gather_phase2_fish.GatherPhase2FishTests.test_fish_depth_stays_valid) ... ok
+test_fish_moves_at_1_5_mps (test_gather_phase2_fish.GatherPhase2FishTests.test_fish_moves_at_1_5_mps) ... ok
+test_fish_turns_at_tick_120 (test_gather_phase2_fish.GatherPhase2FishTests.test_fish_turns_at_tick_120) ... ok
+test_initial_eight_fish (test_gather_phase2_fish.GatherPhase2FishTests.test_initial_eight_fish) ... ok
+test_population_cap (test_gather_phase2_fish.GatherPhase2FishTests.test_population_cap) ... ok
+test_reflection_at_right_edge (test_gather_phase2_fish.GatherPhase2FishTests.test_reflection_at_right_edge) ... ok
+test_spawn_on_tick_360 (test_gather_phase2_fish.GatherPhase2FishTests.test_spawn_on_tick_360) ... ok
+test_inventory_roundtrip (test_gather_phase2_inventory.GatherPhase2InventoryTests.test_inventory_roundtrip) ... ok
+test_new_fish_scenario (test_gather_phase2_inventory.GatherPhase2InventoryTests.test_new_fish_scenario) ... ok
+test_new_ingredients_accepted (test_gather_phase2_inventory.GatherPhase2InventoryTests.test_new_ingredients_accepted) ... ok
+test_new_node_scenario (test_gather_phase2_inventory.GatherPhase2InventoryTests.test_new_node_scenario) ... ok
+test_day_unlock (test_gather_phase2_monsters.Phase2MonsterTests.test_day_unlock) ... ok
+test_detect_chase_speed (test_gather_phase2_monsters.Phase2MonsterTests.test_detect_chase_speed) ... ok
+test_faint_monster (test_gather_phase2_monsters.Phase2MonsterTests.test_faint_monster) ... ok
+test_hit_lifo_and_invulnerability (test_gather_phase2_monsters.Phase2MonsterTests.test_hit_lifo_and_invulnerability) ... ok
+test_no_chase_if_shallow (test_gather_phase2_monsters.Phase2MonsterTests.test_no_chase_if_shallow) ... ok
+test_patrol_speed (test_gather_phase2_monsters.Phase2MonsterTests.test_patrol_speed) ... ok
+test_recoil (test_gather_phase2_monsters.Phase2MonsterTests.test_recoil) ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
 test_choke_damages_only_after_full_60_tick_interval (test_phase1_qa_edges.Phase1GatherEdges.test_choke_damages_only_after_full_60_tick_interval) ... ok
 test_interact_with_full_hold_emits_hold_full_without_changing_hold (test_phase1_qa_edges.Phase1GatherEdges.test_interact_with_full_hold_emits_hold_full_without_changing_hold) ... ok
 test_unready_node_regrows_and_emits_event_on_exact_tick (test_phase1_qa_edges.Phase1GatherEdges.test_unready_node_regrows_and_emits_event_on_exact_tick) ... ok
 test_customer_leaves_on_tick_patience_reaches_zero (test_phase1_qa_edges.Phase1QuanEdges.test_customer_leaves_on_tick_patience_reaches_zero) ... ok
 test_fast_service_tip_uses_contract_rate_and_menu_price (test_phase1_qa_edges.Phase1QuanEdges.test_fast_service_tip_uses_contract_rate_and_menu_price) ... ok
-test_crocodile_chases_player_inside_detection_radius (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_chases_player_inside_detection_radius) ... FAIL
-test_crocodile_hit_loses_one_hp_and_half_hold_in_lifo_order (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_hit_loses_one_hp_and_half_hold_in_lifo_order) ... FAIL
-test_crocodile_is_invulnerable_90_ticks_then_recoils_60_ticks (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_is_invulnerable_90_ticks_then_recoils_60_ticks) ... FAIL
-test_crocodile_patrols_between_waypoints (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_patrols_between_waypoints) ... FAIL
-test_fish_changes_heading_on_exact_120th_swim_tick (test_phase2_qa.GatherFishPhase2Tests.test_fish_changes_heading_on_exact_120th_swim_tick) ... FAIL
-test_fish_reflects_at_x_edge_and_stays_inside_bounds (test_phase2_qa.GatherFishPhase2Tests.test_fish_reflects_at_x_edge_and_stays_inside_bounds) ... FAIL
-test_fish_spawns_at_tick_360_with_configured_species_weight (test_phase2_qa.GatherFishPhase2Tests.test_fish_spawns_at_tick_360_with_configured_species_weight) ... FAIL
-test_day_headless_announces_d1_to_d5_plan (test_phase2_qa.QuanAndPlanPhase2Tests.test_day_headless_announces_d1_to_d5_plan) ... FAIL
+test_crocodile_chases_player_inside_detection_radius (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_chases_player_inside_detection_radius) ... ok
+test_crocodile_hit_loses_one_hp_and_half_hold_in_lifo_order (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_hit_loses_one_hp_and_half_hold_in_lifo_order) ... ok
+test_crocodile_is_invulnerable_90_ticks_then_recoils_60_ticks (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_is_invulnerable_90_ticks_then_recoils_60_ticks) ... ok
+test_crocodile_patrols_between_waypoints (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_patrols_between_waypoints) ... ok
+test_fish_changes_heading_on_exact_120th_swim_tick (test_phase2_qa.GatherFishPhase2Tests.test_fish_changes_heading_on_exact_120th_swim_tick) ... ok
+test_fish_reflects_at_x_edge_and_stays_inside_bounds (test_phase2_qa.GatherFishPhase2Tests.test_fish_reflects_at_x_edge_and_stays_inside_bounds) ... ok
+test_fish_spawns_at_tick_360_with_configured_species_weight (test_phase2_qa.GatherFishPhase2Tests.test_fish_spawns_at_tick_360_with_configured_species_weight) ... ok
+test_day_headless_announces_d1_to_d5_plan (test_phase2_qa.QuanAndPlanPhase2Tests.test_day_headless_announces_d1_to_d5_plan) ... ok
 test_each_day_plan_has_expected_dishes_and_ingredients (test_phase2_qa.QuanAndPlanPhase2Tests.test_each_day_plan_has_expected_dishes_and_ingredients) ... ok
-test_pause_freezes_gameplay_tick_and_timer (test_phase2_qa.QuanAndPlanPhase2Tests.test_pause_freezes_gameplay_tick_and_timer) ... FAIL
+test_pause_freezes_gameplay_tick_and_timer (test_phase2_qa.QuanAndPlanPhase2Tests.test_pause_freezes_gameplay_tick_and_timer) ... ok
 test_quan_has_two_stoves_and_four_tables (test_phase2_qa.QuanAndPlanPhase2Tests.test_quan_has_two_stoves_and_four_tables) ... ok
-test_shop_buys_oxygen_at_price_and_applies_next_day (test_phase2_qa.QuanAndPlanPhase2Tests.test_shop_buys_oxygen_at_price_and_applies_next_day) ... FAIL
+test_shop_buys_oxygen_at_price_and_applies_next_day (test_phase2_qa.QuanAndPlanPhase2Tests.test_shop_buys_oxygen_at_price_and_applies_next_day) ... ok
 test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
 test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
 test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
 test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
 test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
 test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
-test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ERROR
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
 test_closing_ca_end (test_quan.QuanSimTest.test_closing_ca_end)
 Hết giờ ca tối (180s = 10800 tick): khách đang ăn trả ngay, khách chờ rời, phát quan_end. ... ok
 test_customer_arrival_and_reserved (test_quan.QuanSimTest.test_customer_arrival_and_reserved)
@@ -51,27 +70,37 @@ test_full_cooking_serving_and_payment_flow (test_quan.QuanSimTest.test_full_cook
 Luồng hoàn chỉnh: Nấu tại bếp B1 -> Bưng món -> Phục vụ tại bàn T1 -> Nhận tiền + Tip + Uy tín. ... ok
 test_no_dish_when_stock_empty (test_quan.QuanSimTest.test_no_dish_when_stock_empty)
 Kho rỗng: đến tick 120 không đủ nguyên liệu -> phát sự kiện no_dish, không có khách. ... ok
-test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... FAIL
-test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... FAIL
+test_customer_spawning_tables_order_t1_to_t4 (test_quan_phase2.QuanPhase2Test.test_customer_spawning_tables_order_t1_to_t4)
+Khách đến ở tick 120 + 900*k lần lượt ngồi vào bàn trống có ID nhỏ nhất (T1 -> T2 -> T3 -> T4). ... ok
+test_menu_6_dishes_defined (test_quan_phase2.QuanPhase2Test.test_menu_6_dishes_defined)
+Kiểm tra thực đơn 6 món chuẩn trong game.contract.json. ... ok
+test_mode_day_plan_filtering_d1_to_d5 (test_quan_phase2.QuanPhase2Test.test_mode_day_plan_filtering_d1_to_d5)
+Trong mode day, món khách gọi bám sát theo Kế hoạch ngày (D1–D5) và tồn khả dụng. ... ok
+test_new_space_stoves_and_tables (test_quan_phase2.QuanPhase2Test.test_new_space_stoves_and_tables)
+Kiểm tra không gian quán mới: 2 bếp B1, B2 và 4 bàn T1, T2, T3, T4. ... ok
+test_stoves_order_priority_oldest_order_tick_then_table_id (test_quan_phase2.QuanPhase2Test.test_stoves_order_priority_oldest_order_tick_then_table_id)
+Bếp ưu tiên lấy đơn reserved cũ nhất theo order_tick, nếu bằng nhau thì theo ID bàn nhỏ hơn. ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
 test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
 test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
-test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... FAIL
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
 test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
 test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
-Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... FAIL
-test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... FAIL
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
 test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
 test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
 test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
 test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
-Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... FAIL
-test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... FAIL
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
 test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
-Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... FAIL
-test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... FAIL
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
 test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
-Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... FAIL
-test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... FAIL
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
 test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
 test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
 test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
@@ -80,675 +109,13 @@ test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) 
 test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
-======================================================================
-ERROR: test_01_oxygen_decreases_underwater (test_gather_phase1.GatherPhase1Tests.test_01_oxygen_decreases_underwater)
 ----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 41, in test_01_oxygen_decreases_underwater
-    s = make_sim({"player": {
-        ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
+Ran 93 tests in 6.466s
 
-======================================================================
-ERROR: test_02_oxygen_refills_at_surface (test_gather_phase1.GatherPhase1Tests.test_02_oxygen_refills_at_surface)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 48, in test_02_oxygen_refills_at_surface
-    s = make_sim({"player": {
-        ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_03_oxygen_is_capped (test_gather_phase1.GatherPhase1Tests.test_03_oxygen_is_capped)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 55, in test_03_oxygen_is_capped
-    s = make_sim({"player": {
-        ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_04_oxygen_empty_event (test_gather_phase1.GatherPhase1Tests.test_04_oxygen_empty_event)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 62, in test_04_oxygen_empty_event
-    s = make_sim({"player": {
-        ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_05_choke_reduces_hp (test_gather_phase1.GatherPhase1Tests.test_05_choke_reduces_hp)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 70, in test_05_choke_reduces_hp
-    s = make_sim({"player": {
-        ^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_06_faint_clears_inventory (test_gather_phase1.GatherPhase1Tests.test_06_faint_clears_inventory)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 79, in test_06_faint_clears_inventory
-    s = make_sim({
-        ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_07_gather_plant (test_gather_phase1.GatherPhase1Tests.test_07_gather_plant)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 97, in test_07_gather_plant
-    s = make_sim({"player": {"pos": [12, 0]}})
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_08_plant_regrowth (test_gather_phase1.GatherPhase1Tests.test_08_plant_regrowth)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 103, in test_08_plant_regrowth
-    s = make_sim({"player": {"pos": [12, 0]}})
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_09_catch_ca_linh (test_gather_phase1.GatherPhase1Tests.test_09_catch_ca_linh)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 119, in test_09_catch_ca_linh
-    s = make_sim({"player": {"pos": [15, 5]}})
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_10_catch_cooldown (test_gather_phase1.GatherPhase1Tests.test_10_catch_cooldown)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 125, in test_10_catch_cooldown
-    s = make_sim({"player": {"pos": [15, 5]}})
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_11_hold_full_plant (test_gather_phase1.GatherPhase1Tests.test_11_hold_full_plant)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 134, in test_11_hold_full_plant
-    s = make_sim({
-        ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_12_hold_full_fish (test_gather_phase1.GatherPhase1Tests.test_12_hold_full_fish)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 143, in test_12_hold_full_fish
-    s = make_sim({
-        ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_13_dock_ends_gather (test_gather_phase1.GatherPhase1Tests.test_13_dock_ends_gather)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 153, in test_13_dock_ends_gather
-    s = make_sim({
-        ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_14_inventory_conversion (test_gather_phase1.GatherPhase1Tests.test_14_inventory_conversion)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 163, in test_14_inventory_conversion
-    s = make_sim({
-        ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_gather_phase1.py", line 25, in make_sim
-    return GatherSim(
-           ^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_live.py", line 32, in test_state_input_and_clean_stop
-    server = LiveServer(LiveGame("gather", tuning, {}, 1), port=0)  # cổng ngẫu nhiên
-                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\live.py", line 48, in __init__
-    self._reset()
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\live.py", line 51, in _reset
-    self.session = Session(*self._args)
-                   ^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-ERROR: test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_python_starter_units.py", line 65, in test_session_steps_gather_and_dock
-    s = Session("gather", tuning, {"hold": ["ca_loc"]}, 1)
-        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-======================================================================
-FAIL: test_crocodile_chases_player_inside_detection_radius (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_chases_player_inside_detection_radius)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase2_qa.py", line 138, in test_crocodile_chases_player_inside_detection_radius
-    self.assertIsNotNone(monsters, "gather snapshot must expose monsters[] in v1.1")
-AssertionError: unexpectedly None : gather snapshot must expose monsters[] in v1.1
-
-======================================================================
-FAIL: test_crocodile_hit_loses_one_hp_and_half_hold_in_lifo_order (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_hit_loses_one_hp_and_half_hold_in_lifo_order)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase2_qa.py", line 151, in test_crocodile_hit_loses_one_hp_and_half_hold_in_lifo_order
-    self.assertEqual(len(hit), 1)
-AssertionError: 0 != 1
-
-======================================================================
-FAIL: test_crocodile_is_invulnerable_90_ticks_then_recoils_60_ticks (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_is_invulnerable_90_ticks_then_recoils_60_ticks)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase2_qa.py", line 160, in test_crocodile_is_invulnerable_90_ticks_then_recoils_60_ticks
-    self.assertTrue(any(name == "monster_hit" for name, _ in first))
-AssertionError: False is not true
-
-======================================================================
-FAIL: test_crocodile_patrols_between_waypoints (test_phase2_qa.CrocodilePhase2Tests.test_crocodile_patrols_between_waypoints)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase2_qa.py", line 122, in test_crocodile_patrols_between_waypoints
-    self.assertIsNotNone(monsters, "gather snapshot must expose monsters[] in v1.1")
-AssertionError: unexpectedly None : gather snapshot must expose monsters[] in v1.1
-
-======================================================================
-FAIL: test_fish_changes_heading_on_exact_120th_swim_tick (test_phase2_qa.GatherFishPhase2Tests.test_fish_changes_heading_on_exact_120th_swim_tick)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase2_qa.py", line 63, in test_fish_changes_heading_on_exact_120th_swim_tick
-    self.assertNotEqual(sim.fish[0]["heading_deg"], before)
-AssertionError: 0 == 0
-
-======================================================================
-FAIL: test_fish_reflects_at_x_edge_and_stays_inside_bounds (test_phase2_qa.GatherFishPhase2Tests.test_fish_reflects_at_x_edge_and_stays_inside_bounds)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase2_qa.py", line 73, in test_fish_reflects_at_x_edge_and_stays_inside_bounds
-    self.assertAlmostEqual(fish["heading_deg"] % 360, 180.0, delta=1.0)
-AssertionError: 0 != 180.0 within 1.0 delta (180.0 difference)
-
-======================================================================
-FAIL: test_fish_spawns_at_tick_360_with_configured_species_weight (test_phase2_qa.GatherFishPhase2Tests.test_fish_spawns_at_tick_360_with_configured_species_weight)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase2_qa.py", line 106, in test_fish_spawns_at_tick_360_with_configured_species_weight
-    self.assertEqual(len(spawned), 1, probe)
-AssertionError: 0 != 1 : 0.39
-
-======================================================================
-FAIL: test_day_headless_announces_d1_to_d5_plan (test_phase2_qa.QuanAndPlanPhase2Tests.test_day_headless_announces_d1_to_d5_plan)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase2_qa.py", line 200, in test_day_headless_announces_d1_to_d5_plan
-    self.assertEqual(code, 0, (day, err))
-AssertionError: 2 != 0 : (1, 'usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS\n                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]\n                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]\n                       [--snapshot-every SNAPSHOT_EVERY]\nlỗi: unrecognized arguments: --days 1\n')
-
-======================================================================
-FAIL: test_pause_freezes_gameplay_tick_and_timer (test_phase2_qa.QuanAndPlanPhase2Tests.test_pause_freezes_gameplay_tick_and_timer)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase2_qa.py", line 238, in test_pause_freezes_gameplay_tick_and_timer
-    self.assertEqual(code, 0, err)
-AssertionError: 2 != 0 : usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 1
-
-
-======================================================================
-FAIL: test_shop_buys_oxygen_at_price_and_applies_next_day (test_phase2_qa.QuanAndPlanPhase2Tests.test_shop_buys_oxygen_at_price_and_applies_next_day)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_phase2_qa.py", line 217, in test_shop_buys_oxygen_at_price_and_applies_next_day
-    self.assertEqual(code, 0, err)
-AssertionError: 2 != 0 : usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 2
-
-
-======================================================================
-FAIL: test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 28, in test_con_01_ticks_zero_and_end_line
-    self.assertEqual(code, 0, err)
-AssertionError: 1 != 0 : Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-
-======================================================================
-FAIL: test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 54, in test_con_02_deterministic_bytes
-    self.assertEqual(code, 0, err)
-AssertionError: 1 != 0 : Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-
-======================================================================
-FAIL: test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 38, in test_gather_snapshot_has_gather_fields
-    self.assertEqual(code, 0, err)
-AssertionError: 1 != 0 : Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-
-======================================================================
-FAIL: test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
-Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 209, in test_inv_01_gather_writes_inventory_quan_reads_it
-    self.assertEqual(code, 0, err)
-AssertionError: 1 != 0 : Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-
-======================================================================
-FAIL: test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 226, in test_inv_01_not_written_when_tick_limit_first
-    self.assertEqual(code, 0)
-AssertionError: 1 != 0
-
-======================================================================
-FAIL: test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
-Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn).
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 150, in test_move_01_swim_speed_after_ramp
-    self.assertEqual(code, 0, err)
-AssertionError: 1 != 0 : Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-
-======================================================================
-FAIL: test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 161, in test_move_02_heading_positive_is_down
-    self.assertEqual(code, 0, err)
-AssertionError: 1 != 0 : Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-
-======================================================================
-FAIL: test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
-Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 179, in test_move_03_edge_clamp
-    self.assertEqual(code, 0, err)
-AssertionError: 1 != 0 : Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-
-======================================================================
-FAIL: test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 136, in test_move_mep_vel_ve_0
-    self.assertEqual(code, 0, err)
-AssertionError: 1 != 0 : Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-
-======================================================================
-FAIL: test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
-Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 125, in test_move_ramp_doi_huong_trong_tran
-    self.assertEqual(code, 0, err)
-AssertionError: 1 != 0 : Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-
-======================================================================
-FAIL: test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\tests\test_smoke_p1.py", line 189, in test_time_ends_gather_and_keeps_hold
-    self.assertEqual(code, 0, err)
-AssertionError: 1 != 0 : Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
-
-----------------------------------------------------------------------
-Ran 69 tests in 4.048s
-
-FAILED (failures=21, errors=16)
+OK
 
 
 --- 2. TÍNH TẤT ĐỊNH BYTE-FOR-BYTE ---
-Headless failed with code 1: Traceback (most recent call last):
-  File "<frozen runpy>", line 198, in _run_module_as_main
-  File "<frozen runpy>", line 88, in _run_code
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 85, in <module>
-    sys.exit(main())
-             ^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\headless.py", line 73, in main
-    run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 78, in run
-    sess = Session(mode, tuning, scenario, seed, inventory)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 44, in __init__
-    self.sim = build_sim(mode, tuning, scenario, seed, inventory)
-               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\runner.py", line 24, in build_sim
-    return GatherSim(tuning, scenario, streams, ids)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "C:\Users\Admin\Downloads\CODE\Day12-ChoNoi-NhomTVA\chonoi\sim\gather.py", line 68, in __init__
-    "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
-                                                     ^^^^^^^^
-TypeError: 'int' object is not iterable
-
+Run 1 SHA256: 0833e4bbd66bf8086f9f89f3bd18537206bc972c5b9071ce4e7b3e219e2726cf
+Run 2 SHA256: 0833e4bbd66bf8086f9f89f3bd18537206bc972c5b9071ce4e7b3e219e2726cf
+Trùng khớp: True

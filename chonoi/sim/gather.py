@@ -84,7 +84,18 @@ class GatherSim:
                 len(src_fish) + 1,
                 int(t["fish_initial"]) + 1
             ):
-                kind = rng.choices(kinds, weights=weights, k=1)[0]
+                if hasattr(rng, "choices"):
+                    kind = rng.choices(kinds, weights=weights, k=1)[0]
+                else:
+                    r = rng.random()
+                    total = sum(weights)
+                    acc = 0.0
+                    kind = kinds[-1]
+                    for k, w in zip(kinds, weights):
+                        acc += w / total
+                        if r < acc:
+                            kind = k
+                            break
                 x = rng.choice(t["fish_spawn_x"])
                 d = rng.choice(t["fish_spawn_depths"][kind])
 
@@ -375,7 +386,18 @@ class GatherSim:
         kinds = list(t["fish_weights"])
         weights = [float(t["fish_weights"][k]) for k in kinds]
 
-        kind = rng.choices(kinds, weights=weights, k=1)[0]
+        if hasattr(rng, "choices"):
+            kind = rng.choices(kinds, weights=weights, k=1)[0]
+        else:
+            r = rng.random()
+            total = sum(weights)
+            acc = 0.0
+            kind = kinds[-1]
+            for k, w in zip(kinds, weights):
+                acc += w / total
+                if r < acc:
+                    kind = k
+                    break
         depths = t["fish_spawn_depths"][kind]
         clearance = float(t["fish_spawn_clearance"])
 
@@ -440,7 +462,7 @@ class GatherSim:
                 if not depth_ok or dist > float(spec["exit_radius"]):
                     monster["state"] = "patrol"
                     events.append(("monster_patrol", {"monster_id": monster["id"]}))
-            elif depth_ok and dist <= float(spec["detect_radius"]):
+            elif depth_ok and dist <= float(spec["detect_radius"]) and self.invuln_ticks == 0:
                 monster["state"] = "chase"
                 events.append(("monster_chase", {"monster_id": monster["id"]}))
 
