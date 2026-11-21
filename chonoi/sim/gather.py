@@ -28,8 +28,7 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids, day=1):
-        self.day = day  # Ngữ cảnh cho bố trí quái; gather độc lập luôn Ngày 1.
+    def __init__(self, tuning, scenario, streams, ids, day=1, *, oxygen_max_s=None, hp_max=None):
         t = tuning["gather"]
         self.t = t
         self.tuning = tuning
@@ -64,7 +63,7 @@ class GatherSim:
         self.monsters = []
         self._monster_mod = _load_monster_module()
         if self._monster_mod is not None and ("monsters" in t or "monsters" in scenario):
-            self.monsters = self._monster_mod.init_monsters(self, scenario)
+            self.monsters = self._monster_mod.init_monsters(self, scenario, self.day)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
