@@ -110,12 +110,12 @@ test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 93 tests in 5.658s
+Ran 93 tests in 6.466s
 
 OK
 
 
 --- 2. TÍNH TẤT ĐỊNH BYTE-FOR-BYTE ---
-Run 1 SHA256: 84a7668e550a898612a0ead0b8951221642ee1790d7b1811bd3fcddb09778d5a
-Run 2 SHA256: 84a7668e550a898612a0ead0b8951221642ee1790d7b1811bd3fcddb09778d5a
+Run 1 SHA256: 0833e4bbd66bf8086f9f89f3bd18537206bc972c5b9071ce4e7b3e219e2726cf
+Run 2 SHA256: 0833e4bbd66bf8086f9f89f3bd18537206bc972c5b9071ce4e7b3e219e2726cf
 Trùng khớp: True
