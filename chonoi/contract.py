@@ -23,7 +23,16 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    tuning = c.get("tuning")
+    validate_tuning(tuning)
+    if c.get("contract_version") == "1.2":
+        freshness = tuning.get("freshness")
+        if not isinstance(freshness, dict):
+            raise BadInput("contract v1.2 cần tuning.freshness")
+        _between("freshness.initial", freshness.get("initial"), 100, 100)
+        _between("freshness.spoiled_below", freshness.get("spoiled_below"), 30, 30)
+        _between("freshness.gather_decay_per_s", freshness.get("gather_decay_per_s"), 0.5, 0.5)
+        _between("freshness.quan_decay_per_s", freshness.get("quan_decay_per_s"), 0.25, 0.25)
     return c
 
 

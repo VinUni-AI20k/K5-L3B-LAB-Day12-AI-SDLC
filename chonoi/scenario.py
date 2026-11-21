@@ -10,7 +10,7 @@ import math
 
 from .day_config import gather_tuning
 from .errors import BadInput
-from .inventory import KINDS_P2, validate_items
+from .inventory import KINDS_P2, validate_individual_items, validate_items
 from .sim.monsters import monster_config
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "monsters", "random_fish", "time_left_ticks"}
@@ -208,7 +208,8 @@ def _validate_quan(b, tuning):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate_items(b["stock"])
+        validate = validate_individual_items if "freshness" in tuning else validate_items
+        validate(b["stock"])
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")

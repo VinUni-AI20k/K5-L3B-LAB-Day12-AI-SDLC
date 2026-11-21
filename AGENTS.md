@@ -19,6 +19,7 @@
 - P1-03/P1-04 đã tích hợp: helper `chonoi/sim/kitchen.py`; `dish.order_id == customer.id`. Timer, validation và cleanup chạy qua helper một lần; lịch khách trong `quan.py` chạy sau settlement khi chưa đóng ca. Regression: `tests/test_quan_integration.py`. Xem `docs/notes/P1-04.md`.
 - P2-04: Quán 2 bếp/4 bàn/6 món; kho v1.1 nhận thêm `ca_keo`, `keo_neo`, giữ schema `items`. API cũ P2-03 vẫn dùng được; hook tùy chọn `QuanSim(..., day_plan=plan, economy=state)` và `economy_state()` được mô tả trong `docs/notes/P2-04.md`. Đã ghép Day/Shop/Gather/Monster từ main; cần kiểm chứng theo commit tích hợp.
 - P2-03: `DaySim` gọi Gather/Quán và giữ dữ liệu xuyên ngày. `Session` xử lý pause trước mọi timer và phát snapshot `phase_tick: 0` khi đổi pha. Gather nhận `day` và tuning đã áp cấp oxy/Máu. Quán nhận menu lọc theo ngày và kho vật lý.
+- P3-03: Quán v1.2 dùng `RestaurantStock` và giữ ID cá thể. Chạy `PYTHONPATH=tests:. python3 -m unittest test_restaurant_stock -v`. Test CLI dựng manifest v1.2 riêng để giữ preset v1.1 trong lúc tích hợp Lặn.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).

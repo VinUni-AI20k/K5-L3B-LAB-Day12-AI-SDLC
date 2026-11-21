@@ -48,7 +48,7 @@ class DaySim:
         self.phase = "quan"
 
     def _start_shop(self):
-        self.shop_stock = {kind: count for kind, count in self.current.stock.items() if count}
+        self.shop_stock = self.current.stock_snapshot()
         self.current = None
         self.shop_ticks = self.tuning["shop"]["max_ticks"]
         self.phase = "shop"
@@ -88,7 +88,7 @@ class DaySim:
             return [("phase_start", {})]
         if self.phase == "shop" and events and events[-1][0] == "shop_end":
             self.days_completed += 1
-            self.shop_stock = {}
+            self.shop_stock.clear()
             if self.days_completed == self.days:
                 self.done, self.reason = True, "days_complete"
             else:

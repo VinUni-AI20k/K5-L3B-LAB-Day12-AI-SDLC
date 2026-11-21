@@ -2,6 +2,7 @@
 
 | Phase | Người | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|---|
+| 3 | Người 3 (`hann1holic`) | Codex | Đọc Ticket-03, viết kho cá thể, giữ lại khi ươn, định giá theo cá thể và chạy hồi quy | Không đo | Dùng phân số để quyết định ngưỡng 30 và làm tròn xuống giá. Kiểm thử đầu nhận v1.2 với manifest riêng vì đầu ghi Lặn còn chờ tích hợp. |
 | 1 | Thành viên 4 — Kitchen & Serving (chưa cung cấp handle) | Codex | P1-04: helper bếp/phục vụ/thanh toán, fixture, unit/headless/HTTP test, đối chiếu PRD-0 | Không đo | 68 test pass; đã sửa giả định order_id/items theo PRD bổ sung và lỗi số thực tại mép bán kính. Bằng chứng: docs/proof/phase-1/P1-04-results.json; dependency P1-03 ghi trong docs/notes/P1-04.md. |
 | 1 | lunaHieu | Gemini Web UI (tên model chờ xác nhận) | Chuỗi khoảng 10 lượt: phân tích PRD-0 và Test Contract v1.0; soạn AC-P1-G2-01..05; tạo prompt giới hạn phạm vi cho Codex; review diff code và kết quả kiểm chứng. | Người dùng ước tính khoảng 22.000 token trao đổi trực tiếp (14.000 input, 8.000 output), khoảng 55.000 nếu tính ngữ cảnh lịch sử; $0 qua bản web. | Dùng spec, diff và test thật để kiểm soát đầu ra; chưa có tên model hiển thị nên không đoán. |
 | 1 | lunaHieu | Codex (GPT-6) | Đọc hướng dẫn, PRD-0, phân công và repo; đối chiếu phạm vi Lát 2 với khung Python. | Khoảng 8.000–15.000 token, ước tính thô; chi phí không có số đo. | Ban đầu đánh giá vai Người 5 quá dễ; kiểm lại phạm vi và sửa khuyến nghị thành Người 2. |

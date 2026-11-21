@@ -49,8 +49,9 @@ class KitchenServingMixin:
             occupied.add(c["table_id"])
             c.setdefault("order_tick", 0)
             self._require_counter(c, "order_tick")
-        fixture_orders = sort_by_id(self.customers, key=lambda c: c["table_id"])
-        for c in sorted(fixture_orders, key=lambda c: c.get("order_tick", 0)):
+        by_table = sort_by_id(self.customers, key=lambda c: c["table_id"])
+        fixture_orders = sorted(by_table, key=lambda c: c["order_tick"])
+        for c in fixture_orders:
             if set(c) - {"id", "table_id", "dish_id", "order_tick", "state", "patience_ticks_left",
                          "eat_ticks_left", "order_status", "reserved", "base_price", "tip"}:
                 raise BadInput(f"customers.{c['id']}: trường ngoài contract")
@@ -62,23 +63,13 @@ class KitchenServingMixin:
             c.setdefault("order_status", "reserved")
             c.setdefault("patience_ticks_left", self.patience_max_ticks if c["state"] == "waiting" else 0)
             c.setdefault("eat_ticks_left", 0)
-            if "reserved" not in c:
-                c["reserved"] = (dict(self.menu[c["dish_id"]]["recipe"])
-                                 if c["order_status"] == "reserved" else {})
             if (c.get("state"), c.get("order_status")) not in (
                 ("waiting", "reserved"), ("waiting", "assigned"),
                 ("waiting", "unfulfillable"), ("eating", "served"),
             ):
                 raise BadInput(f"customers.{c['id']}: state/order_status mâu thuẫn")
-            if (not isinstance(c["reserved"], dict)
-                    or any(isinstance(qty, bool) or not isinstance(qty, int) or qty < 0
-                           for qty in c["reserved"].values())):
-                raise BadInput(f"customers.{c['id']}: reserved cần map số lượng nguyên không âm")
-            if c["order_status"] == "reserved":
-                if c["reserved"] != self.menu[c["dish_id"]]["recipe"]:
-                    raise BadInput(f"customers.{c['id']}: reserved phải khớp recipe")
-            elif c["reserved"]:
-                raise BadInput(f"customers.{c['id']}: chỉ đơn reserved được giữ nguyên liệu")
+            if self.item_stock is None:
+                self._validate_count_claim(c)
             self._require_counter(c, "patience_ticks_left")
             self._require_counter(c, "eat_ticks_left", minimum=int(c["state"] == "eating"))
             if c["patience_ticks_left"] > self.patience_max_ticks:
@@ -93,7 +84,9 @@ class KitchenServingMixin:
             c.setdefault("tip", 0)
             self._require_counter(c, "base_price", minimum=int(c["order_status"] in ("assigned", "served")))
             self._require_counter(c, "tip")
-        if not self._reservations_fit_stock():
+        if self.item_stock is not None:
+            self.item_stock.load_claims(fixture_orders, self.menu)
+        elif not self._reservations_fit_stock():
             raise BadInput("tổng reserved vượt stock")
 
         locations = Counter()
@@ -127,6 +120,14 @@ class KitchenServingMixin:
         if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
             raise BadInput(f"{entity['id']}.{key}: cần số nguyên >= {minimum}")
 
+    def _validate_count_claim(self, customer):
+        expected = self.menu[customer["dish_id"]]["recipe"] if customer["order_status"] == "reserved" else {}
+        claim = customer.setdefault("reserved", expected.copy())
+        if (not isinstance(claim, dict)
+                or any(type(count) is not int or count < 0 for count in claim.values())
+                or claim != expected):
+            raise BadInput(f"customers.{customer['id']}: reserved phải khớp công thức và trạng thái đơn")
+
     @staticmethod
     def _validate_dish(dish, orders, locations):
         if not isinstance(dish, dict) or set(dish) != {"order_id", "dish_id", "base_price"}:
@@ -148,7 +149,7 @@ class KitchenServingMixin:
             total.update(c["reserved"])
         return all(qty <= self.stock.get(kind, 0) for kind, qty in total.items())
 
-    def _advance_kitchen_timers(self, events):
+    def _advance_kitchen_timers(self):
         for c in sort_by_id(self.customers):
             timer = "eat_ticks_left" if c["state"] == "eating" else "patience_ticks_left"
             c[timer] = max(0, c[timer] - 1)
@@ -157,11 +158,14 @@ class KitchenServingMixin:
                 stove["ready_ticks"] += 1
             elif stove["state"] == "cooking":
                 stove["cook_ticks_left"] = max(0, stove["cook_ticks_left"] - 1)
-                if stove["cook_ticks_left"] == 0:
-                    stove.update(state="ready", ready_ticks=0)
-                    dish = stove["dish"]
-                    events.append(("dish_ready", {"stove_id": stove["id"],
-                                                  "order_id": dish["order_id"], "dish_id": dish["dish_id"]}))
+
+    def _finish_cooking(self, events):
+        for stove in sort_by_id(self.stoves):
+            if stove["state"] == "cooking" and stove["cook_ticks_left"] == 0:
+                stove.update(state="ready", ready_ticks=0)
+                dish = stove["dish"]
+                events.append(("dish_ready", {"stove_id": stove["id"],
+                                              "order_id": dish["order_id"], "dish_id": dish["dish_id"]}))
 
     def _interact(self, events):
         # Stable natural ID order supplies the final tie-break, even for B2/B10.
@@ -201,19 +205,27 @@ class KitchenServingMixin:
             if not orders:
                 return
             c = min(orders, key=lambda c: c["order_tick"])
-            recipe = self.menu[c["dish_id"]]["recipe"]
-            # Atomic check: never borrow another order's reservation or go negative.
-            if c["reserved"] != recipe or not self._reservations_fit_stock():
+            dish = self.menu[c["dish_id"]]
+            consumed = self._consume_order_items(c, dish)
+            if consumed is None:
                 return
-            for kind, qty in recipe.items():
-                self.stock[kind] -= qty
-            c["reserved"] = {}
+            c["base_price"], items = consumed
+            c["reserved"].clear()
             c["order_status"] = "assigned"
-            c["base_price"] = self.menu[c["dish_id"]]["price"]
             stove.update(state="cooking", dish=self._dish_for(c), ready_ticks=0,
-                         cook_ticks_left=self._ticks(self.menu[c["dish_id"]]["cook_s"]))
-            events.append(("cook_started", {"stove_id": stove["id"], **stove["dish"],
-                                            "items": [k for k in sorted(recipe) for _ in range(recipe[k])]}))
+                         cook_ticks_left=self._ticks(dish["cook_s"]))
+            events.append(("cook_started", {"stove_id": stove["id"], **stove["dish"], "items": items}))
+
+    def _consume_order_items(self, customer, dish):
+        recipe = dish["recipe"]
+        if self.item_stock is not None:
+            return self.item_stock.consume(recipe, customer["reserved"], self._claimed_items(exclude=customer),
+                                           dish["price"])
+        if customer["reserved"] != recipe or not self._reservations_fit_stock():
+            return None
+        for kind, qty in recipe.items():
+            self.stock[kind] -= qty
+        return dish["price"], [kind for kind in sorted(recipe) for _ in range(recipe[kind])]
 
     @staticmethod
     def _dish_for(customer):
@@ -287,7 +299,7 @@ class KitchenServingMixin:
 
     def _remove_order(self, c):
         """Shared cancellation hook: release claims; never refund consumed stock."""
-        c["reserved"] = {}
+        c["reserved"].clear()
         for stove in self.stoves:
             if stove["dish"] is not None and stove["dish"]["order_id"] == c["id"]:
                 self._reset_stove(stove)

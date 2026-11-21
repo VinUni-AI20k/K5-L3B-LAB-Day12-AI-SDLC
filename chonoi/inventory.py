@@ -28,7 +28,28 @@ def validate_items(items, kinds=KINDS_P2):
     return out
 
 
-def read_inventory(path: str, kinds=KINDS_P2) -> dict:
+def validate_individual_items(items, kinds=KINDS_P2):
+    """Copy validated v1.2 inventory without rounding or dropping spoiled items."""
+    if not isinstance(items, list):
+        raise BadInput("items v1.2 phải là mảng cá thể")
+    result = []
+    seen = set()
+    for item in items:
+        if not isinstance(item, dict) or set(item) != {"id", "kind", "fresh"}:
+            raise BadInput("cá thể phải có đúng id, kind và fresh")
+        item_id, kind, fresh = item["id"], item["kind"], item["fresh"]
+        if not isinstance(item_id, str) or not item_id or item_id in seen:
+            raise BadInput("id cá thể phải là chuỗi khác rỗng và duy nhất")
+        if kind not in kinds:
+            raise BadInput(f"nguyên liệu lạ: {kind}")
+        if type(fresh) not in (int, float) or not 0 <= fresh <= 100:
+            raise BadInput(f"{item_id}: fresh phải là số hữu hạn trong [0, 100]")
+        seen.add(item_id)
+        result.append(item.copy())
+    return result
+
+
+def read_inventory(path: str, kinds=KINDS_P2, *, version="1.1"):
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
@@ -36,7 +57,8 @@ def read_inventory(path: str, kinds=KINDS_P2) -> dict:
         raise BadInput(f"không đọc được file kho {path}: {e}")
     if not isinstance(data, dict) or set(data.keys()) != {"items"}:
         raise BadInput("file kho chỉ được có khóa gốc 'items'")
-    return validate_items(data["items"], kinds)
+    validate = validate_individual_items if version == "1.2" else validate_items
+    return validate(data["items"], kinds)
 
 
 def hold_to_items(hold: list) -> dict:
