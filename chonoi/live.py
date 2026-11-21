@@ -38,7 +38,7 @@ WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 TICK_S = 1.0 / 60.0
 MAX_BODY = 4096
 RECENT_EVENTS = 40
-LIVE_BUTTONS = (*BUTTONS_V11, "continue")  # continue: chỉ UI, qua màn intro/kết quả
+LIVE_BUTTONS = (*BUTTONS_V11, "continue", "close_early")  # chỉ UI: qua màn intro/kết quả, đóng quán sớm
 
 
 class LiveGame:

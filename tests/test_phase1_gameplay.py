@@ -4,6 +4,18 @@ from chonoi.contract import load_contract
 from chonoi.runner import Session
 from chonoi.inputs import LiveInputs
 
+# Phase 3 (Test Contract v1.2): giỏ là mảng cá thể {id,kind,fresh}. Test giữ nguyên ý kiểm P1 cho cả hai
+# phiên bản: fixture dựng theo version đang bật, so sánh theo loại nguyên liệu.
+V12 = load_contract()["contract_version"] == "1.2"
+
+
+def hold_fixture(*kinds):
+    return [{"id": f"I{i + 1}", "kind": k, "fresh": 100} for i, k in enumerate(kinds)] if V12 else list(kinds)
+
+
+def kinds_of(hold):
+    return [h if isinstance(h, str) else h["kind"] for h in hold]
+
 
 class Phase1GameplayTests(unittest.TestCase):
     def setUp(self):
@@ -30,7 +42,7 @@ class Phase1GameplayTests(unittest.TestCase):
         # Bắt đầu dưới nước với oxy = 1, máu = 1, giữ 1 cá lóc
         scenario = {
             "player": {"pos": [20, 5], "oxygen_ticks": 1, "hp": 1, "zero_oxy_ticks": 0},
-            "hold": ["ca_loc"],
+            "hold": hold_fixture("ca_loc"),
         }
         sess = Session("gather", self.tuning, scenario, seed=1)
         li = LiveInputs()
@@ -64,7 +76,9 @@ class Phase1GameplayTests(unittest.TestCase):
         li.set(interact=True)
         events = sess.step(li.advance())
         self.assertTrue(any(e["name"] == "gather" for e in events))
-        self.assertEqual(sess.sim.hold, ["bong_dien_dien"])
+        self.assertEqual(kinds_of(sess.sim.hold), ["bong_dien_dien"])
+        if V12:  # hàng mới fresh = 100, chưa hao trong bước nhận
+            self.assertEqual(float(sess.sim.hold[0]["fresh"]), 100.0)
 
     def test_gather_catch_fish(self):
         # F1 tại [15, 5] là ca_linh (yield=3)
@@ -79,7 +93,7 @@ class Phase1GameplayTests(unittest.TestCase):
         events = sess.step(li.advance())
         self.assertTrue(any(e["name"] == "fish_caught" for e in events))
         self.assertEqual(len(sess.sim.hold), 3)
-        self.assertEqual(sess.sim.hold, ["ca_linh", "ca_linh", "ca_linh"])
+        self.assertEqual(kinds_of(sess.sim.hold), ["ca_linh", "ca_linh", "ca_linh"])
 
     def test_quan_cook_serve_and_pay(self):
         # Bếp B1 tại [2, 8], bàn T1 tại [9, 2]

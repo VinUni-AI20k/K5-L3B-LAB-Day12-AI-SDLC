@@ -18,3 +18,10 @@
 - **Tôi đã review:** đọc DaySim/runner của TV4 (PR #11) để gộp `chonoi/live.py` và đối chiếu event chuyển pha; chạy lại fixture day/pause/ngất của TV1, TV4 bằng CLI.
 - **AI sai ở đâu và tôi phát hiện thế nào:** AI để tick của pha con đè tick tổng trong snapshot, client tưởng chơi lại nên nhảy màn — phát hiện khi chơi thử trên trình duyệt. AI cũng viết file inputs có hai frame cùng tick khiến CLI trả mã 2 — phát hiện nhờ QA script báo FAIL rồi đọc stderr.
 - **Điều tôi học được:** làm UI theo hợp đồng snapshot giúp làm song song; nhưng phải chuyển sang đúng sim của headless sớm để không kiểm chứng trên một bản “gần giống”.
+
+## Phase 3
+
+- **Tôi đã làm:** HUD độ tươi (thanh tươi từng ô, hàng ươn, đồng hồ ươn, giá dự kiến, Má Tư chấm hàng), đồ họa mới, hướng dẫn Ngày 1, đóng quán sớm; `live_day` đọc kho cá thể, Chợ Chú Sáu theo v1.2; `tools/qa_p3.py` 8 checkpoint; đổi test TV5 theo version; `docs/verification/phase-3.md`.
+- **Tôi đã review:** chạy lại bằng CLI các ca của TV1–TV4 (ngưỡng 30, giữ lại khi ươn, giá 50.25 → 30, id xuyên ngày) trên bản bật 1.2; đối chiếu log để lập danh sách 18 test còn dùng kho đếm theo chủ lát.
+- **AI sai ở đâu và tôi phát hiện thế nào:** AI so event JSONL với file kho bằng `==` nên báo lệch giả — đọc lại ticket về dung sai ±0.01 thì sửa. AI cũng xóa nhầm dòng chặn lệnh Chợ khi thêm tính năng mới; test bắt được.
+- **Điều tôi học được:** khi đổi hợp đồng dữ liệu, chạy toàn suite trên version mới sớm quan trọng hơn để từng lát tự xanh trên version cũ.

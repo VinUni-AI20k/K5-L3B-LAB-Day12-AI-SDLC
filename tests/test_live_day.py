@@ -9,9 +9,17 @@ import urllib.request
 from chonoi.contract import load_contract
 from chonoi.inputs import LiveInputs
 from chonoi.live import LIVE_BUTTONS, LiveGame, LiveServer
-from chonoi.live_day import INTRO_AUTO_TICKS, LiveDaySession
+from chonoi.live_day import INTRO_AUTO_TICKS, LiveDaySession, usable_counts
 
-DOCK = {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"], "random_fish": False}}
+# Phase 3: fixture theo version manifest (v1.1 mảng kind, v1.2 mảng cá thể); so sánh kho qua usable_counts.
+V12 = load_contract()["contract_version"] == "1.2"
+
+
+def hold_fixture(*kinds):
+    return [{"id": f"I{i + 1}", "kind": k, "fresh": 100} for i, k in enumerate(kinds)] if V12 else list(kinds)
+
+
+DOCK = {"gather": {"hold": hold_fixture("ca_loc", "bong_sung", "bong_sung"), "random_fish": False}}
 
 
 def _tuning():
@@ -67,8 +75,10 @@ class LiveDayScreensTest(unittest.TestCase):
         snap = d.s.snapshot()
         self.assertEqual(snap["screen"], "evening_intro")
         self.assertEqual(snap["phase"], "quan")
-        self.assertEqual(snap["handover"], {"bong_sung": 2, "ca_loc": 1})
-        self.assertEqual(snap["stock"], {"bong_sung": 2, "ca_loc": 1})
+        self.assertEqual(usable_counts(snap["handover"]), {"bong_sung": 2, "ca_loc": 1})
+        self.assertEqual(usable_counts(snap["stock"]), {"bong_sung": 2, "ca_loc": 1})
+        if V12:  # bàn giao cùng tick: id/kind/fresh của kho quán = gather_end.inventory.items
+            self.assertEqual(snap["stock"], sorted(snap["handover"], key=lambda i: int(i["id"][1:])))
         self.assertEqual(snap["cookable"], {"ca_loc_nuong_trui": 1, "goi_bong_sung": 1})
         tl = snap["time_left_ticks"]
         d.step()
@@ -123,7 +133,7 @@ class LiveDayScreensTest(unittest.TestCase):
         d.until("day_result")
         d.step(**{"continue": True})
         sim = d.s.sim
-        self.assertEqual(d.s.snapshot()["stock"], {"bong_sung": 2, "ca_loc": 1})
+        self.assertEqual(usable_counts(d.s.snapshot()["stock"]), {"bong_sung": 2, "ca_loc": 1})
         _, rows = d.step(buy="sell:ca_loc")
         self.assertEqual(rows[0]["name"], "vendor_trade")
         self.assertEqual(rows[0]["data"], {"action": "sell", "kind": "ca_loc", "price": 20, "money": 120})
@@ -139,10 +149,69 @@ class LiveDayScreensTest(unittest.TestCase):
         d.step(**{"continue": True})
         _, rows = d.step(interact=True)
         end = [r for r in rows if r["name"] == "gather_end"][0]
-        self.assertNotIn("ca_keo", end["data"]["inventory"]["items"])  # hàng Chợ tách khỏi gather_end
+        self.assertNotIn("ca_keo", usable_counts(end["data"]["inventory"]["items"]))  # hàng Chợ tách khỏi gather_end
         snap = d.s.snapshot()
         self.assertEqual(snap["vendor_delivery"], {"ca_keo": 1})
-        self.assertEqual(snap["stock"].get("ca_keo"), 1)
+        self.assertEqual(usable_counts(snap["stock"]).get("ca_keo"), 1)
+        if V12:  # hàng Chợ vào kho quán với fresh 100 và id mới
+            keo = [i for i in snap["stock"] if i["kind"] == "ca_keo"]
+            self.assertEqual(float(keo[0]["fresh"]), 100.0)
+            self.assertNotIn(keo[0]["id"], {i["id"] for i in end["data"]["inventory"]["items"]})
+
+
+class CloseEarlyTest(unittest.TestCase):
+    def test_close_early_uses_quan_closing_rules_then_result(self):
+        d = Driver(DOCK, days=2)
+        d.step(**{"continue": True})
+        d.step(interact=True)
+        d.step(**{"continue": True})
+        for _ in range(200):  # chờ có khách tới (lượt đầu tick 120)
+            d.step()
+        self.assertTrue(d.s.snapshot()["customers"], "cần có khách đang chờ")
+        rep0 = d.s.sim.reputation
+        names, rows = d.step(close_early=True)
+        self.assertEqual(names[0], "closed_early")
+        self.assertIn("customer_left", names)
+        self.assertEqual([r["data"]["reason"] for r in rows if r["name"] == "customer_left"], ["closing"])
+        self.assertIn("quan_end", names)
+        self.assertEqual(d.s.sim.reputation, rep0, "khách chờ về do đóng ca không trừ uy tín")
+        self.assertEqual(d.screen(), "day_result")
+        # ở pha khác thì bỏ qua
+        d.step(**{"continue": True})
+        names, _ = d.step(close_early=True)
+        self.assertNotIn("closed_early", names)
+
+
+class FreshnessV12ReadyTest(unittest.TestCase):
+    """Chuẩn bị Phase 3: lớp live đọc được kho cá thể {id,kind,fresh} (TICKET-03) bên cạnh kho đếm v1.1."""
+
+    def test_usable_counts_skips_spoiled_and_keeps_v11(self):
+        stock = [{"id": "I1", "kind": "ca_linh", "fresh": 100}, {"id": "I2", "kind": "ca_linh", "fresh": 29.99},
+                 {"id": "I3", "kind": "ca_loc", "fresh": 30}]
+        self.assertEqual(usable_counts(stock), {"ca_linh": 1, "ca_loc": 1})  # đúng 30 chưa ươn
+        self.assertEqual(usable_counts({"ca_loc": 2, "bong_sung": 0}), {"ca_loc": 2})
+        self.assertEqual(usable_counts([]), {})
+
+    def test_vendor_sells_freshest_unspoiled_tie_by_id(self):
+        d = Driver({"day": {"money": 0, "earned": 0}, **DOCK}, days=2)
+        d.step(**{"continue": True})
+        d.step(interact=True)
+        d.s.core.sim.shift.random_customers = False
+        d.step(**{"continue": True})
+        d.until("day_result")
+        d.step(**{"continue": True})
+        sim = d.s.sim
+        sim.shift.stock = [{"id": "I10", "kind": "ca_loc", "fresh": 80}, {"id": "I2", "kind": "ca_loc", "fresh": 80},
+                           {"id": "I3", "kind": "ca_loc", "fresh": 95}, {"id": "I4", "kind": "ca_loc", "fresh": 10}]
+        left = []
+        for _ in range(3):
+            d.step(buy="sell:ca_loc")
+            left.append([it["id"] for it in sim.shift.stock])
+        # tươi nhất trước (I3), hòa 80 thì id nhỏ trước theo số (I2 trước I10), không bán hàng ươn (I4)
+        self.assertEqual(left, [["I10", "I2", "I4"], ["I10", "I4"], ["I4"]])
+        self.assertEqual((sim.money, sim.earned), (60, 60))
+        _, rows = d.step(buy="sell:ca_loc")
+        self.assertEqual(rows[0]["data"]["reason"], "out_of_stock")  # chỉ còn I4 đã ươn
 
 
 class LiveServerDayTest(unittest.TestCase):

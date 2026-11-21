@@ -22,3 +22,10 @@
 
 - Ghép tạm các diff TV2 và TV3 giúp kiểm được handoff, ID xuyên ngày và dòng thanh toán trước khi đổi manifest.
 - Ca nấu sau đúng 60 bước cho thấy sai số của kho thô đi vào phép chốt giá. Giữ ca này trong kiểm chứng khi TV1/TV3 ghép cách biểu diễn độ tươi dùng chung.
+
+## Ghi nhận Phase 3 · TV5
+
+- **Rà hành động Phase 2 (bảng chủ file):** phân công Phase 3 đã ghi chủ từng file (TV1 `inventory.py`/`contract_version`, TV3 `QuanSim.step`, TV5 client/QA). Kết quả: lần gộp main vào nhánh TV5 không có xung đột code; TV1 chỉ sửa 4 dòng `chonoi/live.py` trong PR của mình. Đã làm, giữ cho Phase 4.
+- **Điều tốt:** checkpoint chạy bằng CLI trên bản sao bật 1.2 nên kiểm được v1.2 khi manifest chưa bật mà không đụng file của TV1; HUD làm từ snapshot mẫu trước, ghép sim thật chỉ phải nới bố cục.
+- **Điều tệ (rút ra từ lần đổi kho):** đổi schema kho làm vỡ fixture ở 9 file test của 4 người; các lát tự đạt test của mình trên 1.1 nên tới cuối phase mới thấy 18 test hỏng khi bật 1.2.
+- **1 hành động cho Phase 4:** khi đổi hợp đồng dữ liệu, TV5 chạy `qa_p3.py` (CP8b — suite trên bản bật version mới) ngay phút 20 và gửi danh sách test hỏng theo chủ lát vào standup. **Người nhận: TV5 (Vũ Xuân Bách).**
