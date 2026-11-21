@@ -5,7 +5,9 @@ import math
 import os
 import shlex
 import subprocess
+import sys
 import tempfile
+from functools import lru_cache
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -20,15 +22,28 @@ def frames(*fr):
     return {"frames": list(fr)}
 
 
+@lru_cache(maxsize=None)
+def _interpreter_runs(name):
+    try:
+        return subprocess.run([name, "-c", "pass"], capture_output=True, timeout=30).returncode == 0
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 def headless_cmd():
-    """Lệnh headless khai trong game.contract.json — test chạy qua đây nên dùng được với MỌI ngôn ngữ."""
+    """Lệnh headless khai trong game.contract.json — test chạy qua đây nên dùng được với MỌI ngôn ngữ.
+    Nếu lệnh bắt đầu bằng python3 hoặc python mà máy không có (Windows thường chỉ có `python`), dùng python đang chạy test."""
     with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
-        return shlex.split(json.load(f)["headless_cmd"])
+        cmd = shlex.split(json.load(f)["headless_cmd"])
+    if cmd and cmd[0] in ("python3", "python") and not _interpreter_runs(cmd[0]):
+        cmd[0] = sys.executable
+    return cmd
 
 
 def run_headless(*args, cwd=ROOT):
     """Chạy `<headless_cmd> <args>`; trả (mã thoát, stderr)."""
-    p = subprocess.run([*headless_cmd(), *args], cwd=cwd, capture_output=True, text=True)
+    p = subprocess.run([*headless_cmd(), *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8",
+                       errors="replace")  # stderr của headless là UTF-8; Windows mặc định cp1252
     return p.returncode, p.stderr
 
 
