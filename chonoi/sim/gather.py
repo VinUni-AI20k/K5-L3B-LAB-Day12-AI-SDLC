@@ -13,16 +13,16 @@ Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gath
       - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
       - sự kiện dive / surface / oxygen_empty / choke / faint
       - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
-  TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
-      - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
+  ĐÃ LÀM (lát 2, BLong1501): hái + bắt cá + cập bến + kho — test: tests/test_gather_slice2.py
+      - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown)
       - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
-      - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
+      - cập bến xét TRƯỚC hái; ghi kho đúng một lần do runner lo
 Các tính năng của phase sau chưa nằm trong khung này.
 """
 
 import math
 
-from ..ids import sort_by_id
+from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
@@ -37,6 +37,7 @@ class GatherSim:
     def __init__(self, tuning, scenario, streams, ids):
         t = tuning["gather"]
         self.t = t
+        self.tick_hz = tuning["tick_hz"]
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -57,18 +58,20 @@ class GatherSim:
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
-        if "fish" in scenario:
-            src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
-            src_fish = t["fish_initial"]
-        else:
-            src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
+        # v1.1: fish_initial là SỐ đàn đầu ca, sinh theo seed (TICKET-02 mục 1.1). Scenario `fish` thay thế.
+        src_fish = scenario["fish"] if "fish" in scenario else []
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+                      "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)}
+                     for f in src_fish]
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
+        if "fish" not in scenario and scenario.get("random_fish", True):
+            for _ in range(int(t["fish_initial"])):
+                school = self._spawn_school()
+                if school is None:
+                    break
+                self.fish.append(school)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -91,7 +94,8 @@ class GatherSim:
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
+            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"],
+                      "age_ticks": f["age_ticks"]}
                      for f in sort_by_id(self.fish)],
         }
 
@@ -108,31 +112,128 @@ class GatherSim:
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
         # 2. bơi + chặn mép
+        was_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
+        at_surface = self._at_surface()
+        if was_surface != at_surface:
+            events.append(("surface" if at_surface else "dive", {"pos": list(self.pos)}))
+        if at_surface:
+            self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + self.t["oxygen_refill_per_tick"])
+            self.zero_oxy_ticks = 0
+        else:
+            previous_oxygen = self.oxygen_ticks
+            self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
+            if previous_oxygen > 0 and self.oxygen_ticks == 0:
+                events.append(("oxygen_empty", {"oxygen_ticks": 0}))
+            if self.oxygen_ticks == 0:
+                self.zero_oxy_ticks += 1
+                if self.zero_oxy_ticks >= self.t["choke_interval_ticks"]:
+                    self.zero_oxy_ticks = 0
+                    self.hp -= 1
+                    events.append(("choke", {"hp": self.hp}))
+                    if self.hp == 0:
+                        lost = list(reversed(self.hold))
+                        self.hold.clear()
+                        events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
+                        self._finish("fainted", events)
+                        return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
-        # 4. bắt cá
-        if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+            # Lát 2 (AC-P1-20): ngoài bến, chỉ hái khi ở mặt nước.
+            if self._at_surface():
+                self._harvest(events)
+        # 4. bắt cá (AC-P1-21): chỉ khi hết hồi chiêu và đang dưới nước
+        if inp.pressed("catch") and self.catch_cd_ticks == 0 and not self._at_surface():
+            self._catch(events)
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events
 
     # --- tiện ích ---------------------------------------------------------------
+    def _spawn_school(self):
+        """Sinh MỘT đàn theo TICKET-02 mục 1.1 "Sinh cá"; trả dict hoặc None nếu hết điểm.
+
+        Điểm hợp lệ: cặp (loài, x ∈ fish_spawn_x, d ∈ fish_spawn_depths[loài]) cách mọi đàn đang sống
+        > fish_spawn_clearance. Chọn loài theo fish_weights, chuẩn hóa lại trên các loài còn điểm,
+        rồi chọn đều một điểm của loài, hướng ban đầu đều trong [0, 360). Luồng RNG riêng "fish_spawn".
+        Dùng chung cho 8 đàn đầu ca và lịch sinh mỗi fish_spawn_ticks (lát cá bơi/sinh gọi lại hàm này).
+        """
+        t = self.t
+        clearance = t["fish_spawn_clearance"]
+        valid = {}
+        for kind in sorted(t["fish_weights"]):
+            pts = [[float(x), float(d)] for x in t["fish_spawn_x"] for d in t["fish_spawn_depths"][kind]
+                   if all(math.dist([x, d], f["pos"]) > clearance for f in self.fish)]
+            if pts and t["fish_weights"][kind] > 0:
+                valid[kind] = pts
+        if not valid:
+            return None
+        rng = self.rng.get("fish_spawn")
+        kinds = sorted(valid)
+        total = sum(t["fish_weights"][k] for k in kinds)
+        r, acc, kind = rng.random() * total, 0.0, kinds[-1]
+        for k in kinds:
+            acc += t["fish_weights"][k]
+            if r < acc:
+                kind = k
+                break
+        pos = valid[kind][rng.randrange(len(valid[kind]))]
+        heading = rng.random() * 360.0
+        return {"id": self.ids.new("F"), "kind": kind, "pos": pos, "heading_deg": heading, "age_ticks": 0}
+
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
 
     def _in_dock(self) -> bool:
         return math.dist(self.pos, self.t["dock_pos"]) <= self.t["dock_radius"]
+
+    def _nearest(self, items, radius):
+        """Phần tử gần nhất trong bán kính (tính cả đúng mép), hòa theo id_key; không có -> None."""
+        best, best_key = None, None
+        for e in items:
+            d = math.dist(self.pos, e["pos"])
+            if d <= radius:
+                key = (d, id_key(e["id"]))
+                if best_key is None or key < best_key:
+                    best, best_key = e, key
+        return best
+
+    def _free(self) -> int:
+        return self.t["hold_capacity"] - len(self.hold)
+
+    def _harvest(self, events):
+        """Hái nút ready gần nhất trong interact_radius: gather hoặc hold_full."""
+        ready = [n for n in self.nodes if n["regrow_ticks"] == 0]
+        n = self._nearest(ready, self.t["interact_radius"])
+        if n is None:
+            return
+        amount = self.t["node_yield"]
+        free = self._free()
+        if free < amount:
+            events.append(("hold_full", {"action": "gather", "node_id": n["id"], "required": amount, "free": free}))
+            return
+        self.hold.extend([n["kind"]] * amount)
+        n["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+        events.append(("gather", {"node_id": n["id"], "kind": n["kind"], "amount": amount}))
+
+    def _catch(self, events):
+        """Bắt đúng một đàn gần nhất trong catch_radius: fish_caught hoặc hold_full (không thử đàn khác)."""
+        f = self._nearest(self.fish, self.t["catch_radius"])
+        if f is None:
+            return  # không có đàn trong tầm: không event, không hồi chiêu
+        amount = self.t["fish_yield"][f["kind"]]
+        free = self._free()
+        if free < amount:
+            events.append(("hold_full", {"action": "catch", "fish_id": f["id"], "required": amount, "free": free}))
+            return
+        self.hold.extend([f["kind"]] * amount)
+        self.fish = [x for x in self.fish if x["id"] != f["id"]]
+        self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+        events.append(("fish_caught", {"fish_id": f["id"], "kind": f["kind"], "yield": amount}))
 
     def _finish(self, reason, events):
         self.done = True
@@ -147,7 +248,7 @@ class GatherSim:
             self.heading = math.degrees(math.atan2(md, mx)) % 360
         b = self.t["bounds"]
         for i, axis in enumerate(AXES):
-            self.pos[i] += self.vel[i] / TICK
+            self.pos[i] += self.vel[i] / self.tick_hz
             lo, hi = b[axis]
             if self.pos[i] <= lo:
                 self.pos[i] = lo

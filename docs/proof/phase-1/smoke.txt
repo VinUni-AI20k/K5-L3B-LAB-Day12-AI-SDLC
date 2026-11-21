@@ -1,0 +1,12 @@
+ĐẠT  | gather chạy, mã 0
+ĐẠT  | gather kết thúc docked
+ĐẠT  | kho.json đúng {bong_sung:2, ca_loc:1}
+ĐẠT  | kho.json khớp gather_end.inventory
+ĐẠT  | quan snapshot tick 0 có stock đúng
+ĐẠT  | tick_limit không tạo file kho
+ĐẠT  | kho sai (so_am) -> mã 2
+ĐẠT  | kho sai (kind_la) -> mã 2
+ĐẠT  | kho sai (so_thuc) -> mã 2
+ĐẠT  | kho sai (khoa_goc_la) -> mã 2
+
+10/10 mục đạt · headless_cmd: python3 -m chonoi.headless
