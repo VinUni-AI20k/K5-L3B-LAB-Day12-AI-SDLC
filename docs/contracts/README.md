@@ -199,3 +199,11 @@ Quyết định và thứ tự tích hợp: [`docs/adr/0001-kho-ca-the.md`](../a
 | Giữ chỗ theo id, giữ lại khi ươn, `unfulfillable` | C | `QuanSim` |
 | Nấu tiêu đúng id, `base_price = floor(giá × trung bình fresh / 100)`, `cook_started.items` là cá thể sắp theo kind rồi id | D | `QuanSim._interact` |
 | Bàn giao cá thể trong day, id Ngày kế | C | `chonoi/day.py` |
+
+## 7. Thêm ở v1.3 (Ticket-04, phát hành)
+
+- `contract_version: "1.3"`. Gameplay, tuning, kho và JSONL giữ như 1.2 (vẫn bắt buộc `freshness`; `inventory.is_v12` nhận cả 1.2 và 1.3).
+- Gốc manifest có thêm `bench_cmd: "python3 -m chonoi.bench"` và `soak_cmd: "python3 -m chonoi.soak"`, là chuỗi lệnh khác rỗng (`contract.validate_commands`).
+- `chonoi/soak.py`: `--seed --days --out`. Một tiến trình `DaySession(days=N)`, bot tất định (chỉ đọc trạng thái sim): sáng hái nút ở mặt nước rồi cập bến, tối nấu/bưng/phục vụ, Shop mua nâng cấp nếu đủ tiền rồi `shop_done`. Ghi `{days, days_completed, crashes, results[{day, earned, reputation, score}], duration_s}`; `results` lấy lúc mỗi `shop_end`. Lỗi mô phỏng được đếm vào `crashes` (vẫn ghi file). Cần `DaySession` lặp kế hoạch D1-D5 ở Ngày 6-10 (C).
+- `chonoi/bench.py` (khung, LeBao403): `--seed --duration --out`. Cảnh gather lõi, Út Sen đứng yên ở bến, mô phỏng 60 tick/s theo thời gian thực, làm nóng 3 s, đo `duration` s. `compute_metrics` tính `avg_fps = frames / measured_s`, `p1_low_fps` = nghịch đảo thời gian trung bình của `max(1, ceil(1% × frames))` khung chậm nhất, `load_ms` từ lúc khởi chạy tới khung đầu tiên.
+- `chonoi/bench_render.py` (E): lớp `Renderer` với `open(1280, 720)`, `draw(snapshot) -> bool`, `close()`. Chưa có thì `bench_cmd` thoát mã 1.
