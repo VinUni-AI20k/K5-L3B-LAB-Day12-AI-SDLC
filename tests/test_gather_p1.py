@@ -145,6 +145,7 @@ class GatherSlice2NodesAndFish(unittest.TestCase):
                     {"id": "F10", "kind": "ca_loc", "pos": [22, 10]},
                     {"id": "F2", "kind": "ca_linh", "pos": [18, 10]},
                 ],
+                "random_fish": False,
                 "nodes": [],
             }})
             # Bắt F2 ở tick 0 (event tick 1), cooldown 30 -> tick 29 chưa bắt được, tick 30 (event tick 31) bắt F10

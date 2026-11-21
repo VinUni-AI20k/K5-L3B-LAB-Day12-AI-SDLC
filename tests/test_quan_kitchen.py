@@ -126,9 +126,9 @@ class Kitchen(unittest.TestCase):
 
     def test_out_of_radius_does_nothing(self):
         r = TUNING["quan"]["interact_radius"]
-        s = session(player={"pos": [STOVE[0] + r + 0.01, STOVE[1]]})
+        s = session(player={"pos": [STOVE[0], STOVE[1] - r - 0.01]})
         self.assertEqual(s.step(press()), [])
-        s = session(player={"pos": [STOVE[0] + r, STOVE[1]]})  # đúng mép vẫn tính
+        s = session(player={"pos": [STOVE[0], STOVE[1] - r]})  # đúng mép vẫn tính
         self.assertEqual(names(s.step(press())), ["cook_started"])
 
     def test_cook_order_of_customer_spawned_by_lat3(self):

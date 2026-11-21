@@ -304,9 +304,10 @@ class Units(unittest.TestCase):
     def test_het_ban_thi_bo_luot(self):
         t = copy.deepcopy(T)
         t["quan"]["customer_interval_s"] = 1
+        n_tables = len(t["quan"]["tables"])
         sim = self._sim(t, {"stock": plenty_stock()})
-        ev = self._run(sim, t["quan"]["first_customer_tick"] + 3 * TICK)
-        self.assertEqual([n for _, n, _ in ev], ["customer_arrived"])
+        ev = self._run(sim, t["quan"]["first_customer_tick"] + (n_tables + 2) * TICK)
+        self.assertEqual([n for _, n, _ in ev], ["customer_arrived"] * n_tables)
 
     def test_khach_moi_ngoi_ngay_ban_vua_trong_cung_tick(self):
         t = copy.deepcopy(T)
