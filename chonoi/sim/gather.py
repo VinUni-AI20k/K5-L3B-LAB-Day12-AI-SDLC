@@ -108,10 +108,35 @@ class GatherSim:
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
         # 2. bơi + chặn mép
+        was_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
+        is_surface = self._at_surface()
+        if was_surface and not is_surface:
+            events.append(("dive", {"pos": list(self.pos)}))
+        elif not was_surface and is_surface:
+            events.append(("surface", {"pos": list(self.pos)}))
+
+        # 2b. quản lý dưỡng khí oxy & ngạt nước
+        if is_surface:
+            refill = self.t.get("oxygen_refill_per_tick", 6)
+            self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + refill)
+            self.zero_oxy_ticks = 0
+        else:
+            if self.oxygen_ticks > 0:
+                self.oxygen_ticks -= 1
+                if self.oxygen_ticks == 0:
+                    events.append(("oxygen_empty", {}))
+            else:
+                self.zero_oxy_ticks += 1
+                choke_interval = self.t.get("choke_interval_ticks", 60)
+                if self.zero_oxy_ticks >= choke_interval:
+                    self.zero_oxy_ticks = 0
+                    self.hp -= 1
+                    events.append(("choke", {"hp": self.hp}))
+                    if self.hp <= 0:
+                        self.hold = []
+                        self._finish("fainted", events)
+                        return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
