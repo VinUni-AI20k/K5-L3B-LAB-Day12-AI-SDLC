@@ -29,6 +29,11 @@ class IdAllocator:
             prefix, n = m.group(1), int(m.group(2))
             self._next[prefix] = max(self._next.get(prefix, 1), n + 1)
 
+    def reserve_all(self, items, key=lambda x: x["id"]):
+        """Giữ toàn bộ id từ danh sách cá thể đã nạp trước khi cấp mới."""
+        for item in items:
+            self.reserve(key(item))
+
     def new(self, prefix: str) -> str:
         n = self._next.get(prefix, 1)
         self._next[prefix] = n + 1
