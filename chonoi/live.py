@@ -15,6 +15,7 @@ Ngẫu nhiên vẫn đi qua `Streams` (seed); chỉ nhịp chạy theo đồng h
 import argparse
 import json
 import os
+import re
 import sys
 import threading
 import time
@@ -29,6 +30,10 @@ from .runner import Session
 from .scenario import load_scenario
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
+ASSET_DIR = os.path.join(WEB_DIR, "assets")
+# Chỉ phục vụ file phẳng trong web/assets/ có tên an toàn (chặn ../ và ký tự lạ).
+ASSET_NAME = re.compile(r"^[a-z0-9_-]+\.(png|svg)$")
+ASSET_TYPES = {"png": "image/png", "svg": "image/svg+xml"}
 TICK_S = 1.0 / 60.0
 MAX_BODY = 4096
 RECENT_EVENTS = 40
@@ -102,6 +107,7 @@ class LiveGame:
         with self._lock:
             snap = self.session.snapshot()
             snap["meta"] = self.tuning[self.mode]
+            snap["menu"] = self.tuning["menu"]  # HUD quán: công thức + giá để hiện món nấu được
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None
@@ -154,6 +160,13 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
+        elif path.startswith("/assets/") and ASSET_NAME.match(path[len("/assets/"):]):
+            name = path[len("/assets/"):]
+            try:
+                with open(os.path.join(ASSET_DIR, name), "rb") as f:
+                    self._send(200, f.read(), ASSET_TYPES[name.rsplit(".", 1)[1]])
+            except OSError:
+                self._send(404, b'{"error":"khong co"}')
         else:
             self._send(404, b'{"error":"khong co"}')
 

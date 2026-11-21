@@ -1,0 +1,2 @@
+KIỂM TRA DANH SÁCH THÀNH VIÊN KHÔNG ĐẠT:
+  - thành viên #3: GitHub handle chưa điền hoặc không hợp lệ ('…')

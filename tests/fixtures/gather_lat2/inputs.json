@@ -1,0 +1,16 @@
+{
+  "frames": [
+    {"tick": 0, "interact": true},
+    {"tick": 1, "interact": false},
+    {"tick": 2, "interact": true},
+    {"tick": 3, "interact": false},
+    {"tick": 4, "interact": true},
+    {"tick": 5, "interact": false, "move": [0, 1]},
+    {"tick": 35, "move": [0, 0], "catch": true},
+    {"tick": 36, "catch": false},
+    {"tick": 65, "catch": true},
+    {"tick": 66, "catch": false, "move": [0, -1]},
+    {"tick": 110, "move": [-1, 0]},
+    {"tick": 180, "move": [0, 0], "interact": true}
+  ]
+}

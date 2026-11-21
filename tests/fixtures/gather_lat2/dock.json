@@ -1,0 +1,15 @@
+{
+  "gather": {
+    "player": {"pos": [8, 0]},
+    "nodes": [
+      {"id": "N10", "kind": "bong_dien_dien", "pos": [8, 0]},
+      {"id": "N3", "kind": "bong_sung", "pos": [8, 0]},
+      {"id": "N2", "kind": "bong_sung", "pos": [8, 0]}
+    ],
+    "fish": [
+      {"id": "F10", "kind": "ca_loc", "pos": [8, 2]},
+      {"id": "F2", "kind": "ca_linh", "pos": [8, 2]}
+    ],
+    "random_fish": false
+  }
+}

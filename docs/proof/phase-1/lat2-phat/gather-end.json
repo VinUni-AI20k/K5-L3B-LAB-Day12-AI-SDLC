@@ -1,0 +1,12 @@
+{
+    "type":  "end",
+    "ticks":  181,
+    "sim_tick":  181,
+    "mode":  "gather",
+    "state":  "finished",
+    "reason":  "docked",
+    "money":  0,
+    "earned":  0,
+    "reputation":  3.0,
+    "score":  300
+}

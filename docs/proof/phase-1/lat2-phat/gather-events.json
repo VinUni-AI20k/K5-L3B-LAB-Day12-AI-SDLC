@@ -1,0 +1,98 @@
+[
+    {
+        "type":  "event",
+        "tick":  1,
+        "phase":  "gather",
+        "name":  "gather",
+        "data":  {
+                     "node_id":  "N2",
+                     "kind":  "bong_sung",
+                     "amount":  1
+                 }
+    },
+    {
+        "type":  "event",
+        "tick":  3,
+        "phase":  "gather",
+        "name":  "gather",
+        "data":  {
+                     "node_id":  "N3",
+                     "kind":  "bong_sung",
+                     "amount":  1
+                 }
+    },
+    {
+        "type":  "event",
+        "tick":  5,
+        "phase":  "gather",
+        "name":  "gather",
+        "data":  {
+                     "node_id":  "N10",
+                     "kind":  "bong_dien_dien",
+                     "amount":  1
+                 }
+    },
+    {
+        "type":  "event",
+        "tick":  16,
+        "phase":  "gather",
+        "name":  "dive",
+        "data":  {
+                     "pos":  [
+                                 8.0,
+                                 0.567
+                             ]
+                 }
+    },
+    {
+        "type":  "event",
+        "tick":  36,
+        "phase":  "gather",
+        "name":  "fish_caught",
+        "data":  {
+                     "fish_id":  "F2",
+                     "kind":  "ca_linh",
+                     "yield":  3
+                 }
+    },
+    {
+        "type":  "event",
+        "tick":  66,
+        "phase":  "gather",
+        "name":  "fish_caught",
+        "data":  {
+                     "fish_id":  "F10",
+                     "kind":  "ca_loc",
+                     "yield":  1
+                 }
+    },
+    {
+        "type":  "event",
+        "tick":  91,
+        "phase":  "gather",
+        "name":  "surface",
+        "data":  {
+                     "pos":  [
+                                 8.0,
+                                 0.5
+                             ]
+                 }
+    },
+    {
+        "type":  "event",
+        "tick":  181,
+        "phase":  "gather",
+        "name":  "gather_end",
+        "data":  {
+                     "reason":  "docked",
+                     "inventory":  {
+                                       "items":  {
+                                                     "bong_dien_dien":  1,
+                                                     "bong_sung":  2,
+                                                     "ca_linh":  3,
+                                                     "ca_loc":  1
+                                                 }
+                                   }
+                 }
+    }
+]

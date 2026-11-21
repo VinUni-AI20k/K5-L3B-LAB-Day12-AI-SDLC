@@ -1,0 +1,9 @@
+# Lệnh: python3 -m chonoi.headless --mode quan --seed 1 --ticks 1400 --inputs docs/proof/phase-1/lat4/inputs.json --inventory docs/contracts/inventory.sample.json --out q.jsonl
+# Chạy 2 lần: cmp giống từng byte. Dưới đây: các dòng event + dòng end.
+{"type":"event","tick":120,"phase":"quan","name":"customer_arrived","data":{"customer_id":"C1","table_id":"T1","dish_id":"goi_bong_sung"}}
+{"type":"event","tick":126,"phase":"quan","name":"cook_started","data":{"stove_id":"B1","customer_id":"C1","dish_id":"goi_bong_sung"}}
+{"type":"event","tick":366,"phase":"quan","name":"dish_ready","data":{"stove_id":"B1","customer_id":"C1","dish_id":"goi_bong_sung"}}
+{"type":"event","tick":401,"phase":"quan","name":"dish_picked","data":{"stove_id":"B1","customer_id":"C1","dish_id":"goi_bong_sung"}}
+{"type":"event","tick":561,"phase":"quan","name":"served","data":{"customer_id":"C1","table_id":"T1","dish_id":"goi_bong_sung","tip":8}}
+{"type":"event","tick":1161,"phase":"quan","name":"paid","data":{"customer_id":"C1","table_id":"T1","amount":48,"tip":8,"money":48,"reputation":3.2}}
+{"type":"end","ticks":1400,"sim_tick":1400,"mode":"quan","state":"playing","reason":"tick_limit","money":48,"earned":48,"reputation":3.2,"score":348}

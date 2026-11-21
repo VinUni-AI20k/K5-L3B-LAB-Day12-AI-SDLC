@@ -1,0 +1,82 @@
+test_can_hold_and_push_lifo_order (test_gather_lat1.HoldApi.test_can_hold_and_push_lifo_order) ... ok
+test_dive_and_surface_events (test_gather_lat1.OxygenChokeFaint.test_dive_and_surface_events) ... ok
+test_faint_drops_hold_lifo_and_empty_inventory (test_gather_lat1.OxygenChokeFaint.test_faint_drops_hold_lifo_and_empty_inventory) ... ok
+test_oxygen_empty_then_first_choke_at_t_plus_59 (test_gather_lat1.OxygenChokeFaint.test_oxygen_empty_then_first_choke_at_t_plus_59)
+Oxy 1 dưới nước → empty ở tick 1; ngạt lần đầu ở tick 60 (= t+59). ... ok
+test_surface_on_choke_step_skips_choke (test_gather_lat1.OxygenChokeFaint.test_surface_on_choke_step_skips_choke)
+Nổi đúng bước đáng lẽ ngạt → hồi oxy, không choke. ... ok
+test_action_radius_uses_position_after_movement (test_gather_lat2.GatherLat2.test_action_radius_uses_position_after_movement) ... ok
+test_catch_chooses_nearest_fish_before_id (test_gather_lat2.GatherLat2.test_catch_chooses_nearest_fish_before_id) ... ok
+test_catch_cooldown_expires_before_action_and_starts_at_full_duration (test_gather_lat2.GatherLat2.test_catch_cooldown_expires_before_action_and_starts_at_full_duration) ... ok
+test_catch_distance_tie_uses_natural_id (test_gather_lat2.GatherLat2.test_catch_distance_tie_uses_natural_id) ... ok
+test_catch_miss_does_not_start_cooldown (test_gather_lat2.GatherLat2.test_catch_miss_does_not_start_cooldown) ... ok
+test_catch_radius_and_surface_boundary (test_gather_lat2.GatherLat2.test_catch_radius_and_surface_boundary) ... ok
+test_dock_finishes_before_gather_or_catch (test_gather_lat2.GatherLat2.test_dock_finishes_before_gather_or_catch) ... ok
+test_faint_finishes_before_catch_and_time (test_gather_lat2.GatherLat2.test_faint_finishes_before_catch_and_time) ... ok
+test_fish_yield_uses_kind_tuning_and_appends_all_items (test_gather_lat2.GatherLat2.test_fish_yield_uses_kind_tuning_and_appends_all_items) ... ok
+test_full_hold_keeps_nearest_fish_and_does_not_try_smaller_school (test_gather_lat2.GatherLat2.test_full_hold_keeps_nearest_fish_and_does_not_try_smaller_school) ... ok
+test_gather_chooses_nearest_ready_node (test_gather_lat2.GatherLat2.test_gather_chooses_nearest_ready_node) ... ok
+test_gather_distance_tie_uses_natural_id (test_gather_lat2.GatherLat2.test_gather_distance_tie_uses_natural_id) ... ok
+test_gather_only_at_surface_including_depth_boundary (test_gather_lat2.GatherLat2.test_gather_only_at_surface_including_depth_boundary) ... ok
+test_gather_radius_includes_boundary (test_gather_lat2.GatherLat2.test_gather_radius_includes_boundary) ... ok
+test_held_buttons_do_not_repeat_after_regrow_or_cooldown (test_gather_lat2.GatherLat2.test_held_buttons_do_not_repeat_after_regrow_or_cooldown) ... ok
+test_last_tick_keeps_new_gathered_or_caught_items_in_end_inventory (test_gather_lat2.GatherLat2.test_last_tick_keeps_new_gathered_or_caught_items_in_end_inventory) ... ok
+test_node_yield_is_tuned_and_added_atomically_in_pickup_order (test_gather_lat2.GatherLat2.test_node_yield_is_tuned_and_added_atomically_in_pickup_order) ... ok
+test_regrow_counter_starts_after_pick_and_can_be_picked_when_expiring (test_gather_lat2.GatherLat2.test_regrow_counter_starts_after_pick_and_can_be_picked_when_expiring) ... ok
+test_simultaneous_regrowth_emits_once_in_natural_id_order (test_gather_lat2.GatherLat2.test_simultaneous_regrowth_emits_once_in_natural_id_order) ... ok
+test_surface_and_dive_gate_actions_after_movement (test_gather_lat2.GatherLat2.test_surface_and_dive_gate_actions_after_movement) ... ok
+test_collect_dock_export_and_load_in_separate_quan_process (test_gather_lat2_inventory.GatherInventory.test_collect_dock_export_and_load_in_separate_quan_process) ... ok
+test_final_tick_catch_is_in_timeout_inventory (test_gather_lat2_inventory.GatherInventory.test_final_tick_catch_is_in_timeout_inventory) ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_quan_fixture_reserves_and_releases_at_closing (test_python_starter_units.Units.test_quan_fixture_reserves_and_releases_at_closing) ... ok
+test_quan_no_dish_at_scheduled_tick (test_python_starter_units.Units.test_quan_no_dish_at_scheduled_tick) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_cook_takes_oldest_reserved_and_consumes_stock (test_quan_lat4.Lat4.test_cook_takes_oldest_reserved_and_consumes_stock) ... ok
+test_customer_left_cancels_dish_on_stove (test_quan_lat4.Lat4.test_customer_left_cancels_dish_on_stove) ... ok
+test_dish_ready_exactly_after_cook_ticks (test_quan_lat4.Lat4.test_dish_ready_exactly_after_cook_ticks) ... ok
+test_full_cycle_walk_cook_carry_serve_pay (test_quan_lat4.Lat4.test_full_cycle_walk_cook_carry_serve_pay) ... ok
+test_no_tip_below_patience_ratio (test_quan_lat4.Lat4.test_no_tip_below_patience_ratio) ... ok
+test_pick_respects_carry_limit (test_quan_lat4.Lat4.test_pick_respects_carry_limit) ... ok
+test_reputation_clamped_at_max (test_quan_lat4.Lat4.test_reputation_clamped_at_max) ... ok
+test_serve_with_tip_then_pay (test_quan_lat4.Lat4.test_serve_with_tip_then_pay) ... ok
+test_serve_wrong_customer_does_nothing (test_quan_lat4.Lat4.test_serve_wrong_customer_does_nothing) ... ok
+test_stove_idle_without_order_does_nothing (test_quan_lat4.Lat4.test_stove_idle_without_order_does_nothing) ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 71 tests in 9.526s
+
+OK

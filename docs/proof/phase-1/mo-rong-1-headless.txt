@@ -1,0 +1,26 @@
+Mở rộng #1 "Lời Má Tư" (client/ui, Nhài): bằng chứng headless không đổi
+Ngày: 2026-11-21 · Nhánh: p1/ui-nhai · So với: origin/main (c7b1da4, trước khi có mở rộng)
+
+Inputs (in.json):
+{"frames":[{"tick":0,"move":[1,1]},{"tick":90,"move":[-1,0]},{"tick":200,"move":[0,-1],"interact":true}]}
+
+Lệnh (chạy ở cả hai bản):
+python -m chonoi.headless --mode gather --seed 7 --ticks 600 --inputs in.json --out g.jsonl
+python -m chonoi.headless --mode quan   --seed 7 --ticks 600 --out q.jsonl
+
+SHA-256:
+gather  nhánh p1/ui-nhai  7ae90bae14ad6f6b83404edd607312a51d294f0903bdaaf3d0b1226ad6736ac0
+gather  origin/main       7ae90bae14ad6f6b83404edd607312a51d294f0903bdaaf3d0b1226ad6736ac0
+quan    nhánh p1/ui-nhai  27c95215d88839fdc75af48fbfe1366a276f8d19cec66e4c5cf061c50ee5bdab
+quan    origin/main       27c95215d88839fdc75af48fbfe1366a276f8d19cec66e4c5cf061c50ee5bdab
+
+Kết quả: giống từng byte → mở rộng không đổi tick, sự kiện, tiền, uy tín, snapshot.
+
+Kiểm thoại (Node, canvas giả + snapshot giả):
+intro gather   -> "Út ơi, má đau lưng quá, bữa nay con lặn giùm má nghen..."
+dive (t40)     -> không cắt lời mở đầu (ưu tiên thấp)
+cá lóc + ngạt  -> "Sặc nước rồi kìa! Lên mặt nước liền đi con!" (ngạt ưu tiên hơn bắt cá)
+không sự kiện  -> im lặng
+cập bến        -> "Giỏi quá con gái má! Về nghỉ chút rồi tối mình mở quán."
+chơi lại (R)   -> lời mở đầu hiện lại
+quan: intro / được boa / khách bỏ về -> đúng câu tương ứng

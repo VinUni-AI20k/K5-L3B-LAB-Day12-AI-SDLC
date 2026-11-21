@@ -27,6 +27,20 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
 
+## Sáng tạo của nhóm
+
+### Mở rộng #1: Lời Má Tư (Nhài, `client/ui`)
+Má Tư hiện ở góc dưới bên trái cửa sổ chơi và nói giọng Nam Bộ theo diễn biến:
+- **Mở đầu mỗi buổi:** dặn Út Sen lặn, hoặc giục mở quán.
+- **Buổi sáng:** phản ứng khi hết hơi, ngạt, ngất, giỏ đầy, hái bông điên điển hay bông súng, bắt được cá linh hay cá lóc, cập bến.
+- **Buổi tối:** phản ứng khi khách tới, không còn món, món chín, được boa, khách bỏ về, hết ca.
+
+Khi nhiều sự kiện xảy ra cùng lúc, chuyện gấp (ngạt, ngất, khách bỏ về) được nói trước. Phím **M** bật hoặc tắt Má Tư.
+
+Mở rộng này **không ảnh hưởng lõi**:
+- Code chỉ nằm trong `chonoi/web/index.html` và chỉ đọc snapshot từ `/state`, không gửi gì vào sim. Câu thoại chọn theo tick, không dùng RNG của sim. Headless không tải file này.
+- **Bằng chứng:** output headless (`gather` có inputs và `quan`, seed 7, 600 tick) của nhánh có mở rộng giống từng byte với `main` trước khi có mở rộng, xem [`docs/proof/phase-1/mo-rong-1-headless.txt`](docs/proof/phase-1/mo-rong-1-headless.txt). Bộ test vẫn xanh hết.
+
 ## Lịch 3 giờ
 
 | Mốc | Phase | Hạn tag |
