@@ -7,7 +7,7 @@ Nguyễn Thành Nam · module `sim/quan`
   - Sửa 2 lỗi chặn từ review, thêm test quét fixture sai kiểu: [35b237f](https://github.com/czx04/K5-L3B-LAB-Day12-AI-SDLC-6667/commit/35b237f)
   - Cập nhật vai trong `TEAM.md`: [0f99a4b](https://github.com/czx04/K5-L3B-LAB-Day12-AI-SDLC-6667/commit/0f99a4b)
   - PR gộp vào `dev`: [#3](https://github.com/czx04/K5-L3B-LAB-Day12-AI-SDLC-6667/pull/3)
-- Tôi đã review (kèm link): chưa review PR nào ở phase 1.
+- Tôi đã review (kèm link): [#4](https://github.com/czx04/K5-L3B-LAB-Day12-AI-SDLC-6667/pull/4) gather core (lát kế bên, đối chiếu file kho với quán), [#5](https://github.com/czx04/K5-L3B-LAB-Day12-AI-SDLC-6667/pull/5) client UI (trường snapshot quán), [#7](https://github.com/czx04/K5-L3B-LAB-Day12-AI-SDLC-6667/pull/7) bàn giao phase 1 lên main.
 - AI sai ở đâu và tôi phát hiện thế nào:
   - AI tự đặt luật chặt hơn PRD: khách chưa phục vụ khai `tip: 0` bị trả mã 2, làm 16 test QA đỏ. Phát hiện qua review PR #3.
   - AI bỏ sót kiểm kiểu: `dish_id: []` làm crash (mã 1 thay vì 2). Review phát hiện; sau đó tôi cho AI viết test quét ~140 fixture sai kiểu và bắt thêm lỗi `stoves[].dish` sai kiểu.
