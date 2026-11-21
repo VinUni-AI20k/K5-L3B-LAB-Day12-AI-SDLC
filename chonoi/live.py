@@ -181,6 +181,20 @@ class _Handler(BaseHTTPRequestHandler):
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
         else:
+            rel = path.lstrip("/")
+            file_path = os.path.abspath(os.path.join(WEB_DIR, rel))
+            if file_path.startswith(WEB_DIR) and os.path.isfile(file_path):
+                ctype = "application/javascript; charset=utf-8" if file_path.endswith(".js") else (
+                    "text/css; charset=utf-8" if file_path.endswith(".css") else (
+                        "image/png" if file_path.endswith(".png") else "application/octet-stream"
+                    )
+                )
+                try:
+                    with open(file_path, "rb") as f:
+                        self._send(200, f.read(), ctype)
+                    return
+                except OSError:
+                    pass
             self._send(404, b'{"error":"khong co"}')
 
     def do_POST(self):
