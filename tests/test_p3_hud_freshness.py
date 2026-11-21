@@ -7,6 +7,10 @@ import unittest
 from chonoi import freshness_view
 from chonoi.contract import load_contract
 from chonoi.freshness import Freshness
+from chonoi.ids import IdAllocator
+from chonoi.inputs import InputPlayer
+from chonoi.rng import Streams
+from chonoi.sim.gather import GatherSim
 from chonoi.inventory import counts_to_individuals, hold_to_individuals
 from chonoi.live import LiveGame
 from chonoi.runner import Session
@@ -43,6 +47,27 @@ class Gather(unittest.TestCase):
         for units in (fr.spoil_units, fr.spoil_units - 1, 0, fr.max_units):
             v = freshness_view.view(self.snap(fr.to_points(units)), TUNING)
             self.assertEqual(v["items"][0]["spoiled"], fr.is_spoiled(units), units)
+
+
+class RealGatherV12(unittest.TestCase):
+    """Sim gather v1.2 thật (P3-03 của A, PR #45): HUD đánh dấu ươn đúng tick sim phát `spoiled`."""
+
+    def test_spoiled_flag_matches_sim_event_tick(self):
+        fr = Freshness(TUNING)
+        start = fr.to_points(fr.spoil_units + 2 * fr.decay("gather"))  # còn 2 tick nữa là ươn
+        hold = [{"id": "I1", "kind": "ca_loc", "fresh": start}, {"id": "I2", "kind": "ca_linh", "fresh": 100}]
+        sim = GatherSim(TUNING, {"random_fish": False, "monsters": [], "player": {"pos": [20, 5]}, "hold": hold},
+                        Streams(1), IdAllocator(), contract_version="1.2")
+        inp = InputPlayer([])
+        seen = []
+        for tick in range(1, 5):
+            events = sim.step(inp.advance(tick - 1))
+            v = freshness_view.view({"phase": "gather", **sim.snapshot()}, TUNING)
+            seen.append((tick, any(n == "spoiled" for n, _ in events), v["items"][0]["spoiled"], v["spoiled_count"]))
+        first_event = next(t for t, ev, _, _ in seen if ev)
+        first_flag = next(t for t, _, flag, _ in seen if flag)
+        self.assertEqual(first_flag, first_event)
+        self.assertEqual(seen[-1][3], 1)
 
 
 class Quan(unittest.TestCase):
