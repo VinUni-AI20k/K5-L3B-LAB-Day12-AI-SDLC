@@ -13,7 +13,7 @@ Nhóm viết tiếp (đúng thứ tự một bước trong PRD-0 mục F, "Gathe
       - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
       - sự kiện dive / surface / oxygen_empty / choke / faint
       - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
-  TODO(nhóm, lát 2): `_try_harvest`, `_try_catch` — hái + bắt cá (cập bến + kho đã có)
+  ĐÃ LÀM (lát 2): `_try_harvest`, `_try_catch` — hái + bắt cá (cập bến + kho đã có)
       - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
       - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
       - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
@@ -166,15 +166,56 @@ class GatherSim:
 
     # --- lát 2: hái, bắt cá (B viết thân hàm) ---------------------------------------
     def _try_harvest(self, events):
-        """TODO(nhóm, lát 2 - B): chỉ khi ở mặt nước. Nút ready gần nhất trong interact_radius (hòa: id nhỏ).
+        """Hái nút (lát 2 - B): chỉ ở mặt nước. Nút ready gần nhất trong interact_radius (hòa: id nhỏ).
         Đủ chỗ: thêm node_yield vào cuối hold, regrow_ticks = regrow_s*60, phát gather{node_id,kind,amount}.
         Thiếu chỗ: hold_full{action:"gather",node_id,required,free}, nút giữ nguyên."""
+        if not self._at_surface():
+            return
+        node = self._nearest([n for n in self.nodes if n["regrow_ticks"] == 0], self.t["interact_radius"])
+        if node is None:
+            return
+        amount = int(self.t["node_yield"])
+        free = self._hold_free()
+        if amount > free:
+            events.append(("hold_full", {"action": "gather", "node_id": node["id"],
+                                         "required": amount, "free": free}))
+            return
+        self.hold.extend([node["kind"]] * amount)
+        node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
 
     def _try_catch(self, events):
-        """TODO(nhóm, lát 2 - B): chỉ khi catch_cd_ticks == 0 và dưới nước. Đàn gần nhất trong catch_radius
+        """Bắt cá (lát 2 - B): chỉ khi catch_cd_ticks == 0 và dưới nước. Đàn gần nhất trong catch_radius
         (hòa: id nhỏ). Đủ chỗ cho cả fish_yield: thêm vào hold, xóa đàn, fish_caught{fish_id,kind,yield},
         catch_cd_ticks = catch_cooldown_s*60. Thiếu chỗ: hold_full{action:"catch",fish_id,required,free},
         giữ đàn, không đặt hồi chiêu, không thử đàn khác. Không có đàn trong tầm: không làm gì."""
+        if self.catch_cd_ticks > 0 or self._at_surface():
+            return
+        fish = self._nearest(self.fish, self.t["catch_radius"])
+        if fish is None:
+            return
+        amount = int(self.t["fish_yield"][fish["kind"]])
+        free = self._hold_free()
+        if amount > free:
+            events.append(("hold_full", {"action": "catch", "fish_id": fish["id"],
+                                         "required": amount, "free": free}))
+            return
+        self.hold.extend([fish["kind"]] * amount)
+        self.fish.remove(fish)
+        self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": amount}))
+
+    def _hold_free(self) -> int:
+        return int(self.t["hold_capacity"]) - len(self.hold)
+
+    def _nearest(self, candidates, radius):
+        """Phần tử gần người chơi nhất trong `radius` (tính cả mép); hòa khoảng cách thì id nhỏ hơn."""
+        best = None
+        for e in sort_by_id(candidates):  # đã sắp theo id nên `<` nghiêm ngặt giữ id nhỏ khi hòa
+            d = math.dist(self.pos, e["pos"])
+            if d <= radius and (best is None or d < best[0]):
+                best = (d, e)
+        return best[1] if best else None
 
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:

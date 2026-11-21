@@ -1,0 +1,13 @@
+# Smoke hai tiến trình (lát 2, B): gather ghi kho -> quan đọc kho
+# Bắt đàn cá linh F1 ở tick 0, bơi về bến, cập bến ở tick 300 (gather_end tick 301).
+# Chạy từ thư mục gốc repo (cần python3):
+
+python3 -m chonoi.headless --mode gather --seed 42 --scenario docs/proof/phase-1/lat2-scenario.json \
+  --inputs docs/proof/phase-1/lat2-inputs.json --ticks 400 --out gather.jsonl --inventory-out docs/proof/phase-1/lat2-kho.json
+python3 -m chonoi.headless --mode quan --seed 42 --inventory docs/proof/phase-1/lat2-kho.json --ticks 0 --out quan.jsonl
+
+# Kết quả (mã thoát cả hai lệnh = 0):
+# lat2-kho.json                : {"items":{"ca_linh":3}}
+# gather.jsonl tick 1          : fish_caught {"fish_id":"F1","kind":"ca_linh","yield":3}
+# gather.jsonl tick 301        : gather_end  {"reason":"docked","inventory":{"items":{"ca_linh":3}}}
+# quan.jsonl snapshot tick 0   : "stock":{"ca_linh":3}

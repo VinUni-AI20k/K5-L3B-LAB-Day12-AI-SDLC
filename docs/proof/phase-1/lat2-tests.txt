@@ -1,0 +1,60 @@
+﻿# Bằng chứng lát 2 (B): hái nút, bắt cá, giỏ đầy, kho cuối buổi
+# Lệnh: python3 -m unittest discover -s tests -p test_gather_lat2.py -v  (PowerShell: $env:PYTHONPATH = "tests;.")
+
+python3 : test_ca_linh_cho_3_xoa_dan_dat_hoi_chieu (test_gather_lat2.Catch.test_ca_linh_cho_3_xoa_dan_dat_hoi_chieu) 
+... ok
+At line:3 char:8
++ $out = python3 -m unittest discover -s tests -p test_gather_lat2.py - ...
++        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (test_ca_linh_ch...i_chieu) ... ok:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+test_ca_loc_cho_1 (test_gather_lat2.Catch.test_ca_loc_cho_1) ... ok
+test_chon_dan_gan_nhat (test_gather_lat2.Catch.test_chon_dan_gan_nhat) ... ok
+test_dung_mep_ban_kinh_bat_duoc (test_gather_lat2.Catch.test_dung_mep_ban_kinh_bat_duoc) ... ok
+test_het_hoi_chieu_bat_tiep_duoc (test_gather_lat2.Catch.test_het_hoi_chieu_bat_tiep_duoc) ... ok
+test_hoa_khoang_cach_chon_id_nho_theo_so (test_gather_lat2.Catch.test_hoa_khoang_cach_chon_id_nho_theo_so) ... ok
+test_hoi_chieu_chan_bam_lai_truoc_30_tick (test_gather_lat2.Catch.test_hoi_chieu_chan_bam_lai_truoc_30_tick) ... ok
+test_hoi_chieu_dem_nguoc_trong_snapshot (test_gather_lat2.Catch.test_hoi_chieu_dem_nguoc_trong_snapshot) ... ok
+test_khong_co_dan_trong_tam_khong_hoi_chieu (test_gather_lat2.Catch.test_khong_co_dan_trong_tam_khong_hoi_chieu) ... ok
+test_o_mat_nuoc_khong_bat_duoc (test_gather_lat2.Catch.test_o_mat_nuoc_khong_bat_duoc) ... ok
+test_con_dung_du_cho_van_bat_duoc (test_gather_lat2.CatchFullHold.test_con_dung_du_cho_van_bat_duoc) ... ok
+test_hold_full_khong_dat_hoi_chieu_nen_bam_lai_ngay_van_thu 
+(test_gather_lat2.CatchFullHold.test_hold_full_khong_dat_hoi_chieu_nen_bam_lai_ngay_van_thu) ... ok
+test_khong_thu_dan_khac_khi_dan_gan_nhat_khong_vua 
+(test_gather_lat2.CatchFullHold.test_khong_thu_dan_khac_khi_dan_gan_nhat_khong_vua) ... ok
+test_thieu_cho_cho_ca_linh_hold_full_giu_dan_khong_hoi_chieu 
+(test_gather_lat2.CatchFullHold.test_thieu_cho_cho_ca_linh_hold_full_giu_dan_khong_hoi_chieu) ... ok
+test_chon_nut_gan_nhat_chu_khong_phai_id_nho (test_gather_lat2.Harvest.test_chon_nut_gan_nhat_chu_khong_phai_id_nho) 
+... ok
+test_dang_lan_khong_hai_duoc (test_gather_lat2.Harvest.test_dang_lan_khong_hai_duoc)
+Dưới nước dù nút trong bán kính (d = 1 so với nút ở d = 0) vẫn không hái. ... ok
+test_dung_mep_ban_kinh_duoc_vuot_mep_khong (test_gather_lat2.Harvest.test_dung_mep_ban_kinh_duoc_vuot_mep_khong) ... ok
+test_hai_nut_gan_nhat_them_vao_cuoi_gio_va_dat_hoi_phuc 
+(test_gather_lat2.Harvest.test_hai_nut_gan_nhat_them_vao_cuoi_gio_va_dat_hoi_phuc) ... ok
+test_hai_tiep_tuc_duoc_sau_khi_moc_lai (test_gather_lat2.Harvest.test_hai_tiep_tuc_duoc_sau_khi_moc_lai) ... ok
+test_hoa_khoang_cach_chon_id_nho_theo_so (test_gather_lat2.Harvest.test_hoa_khoang_cach_chon_id_nho_theo_so)
+N2 đứng trước N10 (sắp theo hậu tố số, không theo chữ). ... ok
+test_khong_nhan_giu_nut_phai_nha_roi_bam_lai (test_gather_lat2.Harvest.test_khong_nhan_giu_nut_phai_nha_roi_bam_lai)
+interact chỉ tính ở cạnh lên: giữ phím không hái thêm khi nút vừa mọc lại. ... ok
+test_nut_bi_bo_qua_thi_chon_nut_ke_tiep (test_gather_lat2.Harvest.test_nut_bi_bo_qua_thi_chon_nut_ke_tiep) ... ok
+test_nut_chua_moc_lai_bi_bo_qua (test_gather_lat2.Harvest.test_nut_chua_moc_lai_bi_bo_qua) ... ok
+test_nut_moc_lai_sau_dung_regrow_s (test_gather_lat2.Harvest.test_nut_moc_lai_sau_dung_regrow_s) ... ok
+test_thu_tu_nhat_giu_nguyen_trong_hold (test_gather_lat2.HarvestAndCatch.test_thu_tu_nhat_giu_nguyen_trong_hold)
+Hái ở mặt nước, lặn bắt cá: hold giữ đúng thứ tự nhặt. ... ok
+test_con_dung_mot_cho_van_hai_duoc (test_gather_lat2.HarvestFullHold.test_con_dung_mot_cho_van_hai_duoc) ... ok
+test_gio_day_hold_full_nut_giu_nguyen (test_gather_lat2.HarvestFullHold.test_gio_day_hold_full_nut_giu_nguyen) ... ok
+test_bat_o_buoc_cuoi_van_vao_kho (test_gather_lat2.Inventory.test_bat_o_buoc_cuoi_van_vao_kho) ... ok
+test_cap_ben_ghi_dung_noi_dung_gio_va_quan_doc_duoc 
+(test_gather_lat2.Inventory.test_cap_ben_ghi_dung_noi_dung_gio_va_quan_doc_duoc)
+Bắt cá linh ở tick 0, bơi lên mặt nước rồi về bến, cập bến. Kho khớp gather_end và quán đọc được. ... ok
+test_hai_o_buoc_cuoi_van_vao_kho (test_gather_lat2.Inventory.test_hai_o_buoc_cuoi_van_vao_kho) ... ok
+test_tat_dinh_tung_byte_khi_hai_va_bat (test_gather_lat2.Inventory.test_tat_dinh_tung_byte_khi_hai_va_bat) ... ok
+test_nut_va_dan_ca_mac_dinh_hoat_dong (test_gather_lat2.MacDinh.test_nut_va_dan_ca_mac_dinh_hoat_dong)
+Không scenario: nút N1 ở [12, 0] (bong_dien_dien) hái được khi đứng ở mặt nước cạnh nó. ... ok
+
+----------------------------------------------------------------------
+Ran 32 tests in 3.705s
+
+OK
+
