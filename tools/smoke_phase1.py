@@ -120,7 +120,8 @@ def main():
     bad = {
         "thiếu --seed": ["--mode", "quan", "--ticks", "1", "--out", p("b1.jsonl")],
         "--ticks âm": ["--mode", "quan", "--seed", "1", "--ticks", "-1", "--out", p("b2.jsonl")],
-        "--mode day (v1.0)": ["--mode", "day", "--seed", "1", "--ticks", "1", "--out", p("b3.jsonl")],
+        "--days với gather (chỉ dành cho day)": ["--mode", "gather", "--seed", "1", "--ticks", "1", "--days", "2",
+                                                 "--out", p("b3.jsonl")],
         "--inventory với gather": ["--mode", "gather", "--seed", "1", "--ticks", "1", "--out", p("b4.jsonl"),
                                    "--inventory", p("kho1.json")],
         "scenario sai khối": ["--mode", "quan", "--seed", "1", "--ticks", "1", "--out", p("b5.jsonl"),

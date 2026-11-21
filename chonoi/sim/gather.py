@@ -21,8 +21,9 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids):
+    def __init__(self, tuning, scenario, streams, ids, *, day=1):
         t = tuning["gather"]
+        self.day = day  # số Ngày (chế độ day); Cá Sấu M2 từ Ngày 3 dùng ở P2-04
         self.t = t
         self.tick_hz = tuning["tick_hz"]
         self.rng = streams
