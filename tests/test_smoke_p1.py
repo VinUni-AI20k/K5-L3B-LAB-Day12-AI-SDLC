@@ -42,7 +42,7 @@ class Contract(unittest.TestCase):
             for key in ("oxygen_ticks", "hp", "oxygen_max_ticks", "hp_max", "at_surface"):
                 self.assertIn(key, s["player"])
             self.assertEqual(s["hold_capacity"], tuning_gather()["hold_capacity"])
-            self.assertEqual(len(s["fish"]), 6)
+            self.assertEqual(len(s["fish"]), tuning_gather()["fish_initial"])  # v1.1: số đàn đầu ca (8), không còn 6 cố định
             self.assertTrue(all(n["pos"][1] == 0 for n in s["nodes"]))
 
     def test_con_02_deterministic_bytes(self):
@@ -62,16 +62,26 @@ class Contract(unittest.TestCase):
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", bad, "--out", out)[0], 2)
             self.assertFalse(os.path.exists(out), "lỗi đầu vào phải thoát TRƯỚC khi ghi đầu ra")
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "-1", "--out", out)[0], 2)
-            for button in ("jump", "attack"):  # nút lạ / của phase sau
+            for button in ("jump", "dash"):  # tên nút lạ -> mã 2
                 unk = write_json(w.path("unk.json"), frames({"tick": 0, button: True}))
                 self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", unk, "--out", out)[0], 2, button)
             self.assertFalse(os.path.exists(out))
+            # v1.1 (lát 0 đổi): `attack` là nút hợp lệ của mở rộng Lao; mở rộng chưa bật thì bỏ qua, không phải mã 2.
+            atk = write_json(w.path("atk.json"), frames({"tick": 0, "attack": True}, {"tick": 1, "pause": False}))
+            self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "3", "--inputs", atk, "--out", out)[0], 0)
+            empty_buy = write_json(w.path("buy.json"), frames({"tick": 0, "buy": ""}))
+            self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "1", "--inputs", empty_buy,
+                                          "--out", w.path("b.jsonl"))[0], 2, "buy phải là chuỗi khác rỗng")
 
     def test_con_03_old_and_future_modes_rejected(self):
+        # v1.1 (lát 0 đổi): `day` là mode hợp lệ, test chạy day thuộc lát 5. Ở đây chỉ còn mode lạ và cờ --days sai.
         with Workdir() as w:
             out = w.path("o.jsonl")
-            for mode in ("river", "day"):
-                self.assertEqual(run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out)[0], 2, mode)
+            self.assertEqual(run_headless("--mode", "river", "--seed", "1", "--ticks", "0", "--out", out)[0], 2)
+            self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "0", "--days", "1", "--out", out)[0], 2,
+                             "--days chỉ dùng với day")
+            self.assertEqual(run_headless("--mode", "day", "--seed", "1", "--ticks", "0", "--days", "6", "--out", out)[0], 2,
+                             "--days trong 1..5")
             self.assertFalse(os.path.exists(out))
             old = write_json(w.path("old.json"), {"river": {"hold": []}})
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "0", "--scenario", old, "--out", out)[0], 2)
