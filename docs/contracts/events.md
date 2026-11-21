@@ -15,8 +15,8 @@
 | `hold_full` | `{kind, count, hold_count, hold_capacity}` | Lát 1 — phát trong `_add_to_hold` | xong |
 | `node_regrown` | `{node_id}` | khung | có sẵn |
 | `gather_end` | `{reason, inventory: {items}}` | khung | có sẵn |
-| `gather` | … | Lát 2 | |
-| `fish_caught` | … | Lát 2 | |
+| `gather` | `{node_id, kind, count, hold_count}` | Lát 2 | xong |
+| `fish_caught` | `{fish_id, kind, count, hold_count}` | Lát 2 | xong |
 
 ## Quán
 
