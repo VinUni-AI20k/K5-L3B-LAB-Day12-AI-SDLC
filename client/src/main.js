@@ -399,13 +399,14 @@ function step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) frame(dt); }
 function frame(dt) {
   if (fx.stop > 0) { fx.stop -= dt; dt *= 0.08; }
   fx.update(dt);
-  if (input.hit("contrast")) { toggleHighContrast(); sfx("click"); meta.globalToasts.push({ text: hcLabel(), sub: "Phím H để đổi" }); hcToast = 1.6; }
-  if (input.hit("captions")) { toggleCaptions(); sfx("click"); meta.globalToasts.push({ text: ccLabel(), sub: "Phím U để đổi" }); }
+  const typing = !!state.scene?.typing; // Summary name entry: letters are text, not hotkeys
+  if (input.hit("contrast") && !typing) { toggleHighContrast(); sfx("click"); meta.globalToasts.push({ text: hcLabel(), sub: "Phím H để đổi" }); hcToast = 1.6; }
+  if (input.hit("captions") && !typing) { toggleCaptions(); sfx("click"); meta.globalToasts.push({ text: ccLabel(), sub: "Phím U để đổi" }); }
   updateCaptions(dt);
 
   // update: scene runs except while the wipe is closing over it
   if (!wipe || wipe.phase === "out") {
-    const tKey = phoneKey; phoneKey = false;
+    const tKey = phoneKey && !typing; phoneKey = false;
     if (state.overlay) {
       if (tKey && state.overlay.isPhone) state.overlay.close(); // T again puts the phone away
       state.overlay.update(dt);

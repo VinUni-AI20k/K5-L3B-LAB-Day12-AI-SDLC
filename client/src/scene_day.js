@@ -8,6 +8,7 @@ import { portrait, icon, dishIcon, DISH_NAME, KIND_NAME, premiumBadge } from "./
 import { menuAll, isPremiumDish } from "./menu.js"; // contract menu + GUI-only Đặc sản dishes
 import { riverWorld } from "./story.js";
 import * as progress from "./progress.js";
+import * as board from "./leaderboard.js"; // Phase 4 extension: local top 10 after the last day
 import { freshCfg, freshestFirst, isSpoiled, nextItemId, idNum } from "./fresh.js";
 
 const GOLD = "#ffd23f", BORDER = "#f3d27a";
@@ -456,6 +457,8 @@ export class Shop extends Base {
 }
 
 // ---------- Summary after the last day ----------
+// phases: "stats" (season totals) → Enter → "name" (type a name, Enter saves to the local leaderboard) → "board" (top 10)
+// → Enter → title. Demo runs skip the leaderboard (they are not a real 5-day campaign).
 export class Summary extends Base {
   constructor(contract, onDone) {
     super("night"); this.onDone = onDone; const s = progress.save;
@@ -464,18 +467,67 @@ export class Summary extends Base {
     const best = Object.entries(s.sold || {}).sort((a, b) => b[1] - a[1])[0];
     this.best = best ? `${dishName(best[0])} (${best[1]} suất)` : "chưa bán được món nào";
     this.bestId = best?.[0];
+    this.days = Number.isFinite(contract.tuning.day_plan?.length) ? contract.tuning.day_plan.length : 5;
+    this.phase = "stats"; this.name = ""; this.place = -1; this.entries = board.load(); this.pt = 0;
+    this._key = (e) => this.onKey(e);
     sfx("fanfare");
   }
-  update(dt) { this.tick(dt); if (this.t > 1 && (input.hit("confirm") || input.hit("interact") || input.hit("catch"))) this.finish(); }
+  onKey(e) {
+    if (this.phase !== "name") return;
+    if (e.key === "Enter") { e.preventDefault(); this.save(); return; }
+    if (e.key === "Backspace") { e.preventDefault(); this.name = this.name.slice(0, -1); sfx("click"); return; }
+    if (e.key.length === 1 && this.name.length < board.NAME_MAX && !e.ctrlKey && !e.metaKey) { e.preventDefault(); this.name += e.key; sfx("blip", undefined, false); }
+  }
+  save() {
+    const r = board.record(this.name, this.score, this.days, 0);
+    this.entries = r.entries; this.place = r.place; this.phase = "board"; this.pt = 0;
+    removeEventListener("keydown", this._key);
+    sfx(r.place === 0 ? "fanfare" : "ding", undefined, r.place >= 0 ? `[vào bảng xếp hạng — hạng ${r.place + 1}]` : undefined);
+  }
+  finish(arg) { removeEventListener("keydown", this._key); super.finish(arg); }
+  get typing() { return this.phase === "name"; }
+  update(dt) {
+    this.tick(dt); this.pt += dt;
+    const ok = input.hit("confirm") || input.hit("interact") || input.hit("catch");
+    if (this.phase === "stats" && this.t > 1 && ok) {
+      if (progress.isDemo()) return this.finish();
+      this.phase = "name"; this.pt = 0; sfx("select"); addEventListener("keydown", this._key);
+    } else if (this.phase === "board" && this.pt > 0.5 && ok) this.finish();
+  }
   draw() {
-    this.bg(); const s = progress.save;
+    this.bg();
+    if (this.phase === "board") return this.drawBoard();
+    const s = progress.save;
     txt("TỔNG KẾT MÙA NƯỚC NỔI", W / 2, 36, { size: 20, align: "center", color: GOLD, weight: 900, italic: true, stroke: "#3a1410", sw: 5 });
     panel(W / 2 - 130, 50, 260, 120, { fill: "rgba(8,20,38,.9)", border: BORDER, r: 8 });
     [["Tổng tiền thu", `${s.totalEarned}k`], ["Ví còn lại", `${s.money}k`], ["Tổng điểm", String(this.score)], ["Uy tín", this.rep.toFixed(1) + " ★"], ["Món bán chạy", this.best]].forEach(([a, b], i) => {
       const y = 72 + i * 20; txt(a, W / 2 - 118, y, { size: 8, color: "rgba(255,255,255,.8)", weight: 700 }); txt(b, W / 2 + 118, y, { size: 9, align: "right", color: GOLD, weight: 900 });
     });
     if (this.bestId) { screen.ui.imageSmoothingEnabled = false; screen.ui.drawImage(dishIcon(this.bestId), W / 2 - 12, 176, 24, 24); }
-    if (this.t > 1) txt("Enter: về màn hình chính", W / 2, H - 12, { size: 9, align: "center", color: "#fff", weight: 900, alpha: 0.7 + 0.3 * Math.sin(this.t * 5) });
+    if (this.phase === "name") {
+      panel(W / 2 - 110, 206, 220, 40, { fill: "rgba(8,20,38,.96)", border: GOLD, r: 6, bw: 1.5 });
+      txt("Tên của bạn trên bảng xếp hạng:", W / 2, 218, { size: 8, align: "center", color: "rgba(255,255,255,.85)", weight: 700 });
+      const caret = Math.floor(this.pt * 2) % 2 ? "_" : " ";
+      txt((this.name || "") + caret, W / 2, 236, { size: 11, align: "center", color: this.name ? "#fff" : "rgba(255,255,255,.45)", weight: 900 });
+      txt("gõ tên · Backspace xóa · Enter lưu (để trống = Út Sen)", W / 2, H - 12, { size: 8, align: "center", color: "#fff", weight: 800, alpha: 0.8 });
+    } else if (this.t > 1) txt(progress.isDemo() ? "Enter: về màn hình chính" : "Enter: ghi tên lên bảng xếp hạng", W / 2, H - 12, { size: 9, align: "center", color: "#fff", weight: 900, alpha: 0.7 + 0.3 * Math.sin(this.t * 5) });
+  }
+  drawBoard() {
+    txt("BẢNG XẾP HẠNG", W / 2, 30, { size: 18, align: "center", color: GOLD, weight: 900, italic: true, stroke: "#3a1410", sw: 5 });
+    const x = W / 2 - 150, y0 = 42, rh = 18;
+    panel(x, y0, 300, 16 + Math.max(1, this.entries.length) * rh, { fill: "rgba(8,20,38,.92)", border: BORDER, r: 8 });
+    if (!this.entries.length) txt("Chưa có ai", W / 2, y0 + 22, { size: 9, align: "center", color: "#fff" });
+    this.entries.forEach((e, i) => {
+      const y = y0 + 18 + i * rh, me = i === this.place;
+      if (me) panel(x + 4, y - 11, 292, rh - 2, { fill: "rgba(255,210,63,.18)", border: GOLD, r: 4, alpha: 0.6 + 0.4 * Math.sin(this.pt * 6) });
+      const col = me ? GOLD : "#fff";
+      txt(String(i + 1).padStart(2, " ") + ".", x + 14, y, { size: 9, color: col, weight: 900 });
+      txt(e.name, x + 38, y, { size: 9, color: col, weight: me ? 900 : 700 });
+      txt(`${e.days_completed} Ngày`, x + 210, y, { size: 8, align: "right", color: "rgba(255,255,255,.7)", weight: 700 });
+      txt(String(e.score), x + 288, y, { size: 9, align: "right", color: col, weight: 900 });
+    });
+    if (this.place < 0) txt(`Điểm ${this.score} chưa vào top ${board.TOP_N} — lần sau nhé!`, W / 2, H - 28, { size: 8, align: "center", color: "#ffb36b", weight: 800 });
+    if (this.pt > 0.5) txt("Enter: về màn hình chính", W / 2, H - 12, { size: 9, align: "center", color: "#fff", weight: 900, alpha: 0.7 + 0.3 * Math.sin(this.t * 5) });
   }
 }
 
