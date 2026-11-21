@@ -161,3 +161,86 @@ def _validate_quan(b, tuning):
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    _validate_quan_customers(b, tuning)
+
+
+CUSTOMER_KEYS = {"id", "table_id", "dish_id", "order_tick", "state", "patience_ticks_left", "eat_ticks_left",
+                 "order_status", "reserved", "base_price", "tip"}
+CUSTOMER_STATES = ("waiting", "eating")
+ORDER_STATUSES = ("reserved", "assigned", "unfulfillable", "served")
+
+
+def _validate_quan_customers(b, tuning):
+    """Mâu thuẫn mức luật của quan.customers (PRD-0 mục D). Vượt tồn kho kiểm thêm trong QuanSim vì kho có thể đến từ --inventory."""
+    menu = tuning["menu"]
+    patience_max = int(round(tuning["quan"]["patience_s"] * 60))
+    eat_max = int(round(tuning["quan"]["eat_s"] * 60))
+    holders = {}  # order_id -> số món đang giữ trên bếp + tay
+    for s in b.get("stoves", []):
+        dish = s.get("dish")
+        if dish is not None:
+            if not isinstance(dish, dict) or not isinstance(dish.get("order_id"), str):
+                raise BadInput(f"stoves.{s['id']}.dish phải có order_id")
+            holders[dish["order_id"]] = holders.get(dish["order_id"], 0) + 1
+    hand = b.get("hand")
+    if hand is not None:
+        if not isinstance(hand, dict) or not isinstance(hand.get("order_id"), str):
+            raise BadInput("hand phải là null hoặc object có order_id")
+        holders[hand["order_id"]] = holders.get(hand["order_id"], 0) + 1
+    if any(n > 1 for n in holders.values()):
+        raise BadInput("bếp và tay (hoặc hai bếp) cùng giữ món của một đơn")
+    held = {}
+    cids = set()
+    for c in b.get("customers", []):
+        cid = c["id"]
+        cids.add(cid)
+        extra = set(c) - CUSTOMER_KEYS
+        if extra:
+            raise BadInput(f"customers.{cid}: trường lạ {sorted(extra)}")
+        state = c.get("state", "waiting")
+        status = c.get("order_status", "reserved")
+        if state not in CUSTOMER_STATES:
+            raise BadInput(f"customers.{cid}.state phải là một trong {CUSTOMER_STATES}")
+        if status not in ORDER_STATUSES:
+            raise BadInput(f"customers.{cid}.order_status phải là một trong {ORDER_STATUSES}")
+        dish_id = c.get("dish_id")
+        if status != "unfulfillable" and dish_id not in menu:
+            raise BadInput(f"customers.{cid}.dish_id không có trong menu: {dish_id!r}")
+        if dish_id is not None and dish_id not in menu:
+            raise BadInput(f"customers.{cid}.dish_id không có trong menu: {dish_id!r}")
+        if (state == "eating") != (status == "served"):
+            raise BadInput(f"customers.{cid}: eating khi và chỉ khi order_status là served")
+        for key in ("order_tick", "patience_ticks_left", "eat_ticks_left", "base_price", "tip"):
+            if key in c:
+                _nonneg_int(f"customers.{cid}.{key}", c[key])
+        if c.get("patience_ticks_left", 0) > patience_max:
+            raise BadInput(f"customers.{cid}.patience_ticks_left vượt kiên nhẫn tối đa")
+        if c.get("eat_ticks_left", 0) > eat_max:
+            raise BadInput(f"customers.{cid}.eat_ticks_left vượt thời gian ăn")
+        if state == "eating" and c.get("eat_ticks_left", 0) < 1:
+            raise BadInput(f"customers.{cid}: khách eating cần eat_ticks_left >= 1")
+        if "base_price" in c and dish_id in menu and c["base_price"] != menu[dish_id]["price"]:
+            raise BadInput(f"customers.{cid}.base_price khác giá món")
+        if "reserved" in c:
+            validate_items(c["reserved"])
+            reserved = {k: v for k, v in c["reserved"].items() if v > 0}
+        else:
+            reserved = dict(menu[dish_id]["recipe"]) if status == "reserved" else {}
+        if status == "reserved" and reserved != menu[dish_id]["recipe"]:
+            raise BadInput(f"customers.{cid}.reserved khác công thức {dish_id}")
+        if status != "reserved" and reserved:
+            raise BadInput(f"customers.{cid}: chỉ đơn reserved mới được giữ nguyên liệu")
+        n_dish = holders.get(cid, 0)
+        if status == "assigned" and n_dish != 1:
+            raise BadInput(f"customers.{cid}: đơn assigned phải có đúng một món trên bếp hoặc trên tay")
+        if status != "assigned" and n_dish:
+            raise BadInput(f"customers.{cid}: chỉ đơn assigned mới có món trên bếp/tay")
+        for k, n in reserved.items():
+            held[k] = held.get(k, 0) + n
+    orphans = set(holders) - cids
+    if orphans:
+        raise BadInput(f"món trên bếp/tay thuộc đơn không có khách: {sorted(orphans)}")
+    if "stock" in b:
+        for k, n in held.items():
+            if n > b["stock"].get(k, 0):
+                raise BadInput(f"khách giữ {n} {k} vượt tồn kho")
