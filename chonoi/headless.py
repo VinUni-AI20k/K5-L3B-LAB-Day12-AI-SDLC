@@ -9,7 +9,7 @@ import sys
 
 from .contract import load_contract
 from .errors import BadInput
-from .inputs import load_frames
+from .inputs import BUTTONS_V10, BUTTONS_V11, load_frames
 from .inventory import read_inventory_for_mode
 from .runner import run
 from .scenario import load_scenario
@@ -42,12 +42,17 @@ def main(argv=None) -> int:
     p.add_argument("--inventory")
     p.add_argument("--inventory-out", dest="inventory_out")
     p.add_argument("--snapshot-every", dest="snapshot_every", type=_int("snapshot-every"), default=10)
+    p.add_argument("--days", type=_int("days"))
     a = p.parse_args(argv)
     try:
         if a.ticks < 0:
             raise BadInput("--ticks phải >= 0")
         if a.snapshot_every <= 0:
             raise BadInput("--snapshot-every phải > 0")
+        if a.days is not None and a.mode != "day":
+            raise BadInput("--days chỉ dùng với day")
+        if a.days is not None and a.days < 1:
+            raise BadInput("--days phải >= 1")
         if a.inventory and a.mode not in ("quan", "day"):
             raise BadInput("--inventory chỉ dùng với quan hoặc day")
         if a.inventory_out and a.mode not in ("gather", "day"):
@@ -60,7 +65,10 @@ def main(argv=None) -> int:
         contract = load_contract()
         tuning = contract["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
-        frames = load_frames(a.inputs)
+        if a.mode == "day":
+            frames = load_frames(a.inputs, buttons=BUTTONS_V11, allow_buy=True)
+        else:
+            frames = load_frames(a.inputs)
         has_scenario_stock = (
             "stock" in scenario
             if a.mode == "quan"
@@ -79,7 +87,7 @@ def main(argv=None) -> int:
         return 2
     try:
         run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out)
+            inventory=inventory, inventory_out=a.inventory_out, days=a.days)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2
