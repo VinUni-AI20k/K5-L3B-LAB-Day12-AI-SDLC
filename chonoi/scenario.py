@@ -18,6 +18,10 @@ FISH_KINDS = ("ca_linh", "ca_loc")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
 QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
              "reputation", "time_left_ticks"}
+QUAN_CUSTOMER_KEYS = {"id", "table_id", "dish_id", "order_tick", "state", "patience_ticks_left",
+                      "eat_ticks_left", "order_status", "reserved", "base_price", "tip"}
+QUAN_STOVE_KEYS = {"id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks"}
+QUAN_TABLE_KEYS = {"id", "pos"}
 
 
 def _check_ids(name, arr):
@@ -146,10 +150,23 @@ def _validate_quan(b, tuning):
             _check_ids(arr, b[arr])
     if "stock" in b:
         validate_items(b["stock"])
+    qb = tuning["quan"]["bounds"]
+    for arr, keys in (("customers", QUAN_CUSTOMER_KEYS), ("stoves", QUAN_STOVE_KEYS), ("tables", QUAN_TABLE_KEYS)):
+        for e in b.get(arr, []):
+            extra = set(e) - keys
+            if extra:
+                raise BadInput(f"trường lạ/chưa hỗ trợ trong quan.{arr}.{e['id']}: {sorted(extra)}")
+            if "pos" in e:
+                _pos(f"{arr}.{e['id']}.pos", e["pos"], qb, axes=("x", "z"))
+    if "random_customers" in b and not isinstance(b["random_customers"], bool):
+        raise BadInput("random_customers phải là boolean")
+    if "reputation" in b and (not _num(b["reputation"])):
+        raise BadInput("reputation phải là số")
+    if "hand" in b and b["hand"] is not None and not isinstance(b["hand"], dict):
+        raise BadInput("hand phải là payload món hoặc null")
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")
-    qb = tuning["quan"]["bounds"]
     if "pos" in p:
         _pos("player.pos", p["pos"], qb, axes=("x", "z"))
     if "vel" in p and not (isinstance(p["vel"], list) and len(p["vel"]) == 2 and all(_num(c) for c in p["vel"])):
