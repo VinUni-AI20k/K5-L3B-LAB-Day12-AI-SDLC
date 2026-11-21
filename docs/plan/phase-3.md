@@ -78,10 +78,10 @@ Test Contract **v1.2** · hạn tag `phase-3` 2:30. Chia việc theo vai trong [
 ### mhoo40 — lát 2 (giỏ cá thể)
 - Làm ngay: [ ] đọc `tests/test_fresh_p3.py` (`Threshold`, `SpoiledOnce`, `GatherDecay`, `GatherIds`, `PauseFresh`), code trước theo chữ ký `items.py` đã chốt
 - Sau lát 0 (nhánh `feat/p3-gather`):
-  - [ ] Hái / bắt tạo cá thể `fresh = initial` qua `new_item`, id `I…` theo thứ tự vào giỏ; `hold_full` tính cả hàng ươn
-  - [ ] Hao giỏ 0.5/s mỗi bước (hàng mới hao từ bước sau), `spoiled` đúng một lần, theo id
-  - [ ] `gather_end.inventory` là mảng cá thể; snapshot `hold` là mảng cá thể
-  - [ ] Bỏ `@pending` các test gather khi xanh (báo Tiệp)
+  - [x] Hái / bắt tạo cá thể `fresh = initial` qua `new_item`, id `I…` theo thứ tự vào giỏ; `hold_full` tính cả hàng ươn
+  - [x] Hao giỏ 0.5/s mỗi bước (hàng mới hao từ bước sau), `spoiled` đúng một lần, theo id
+  - [x] `gather_end.inventory` là mảng cá thể; snapshot `hold` là mảng cá thể
+  - [x] Bỏ `@pending` các test gather khi xanh (báo Tiệp)
 - AC: P3-01, 02, 03, 04, 10.
 
 ### trongnghia2304 — lát 3 (khách, giữ chỗ), PO
