@@ -4,7 +4,8 @@
 // (z = 0 front edge, z = 10 back rail). Screen: sx = X0 + x·XS, sy = Y0 − z·ZS (back rows higher and smaller).
 import { W, H, screen, input, clamp, lerp, fx, Particles, txt, panel, measure, wrap } from "./engine.js";
 import { sfx, music, voiceLine } from "./audio.js";
-import { P, R, ripple, dishIcon, icon, DISH_NAME, KIND_NAME } from "./art.js";
+import { P, R, ripple, dishIcon, icon, DISH_NAME, KIND_NAME, premiumBadge } from "./art.js";
+import { menuAll, isPremiumDish, isPremiumKind } from "./menu.js"; // contract menu + GUI-only Đặc sản dishes
 import { speedLines } from "./cutscene.js";
 import { highContrast, hc } from "./a11y.js";
 import { promptTag, drawPhoneIcon, PHONE_BTN } from "./hub.js";
@@ -69,6 +70,15 @@ const LINES = {
   eating: ["Ngon quá trời!", "Nêm vừa miệng ghê!", "Ăn xong về ngủ ngon luôn.", "Cá tươi rói, ngọt thịt ghê!"],
   nodish: ["Hết món rồi hả? Thôi bữa khác chú ghé.", "Tiếc ghê, mai chú quay lại sớm."],
 };
+// a guest who orders an Đặc sản dish says so once seated (menu.js GUI_MENU_EXTRA)
+const PREMIUM_LINES = {
+  ca_sau_nuong_sa_ot: "Có cá sấu hả? Cho một dĩa!",
+  ran_xao_sa_ot: "Rắn xào sả ớt hả? Lâu lắm mới gặp, cho chú một dĩa!",
+  ca_loc_bong_hap_bau: "Cá lóc bông hấp bầu! Món này đãi khách sang nè.",
+  ca_loc_kl_nuong_trui: "Con cá lóc bự cỡ đó hả? Nướng trui liền cho chú!",
+  goi_ca_linh_lon: "Gỏi cá linh lớn, đúng mùa nước nổi luôn! Cho một dĩa.",
+  lau_ca_tra_dau: "Lẩu cá tra dầu?! Dọn ra đây, bao nhiêu cũng được!",
+};
 const WAITER_HOME = { x: 7.4, z: 7.2 };
 const shuffle = (a) => { const b = [...a]; for (let i = b.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [b[i], b[j]] = [b[j], b[i]]; } return b; };
 
@@ -102,7 +112,7 @@ export class QuanScene {
   // opts.onOpen({ menu, portions }) tells main.js what the bell opened with (R on the result replays it).
   constructor(contract, stock, onEnd, opts = {}) {
     this.t = contract.tuning.quan; this.onEnd = onEnd;
-    const t = this.t; this.allMenu = contract.tuning.menu;
+    const t = this.t; this.allMenu = menuAll(contract); // contract dishes + Đặc sản (GUI only)
     this.setMenu(opts && opts.menu, opts && opts.portions);
     this.phase = opts && opts.preopen ? "preopen" : "open";
     this.board = (opts && opts.board) || null; this.boardOpen = false; this.boardSel = null; this.onOpen = opts && opts.onOpen; this.openOpts = opts;
@@ -118,6 +128,8 @@ export class QuanScene {
       ? opts.items.map((it) => ({ id: it.id, kind: it.kind, fresh: it.fresh, spoiled: it.fresh < this.fresh.spoiled_below, res: null }))
       : Object.entries(counts).flatMap(([k, n]) => Array.from({ length: Math.max(0, n | 0) }, () => ({ ...newItem(k, this.fresh), res: null })));
     this.syncStock();
+    // no menu given (demo / shortcuts): Đặc sản dishes are on only when tonight's stock can cook them
+    if (!(opts && Array.isArray(opts.menu))) this.setMenu(Object.keys(this.allMenu).filter((k) => !isPremiumDish(k) || this.freeOK(k)), opts && opts.portions);
     this.stoves = t.stoves.map((s) => ({ ...s, state: "idle", dish: null, cook: 0, cookMax: 0, pop: 0 }));
     // meta progression: stove upgrade multiplies cook time, décor multiplies patience, extra tables; day shifts the customer mix
     let st = null; try { st = stats(contract); } catch (e) {}
@@ -294,9 +306,12 @@ export class QuanScene {
     if (!keys.length) { // no_dish: the guest still comes, reads the menu, says "Hết món rồi…" and goes home (no rep loss, counted as missed)
       cu.state = "nodish"; cu.nd = 2; cu.patience = 1; cu.patienceMax = 1; return;
     }
+    // sộp: an orderable Đặc sản dish whenever there is one (the priciest of them), else the priciest dish
+    const prem = keys.filter((k) => isPremiumDish(k)), pool = ty.priciest && prem.length ? prem : keys;
     const want = ty.priciest
-      ? keys.reduce((a, k) => (this.menu[k].price > this.menu[a].price ? k : a), keys[0])
+      ? pool.reduce((a, k) => (this.menu[k].price > this.menu[a].price ? k : a), pool[0])
       : keys[Math.floor(Math.random() * keys.length)];
+    if (isPremiumDish(want)) cu.premLine = PREMIUM_LINES[want] || "Món đặc sản hả? Cho một phần!";
     const patMax = this.basePatience * ty.patMul * this.patMul * this.decorMul;
     this.reserveFor(cu, want); // freshest usable items of each recipe kind (keys were filtered by freeOK)
     Object.assign(cu, { want, orderT: this.time0 - this.time, state: "waiting", patience: patMax, patienceMax: patMax });
@@ -421,6 +436,7 @@ export class QuanScene {
     const mean = used.length ? used.reduce((a, it) => a + it.fresh, 0) / used.length : 100;
     s.lock = Math.floor(this.menu[key].price * mean / 100); s.lockFresh = mean;
     s.state = "cooking"; s.dish = key; s.cookMax = this.cookTime(key) * mul; s.cook = s.cookMax; s.by = by ? by.name : null;
+    if (isPremiumDish(key)) { this.premiumCooked = (this.premiumCooked || 0) + 1; this.callMeta("trackChore", "premium_cooked", 1); }
     sfx("sizzle");
     this.toast(s.pos[0], s.pos[1] + 1, by ? by.name + " bắc bếp!" : "Bắc bếp!", "#ff8a3d");
     return true;
@@ -632,6 +648,7 @@ export class QuanScene {
     if (this.burstT > 0) { this.burstT -= dt; if (this.burstT <= 0) this.spawnCustomer(); }
     for (const cu of this.customers) {
       if (cu.enter < 1) cu.enter = Math.min(1, cu.enter + dt * 2);
+      if (cu.premLine && cu.state === "waiting" && !cu.talk && cu.vis && cu.vis.phase === "seat") { cu.talk = { lines: [cu.premLine], i: 0, t: 0 }; cu.premLine = null; this.say(cu); this.toast(cu.x, cu.z + 2, "Gọi món đặc sản!", "#ffd23a"); }
       if (cu.talk) this.updateTalk(cu, dt);
       if (cu.state === "waiting") { cu.patience -= dt; if (cu.patience <= 0) this.leave(cu); }
       else if (cu.state === "queue") { cu.qPat -= dt; if (cu.qPat <= 0) this.leaveQueue(cu); }
@@ -749,6 +766,8 @@ export class QuanScene {
     if (!keys.length) { if (input.hit("back") || input.hit("interact") || input.hit("confirm")) this.menuOpen = false; return; }
     if (input.hit("up")) { this.menuSel = (this.menuSel + keys.length - 1) % keys.length; sfx("click"); }
     if (input.hit("down")) { this.menuSel = (this.menuSel + 1) % keys.length; sfx("click"); }
+    const L = this.menuLayout(keys.length); // two columns (> 6 dishes): ←→ jump between them
+    if (L.cols > 1 && (input.hit("left") || input.hit("right"))) { const r = this.menuSel % L.rows, c = (Math.floor(this.menuSel / L.rows) + 1) % L.cols, ni = c * L.rows + r; this.menuSel = Math.min(keys.length - 1, ni); sfx("click"); }
     if (input.hit("back")) { this.menuOpen = false; sfx("click"); }
     if (input.hit("interact") || input.hit("confirm")) this.cook(keys[this.menuSel]);
   }
@@ -891,10 +910,11 @@ export class QuanScene {
     // chosen menu card (bottom-left, right of the phone icon)
     const sel = this.boardSel || this.board?.selection?.() || { menu: Object.keys(this.menu), portions: this.portions };
     const items = sel.menu.map((k) => dishName(k) + (sel.portions && sel.portions[k] != null ? " ×" + sel.portions[k] : ""));
-    const w = Math.min(300, Math.max(120, Math.ceil(measure(items.join(" · "), 7, 800)) + 16)), x = 46, y = H - 34;
+    let line = items.join(" · "); while (line.length > 8 && measure(line, 7, 800) > 284) line = line.slice(0, -3) + "…"; // 12 dishes with Đặc sản: clip
+    const w = Math.min(300, Math.max(120, Math.ceil(measure(line, 7, 800)) + 16)), x = 46, y = H - 34;
     panel(x, y, w, 24, { fill: HUD.fill, border: HUD.border, r: 6 });
     txt("THỰC ĐƠN TỐI NAY", x + 6, y + 9, { size: 7, color: "#ffd23a", weight: 900 });
-    txt(items.length ? items.join(" · ") : "chưa chọn món", x + 6, y + 19, { size: 7, color: items.length ? HUD.text : "#ff9a9a", weight: 800 });
+    txt(items.length ? line : "chưa chọn món", x + 6, y + 19, { size: 7, color: items.length ? HUD.text : "#ff9a9a", weight: 800 });
     let unread = 0; try { unread = this.callMeta("unreadCount") || 0; } catch (e) {}
     drawPhoneIcon(unread, time);
   }
@@ -1094,14 +1114,15 @@ export class QuanScene {
     if (qn || this.left_queue) { panel(80, 40, 96, 13, { fill: F, border: qn >= this.queueMax ? "#ffb36b" : HUD.dim, r: 5 }); txt("Hàng chờ " + qn + "/" + this.queueMax, 85, 49.5, { size: 7, color: "#9fd8ff", weight: 900 }); txt("Về " + this.left_queue, 171, 49.5, { size: 7, align: "right", color: this.left_queue ? "#ffb36b" : "#c9a88a", weight: 900 }); }
     if (this.missed || this.noDish) { panel(6, 56, 112, 13, { fill: F, border: HUD.dim, r: 5 }); txt("Khách về vì hết món: " + this.missed, 11, 65.5, { size: 7, color: "#ffb36b", weight: 900 }); }
     // menu board targets: sold / target per selected dish, "Hết suất" once the target is met
-    if (this.portions) Object.keys(this.menu).forEach((k, i) => {
-      const tg = this.portions[k]; if (tg == null) return;
-      const y = 72 + i * 14, sold = this.sold[k] || 0, out = this.soldOut(k);
-      panel(6, y, 74, 13, { fill: F, border: out ? "#ff8a8a" : HUD.dim, r: 5 });
-      u.imageSmoothingEnabled = false; u.drawImage(dishIcon(k), 8, y + 1, 11, 11);
-      txt(`${sold}/${tg}`, 22, y + 9.5, { size: 7, color: out ? "#ffb0a0" : HUD.text, weight: 900 });
-      if (out) txt("Hết suất", 77, y + 9.5, { size: 7, align: "right", color: "#ff8a8a", weight: 900 });
-    });
+    if (this.portions) { const pk = Object.keys(this.menu).filter((k) => this.portions[k] != null), rows = pk.length > 8 ? Math.ceil(pk.length / 2) : pk.length;
+      pk.forEach((k, i) => {
+        const tg = this.portions[k], x = 6 + Math.floor(i / Math.max(1, rows)) * 78, y = 72 + (i % Math.max(1, rows)) * 14, sold = this.sold[k] || 0, out = this.soldOut(k), prem = isPremiumDish(k);
+        panel(x, y, 74, 13, { fill: F, border: out ? "#ff8a8a" : prem ? "#ffd23a" : HUD.dim, r: 5 });
+        u.imageSmoothingEnabled = false; u.drawImage(dishIcon(k), x + 2, y + 1, 11, 11);
+        txt(`${sold}/${tg}`, x + 16, y + 9.5, { size: 7, color: out ? "#ffb0a0" : HUD.text, weight: 900 });
+        if (out) txt("Hết suất", x + 71, y + 9.5, { size: 7, align: "right", color: "#ff8a8a", weight: 900 });
+        else if (prem) txt("★", x + 71, y + 9.5, { size: 7, align: "right", color: "#ffd23a", weight: 900 });
+      }); }
     // money
     panel(6, 5, 70, 15, { fill: F, border: HUD.border, r: 6 });
     txt("🪙", 12, 16, { size: 9 }); txt(this.money + "k", 72, 16, { size: 11, align: "right", color: "#ffe14d", weight: 900 });
@@ -1116,14 +1137,17 @@ export class QuanScene {
     const resv = this.reservedTotals(), kinds = [...new Set(this.items.map((it) => it.kind))];
     const keys = Object.keys({ ...this.stock, ...resv }).filter((k) => (this.stock[k] || 0) > 0 || (resv[k] || 0) > 0);
     for (const k of kinds) if (!keys.includes(k)) keys.push(k);
-    const sw2 = 42, sx0 = W - 6 - keys.length * sw2;
-    keys.forEach((k, i) => { const x = sx0 + i * sw2; panel(x, 5, sw2 - 2, 22, { fill: F, border: HUD.dim, r: 4 }); u.imageSmoothingEnabled = false; u.drawImage(icon(k), x + 2, 7, 10, 10);
-      txt("×" + (this.stock[k] || 0), x + 13, 16, { size: 8, color: (this.stock[k] || 0) ? HUD.text : "#ff9a9a", weight: 900 });
-      if (resv[k]) txt("+" + resv[k], x + sw2 - 4, 16, { size: 7, align: "right", color: "rgba(200,200,200,.6)", weight: 800 });
-      const good = this.items.filter((it) => it.kind === k && !it.spoiled), nSp = this.items.filter((it) => it.kind === k && it.spoiled).length;
+    // they stay right of the clock (x ≥ 270): beyond one row's room they wrap to a second row of narrower chips
+    const room = W - 6 - 270, cols = keys.length * 42 <= room ? Math.max(1, keys.length) : Math.ceil(keys.length / 2);
+    const sw2 = Math.min(42, Math.floor(room / Math.max(1, cols))), sx0 = W - 6 - Math.min(keys.length, cols) * sw2;
+    this.chipRows = keys.length > cols ? 2 : 1;
+    keys.forEach((k, i) => { const x = sx0 + (i % cols) * sw2, y0 = 5 + Math.floor(i / cols) * 24; panel(x, y0, sw2 - 2, 22, { fill: F, border: isPremiumKind(k) ? "#ffd23a" : HUD.dim, r: 4 }); u.imageSmoothingEnabled = false; u.drawImage(icon(k), x + 2, y0 + 2, 10, 10);
+      txt("×" + (this.stock[k] || 0), x + 13, y0 + 11, { size: 8, color: (this.stock[k] || 0) ? HUD.text : "#ff9a9a", weight: 900 });
+      if (resv[k]) txt("+" + resv[k], x + sw2 - 4, y0 + 11, { size: 7, align: "right", color: "rgba(200,200,200,.6)", weight: 800 });
+      const good = this.items.filter((it) => it.kind === k && !it.spoiled), nSp = this.items.filter((it) => it.kind === k && it.spoiled).length, bw = Math.min(18, sw2 - 8);
       if (good.length) { const best = Math.max(...good.map((it) => it.fresh)), avg = good.reduce((a, it) => a + it.fresh, 0) / good.length;
-        freshBar(u, x + 3, 20, 18, 3, best, false); u.fillStyle = "#fff"; u.fillRect(x + 3 + Math.round(18 * avg / 100), 19, 1, 5); }
-      if (nSp) txt(nSp + "ươn", x + sw2 - 4, 25, { size: 7, align: "right", color: "#ff5a5a", weight: 900 }); });
+        freshBar(u, x + 3, y0 + 15, bw, 3, best, false); u.fillStyle = "#fff"; u.fillRect(x + 3 + Math.round(bw * avg / 100), y0 + 14, 1, 5); }
+      if (nSp) txt(nSp + "ươn", x + sw2 - 4, y0 + 20, { size: 7, align: "right", color: "#ff5a5a", weight: 900 }); });
     // early-close button (wood style, clickable) + confirmation / no-dish banners
     if (!this.result && !pre) {
       const b = this.closeBtn, armed = this.confirmClose > 0;
@@ -1133,7 +1157,7 @@ export class QuanScene {
       else if (this.noDish) { const a = 0.75 + 0.25 * Math.sin(time * 4); panel(W / 2 - 150, 52, 300, 16, { fill: `rgba(80,20,20,${0.9 * a})`, border: "#ff8a8a", r: 6 }); txt((this.allSoldOut ? "Hết suất — khách ghé rồi về" : "Hết nguyên liệu — khách ghé rồi về") + " · C: Đóng quán sớm", W / 2, 63, { size: 8, align: "center", color: "#ffe0d0", weight: 900 }); }
     }
     // hand indicator
-    if (this.hand) { const s = "Đang bưng: " + dishName(this.hand.key), hw = Math.max(86, Math.ceil(measure(s, 7, 800)) + 10); panel(W - 6 - hw, 30, hw, 14, { fill: "rgba(70,30,12,.9)", border: "#ff8a3d", r: 6 }); txt(s, W - 1 - hw, 40, { size: 7, color: "#ffd0a0", weight: 800 }); }
+    if (this.hand) { const s = "Đang bưng: " + dishName(this.hand.key), hw = Math.max(86, Math.ceil(measure(s, 7, 800)) + 10); const hy = this.chipRows > 1 ? 54 : 30; panel(W - 6 - hw, hy, hw, 14, { fill: "rgba(70,30,12,.9)", border: "#ff8a3d", r: 6 }); txt(s, W - 1 - hw, hy + 10, { size: 7, color: "#ffd0a0", weight: 800 }); }
     txt(pre ? "WASD đi · E: bảng thực đơn / Bà Tư / chuông · O/N: mở quán · T điện thoại · Esc/P tạm dừng" : "WASD đi · E nấu/bưng/phục vụ/trò chuyện · C đóng quán sớm · Esc/P tạm dừng", W / 2, H - 4, { size: 7, align: "center", color: "rgba(255,233,196,.55)", weight: 700, stroke: "rgba(10,8,20,.6)", sw: 2 });
   }
   star(u, x, y, fill, time, i) {
@@ -1147,31 +1171,44 @@ export class QuanScene {
     u.lineWidth = 0.6; u.strokeStyle = "rgba(0,0,0,.5)"; u.stroke();
     u.restore();
   }
+  // cook menu geometry: one column up to 6 dishes, two columns beyond (12 with every Đặc sản) — no overflow
+  menuLayout(n) {
+    const cols = n > 6 ? 2 : 1, rows = Math.max(1, Math.ceil(n / cols)), rowH = cols > 1 ? 30 : n > 4 ? 28 : 34;
+    const cw = cols > 1 ? 228 : 300, pw = cols * cw + (cols > 1 ? 4 : 0), ph = 36 + rows * rowH;
+    return { cols, rows, rowH, cw, pw, ph, px: W / 2 - pw / 2, py: Math.max(4, H / 2 - ph / 2) };
+  }
   drawMenu(c, time) {
     c.fillStyle = "rgba(14,8,6,.55)"; c.fillRect(0, 0, W, H);
-    const keys = Object.keys(this.menu), rowH = keys.length > 4 ? 28 : 34, pw = 300, ph = 36 + Math.max(1, keys.length) * rowH;
-    const px = W / 2 - pw / 2, py = H / 2 - ph / 2;
+    const keys = Object.keys(this.menu), L = this.menuLayout(keys.length), { rowH, pw, ph, px, py } = L;
     panel(px, py, pw, ph, { fill: "rgba(46,26,14,.97)", border: HUD.border, bw: 1.5, r: 6 });
     txt("CHỌN MÓN NẤU", W / 2, py + 15, { size: 11, align: "center", color: "#ffd23a", weight: 900 });
     if (this.cookMul !== 1) txt("Bếp ×" + this.cookMul, px + pw - 8, py + 14, { size: 7, align: "right", color: this.cookMul < 1 ? "#7ee87e" : "#ff9a9a", weight: 900 });
     if (!keys.length) txt("Tối nay chưa có món nào trong thực đơn", W / 2, py + 40, { size: 8, align: "center", color: "#ff9a9a", weight: 800 });
+    const two = L.cols > 1, nameSz = two ? 8 : 9;
     keys.forEach((k, i) => {
-      const y = py + 24 + i * rowH, m = this.menu[k], sel = i === this.menuSel, can = this.canCook(k);
-      if (sel) panel(px + 5, y, pw - 10, rowH - 4, { fill: can ? "rgba(255,210,100,.18)" : "rgba(255,80,80,.14)", border: can ? "#ffd23a" : "#ff6b6b", r: 4 });
-      screen.ui.imageSmoothingEnabled = false; screen.ui.drawImage(dishIcon(k), px + 12, y + 2, 18, 18);
-      txt(dishName(k), px + 36, y + 11, { size: 9, color: can ? HUD.text : "#ff9a9a", weight: 800 });
-      const rec = Object.entries(m.recipe).map(([ik, n]) => `${KIND_NAME[ik] || ik}×${n}`).join(" + ");
-      txt(rec, px + 36, y + 22, { size: 7, color: can ? "#c9a88a" : "#d98", weight: 700 });
+      const col = Math.floor(i / L.rows), x0 = px + col * (L.cw + 4), cw = L.cw, y = py + 24 + (i % L.rows) * rowH;
+      const m = this.menu[k], sel = i === this.menuSel, can = this.canCook(k), prem = isPremiumDish(k);
+      if (sel) panel(x0 + 5, y, cw - 10, rowH - 4, { fill: can ? "rgba(255,210,100,.18)" : "rgba(255,80,80,.14)", border: can ? "#ffd23a" : "#ff6b6b", r: 4 });
+      else if (prem) panel(x0 + 5, y, cw - 10, rowH - 4, { fill: "rgba(255,210,60,.07)", border: "rgba(255,210,60,.35)", r: 4 });
+      screen.ui.imageSmoothingEnabled = false; screen.ui.drawImage(dishIcon(k), x0 + 10, y + 2, 18, 18);
+      let nm = dishName(k); const maxNm = cw - 36 - (two ? 74 : 92) - (prem ? 40 : 0);
+      while (nm.length > 4 && measure(nm, nameSz, 800) > maxNm) nm = nm.slice(0, -2) + "…";
+      txt(nm, x0 + 32, y + 11, { size: nameSz, color: can ? (prem ? "#ffe9a0" : HUD.text) : "#ff9a9a", weight: 800 });
+      if (prem) premiumBadge(x0 + 34 + measure(nm, nameSz, 800), y + 3);
+      let rec = Object.entries(m.recipe).map(([ik, n]) => `${KIND_NAME[ik] || ik}×${n}`).join(" + ");
+      const maxRec = cw - 36 - (two ? 40 : 50); while (rec.length > 4 && measure(rec, 7, 700) > maxRec) rec = rec.slice(0, -2) + "…";
+      txt(rec, x0 + 32, y + 22, { size: 7, color: can ? "#c9a88a" : "#d98", weight: 700 });
+      const rx = x0 + cw - 10;
       { const pv = can ? this.lockPreview(k) : null; // v1.2: price that would be locked now, from the freshness of the items used
-        if (pv && pv.price !== m.price) txt(`${m.price}k → ${pv.price}k (tươi ${Math.floor(pv.mean)}%)`, px + pw - 12, y + 11, { size: 8, align: "right", color: freshColor(pv.mean, false), weight: 900 });
-        else txt(m.price + "k" + (pv ? " (tươi " + Math.floor(pv.mean) + "%)" : ""), px + pw - 12, y + 11, { size: pv ? 8 : 10, align: "right", color: "#ffe14d", weight: 900 }); }
+        if (pv && pv.price !== m.price) txt(two ? `${m.price}→${pv.price}k` : `${m.price}k → ${pv.price}k (tươi ${Math.floor(pv.mean)}%)`, rx, y + 11, { size: two ? 7.5 : 8, align: "right", color: freshColor(pv.mean, false), weight: 900 });
+        else txt(m.price + "k" + (pv && !two ? " (tươi " + Math.floor(pv.mean) + "%)" : ""), rx, y + 11, { size: pv ? 8 : 10, align: "right", color: "#ffe14d", weight: 900 }); }
       const eff = this.cookTime(k);
       if (eff !== m.cook_s) { // upgraded stove: effective time, base time dimmed beside it
-        txt(fmtS(eff), px + pw - 12, y + 22, { size: 7, align: "right", color: "#7ee87e", weight: 900 });
-        txt(fmtS(m.cook_s) + " →", px + pw - 12 - measure(fmtS(eff), 7, 900) - 3, y + 22, { size: 7, align: "right", color: "rgba(201,168,138,.6)", weight: 700 });
-      } else txt(fmtS(m.cook_s), px + pw - 12, y + 22, { size: 7, align: "right", color: "#c9a88a", weight: 700 });
+        txt(fmtS(eff), rx, y + 22, { size: 7, align: "right", color: "#7ee87e", weight: 900 });
+        txt(fmtS(m.cook_s) + " →", rx - measure(fmtS(eff), 7, 900) - 3, y + 22, { size: 7, align: "right", color: "rgba(201,168,138,.6)", weight: 700 });
+      } else txt(fmtS(m.cook_s), rx, y + 22, { size: 7, align: "right", color: "#c9a88a", weight: 700 });
     });
-    txt("↑↓ chọn · E nấu · Esc huỷ", W / 2, py + ph - 6, { size: 7, align: "center", color: "rgba(255,233,196,.6)", weight: 700 });
+    txt(two ? "↑↓ chọn · ←→ đổi cột · E nấu · Esc huỷ" : "↑↓ chọn · E nấu · Esc huỷ", W / 2, py + ph - 6, { size: 7, align: "center", color: "rgba(255,233,196,.6)", weight: 700 });
   }
   drawHint(c) {
     const a = clamp(this.hintT, 0, 1);

@@ -6,7 +6,7 @@ import { R as R0 } from "./art.js";
 
 const CORE_D = 10; // the monster only detects / hits the diver at d ≥ 10
 // GUI-only hunting layer (headless contract untouched): HP, enrage after a hit, defeat for the rest of the dive.
-export const CROC_HUNT = { id: "ca_sau", name: "Cá Sấu Năm Chèo", hp: 24, bounty: 200, rageS: 4, rageMul: 1.15, sinkS: 2.5 };
+export const CROC_HUNT = { id: "ca_sau", name: "Cá Sấu Năm Chèo", hp: 24, bounty: 100, rageS: 4, rageMul: 1.15, sinkS: 2.5 };
 
 // spawns active for this day: from_day ≤ day (standalone gather = day 1)
 export function makeCrocs(mon, day = 1) {

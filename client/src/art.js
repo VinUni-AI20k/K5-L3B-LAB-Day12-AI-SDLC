@@ -1,5 +1,5 @@
 // Procedural pixel art. Everything draws on the low-res `px` canvas with integer rects, so it reads as pixel art.
-import { W, H, lerp } from "./engine.js";
+import { W, H, lerp, txt, panel, measure } from "./engine.js";
 
 export const P = {
   ink: "#1a1220", white: "#fff6e8",
@@ -55,6 +55,8 @@ const PAL = {
   x: P.leaf, X: P.leafD, i: P.pink, I: P.pinkD, u: P.loc, U: P.locD, z: P.silver, Z: P.silverD, a: P.wood, A: P.woodD, q: "#f7b733",
   // v1.1 kinds/dishes: cá kèo brown-grey, canh chua orange-red, lẩu mắm dark clay + broth
   j: P.keo, J: P.keoD, O: "#e8642a", Q: "#ff9a4a", D: "#3a2622", E: "#6a4434", M: "#7a4a2a", K: "#a8683a",
+  // premium (Đặc sản, menu.js): croc hide, snake bands, catfish grey-blue, cá lóc bông spots, lemongrass / gourd green
+  d: "#4f7a34", W: "#2f4a22", Y: "#c9a050", P: "#6a4420", 1: "#8a9aa8", 2: "#56677a", 3: "#e07a30", 5: "#cfe07a",
 };
 const cache = new Map();
 export function pmap(key, rows) {
@@ -199,9 +201,66 @@ DISHES.lau_mam = [
   "EEEEEEEEEEEEEEEE", "DDKDDDDDDDDDDKDD", ".DDDDDDDDDDDDDD.", "..DKDDDDDDDDKD..",
   "...rRrRrRrRrRr..", "..rqrqrqrqrqrqr.", "................", "................",
 ];
+// premium kinds (menu.js PREMIUM_KINDS; GUI only, drops from hunted monsters / deep fish)
+Object.assign(ICONS, {
+  thit_ca_sau: ["..........", "..dWdWdW..", ".dWdWdWdW.", "dWdWdWdWdW", "iiiiiiiiiW", "iIiiiIiiiW", "iiiIiiiIi.", ".IIIIIIII.", "..........", ".........."],
+  thit_ran: ["..........", "...YPYP...", "..P....Y..", ".Y..YPY..P", ".P.P...Y.Y", ".Y.Y.eP..P", "..P..YP.Y.", "...YPY.PY.", "......YPkk", ".........."],
+  ca_loc_bong: ["..........", "..........", ".UuUuUuu..", "u3uu3uu3uU", "eUu3uUu3uu", "uu3uu3uuuU", ".UUUUUUU..", "..........", "..........", ".........."],
+  ca_loc_kl: ["..........", "...UUU....", ".uuuuuuuU.", "uuUuUuUuuU", "eUuUuUuUuu", "uuuuuuuuuU", "uUuUuUuUuU", ".UUUUUUUU.", "...U..U...", ".........."],
+  ca_linh_lon: ["..........", "...ffff...", ".zzzzzzzZ.", "ZzezzzzzzZ", "zzzzzzzzzZ", ".zzzzzzzzZ", "..ZZZZZ.Z.", "..........", "..........", ".........."],
+  ca_tra_dau: ["..........", "...1111...", ".11111111.", "k1e111111.", "k222222222", ".k2222222.", "..2.2...2.", "..........", "..........", ".........."],
+});
+// premium dishes (menu.js GUI_MENU_EXTRA): each on its own base so they read apart at 11–18 px
+DISHES.ca_sau_nuong_sa_ot = [ // croc skewers with lemongrass + chili on a banana leaf
+  "................", "..r.......r.....", "aadWdWdWdWdWaa..", "..iIiiIiiIiI....",
+  "...5..r..5..r...", "....5....5......", "aadWdWdWdWdWaa..", "..iIiiIiiIiI....",
+  "....r..5...r....", "................", ".xxxxxxxxxxxxxx.", "xXxxxXxxxxXxxxXx",
+  ".xxxxxxxxxxxxxx.", "..XXXXXXXXXXXX..", "................", "................",
+];
+DISHES.ran_xao_sa_ot = [ // stir-fried snake, yellow điên điển, chili, on a dark wok
+  "................", "................", "....f..r...f....", "..YPf.YPr.YP.f..",
+  ".PYrYPfYPYPrYPf.", "..f5YPrYP5fYP...", "DDDDDDDDDDDDDDDD", ".DEEEEEEEEEEEEDa",
+  "..DEEEEEEEEEEDaa", "...DDDDDDDDDD...", "................", "................",
+  "................", "................", "................", "................",
+];
+DISHES.ca_loc_bong_hap_bau = [ // spotted snakehead on gourd slices + lotus, steaming in a tray
+  "......C...C.....", ".....C...C......", "................", "..5555555555555.",
+  ".5UuUuUuUuUuUu5.", "5u3uu3uu3uu3uuU5", "e3Uu3uUu3uUu3uu5", "5uu3uu3uu3uuuuU5",
+  ".5UUUUUUUUUUUU5.", "..i5i5i5i5i5i5..", ".zzzzzzzzzzzzzz.", "zZZZZZZZZZZZZZZz",
+  ".zzzzzzzzzzzzzz.", "................", "................", "................",
+];
+DISHES.ca_loc_kl_nuong_trui = [ // a whole giant snakehead, charred, on a big straw bed
+  "................", ".n.n..n.n.n..n..", "nNnNnnNnNnnNnNn.", ".kUuUuUuUuUuUuk.",
+  "kuuuuuuuuuuuuuuk", "eUkUuUkUuUkUuUuk", "kuuuuuuuuuuuuuuk", ".kUuUuUuUuUuUuk.",
+  "nNnNnnNnNnnNnNn.", "..kkkkkkkkkkk...", "nnnnnnnnnnnnnnnn", "NNNNNNNNNNNNNNNN",
+  ".nnnnnnnnnnnnnn.", "................", "................", "................",
+];
+DISHES.goi_ca_linh_lon = [ // salad: silver fish, kèo nèo, chili, peanut on a white plate
+  "................", "....x.....x.....", "...xXx.f.xXx....", "..zzZz.rzzZz.x..",
+  ".xzezzxZzezzrXx.", "..zzZzqxzzZzqx..", "..cxrxcqcxrcxc..", ".ccccccccccccccc",
+  "cccccccccccccccc", ".cCCCCCCCCCCCCc.", "..cccccccccccc..", "................",
+  "................", "................", "................", "................",
+];
+DISHES.lau_ca_tra_dau = [ // gold-rimmed hot pot: catfish, lotus, điên điển, on a brazier
+  "......C..C......", ".....C..C..C....", "......C..C......", "..FFFFFFFFFFFF..",
+  ".FqqiqI11qfqqiF.", ".Fqi11112qqfFqF.", ".Fq2222221qiqqF.", ".FqfqqiqqqfqqqF.",
+  "FFFFFFFFFFFFFFFF", "fFffffffffffffFf", ".ffffffffffffff.", "..fFffffffffFf..",
+  "...rRrRrRrRrRr..", "..rqrqrqrqrqrqr.", "................", "................",
+];
 export const DISH_NAME = { ca_loc_nuong_trui: "Cá lóc nướng trui", goi_bong_sung: "Gỏi bông súng", lau_ca_linh_dien_dien: "Lẩu cá linh bông điên điển",
-  canh_chua_ca_loc: "Canh chua cá lóc bông điên điển", ca_keo_nuong: "Cá kèo nướng muối ớt", lau_mam: "Lẩu mắm miền Tây" };
-export const KIND_NAME = { ca_linh: "cá linh", ca_loc: "cá lóc", bong_dien_dien: "bông điên điển", bong_sung: "bông súng", ca_keo: "cá kèo", keo_neo: "kèo nèo" };
+  canh_chua_ca_loc: "Canh chua cá lóc bông điên điển", ca_keo_nuong: "Cá kèo nướng muối ớt", lau_mam: "Lẩu mắm miền Tây",
+  // premium (Đặc sản, menu.js)
+  ca_sau_nuong_sa_ot: "Cá sấu nướng sả ớt", ran_xao_sa_ot: "Rắn xào sả ớt", ca_loc_bong_hap_bau: "Cá lóc bông hấp bầu",
+  ca_loc_kl_nuong_trui: "Cá lóc khổng lồ nướng trui", goi_ca_linh_lon: "Gỏi cá linh lớn", lau_ca_tra_dau: "Lẩu cá tra dầu" };
+export const KIND_NAME = { ca_linh: "cá linh", ca_loc: "cá lóc", bong_dien_dien: "bông điên điển", bong_sung: "bông súng", ca_keo: "cá kèo", keo_neo: "kèo nèo",
+  thit_ca_sau: "thịt cá sấu", thit_ran: "thịt rắn", ca_loc_bong: "cá lóc bông", ca_loc_kl: "cá lóc khổng lồ", ca_linh_lon: "cá linh lớn", ca_tra_dau: "cá tra dầu" };
+// small gold "Đặc sản" badge (UI layer, engine txt/panel): returns its width
+export function premiumBadge(x, y, label = "Đặc sản", alpha = 1) {
+  const w = Math.ceil(measure(label, 6.5, 900)) + 8;
+  panel(x, y, w, 9, { fill: "#ffd23a", border: "#7a4a08", r: 3, alpha });
+  txt(label, x + w / 2, y + 7, { size: 6.5, align: "center", color: "#3a1a04", weight: 900, alpha });
+  return w;
+}
 
 export const icon = (k) => pmap("i:" + k, ICONS[k] || ICONS.ca_linh);
 export const dishIcon = (k) => pmap("d:" + k, DISHES[k] || DISHES.goi_bong_sung);

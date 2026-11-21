@@ -5,6 +5,7 @@ import { sfx } from "./audio.js";
 import { icon, ICONS, DISH_NAME, KIND_NAME } from "./art.js";
 import * as progress from "./progress.js";
 import * as meta from "./meta.js";
+import { GUI_MENU_EXTRA, PREMIUM_HINT } from "./menu.js"; // Đặc sản recipes (Sổ tay)
 
 export const GOLD = "#ffd23f", BORDER = "#f3d27a", WOOD = "rgba(40,22,12,.96)", WOODL = "#7a4a2a";
 const DIM = "rgba(255,255,255,.62)";
@@ -148,9 +149,17 @@ function choreOffers() {
 }
 function catalogPage() {
   const cat = Object.entries(progress.save.catalog || {}).sort((a, b) => (a[1].firstDay || 0) - (b[1].firstDay || 0));
+  const rec = { label: "★ Công thức đặc sản", sub: `${Object.keys(GUI_MENU_EXTRA).length} món từ thịt quý — hạ quái, bắt cá lớn`, right: "▶", rightCol: GOLD, act: (n) => n.push(premiumPage) };
   return { title: "Sổ tay", empty: "Chưa ghi con nào. Lặn xuống sông xem có gì nghen!", info: `Đã gặp ${cat.length} loài`,
-    items: cat.map(([k, e]) => ({ label: e.name || KIND_NAME[k] || k, icon: ICONS[k] ? icon(k) : null, right: `×${e.caught || 0}`, sub: `Gặp lần đầu: Ngày ${e.firstDay ?? "?"}`,
-      act: (n) => n.note(`${e.name || k}: đã bắt ${e.caught || 0} lần.`) })) };
+    items: [rec, ...cat.map(([k, e]) => ({ label: e.name || KIND_NAME[k] || k, icon: ICONS[k] ? icon(k) : null, right: `×${e.caught || 0}`, sub: `Gặp lần đầu: Ngày ${e.firstDay ?? "?"}`,
+      act: (n) => n.note(`${e.name || k}: đã bắt ${e.caught || 0} lần.`) }))] };
+}
+// Đặc sản recipes (menu.js GUI_MENU_EXTRA): ingredients, cook time, list price
+function premiumPage() {
+  const rec = (m) => Object.entries(m.recipe).map(([k, q]) => `${KIND_NAME[k] || k} ×${q}`).join(" + ");
+  return { title: "Công thức đặc sản", info: (it) => it?.desc || PREMIUM_HINT,
+    items: Object.entries(GUI_MENU_EXTRA).map(([id, m]) => ({ label: DISH_NAME[id] || id, sub: `${rec(m)} · ${m.cook_s} s`, desc: rec(m), right: `${m.price}k`, rightCol: GOLD,
+      act: (n) => n.note(`${DISH_NAME[id] || id}: ${rec(m)}, nấu ${m.cook_s} giây, bán ${m.price}k (khách sộp ×1.5).`) })) };
 }
 function messagesPage() {
   const ms = meta.getMessages();

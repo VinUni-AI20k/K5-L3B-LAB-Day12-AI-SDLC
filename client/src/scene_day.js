@@ -4,7 +4,8 @@
 // All text is sans-serif ≥ size 7 (≈ 18.7 px at 1280×720 since the UI layer scales with the window).
 import { W, H, screen, input, clamp, txt, panel, measure, wrap } from "./engine.js";
 import { sfx, voiceLine } from "./audio.js";
-import { portrait, icon, dishIcon, DISH_NAME, KIND_NAME } from "./art.js";
+import { portrait, icon, dishIcon, DISH_NAME, KIND_NAME, premiumBadge } from "./art.js";
+import { menuAll, isPremiumDish } from "./menu.js"; // contract menu + GUI-only Đặc sản dishes
 import { riverWorld } from "./story.js";
 import * as progress from "./progress.js";
 import { freshCfg, freshestFirst, isSpoiled, nextItemId, idNum } from "./fresh.js";
@@ -113,10 +114,12 @@ export function servings(recipe, stock) { let n = Infinity; for (const [k, q] of
 // items (v1.2): the handover [{ id, kind, fresh }] (gather haul + Chợ Chú Sáu delivery) — servings count usable (≥ spoiled_below) only.
 // opts.delivered: item ids that came from Chợ Chú Sáu (marked "Hàng chợ").
 // Board: every contract dish with toggle (plan dishes pre-selected, "Kế hoạch"), target portions stepper capped by what is
-// cookable — usable stock is shared between selected dishes greedily in board order. onDone({ menu: [ids], portions: {id: n} }).
+// cookable — usable stock is shared between selected dishes greedily (Đặc sản first, priciest first, then board order). onDone({ menu: [ids], portions: {id: n} }).
+// Đặc sản (menu.js, GUI only): listed after the contract dishes with a gold badge; never in Má Tư's plan; pre-selected only
+// when the stock can cook them. The list scrolls (6–7 rows visible) so 12 dishes never overflow the screen.
 export class EveningIntro extends Base {
   constructor(contract, day, stock, onDone, items = null, opts = {}) {
-    super("dusk"); this.onDone = onDone; this.day = day; this.stock = stock || {}; this.menu = contract.tuning.menu;
+    super("dusk"); this.onDone = onDone; this.day = day; this.stock = stock || {}; this.menu = menuAll(contract);
     this.popup = !!(opts && opts.popup); // pre-open raft: centred board over the live quán instead of a full screen
     this.below = { spoiled_below: 30, ...contract.freshness }.spoiled_below;
     this.items = Array.isArray(items) ? items : null;
@@ -130,9 +133,12 @@ export class EveningIntro extends Base {
     this.plan = planFor(contract, day);
     this.planIds = this.plan ? Object.keys(this.plan.dishes).filter((k) => this.menu[k]) : [];
     let cm = 1; try { cm = progress.stats(contract).cookMul || 1; } catch (e) {}
-    this.rows = Object.keys(this.menu).map((id) => ({ id, plan: this.planIds.includes(id), on: this.planIds.includes(id), target: 0, can: 0, auto: true,
+    this.planIds = this.planIds.filter((k) => !isPremiumDish(k)); // Đặc sản are never part of Má Tư's plan
+    this.rows = Object.keys(this.menu).map((id) => ({ id, plan: this.planIds.includes(id), on: this.planIds.includes(id), target: 0, can: 0, auto: true, premium: isPremiumDish(id),
       alone: servings(this.menu[id].recipe, this.usable), cook: Math.round(this.menu[id].cook_s * cm * 10) / 10, expect: this.expectPrice(id) }));
     if (!this.planIds.length) for (const r of this.rows) r.on = r.alone > 0; // no plan (old contract): everything cookable
+    for (const r of this.rows) if (r.premium) r.on = r.alone > 0; // Đặc sản: on only when tonight's stock can cook them
+    this.top = 0; // first visible board row (scrolling list)
     this.recalc();
     this.sel = this.rows.length; // starts on "Mở quán ▶" (Enter opens with Má Tư's plan, as before)
     this.msg = null;
@@ -148,7 +154,8 @@ export class EveningIntro extends Base {
   // greedy in board order: each selected dish takes target × recipe from what is left; `can` = cookable from what is left
   recalc() {
     const rem = { ...this.usable };
-    for (const r of this.rows) {
+    const prem = this.rows.filter((q) => q.premium).sort((a, b) => this.menu[b.id].price - this.menu[a.id].price);
+    for (const r of [...prem, ...this.rows.filter((q) => !q.premium)]) { // Đặc sản (priciest first) claim their side ingredients first
       const rec = this.menu[r.id].recipe; r.can = servings(rec, rem);
       if (!r.on) continue;
       if (r.auto) { r.target = r.can; r.auto = false; } // freshly switched on: as many as the stock covers
@@ -196,7 +203,7 @@ export class EveningIntro extends Base {
     this.bg(); const u = screen.ui; u.imageSmoothingEnabled = false;
     txt(`NGÀY ${this.day} · CHUẨN BỊ MỞ QUÁN`, W / 2, 24, { size: 16, align: "center", color: "#ff8a3d", weight: 900, italic: true, stroke: "#3a1410", sw: 5 });
     // stock received (left)
-    const ks = Object.entries(this.stock).filter(([, n]) => n > 0), its = this.items, rh = its ? 22 : 13, pw = 168;
+    const ks = Object.entries(this.stock).filter(([, n]) => n > 0), its = ks.length > 6 ? null : this.items, rh = its ? 22 : 13, pw = 168; // many kinds (Đặc sản): one compact line each
     const ph = 22 + Math.max(1, ks.length) * rh;
     panel(12, 34, pw, ph, { fill: "rgba(8,20,38,.88)", border: "#7ac0ff", r: 6 });
     txt("NHẬP KHO" + (its ? " · ĐỘ TƯƠI" : ""), 12 + pw / 2, 45, { size: 8, align: "center", color: "#9fd8ff", weight: 900 });
@@ -209,25 +216,39 @@ export class EveningIntro extends Base {
       for (const it of mine) { const bad = it.fresh < this.below || it.spoiled; spoiled ||= bad; const part = `${it.id}${this.delivered.has(it.id) ? "(chợ)" : ""} ${bad ? "ươn" : Math.floor(it.fresh) + "%"}`; const next = line ? line + " · " + part : part; if (measure(next, 7, 700) > pw - 16) { line += " …"; break; } line = next; }
       txt(line, 18, y + 18, { size: 7, color: spoiled ? "#ffb0a0" : "rgba(220,245,255,.8)", weight: 700 }); });
     this.warn.forEach((w, i) => txt("! " + w, 16, 34 + ph + 10 + i * 10, { size: 7, color: "#ff8a8a", weight: 900, stroke: "#1a0a0a", sw: 2 }));
-    this.drawBoard(186, 32, W - 186 - 8, "Mở quán ▶");
+    this.drawBoard(186, 32, W - 186 - 8, "Mở quán ▶", 7);
     if (this.msg) txt(this.msg.text, W / 2, H - 20, { size: 9, align: "center", color: this.msg.col, weight: 900, stroke: "#1a1220", sw: 2 });
     if (this.t > 0.6) txt("↑↓ chọn món · E/Enter bật/tắt · ←→ số phần · N: mở quán", W / 2, H - 6, { size: 7, align: "center", color: "rgba(255,255,255,.7)", weight: 700 });
   }
   // the wooden board (rows, toggles, steppers, button) — shared by the full screen and the popup
-  drawBoard(x0, top, w0, btn) {
+  // visible rows (vr) scroll with the selection; the button stays under the window
+  boardWindow(vr) {
+    const n = this.rows.length, v = Math.min(n, vr);
+    if (this.sel < n) { if (this.sel < this.top) this.top = this.sel; if (this.sel >= this.top + v) this.top = this.sel - v + 1; }
+    this.top = clamp(this.top, 0, Math.max(0, n - v));
+    return v;
+  }
+  drawBoard(x0, top, w0, btn, vr = 6) {
     const u = screen.ui; u.imageSmoothingEnabled = false;
-    const rH = 26, y0 = top + 18;
-    panel(x0, top, w0, 18 + this.rows.length * rH + 4, { fill: "rgba(96,58,30,.96)", border: "#d9a05a", r: 6, bw: 1.5 });
-    u.fillStyle = "rgba(60,34,16,.35)"; for (let i = 0; i < this.rows.length; i++) u.fillRect(x0 + 3, y0 + i * rH + rH - 1, w0 - 6, 1); // plank seams
+    const rH = 26, y0 = top + 18, v = this.boardWindow(vr);
+    panel(x0, top, w0, 18 + v * rH + 4, { fill: "rgba(96,58,30,.96)", border: "#d9a05a", r: 6, bw: 1.5 });
+    u.fillStyle = "rgba(60,34,16,.35)"; for (let i = 0; i < v; i++) u.fillRect(x0 + 3, y0 + i * rH + rH - 1, w0 - 6, 1); // plank seams
     txt("BẢNG THỰC ĐƠN TỐI NAY", x0 + w0 / 2, top + 12, { size: 8, align: "center", color: "#ffe9c4", weight: 900, stroke: "#3a1a08", sw: 2 });
+    if (v < this.rows.length) { // scroll position: "3–8/12" + arrows
+      txt(`${this.top + 1}–${this.top + v}/${this.rows.length}`, x0 + w0 - 8, top + 12, { size: 7, align: "right", color: "rgba(255,233,196,.75)", weight: 800 });
+      if (this.top > 0) txt("▲", x0 + 8, top + 12, { size: 7, color: GOLD, weight: 900 });
+      if (this.top + v < this.rows.length) txt("▼ còn món", x0 + 8, y0 + v * rH + 1 + 10, { size: 7, color: GOLD, weight: 900 });
+    }
     this.rows.forEach((r, i) => {
-      const y = y0 + i * rH, m = this.menu[r.id], sel = this.sel === i, dim = r.on ? 1 : 0.55;
+      if (i < this.top || i >= this.top + v) return;
+      const y = y0 + (i - this.top) * rH, m = this.menu[r.id], sel = this.sel === i, dim = r.on ? 1 : 0.55;
       if (sel) panel(x0 + 3, y, w0 - 6, rH - 2, { fill: "rgba(255,210,100,.2)", border: GOLD, r: 4 });
       panel(x0 + 6, y + 7, 22, 10, { fill: r.on ? "rgba(60,160,80,.95)" : "rgba(60,40,30,.9)", border: r.on ? "#9fffb8" : "rgba(255,255,255,.3)", r: 4 });
       txt(r.on ? "BẬT" : "TẮT", x0 + 17, y + 14.5, { size: 7, align: "center", color: "#fff", weight: 900 });
       u.save(); u.globalAlpha = dim; u.drawImage(dishIcon(r.id), x0 + 31, y + 3, 18, 18); u.restore();
       txt(dishName(r.id), x0 + 52, y + 10, { size: 8, color: r.on ? "#fff" : "rgba(255,255,255,.6)", weight: 900 });
       if (r.plan) { const nx = x0 + 56 + measure(dishName(r.id), 8, 900); panel(nx, y + 3, 36, 9, { fill: "rgba(255,210,63,.25)", border: GOLD, r: 3 }); txt("Kế hoạch", nx + 18, y + 10, { size: 7, align: "center", color: GOLD, weight: 900 }); }
+      if (r.premium) premiumBadge(x0 + 56 + measure(dishName(r.id), 8, 900), y + 3, "Đặc sản", r.on ? 1 : 0.7);
       let rx = x0 + 52; // recipe icons
       for (const [k, q] of Object.entries(m.recipe)) { u.drawImage(icon(k), rx, y + 14, 8, 8); txt("×" + q, rx + 9, y + 21, { size: 7, color: "rgba(255,233,196,.85)", weight: 800 }); rx += 22; }
       const ex = r.expect, price = ex != null && ex !== m.price ? `${m.price}k→${ex}k` : `${m.price}k`;
@@ -237,7 +258,7 @@ export class EveningIntro extends Base {
       txt(r.can > 0 ? `Nấu được ${r.can} phần` : "thiếu đồ", right, y + 21, { size: 7, align: "right", color: r.can > 0 ? "#7dffb0" : "#ff8a8a", weight: 900 });
     });
     // "Mở quán ▶" button
-    const bs = this.sel === this.rows.length, by = y0 + this.rows.length * rH + 8;
+    const bs = this.sel === this.rows.length, by = y0 + v * rH + 8;
     panel(x0 + w0 / 2 - 50, by, 100, 15, { fill: bs ? "rgba(200,90,30,.95)" : "rgba(110,64,32,.95)", border: bs ? GOLD : "#3a2410", bw: 1.5, r: 5 });
     txt(btn, x0 + w0 / 2, by + 11, { size: 9, align: "center", color: "#fff", weight: 900, alpha: bs ? 0.75 + 0.25 * Math.sin(this.t * 5) : 1 });
   }
@@ -248,10 +269,11 @@ export class EveningIntro extends Base {
     const w0 = Math.round(W * 0.7), x0 = Math.round((W - w0) / 2), top = 30;
     this.drawBoard(x0, top, w0, "Xong ✓");
     const ks = Object.entries(this.usable).filter(([, n]) => n > 0);
-    const sy = top + 18 + this.rows.length * 26 + 30;
+    const sy = top + 18 + Math.min(this.rows.length, 6) * 26 + 30;
     panel(x0, sy, w0, 15, { fill: "rgba(8,20,38,.9)", border: "#7ac0ff", r: 5 });
     txt("Kho dùng được:", x0 + 6, sy + 10.5, { size: 7, color: "#9fd8ff", weight: 900 });
-    let x = x0 + 70; for (const [k, n] of ks) { u.drawImage(icon(k), x, sy + 3, 9, 9); txt("×" + n, x + 10, sy + 10.5, { size: 7, color: "#fff", weight: 900 }); x += 30; }
+    const step = Math.min(30, Math.floor((w0 - 76) / Math.max(1, ks.length)));
+    let x = x0 + 70; for (const [k, n] of ks) { u.drawImage(icon(k), x, sy + 3, 9, 9); txt("×" + n, x + 10, sy + 10.5, { size: 7, color: "#fff", weight: 900 }); x += step; }
     if (!ks.length) txt("trống — khách tới đọc bảng rồi về", x, sy + 10.5, { size: 7, color: "#ffb0b0", weight: 800 });
     if (this.warn.length) txt("! " + this.warn.join(" · "), x0 + w0 - 6, sy + 10.5, { size: 7, align: "right", color: "#ff8a8a", weight: 900 });
     if (this.msg) txt(this.msg.text, W / 2, H - 20, { size: 9, align: "center", color: this.msg.col, weight: 900, stroke: "#1a1220", sw: 2 });

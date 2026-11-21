@@ -135,6 +135,8 @@ export const CHORES = [
   { key: "keoneo3", title: "Hái 3 bó kèo nèo", ev: "picked:keo_neo", goal: 3, money: 45, line: "Lẩu mắm mà thiếu kèo nèo là mất ngon, con hái giùm Bà nghen." },
   { key: "nhanh3", title: "Phục vụ nhanh 3 khách", ev: "served_fast", goal: 3, money: 70, line: "Khách ghe hàng đi sớm, con dọn món lẹ lẹ cho người ta kịp chợ." },
   { key: "ngay2", title: "Mở quán 2 ngày", ev: "day_done", goal: 2, money: 100, rep: 0.1, line: "Buôn bán phải đều tay. Con mở quán hai ngày liền cho Bà coi." },
+  // Đặc sản (menu.js, GUI only): counted by scene_quan.startCook → trackChore("premium_cooked")
+  { key: "dacsan1", title: "Nấu 1 món đặc sản", ev: "premium_cooked", goal: 1, money: 90, rep: 0.1, line: "Hạ được cá sấu, rắn nước hay bắt được cá lớn dưới vùng sâu thì nấu một món đặc sản cho khách sộp. Bà thưởng!" },
   { key: "khach12", title: "Phục vụ 12 khách", ev: "served", goal: 12, money: 120, rep: 0.2, line: "Quán mình nhỏ mà khách đông là Bà mừng. Mười hai khách nghen con." },
 ];
 export const MAX_CHORES = 3;

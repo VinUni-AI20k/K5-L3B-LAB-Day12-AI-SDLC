@@ -19,6 +19,8 @@ const STORY = [
   "Con cá tra dầu dưới khúc sông sâu già hơn Bà nữa đó. Người ta nói nó canh cửa sông. Con lặn thì coi chừng nghen.",
   "Bán quán đừng tham. Đủ ăn, đủ thương, dư chút đỉnh cho xóm giềng là được rồi.",
   "Ông Tư nhà Bà khắc cái bảng hiệu gỗ đó bằng con dao xếp. Chữ xiêu xiêu mà Bà thương.",
+  // Đặc sản (menu.js): the premium recipes, also listed in the phone's Sổ tay
+  "Hạ được cá sấu thì nướng sả ớt với kèo nèo, thịt rắn xào sả ớt với bông điên điển. Cá lóc bông hấp bầu, cá lóc khổng lồ nướng trui, cá linh lớn làm gỏi. Còn cá tra dầu thì nấu lẩu với bông súng — khách sộp trả bạc triệu đó con!",
 ];
 const GREET = ["Sen đó hả con? Ngồi xuống đây Bà nói chuyện chút.", "Nay quán sao rồi con? Có mệt hông?", "Ăn gì chưa con? Bà còn nồi cháo cá đó."];
 

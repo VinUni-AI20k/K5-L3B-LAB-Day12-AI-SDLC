@@ -9,6 +9,8 @@
 // be killed in the contract; in the GUI they have HP too (croc 24, snake 6): every spear hit stuns (croc 2 s + 3 m
 // push, numbers of the contract "Lao xua" extension) AND deals damage; at 0 HP they are defeated for this dive.
 // Inventory (I or the bag icon): freezes the dive; throw items out of the basket to free space.
+// Đặc sản (menu.js, GUI only): deep fish also drop 1 premium item of their own kind, Cá Tra Dầu 1 cá tra dầu (bounty kept),
+// a defeated croc 1 thịt cá sấu (+100k), a snake 1 thịt rắn (+20k); a full basket lets the item float away (toast).
 // Terrain (terrain.js, creative, GUI only): deep zone rock / mountains / pillars / ledge / cave (diver, spear, deep fish
 // collide); contract zone: bank cliffs + pillars / mounds / shelves in the gaps between spawn columns — background layer,
 // only the diver and the spear collide (contract fish / croc movement unchanged). Dòng nước lũ (current.js, v1.2 §2) + 2 permanent deep channels.
@@ -23,7 +25,8 @@ import { SNAKE, makeSnakes, updateSnakes, drawSnake, snakeInReach, stunSnake, da
 import { stats, recordCatch, recordHunt, recordDefeat, save, persist } from "./progress.js";
 import { makeCrocs, updateCrocs, crocHit, startRecoil, crocNear, drawCroc, stunCroc, crocAt, damageCroc, CROC_HUNT } from "./croc.js";
 import * as meta from "./meta.js";
-import { freshCfg, newItem, decay, plain, freshBar } from "./fresh.js"; // chores tracker (sibling module); every call is optional-chained
+import { freshCfg, newItem, decay, plain, freshBar } from "./fresh.js";
+import { menuAll, SPECIES_PREMIUM, MONSTER_DROP, isPremiumKind } from "./menu.js"; // GUI-only premium drops (Đặc sản) // chores tracker (sibling module); every call is optional-chained
 
 // accessibility (hub module a11y.js): loaded defensively so the dive still runs if the module is missing
 let A11Y = {}; import("./a11y.js").then((m) => { A11Y = m; }).catch(() => {});
@@ -39,7 +42,7 @@ const TAU = Math.PI * 2;
 export class GatherScene {
   // opts.day: campaign day (monster from_day filter; standalone = 1); opts.need: { kind: count } from day_plan
   constructor(contract, onEnd, opts = {}) {
-    this.t = contract.tuning.gather; this.menu = contract.tuning.menu; this.onEnd = onEnd;
+    this.t = contract.tuning.gather; this.menu = menuAll(contract); this.onEnd = onEnd;
     this.hz = contract.tuning.tick_hz || 60; this.day = opts.day || 1; this.need = opts.need || null;
     const t = this.t;
     this.p = { x: t.start_pos[0], d: 0, vx: 0, vd: 0, heading: 0, face: 1, phase: 0 };
@@ -470,10 +473,24 @@ export class GatherScene {
     recordHunt(k); this.huntK = (this.huntK || 0) + k; recordDefeat(info.id, info.name);
     meta.trackChore?.("monster_defeated:" + info.id);
     this.toast("Hạ " + info.name + "! +" + k + "k", "#ffe14d");
+    if (MONSTER_DROP[info.id]) this.addPremium(MONSTER_DROP[info.id], info.id, m.x, m.d);
     sfx("boom"); sfx("slam"); sfx("coin"); fx.hitstop(type === "croc" ? 0.15 : 0.06); fx.shake(type === "croc" ? 10 : 5, 0.6); fx.flash("rgba(255,220,120,.35)", 0.2);
     const sx = this._sx(m.x), sy = this._sy(m.d);
     this.ps.add({ x: sx, y: sy, ring: true, size: 4, life: 0.6, color: "#ffe14d", fade: false });
     for (let i = 0; i < 14; i++) this.ps.add({ x: sx, y: sy, vx: (Math.random() - .5) * 80, vy: -20 - Math.random() * 40, g: 70, size: 1 + (i % 2), life: 0.7, color: i % 3 ? "#ffe14d" : "#fff6c0" });
+  }
+  // Đặc sản drop: 1 premium item into the basket (★, tagged with its source in holdFrom); a full basket lets it float away
+  addPremium(kind, from, x, d) {
+    const nm = KIND_NAME[kind] || kind;
+    if (this.hold.length >= this.cap) {
+      this.toast("Giỏ đầy! " + nm.charAt(0).toUpperCase() + nm.slice(1) + " trôi mất…", "#ffb36b"); sfx("bubble");
+      this.sinks.push({ kind, x, d, vx: (Math.random() - .5) * 0.8, vd: -1.2, rot: 0, vr: (Math.random() - .5) * 4, life: 2.2 });
+      return false;
+    }
+    this.hold.push(kind); this.syncFrom(); this.holdFrom[this.hold.length - 1] = from;
+    this.toast("+ ★ " + nm + " (đặc sản)", "#ffd23a"); sfx("pick");
+    meta.trackChore?.("premium_got:" + kind);
+    return true;
   }
   stunCroc(m) {
     stunCroc(m, this.p.x, this.p.d, 2, 3);
@@ -506,6 +523,7 @@ export class GatherScene {
     sfx("catch"); fx.hitstop(0.05); fx.flash("rgba(180,240,255,.3)", 0.1); fx.shake(2, 0.2);
     if (f.sp) { this.toast(f.sp.name + "!", "#ffe14d"); fx.shake(4, 0.3); }
     this.toast("+ " + KIND_NAME[f.kind] + (n > 1 ? " ×" + n : ""), f.kind === "ca_linh" ? "#d4e8f2" : f.kind === "ca_keo" ? "#c8b89a" : "#8a9a5a");
+    if (f.sp && SPECIES_PREMIUM[f.sp.id]) this.addPremium(SPECIES_PREMIUM[f.sp.id], f.sp.id, f.x, f.d);
     // species catalog: contract fish log under their kind, deep fish under their species id
     const name = f.sp ? f.sp.name : KIND_NAME[f.kind].charAt(0).toUpperCase() + KIND_NAME[f.kind].slice(1);
     if (recordCatch(f.sp ? f.sp.id : f.kind, name)) this.discover(name);
@@ -521,6 +539,7 @@ export class GatherScene {
     this.toast("Bán cho thương lái: +" + k + "k", "#ffe14d"); this.toast(f.sp.name + " hạ gục!", "#ffb36b");
     sfx("coin"); sfx("sting_win"); fx.hitstop(0.15); fx.flash("rgba(255,220,120,.45)", 0.25); fx.shake(8, 0.5);
     if (recordCatch(f.sp.id, f.sp.name)) this.discover(f.sp.name);
+    if (SPECIES_PREMIUM[f.sp.id]) this.addPremium(SPECIES_PREMIUM[f.sp.id], f.sp.id, f.x, f.d); // Đặc sản: 1 cá tra dầu on top of the bounty
     const sx = this._sx(f.x), sy = this._sy(f.d);
     this.ps.add({ x: sx, y: sy, ring: true, size: 4, life: 0.6, color: "#ffe14d", fade: false });
     for (let i = 0; i < 18; i++) this.ps.add({ x: sx, y: sy, vx: (Math.random() - .5) * 90, vy: -30 - Math.random() * 50, g: 80, size: 1 + (i % 2), life: 0.8, color: i % 3 ? "#ffe14d" : "#fff6c0" });
@@ -697,7 +716,7 @@ export class GatherScene {
       u.fillStyle = "#c8955a"; u.fillRect(gx + 4, gy + 5, 7, 7); u.fillStyle = "#8a5a2a"; u.fillRect(gx + 5, gy + 3, 5, 2); u.fillRect(gx + 4, gy + 7, 7, 1);
       txt("I", gx + gw / 2, gy + gh + 8, { size: 7, align: "center", color: "#f3d27a", weight: 900 }); }
     { const nSp = this.items.filter((it) => it.spoiled).length;
-      txt(`Giỏ ${this.hold.length}/${cap}` + (nSp ? ` · ${nSp} ươn` : ""), bx + bw / 2, by + bh + 9, { size: 7, align: "center", color: nSp ? "#ff9a9a" : this.hold.length >= cap ? "#ff8a8a" : "#cfe", weight: 900 }); }
+      txt(`Giỏ ${this.hold.length}/${this.cap}` + (nSp ? ` · ${nSp} ươn` : ""), bx + bw / 2, by + bh + 9, { size: 7, align: "center", color: nSp ? "#ff9a9a" : this.hold.length >= this.cap ? "#ff8a8a" : "#cfe", weight: 900 }); }
     // basket by kind + the day's NEEDED list (collected / needed, ✓ when met)
     const have = {}; for (const k of this.hold) have[k] = (have[k] || 0) + 1;
     const kinds = this.need ? Object.keys(this.need) : Object.keys(have);
@@ -781,7 +800,9 @@ export class GatherScene {
     this.syncFrom();
     for (const it of decay(this.items, this.fresh.gather_decay_per_s, dt, this.fresh.spoiled_below)) this.toast("Ươn! " + (KIND_NAME[it.kind] || it.kind) + " " + it.id + " đã ươn", "#b0b0b0");
   }
-  itemName(i) { const id = this.holdFrom[i], sp = id && DEEP.species.find((s) => s.id === id); return sp ? sp.name : KIND_NAME[this.hold[i]] || this.hold[i]; }
+  itemName(i) { const k = this.hold[i]; if (isPremiumKind(k)) { const nm = KIND_NAME[k] || k; return nm.charAt(0).toUpperCase() + nm.slice(1); }
+    const id = this.holdFrom[i], sp = id && DEEP.species.find((s) => s.id === id); return sp ? sp.name : KIND_NAME[k] || k; }
+  isRare(i) { return !!this.holdFrom[i] || isPremiumKind(this.hold[i]); }
   openInv() { this.syncFrom(); this.inv = { sel: Math.max(0, this.hold.length - 1), confirm: null, t: 0, msg: null, tutor: !this.tutDone() }; this.tossed = []; sfx("click"); }
   // ---- inventory tutorial (until the player has thrown an item out once; flag in save.tutorial.inventory) ----
   tutDone() { return !!save.tutorial?.inventory; }
@@ -854,7 +875,7 @@ export class GatherScene {
     v.clickThrow = false;
     if (!n || !(all || one)) return;
     const kind = this.hold[v.sel], idx = all ? this.hold.map((k, i) => (k === kind ? i : -1)).filter((i) => i >= 0) : [v.sel];
-    const rare = idx.some((i) => this.holdFrom[i]);
+    const rare = idx.some((i) => this.isRare(i));
     const key = (all ? "all:" : "one:") + v.sel;
     if (rare && v.confirm !== key) { v.confirm = key; sfx("hurt"); return; } // rare catch: press again to confirm
     v.confirm = null; this.throwOut(idx);
@@ -879,14 +900,14 @@ export class GatherScene {
     if ((top + VR) * g.cols < Math.max(this.hold.length, 1)) txt("▼", g.px + g.pw - 10, g.gy + VR * (g.sh + 1) - 2, { size: 8, align: "right", color: "#ffe14d", weight: 900 });
     for (let i = top * g.cols; i < Math.min(cap, (top + VR) * g.cols); i++) {
       const col = i % g.cols, row = Math.floor(i / g.cols) - top, x = g.gx + col * g.sw, y = g.gy + row * (g.sh + 1), sel = i === v.sel && i < this.hold.length;
-      const has = i < this.hold.length, rare = has && this.holdFrom[i];
+      const has = i < this.hold.length, rare = has && this.isRare(i), prem = has && isPremiumKind(this.hold[i]);
       panel(x, y, g.sw - 3, g.sh, { fill: sel ? "rgba(255,170,60,.32)" : has ? "rgba(30,18,8,.75)" : "rgba(30,18,8,.35)", border: sel ? "#ffe14d" : rare ? "#ffb36b" : "rgba(243,210,122,.3)", r: 3 });
       if (!has) continue;
       u.drawImage(icon(this.hold[i]), x + 3, y + 4, 10, 10);
       const it = this.items[i]; // v1.2: id · kind, fresh % with a bar; spoiled = grey + "ươn"
       if (it && it.spoiled) { u.fillStyle = "rgba(90,90,90,.55)"; u.fillRect(x + 1, y + 1, g.sw - 5, g.sh - 2); }
       let nm = (it ? it.id + " " : "") + (rare ? "★" : "") + this.itemName(i); if (nm.length > 14) nm = nm.slice(0, 13) + "…";
-      txt(nm, x + 15, y + 8, { size: 7, color: it?.spoiled ? "#c8c8c8" : rare ? "#ffb36b" : "#fff", weight: 800 });
+      txt(nm, x + 15, y + 8, { size: 7, color: it?.spoiled ? "#c8c8c8" : prem ? "#ffd23a" : rare ? "#ffb36b" : "#fff", weight: 800 });
       if (it) { freshBar(u, x + 15, y + 11, 26, 3, it.fresh, it.spoiled); txt(it.spoiled ? "ươn" : Math.floor(it.fresh) + "%", x + g.sw - 6, y + 16, { size: 7, align: "right", color: it.spoiled ? "#ff7a7a" : "#e8f0d8", weight: 900 }); }
     }
     if (!this.hold.length) txt("Giỏ trống", W / 2, g.gy + 14, { size: 9, align: "center", color: "rgba(255,255,255,.6)", weight: 800 });
@@ -939,10 +960,11 @@ export class GatherScene {
     txt(title, W / 2, yc, { size: 26 * lerp(1.6, 1, k), align: "center", color: col, weight: 900, italic: true, stroke: "#1a1220", sw: 5, rot: -0.03 });
     if (r.reason === "fainted") txt("Hết máu — giỏ đã mất. Về bến sớm hơn lần sau!", W / 2, yc + 20, { size: 9, align: "center", color: "#ffb0b0", weight: 700 });
     else {
-      const names = Object.keys(r.by);
-      panel(W / 2 - 100, yc + 14, 200, 20 + names.length * 11, { fill: "rgba(8,20,38,.9)", border: "#f3d27a", r: 4 });
+      const names = Object.keys(r.by), two = names.length > 6, rows = two ? Math.ceil(names.length / 2) : names.length, pw = two ? 320 : 200;
+      panel(W / 2 - pw / 2, yc + 14, pw, 20 + rows * 11, { fill: "rgba(8,20,38,.9)", border: "#f3d27a", r: 4 });
       txt("GIỎ HÔM NAY", W / 2, yc + 26, { size: 8, align: "center", color: "#ffd23a", weight: 900 });
-      names.forEach((kk, i) => { const yy = yc + 38 + i * 11; const cnt = Math.min(r.by[kk], Math.floor(r.t * 6)); screen.ui.imageSmoothingEnabled = false; screen.ui.drawImage(icon(kk), W / 2 - 86, yy - 8, 9, 9); txt(KIND_NAME[kk], W / 2 - 72, yy, { size: 8, color: "#fff", weight: 700 }); txt("×" + r.by[kk], W / 2 + 86, yy, { size: 8, align: "right", color: "#cfe", weight: 900 }); });
+      names.forEach((kk, i) => { const col = two ? Math.floor(i / rows) : 0, cx = two ? W / 2 - pw / 2 + 8 + col * (pw / 2) : W / 2 - 86, cw = two ? pw / 2 - 16 : 172, yy = yc + 38 + (i - col * rows) * 11, prem = isPremiumKind(kk);
+        screen.ui.imageSmoothingEnabled = false; screen.ui.drawImage(icon(kk), cx, yy - 8, 9, 9); txt((prem ? "★ " : "") + KIND_NAME[kk], cx + 14, yy, { size: 8, color: prem ? "#ffd23a" : "#fff", weight: 700 }); txt("×" + r.by[kk], cx + cw, yy, { size: 8, align: "right", color: "#cfe", weight: 900 }); });
     }
     if (r.t > 0.8) txt(Math.floor(r.t * 2) % 2 ? "Enter: nấu quán →   R: lặn lại" : "", W / 2, H - 22, { size: 9, align: "center", color: "#fff", weight: 900 });
   }

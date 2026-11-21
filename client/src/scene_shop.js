@@ -9,6 +9,7 @@ import { sfx, music } from "./audio.js";
 import { fish, icon, dishIcon, DISH_NAME, KIND_NAME } from "./art.js";
 import { riverWorld } from "./story.js";
 import * as progress from "./progress.js";
+import { menuAll } from "./menu.js";
 import * as Deep from "./deep.js"; // namespace import: tolerant of the deep agent renaming helpers
 
 const GOLD = "#ffd23f", BORDER = "#f3d27a", INK = "#3a1410";
@@ -49,7 +50,7 @@ export class ShopScene {
     this.mode = MODES[opts.mode] ? opts.mode : "results"; this.cfg = MODES[this.mode];
     this.tabs = this.cfg.tabs; this.ups = this.cfg.ups.filter((id) => progress.UPGRADES[id]);
     this.stock = opts.stock || {};
-    this.dishes = Object.keys(contract.tuning.menu || {});
+    this.dishes = Object.keys(menuAll(contract));
     const cookable = this.dishes.filter((d) => this.portions(d) > 0);
     this.on = new Set(cookable.length ? cookable : this.dishes); // default: everything the basket can make
     this.t = 0; this.tab = 0; this.tabT = 0; this.tabDir = 1; this.sel = 0; this.msel = 0; this.leaving = false;
@@ -61,7 +62,7 @@ export class ShopScene {
     if (this.mode === "results") sfx(this.sum.newBest ? "fanfare" : "ding"); else sfx("whoosh");
   }
   portions(id) {
-    const r = this.contract.tuning.menu[id]?.recipe || {}; let n = Infinity;
+    const r = menuAll(this.contract)[id]?.recipe || {}; let n = Infinity;
     for (const k in r) n = Math.min(n, Math.floor((this.stock[k] || 0) / r[k]));
     return n === Infinity ? 0 : n;
   }
@@ -325,7 +326,7 @@ export class ShopScene {
   }
   // ---------- tab: Thực đơn (evening) ----------
   drawMenu() {
-    const u = screen.ui, st = progress.stats(this.contract), menu = this.contract.tuning.menu;
+    const u = screen.ui, st = progress.stats(this.contract), menu = menuAll(this.contract);
     panel(22, 57, W - 44, 27, { fill: "rgba(255,255,255,.04)", border: "rgba(243,210,122,.3)", r: 5 });
     txt("Kho tối nay", 30, 74, { size: 9, color: BORDER, weight: 900 });
     const total = KINDS.reduce((a, k) => a + (this.stock[k] || 0), 0);

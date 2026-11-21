@@ -22,7 +22,7 @@ export const SNAKE = {
   retreatS: 3,         // seconds fleeing after a bite
   stunS: 2,            // seconds stunned by Space
   hp: 6,               // GUI hunting: spear damage per hit; 0 HP = defeated for the rest of the dive
-  bounty: 40,          // k paid when defeated
+  bounty: 20,          // k paid when defeated (+ 1 thịt rắn dropped into the basket, menu.js)
   sinkS: 2,            // seconds sinking before it is removed
   // homes: 4 in the contract river (8–28 m), 2 in the deep zone
   spawns: [[24, 20], [52, 26], [68, 12], [84, 25], [45, 47], [88, 53]],
