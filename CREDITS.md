@@ -3,3 +3,5 @@ Liệt kê asset ngoài (nguồn, giấy phép CC0/CC-BY/MIT) và công cụ AI 
 
 - Phase 1 frontend: pixel art Canvas 2D và biểu tượng SVG nội tuyến được tạo cho dự án bằng Codex. Không dùng ảnh, font hay âm thanh từ bên ngoài.
 - Hướng mỹ thuật tham khảo không khí ấm áp của Stardew Valley. Sprite, cảnh và giao diện được vẽ riêng cho Quán Ăn Chợ Nổi.
+- Phase 2 dùng ảnh do nhóm cung cấp trong thư mục Ảnh lab. Hai cảnh dùng `BackGroundGather.png` và `BackgroundQuans.png`. Sprite lấy từ `BaUT.png`, `CaSau.png`, `Khachnam.png`, `Khachnu.png`, `Ca1.png` và `Ca2.png`. Sáu ảnh món dùng cho thực đơn, đơn hàng và bếp. Các bản WebP nằm trong `chonoi/web/art/`, tên món theo `dish_id`.
+- Tư thế bơi của Bà Út dùng `ảnh bơi.png` từ cùng thư mục, xuất thành `ba-ut-boi.webp`.
