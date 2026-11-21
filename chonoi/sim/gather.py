@@ -24,7 +24,10 @@ import math
 
 from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
+from .monsters import build_monsters, serialize_monsters, step_monsters
+from .fish import initial_schools, spawn_if_due, swim
 from .ramp import ramp_velocity
+from .shop import upgrade_entry
 
 TICK = 60.0
 AXES = ("x", "d")
@@ -34,9 +37,11 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids):
-        t = tuning["gather"]
+    def __init__(self, tuning, scenario, streams, ids, day: int = 1, active_upgrades=None):
+        t = self._apply_active_upgrades(tuning["gather"], tuning.get("shop"), active_upgrades)
         self.t = t
+        self.day = max(1, int(day))
+        self.active_upgrades = dict(active_upgrades or {})
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -57,23 +62,52 @@ class GatherSim:
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
+        # random_fish:false → cá fixture đứng yên, không bơi/sinh. Có fish_speed mới là contract v1.1.
+        random_fish = scenario.get("random_fish", True)
+        self._fish_live = bool(random_fish) and "fish_speed" in t
         if "fish" in scenario:
             src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
+        elif self._fish_live and isinstance(t.get("fish_initial"), int):
+            self.fish = initial_schools(t, self.rng, ids, int(t["fish_initial"]))
+            src_fish = None
+        elif random_fish and isinstance(t.get("fish_initial"), list):
             src_fish = t["fish_initial"]
         else:
             src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
-        self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+        if src_fish is not None:
+            self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
+                          "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)}
+                         for f in src_fish]
+        self.phase_tick = 0
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
+        # Thủy quái (Phase 2, T220–T223 & T246): chỉ kích hoạt khi có tuning.gather.monsters
+        self._monster_cfg = t.get("monsters") if isinstance(t.get("monsters"), dict) else None
+        sc_monsters = scenario["monsters"] if "monsters" in scenario else None
+        self.monsters = build_monsters(self._monster_cfg, sc_monsters, self.day, ids)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
         self.done = False
         self.reason = None
+
+    @staticmethod
+    def _apply_active_upgrades(gather_tuning: dict, shop_tuning, active_upgrades) -> dict:
+        """Áp các cấp nâng cấp đang hiệu lực (`active_upgrades`) lên bản sao `tuning.gather` (T246)."""
+        t = dict(gather_tuning)
+        if not active_upgrades or not isinstance(shop_tuning, dict) or not isinstance(shop_tuning.get("upgrades"), dict):
+            return t
+        for uid in sorted(active_upgrades):
+            lv = int(active_upgrades[uid])
+            if lv <= 0:
+                continue
+            entry = upgrade_entry(shop_tuning, uid, lv)
+            if entry:
+                for k, v in entry.items():
+                    if k not in ("level", "price"):
+                        t[k] = v
+        return t
 
     # --- giao diện cho runner -------------------------------------------------
     def inventory_items(self) -> dict:
@@ -91,13 +125,16 @@ class GatherSim:
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
                       for n in sort_by_id(self.nodes)],
-            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"]}
+            "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"],
+                       "age_ticks": f.get("age_ticks", 0)}
                      for f in sort_by_id(self.fish)],
+            "monsters": serialize_monsters(self.monsters),
         }
 
     # --- một bước ---------------------------------------------------------------
     def step(self, inp):
         events = []
+        self.phase_tick += 1
         # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
@@ -112,6 +149,9 @@ class GatherSim:
         self._move(inp)
         if self._oxygen_and_breath(events, was_surface):
             return events
+        # 2b. thủy quái (Cá Sấu Năm Chèo — TICKET-02 §1.2, §4.5): cập nhật theo id rồi tối đa 1 hit
+        if self._monsters_step(events):
+            return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
@@ -121,9 +161,13 @@ class GatherSim:
         # 4. bắt cá
         if inp.pressed("catch"):
             self._try_catch(events)
-        # 5. hết giờ
+        # 5. hết giờ. Còn giờ thì cá bơi rồi mới sinh (cá mới bơi từ bước sau).
         if self.time_left_ticks <= 0:
             self._finish("time", events)
+            return events
+        if self._fish_live:
+            swim(self.fish, self.t, self.rng)
+            spawn_if_due(self.fish, self.t, self.rng, self.ids, self.phase_tick, events)
         return events
 
     # --- tiện ích ---------------------------------------------------------------
@@ -160,8 +204,9 @@ class GatherSim:
                 self.hp -= 1
                 events.append(("choke", {"hp": self.hp}))
                 if self.hp <= 0:
+                    lost = list(self.hold)
                     self.hold.clear()
-                    events.append(("faint", {}))
+                    events.append(("faint", {"hp": 0, "lost": lost}))
                     self._finish("fainted", events)
                     return True
         else:
@@ -197,19 +242,25 @@ class GatherSim:
                 self.vel[i] = min(0.0, self.vel[i])
 
     # --- lát 2 (TV2): gọi giỏ qua TV1, hái nút mặt nước, bắt cá dưới nước -----
-    def _try_add_hold_batch(self, kind: str, events, count: int) -> bool:
-        """Gọi qua `try_add_hold` của TV1 mà không sửa hàm TV1 (chờ TV1 duyệt `count=1`).
+    def _try_add_hold_batch(self, kind: str, events, count: int, *,
+                            action: str, target_key: str, target_id: str) -> bool:
+        """Thêm nguyên tử `count` món qua `try_add_hold` của TV1 mà không sửa hàm TV1.
 
-        Đảm bảo thêm nguyên tử cả đàn (TICKET-02 §1.1): từ chối số lượng <= 0 hoặc
-        thiếu chỗ cho đủ `count` món, phát đúng một `hold_full` theo hợp đồng `{"kind": kind}`.
+        Kiểm chỗ trống TRƯỚC khi gọi `try_add_hold` để:
+        - Bảo đảm nguyên tử cả đàn (TICKET-02 §1.1) cho mọi `count >= 1`.
+        - Phát đúng payload `hold_full` chính thức theo PRD-0 v1.0
+          (`{"action", "node_id"|"fish_id", "required", "free"}`).
         """
         if count <= 0:
             return False
-        if count == 1:
-            return self.try_add_hold(kind, events)
-        if len(self.hold) + count > int(self.t["hold_capacity"]):
-            # Khớp payload `hold_full` trong docs/contracts/README.md (`{"kind": kind}`).
-            events.append(("hold_full", {"kind": kind}))
+        free = max(0, int(self.t["hold_capacity"]) - len(self.hold))
+        if free < count:
+            events.append(("hold_full", {
+                "action": action,
+                target_key: target_id,
+                "required": count,
+                "free": free,
+            }))
             return False
         for _ in range(count):
             if not self.try_add_hold(kind, events):
@@ -230,7 +281,7 @@ class GatherSim:
         return best
 
     def _try_harvest(self, events):
-        """Hái nút rau `ready` gần nhất khi đang ở mặt nước (TICKET-02 §1.1)."""
+        """Hái nút rau `ready` gần nhất khi đang ở mặt nước (PRD-0 v1.0, TICKET-02 §1.1)."""
         if not self._at_surface():
             return
         ready_nodes = (n for n in self.nodes if n["regrow_ticks"] == 0)
@@ -238,23 +289,53 @@ class GatherSim:
         if node is None:
             return
         amount = int(self.t["node_yield"])
-        if not self._try_add_hold_batch(node["kind"], events, amount):
+        if not self._try_add_hold_batch(node["kind"], events, amount,
+                                        action="gather", target_key="node_id", target_id=node["id"]):
             return
         node["regrow_ticks"] = max(1, int(round(self.t["regrow_s"] * TICK)))
-        # TODO(PRD-0): đối chiếu schema payload chính thức của `gather` khi có PRD-0 mục E.
-        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "count": amount}))
+        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
 
     def _try_catch(self, events):
-        """Bắt đàn cá gần nhất khi dưới nước và hết hồi chiêu (TICKET-02 §1.1)."""
+        """Bắt đàn cá gần nhất khi dưới nước và hết hồi chiêu (PRD-0 v1.0, TICKET-02 §1.1)."""
         if self.catch_cd_ticks > 0 or self._at_surface():
             return
         fish = self._nearest_in_radius(self.fish, self.t["catch_radius"])
         if fish is None:
             return
         amount = int(self.t["fish_yield"][fish["kind"]])
-        if not self._try_add_hold_batch(fish["kind"], events, amount):
+        if not self._try_add_hold_batch(fish["kind"], events, amount,
+                                        action="catch", target_key="fish_id", target_id=fish["id"]):
             return
         self.fish = [f for f in self.fish if f["id"] != fish["id"]]
         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
-        # TODO(PRD-0): đối chiếu schema payload chính thức của `fish_caught` khi có PRD-0 mục E.
-        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "count": amount}))
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": amount}))
+
+    # --- Phase 2 (TV2, T220–T223): Cá Sấu Năm Chèo, rơi hàng LIFO, ngất --------
+    def _monsters_step(self, events) -> bool:
+        """Cập nhật thủy quái và xử lý tối đa một hit. Trả True nếu buổi kết thúc vì ngất."""
+        if not self.monsters or self._monster_cfg is None:
+            return False
+        hitter = step_monsters(self.monsters, self._monster_cfg, self.t["bounds"], self.pos, self.invuln_ticks)
+        if hitter is None:
+            return False
+        self.hp -= 1
+        loss_ratio = float(self._monster_cfg.get("loss_ratio", 0.5))
+        drop_count = math.floor(len(self.hold) * loss_ratio)
+        lost = [self.hold.pop() for _ in range(drop_count)]
+        self.invuln_ticks = int(self._monster_cfg.get("invuln_ticks", 90))
+        events.append(("monster_hit", {
+            "monster_id": hitter["id"],
+            "hp": self.hp,
+            "lost": lost,
+            "pos": [self.pos[0], self.pos[1]],
+        }))
+        if self.hp <= 0:
+            rem_lost = [self.hold.pop() for _ in range(len(self.hold))]
+            events.append(("faint", {
+                "cause": "monster",
+                "lost": rem_lost,
+                "hp": 0,
+            }))
+            self._finish("fainted", events)
+            return True
+        return False

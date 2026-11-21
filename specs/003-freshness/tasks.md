@@ -35,7 +35,7 @@
 - [ ] T325 [P] [US3] [qa] (TV5) Test AC-P3-11…17; đổi test boa/giá cũ (giá theo tươi) có lý do
 
 ## Phase 4 — day — TV6 (agent khung)
-- [ ] T330 [US4] [sim/day] (TV6) Bàn giao `gather_end → quan` cùng tick, không hao thêm, quán chạy từ bước sau — `chonoi/runner.py` / `chonoi/sim/day.py`
+- [x] T330 [US4] [sim/day] (TV6) Bàn giao `gather_end → quan` cùng tick, không hao thêm, quán chạy từ bước sau — `chonoi/runner.py` / `chonoi/sim/day.py`
 - [ ] T331 [US4] [sim/day] (TV6) Id tăng xuyên Ngày; Ngày đầu giữ id mẫu `gather.hold`, Ngày kế cấp id mới theo thứ tự mảng (kind/fresh ban đầu); Shop `stock` cá thể không hao
 - [ ] T332 [P] [US4] [qa] (TV5) Test AC-P3-19…21 (smoke day nhiều Ngày, pause/Shop không hao)
 
@@ -49,7 +49,7 @@
 - [ ] T342 [qa] (TV5) Smoke 2 tiến trình + `day`; regression P1–P2 còn hiệu lực (AC-P3-22); tất định `cmp` (AC-P3-23)
 - [ ] T343 [P] [qa] (TV5) `CHANGELOG.md`: breaking change kho cá thể, schema mới, cách cập nhật fixture (hold/stock/reserved/inventory); test đổi + lý do
 - [ ] T344 [qa] (TV5) `docs/verification/phase-3.md` AC-P3-01…23 → bằng chứng → kết quả; skill nhóm #2
-- [ ] T345 [P] [qa] (TV6) Standup phút 20, retro (bài học đổi kho), `docs/ai-usage-log.md`, `docs/clarify.md`
+- [x] T345 [P] [qa] (TV6) Standup phút 20, retro (bài học đổi kho), `docs/ai-usage-log.md`, `docs/clarify.md`
 - [ ] T346 [qa] (TV1) Tag `phase-3` sau khi TV5 báo xanh (trước 2:30)
 
 ## Mở rộng P3 — tùy chọn, sau lõi

@@ -1,18 +1,23 @@
 """Test tập trung cho Gather Lát 2 (TV2): hái rau, bắt cá, giỏ đầy, ưu tiên bến, tích hợp kho.
 
 Chạy hộp đen qua `headless_cmd` trong game.contract.json để giữ tính độc lập với khung.
-Lưu ý: payload chi tiết của `gather`, `fish_caught`, `hold_full` và vài biên PRD-0 chưa có
-trong repo nên test chỉ kiểm các hành vi/bất biến đã xác minh từ starter & game.contract.json.
+Kiểm chính xác schema sự kiện chính thức theo PRD-0 Test Contract v1.0:
+  - gather: {"node_id", "kind", "amount"}
+  - fish_caught: {"fish_id", "kind", "yield"}
+  - hold_full (hái): {"action": "gather", "node_id", "required", "free"}
+  - hold_full (bắt): {"action": "catch", "fish_id", "required", "free"}
 """
 
 import json
+import os
+import subprocess
 import unittest
 
 from chonoi.contract import load_contract
 from chonoi.ids import IdAllocator
 from chonoi.rng import Streams
 from chonoi.sim.gather import GatherSim
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import ROOT, Workdir, events, frames, headless_cmd, read_jsonl, run_headless, snapshots, write_json
 
 
 def _tuning_gather():
@@ -43,7 +48,11 @@ class GatherSlice2PlantTests(unittest.TestCase):
             gather_evs = events(rows, "gather")
             self.assertEqual(len(gather_evs), 1)
             self.assertEqual(gather_evs[0]["tick"], 1)
-            self.assertEqual(gather_evs[0]["data"]["node_id"], "N1")
+            self.assertEqual(gather_evs[0]["data"], {
+                "node_id": "N1",
+                "kind": "bong_dien_dien",
+                "amount": g["node_yield"],
+            })
             snaps = {s["tick"]: s for s in snapshots(rows)}
             self.assertEqual(snaps[1]["hold"], ["bong_dien_dien"] * g["node_yield"])
             self.assertFalse(snaps[1]["nodes"][0]["ready"])
@@ -170,9 +179,17 @@ class GatherSlice2FishTests(unittest.TestCase):
             caught = events(rows, "fish_caught")
             self.assertEqual(len(caught), 2)
             self.assertEqual(caught[0]["tick"], 1)
-            self.assertEqual(caught[0]["data"]["fish_id"], "F1")
+            self.assertEqual(caught[0]["data"], {
+                "fish_id": "F1",
+                "kind": "ca_linh",
+                "yield": g["fish_yield"]["ca_linh"],
+            })
             self.assertEqual(caught[1]["tick"], cd_ticks + 1)
-            self.assertEqual(caught[1]["data"]["fish_id"], "F2")
+            self.assertEqual(caught[1]["data"], {
+                "fish_id": "F2",
+                "kind": "ca_loc",
+                "yield": g["fish_yield"]["ca_loc"],
+            })
 
             snaps = {s["tick"]: s for s in snapshots(rows)}
             self.assertEqual(snaps[1]["player"]["catch_cd_ticks"], cd_ticks)
@@ -361,17 +378,20 @@ class GatherSlice1And2IntegrationTests(unittest.TestCase):
         evs = []
 
         # Từ chối count <= 0, không sửa hold và không phát sự kiện
-        self.assertFalse(sim._try_add_hold_batch("ca_linh", evs, 0))
-        self.assertFalse(sim._try_add_hold_batch("ca_linh", evs, -2))
+        self.assertFalse(sim._try_add_hold_batch("ca_linh", evs, 0,
+                                                 action="catch", target_key="fish_id", target_id="F1"))
+        self.assertFalse(sim._try_add_hold_batch("ca_linh", evs, -2,
+                                                 action="catch", target_key="fish_id", target_id="F1"))
         self.assertEqual(len(sim.hold), cap - 2)
         self.assertEqual(evs, [])
 
-        # Từ chối nguyên tử khi thiếu chỗ cho cả đàn (còn 2 chỗ, cần 3 cho ca_linh)
-        self.assertFalse(sim._try_add_hold_batch("ca_linh", evs, 3))
+        # Từ chối nguyên tử khi thiếu chỗ cho cả đàn (còn 2 chỗ, cần 3 cho ca_linh) -> đúng schema PRD-0
+        self.assertFalse(sim._try_add_hold_batch("ca_linh", evs, 3,
+                                                 action="catch", target_key="fish_id", target_id="F1"))
         self.assertEqual(len(sim.hold), cap - 2)
-        self.assertEqual(evs, [("hold_full", {"kind": "ca_linh"})])
+        self.assertEqual(evs, [("hold_full", {"action": "catch", "fish_id": "F1", "required": 3, "free": 2})])
 
-        # Tương thích ngược API 2 tham số của TV1: try_add_hold(kind, events)
+        # Tương thích ngược API 2 tham số của TV1 (không sửa hàm TV1): try_add_hold(kind, events)
         evs.clear()
         self.assertTrue(sim.try_add_hold("bong_dien_dien", evs))
         self.assertTrue(sim.try_add_hold("bong_sung", evs))
@@ -379,16 +399,17 @@ class GatherSlice1And2IntegrationTests(unittest.TestCase):
         self.assertEqual(sim.hold[-2:], ["bong_dien_dien", "bong_sung"])  # LIFO: mới nhất ở cuối
         self.assertEqual(evs, [])
 
-        # Giỏ đầy -> try_add_hold phát đúng một hold_full theo hợp đồng {"kind": ...}
-        self.assertFalse(sim.try_add_hold("ca_loc", evs))
+        # Hái nút khi giỏ đầy (free = 0) qua _try_add_hold_batch -> đúng schema PRD-0 (không rơi vào {"kind": ...})
+        self.assertFalse(sim._try_add_hold_batch("bong_sung", evs, 1,
+                                                 action="gather", target_key="node_id", target_id="N1"))
         self.assertEqual(len(sim.hold), cap)
-        self.assertEqual(evs, [("hold_full", {"kind": "ca_loc"})])
+        self.assertEqual(evs, [("hold_full", {"action": "gather", "node_id": "N1", "required": 1, "free": 0})])
 
     def test_hold_full_contract_payload_and_atomic_fish_rejection(self):
         g = _tuning_gather()
         cap = g["hold_capacity"]
         with Workdir() as w:
-            # Hái khi giỏ đầy -> hold_full có đúng payload {"kind": "bong_sung"}
+            # Hái khi giỏ đầy -> hold_full có đúng payload PRD-0 {"action": "gather", "node_id", "required", "free"}
             sc_node = write_json(w.path("sc_node.json"), {"gather": {
                 "player": {"pos": [20, 0]},
                 "hold": ["ca_loc"] * cap,
@@ -401,9 +422,14 @@ class GatherSlice1And2IntegrationTests(unittest.TestCase):
             self.assertEqual(code, 0, err)
             hf_node = events(read_jsonl(w.path("o_node.jsonl")), "hold_full")
             self.assertEqual(len(hf_node), 1)
-            self.assertEqual(hf_node[0]["data"], {"kind": "bong_sung"})
+            self.assertEqual(hf_node[0]["data"], {
+                "action": "gather",
+                "node_id": "N1",
+                "required": g["node_yield"],
+                "free": 0,
+            })
 
-            # Bắt ca_linh (yield 3) khi còn 2 ô -> từ chối toàn phần, cá giữ nguyên, không bật cooldown
+            # Bắt ca_linh (yield 3) khi còn 2 ô -> từ chối toàn phần, đúng payload PRD-0, không bật cooldown
             sc_fish = write_json(w.path("sc_fish.json"), {"gather": {
                 "player": {"pos": [30, 10]},
                 "hold": ["ca_loc"] * (cap - 2),
@@ -418,11 +444,35 @@ class GatherSlice1And2IntegrationTests(unittest.TestCase):
             self.assertEqual(events(rows, "fish_caught"), [])
             hf_fish = events(rows, "hold_full")
             self.assertEqual(len(hf_fish), 1)
-            self.assertEqual(hf_fish[0]["data"], {"kind": "ca_linh"})
+            self.assertEqual(hf_fish[0]["data"], {
+                "action": "catch",
+                "fish_id": "F1",
+                "required": g["fish_yield"]["ca_linh"],
+                "free": 2,
+            })
             snap1 = snapshots(rows)[1]
             self.assertEqual(snap1["hold_count"], cap - 2)
             self.assertEqual([f["id"] for f in snap1["fish"]], ["F1"])
             self.assertEqual(snap1["player"]["catch_cd_ticks"], 0)
+
+            # Bắt ca_loc (yield 1) khi giỏ đầy (free = 0) -> đúng payload PRD-0 (không trả {"kind": ...})
+            sc_fish_full = write_json(w.path("sc_fish_full.json"), {"gather": {
+                "player": {"pos": [30, 10]},
+                "hold": ["ca_loc"] * cap,
+                "fish": [{"id": "F2", "kind": "ca_loc", "pos": [30.5, 10]}],
+            }})
+            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "2",
+                                     "--scenario", sc_fish_full, "--inputs", inp_c,
+                                     "--out", w.path("o_fish_full.jsonl"))
+            self.assertEqual(code, 0, err)
+            hf_fish_full = events(read_jsonl(w.path("o_fish_full.jsonl")), "hold_full")
+            self.assertEqual(len(hf_fish_full), 1)
+            self.assertEqual(hf_fish_full[0]["data"], {
+                "action": "catch",
+                "fish_id": "F2",
+                "required": g["fish_yield"]["ca_loc"],
+                "free": 0,
+            })
 
     def test_faint_after_gathering_clears_hold_writes_empty_inventory_and_is_deterministic(self):
         with Workdir() as w:
@@ -430,6 +480,8 @@ class GatherSlice1And2IntegrationTests(unittest.TestCase):
             sc = write_json(w.path("sc.json"), {"gather": {
                 "player": {"pos": [6, 0], "hp": 1, "oxygen_ticks": 15},
                 "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [6, 0]}],
+                # v1.1: cá khai trong scenario vẫn bơi. Tắt để cá đứng yên đúng chỗ bắt ở tick 25.
+                "random_fish": False,
                 "fish": [{"id": "F1", "kind": "ca_loc", "pos": [6, 1.5]}],
             }})
             inp = write_json(w.path("in.json"), frames(
@@ -514,6 +566,46 @@ class GatherSlice1And2IntegrationTests(unittest.TestCase):
             self.assertEqual([f["id"] for f in last_snap["fish"]], ["F1"])
             with open(inv_catch, encoding="utf-8") as f:
                 self.assertEqual(json.load(f), {"items": {}})
+
+    def test_day_mode_gather_events_and_quan_handoff(self):
+        """Kiểm tra tương thích luồng `--mode day` v1.1 với sự kiện PRD-0 v1.0 và bàn giao sang Quán."""
+        fixture = os.path.join(ROOT, "tests", "fixtures", "contract-v1.1-day.json")
+        if not os.path.exists(fixture):
+            self.skipTest("không có contract fixture v1.1")
+        env = dict(os.environ, CHONOI_CONTRACT=fixture)
+        with Workdir() as w:
+            sc = write_json(w.path("sc.json"), {
+                "gather": {
+                    "player": {"pos": [6, 0]},
+                    "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [6, 0]}],
+                    "fish": [{"id": "F1", "kind": "ca_loc", "pos": [6, 2]}],
+                },
+                "quan": {"time_left_ticks": 1},
+            })
+            inp = write_json(w.path("in.json"), frames(
+                {"tick": 0, "interact": True, "move": [0, 1]},
+                {"tick": 1, "interact": False},
+                {"tick": 40, "move": [0, 0], "catch": True},
+                {"tick": 41, "catch": False, "move": [-1, -0.5]},
+                {"tick": 200, "move": [0, 0], "interact": True},
+            ))
+            out = w.path("day.jsonl")
+            p = subprocess.run([*headless_cmd(), "--mode", "day", "--seed", "7", "--ticks", "250",
+                                "--scenario", sc, "--inputs", inp, "--out", out],
+                               cwd=ROOT, capture_output=True, text=True, env=env)
+            self.assertEqual(p.returncode, 0, p.stderr)
+            rows = read_jsonl(out)
+            g_evs = events(rows, "gather")
+            self.assertEqual(len(g_evs), 1)
+            self.assertEqual(g_evs[0]["data"], {"node_id": "N1", "kind": "bong_sung", "amount": 1})
+            f_evs = events(rows, "fish_caught")
+            self.assertEqual(len(f_evs), 1)
+            self.assertEqual(f_evs[0]["data"], {"fish_id": "F1", "kind": "ca_loc", "yield": 1})
+            ge = events(rows, "gather_end")[0]
+            self.assertEqual(ge["data"], {"reason": "docked", "inventory": {"items": {"bong_sung": 1, "ca_loc": 1}}})
+            quan_snap = [s for s in snapshots(rows) if s["tick"] == ge["tick"]][0]
+            self.assertEqual(quan_snap["phase"], "quan")
+            self.assertEqual(quan_snap["stock"], {"bong_sung": 1, "ca_loc": 1})
 
 
 if __name__ == "__main__":

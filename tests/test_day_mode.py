@@ -85,9 +85,12 @@ class DayLoopTest(unittest.TestCase):
                                                "ingredients": {"ca_loc": 3, "bong_sung": 6}})
             self.assertEqual(rows[3]["type"], "snapshot")
             names = [(e["name"], e["phase"]) for e in events(rows)]
-            self.assertEqual(names, [("day_start", "gather"), ("day_plan", "gather"), ("phase_start", "gather"),
-                                     ("gather_end", "gather"), ("phase_start", "quan"),
-                                     ("quan_end", "quan"), ("phase_start", "shop"), ("shop_end", "shop")])
+            # TICKET-02: kho bàn giao rỗng mà vẫn có bàn thì mỗi lượt khách là no_dish.
+            self.assertTrue(names and all(p == "quan" for n, p in names if n == "no_dish"))
+            core = [n for n in names if n[0] != "no_dish"]
+            self.assertEqual(core, [("day_start", "gather"), ("day_plan", "gather"), ("phase_start", "gather"),
+                                    ("gather_end", "gather"), ("phase_start", "quan"),
+                                    ("quan_end", "quan"), ("phase_start", "shop"), ("shop_end", "shop")])
             ev = {e["name"] + e["phase"]: e for e in events(rows)}
             self.assertEqual(ev["gather_endgather"]["tick"], ev["phase_startquan"]["tick"])
             self.assertEqual(ev["quan_endquan"]["tick"], ev["phase_startshop"]["tick"])
