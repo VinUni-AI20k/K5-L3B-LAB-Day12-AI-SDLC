@@ -3,8 +3,7 @@
 Nhóm viết tiếp (PRD-0 mục F, Quán):
   TODO(nhóm, lát 3): khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, kiên nhẫn,
                      bỏ đi (customer_left), no_dish, vòng đời khách.
-  TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
-                     ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
+  TODO(nhóm): nối các thao tác bếp/bàn vào vòng tick; xử lý trả tiền và boa.
 """
 
 from ..ids import sort_by_id
@@ -68,6 +67,57 @@ class QuanSim:
             "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in self.tables],
             "customers": sort_by_id(self.customers),
         }
+
+    # Vòng tick chọn bếp/bàn và đơn hợp lệ trước khi gọi các hàm này.
+    # Mỗi thao tác trả (tên sự kiện, dữ liệu) hoặc None nếu không thực hiện được.
+    def start_cooking(self, stove, customer):
+        """Nấu đơn reserved do vòng tick chọn theo order_tick rồi ID bàn.
+
+        Bên gọi cập nhật trạng thái đơn và giải phóng phần giữ chỗ sau
+        cook_started. Hàm này trừ kho thực đúng lúc món bắt đầu nấu.
+        """
+        dish_id = customer["dish_id"]
+        recipe = self.menu.get(dish_id)
+        if stove["state"] != "idle" or recipe is None:
+            return None
+        ingredients = recipe["recipe"]
+        if any(self.stock.get(kind, 0) < quantity for kind, quantity in ingredients.items()):
+            return None
+        dish = {"dish_id": dish_id, "customer_id": customer["id"]}
+        if customer.get("order_id") is not None:
+            dish["order_id"] = customer["order_id"]
+        cook_ticks = max(1, round(recipe["cook_s"] * TICK))
+        for kind, quantity in ingredients.items():
+            self.stock[kind] -= quantity
+        stove.update(state="cooking", dish=dish, cook_ticks_left=cook_ticks, ready_ticks=0)
+        return "cook_started", {"stove_id": stove["id"], **dish}
+
+    def finish_cooking(self, stove):
+        """Đổi trạng thái khi vòng tick đã đếm thời gian nấu về 0."""
+        if stove["state"] != "cooking" or stove["cook_ticks_left"] != 0 or stove["dish"] is None:
+            return None
+        stove.update(state="ready", ready_ticks=0)
+        return "dish_ready", {"stove_id": stove["id"], **stove["dish"]}
+
+    def pick_dish(self, stove):
+        """Bưng một món chín nếu tay đang trống."""
+        if self.hand is not None or stove["state"] != "ready" or stove["dish"] is None:
+            return None
+        self.hand = stove["dish"]
+        stove.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
+        return "dish_picked", {"stove_id": stove["id"], **self.hand}
+
+    def serve_dish(self, table, customer):
+        """Giao món cho đúng đơn. Bên gọi chuyển khách sang trạng thái ăn."""
+        dish = self.hand
+        if not isinstance(dish, dict) or customer["table_id"] != table["id"]:
+            return None
+        if dish.get("customer_id") != customer["id"] or dish.get("dish_id") != customer["dish_id"]:
+            return None
+        if dish.get("order_id") != customer.get("order_id"):
+            return None
+        self.hand = None
+        return "served", {"table_id": table["id"], **dish}
 
     def step(self, inp):
         events = []
