@@ -1,0 +1,7 @@
+# Gather Phase 2 — kiểm chứng
+
+- `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`: 48 test đạt.
+- `python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out /tmp/gather-phase2.jsonl`: chạy thành công.
+- `tests/test_gather_phase2.py` kiểm tra phản xạ cá, sinh cá đúng tick, fixture cá đứng yên và va chạm cá sấu với rơi giỏ LIFO.
+- Test snapshot Phase 1 được cập nhật từ 6 đàn cố định sang số đàn khởi tạo trong contract vì Phase 2 yêu cầu 8 đàn.
+- Cấu hình Gather đã mở rộng; phiên bản contract tổng thể vẫn là 1.0 vì Quán, mode day và các phần Phase 2 khác chưa tích hợp. Giao diện hiện chưa vẽ cá sấu.
