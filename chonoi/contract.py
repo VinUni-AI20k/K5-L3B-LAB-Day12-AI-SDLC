@@ -30,6 +30,11 @@ def load_contract(path=DEFAULT_PATH) -> dict:
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
     validate_tuning(c.get("tuning"))
+    version = c.get("contract_version")
+    if version not in ("1.1", "1.2"):
+        raise BadInput(f"contract_version phải là 1.1 hoặc 1.2, đang là {version!r}")
+    if (version == "1.2") != ("freshness" in c["tuning"]):
+        raise BadInput("contract v1.2 cần khối tuning.freshness (và chỉ v1.2 có khối này)")
     return c
 
 
@@ -206,6 +211,16 @@ def validate_day_plan(plan, menu):
             raise BadInput(f"tuning.day_plan[{d}].ingredients phải bằng tổng công thức × số suất")
 
 
+def _validate_freshness(f):
+    """v1.2 (TICKET-03): {initial, gather_decay_per_s, quan_decay_per_s, spoiled_below}."""
+    if not isinstance(f, dict) or set(f) != {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}:
+        raise BadInput("tuning.freshness phải có đúng initial, gather_decay_per_s, quan_decay_per_s, spoiled_below")
+    _between("freshness.initial", f["initial"], 0, 100)
+    _between("freshness.gather_decay_per_s", f["gather_decay_per_s"], 0, 100)
+    _between("freshness.quan_decay_per_s", f["quan_decay_per_s"], 0, 100)
+    _between("freshness.spoiled_below", f["spoiled_below"], 0, 100)
+
+
 def _validate_shop(shop):
     """v1.1 mục 4.1: {max_ticks, upgrades}; mỗi nâng cấp là mảng theo cấp 1, 2, ..."""
     if not isinstance(shop, dict):
@@ -266,4 +281,6 @@ def validate_tuning(t):
     if len(menu) != 6:
         raise BadInput("menu v1.1 phải có đúng 6 món")
     validate_day_plan(t.get("day_plan"), menu)
+    if "freshness" in t:
+        _validate_freshness(t["freshness"])
     _validate_shop(t.get("shop"))

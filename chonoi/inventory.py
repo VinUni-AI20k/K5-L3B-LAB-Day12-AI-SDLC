@@ -1,4 +1,6 @@
-"""File kho v1.0, giữ nguyên ở v1.1 (Contract G): {"items": {id: số nguyên >= 0}}.
+"""File kho (Contract G). v1.0/v1.1: kho đếm {"items": {kind: số nguyên >= 0}}.
+v1.2 (TICKET-03): kho cá thể {"items": [{"id", "kind", "fresh"}]}, sắp theo id; bên đọc chọn schema theo
+contract_version (v12=True khi manifest có khối freshness) — v1.2 gặp kho đếm → mã 2.
 
 Đọc: từ chối sai schema / id lạ / số âm (BadInput -> mã 2).
 Ghi: bỏ mục bằng 0, qua file tạm cùng thư mục rồi thay thế, byte-ổn-định.
@@ -29,7 +31,8 @@ def validate_items(items, kinds=KINDS_P1):
     return out
 
 
-def read_inventory(path: str, kinds=KINDS_P1) -> dict:
+def read_inventory(path: str, kinds=KINDS_P1, v12=False):
+    """v1.1 -> dict đếm; v1.2 -> danh sách cá thể nội bộ (xem chonoi.items)."""
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)
@@ -37,6 +40,11 @@ def read_inventory(path: str, kinds=KINDS_P1) -> dict:
         raise BadInput(f"không đọc được file kho {path}: {e}")
     if not isinstance(data, dict) or set(data.keys()) != {"items"}:
         raise BadInput("file kho chỉ được có khóa gốc 'items'")
+    if v12:
+        from .items import validate_public_items
+        if not isinstance(data["items"], list):
+            raise BadInput("contract v1.2: file kho phải là mảng cá thể (kho đếm theo loại không còn hợp lệ)")
+        return validate_public_items(data["items"], "items", kinds)
     return validate_items(data["items"], kinds)
 
 
@@ -48,8 +56,13 @@ def hold_to_items(hold: list) -> dict:
     return {k: counts[k] for k in sorted(counts)}
 
 
-def write_inventory(path: str, items: dict):
-    items = {k: items[k] for k in sorted(items) if items[k] > 0}
+def write_inventory(path: str, items):
+    """dict đếm (v1.1) hoặc danh sách cá thể nội bộ (v1.2, ghi sắp theo id, fresh đủ chính xác)."""
+    if isinstance(items, list):
+        from .items import public_list
+        items = public_list(items, by_id=True)
+    else:
+        items = {k: items[k] for k in sorted(items) if items[k] > 0}
     d = os.path.dirname(os.path.abspath(path))
     fd, tmp = tempfile.mkstemp(prefix=".inv-", suffix=".tmp", dir=d)
     try:

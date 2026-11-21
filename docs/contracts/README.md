@@ -186,3 +186,14 @@ Trong `day`, vỏ mọi event có thêm `day`; snapshot mọi pha có `day`, `da
 
 Nút boolean `pause` (cả 3 mode), `shop_done` (Shop); `buy` là chuỗi (`oxygen`, `hp`, …) chỉ chạy ở frame khai báo. `chonoi/inputs.py` hiện chỉ nhận `interact`, `catch` (`BUTTONS_V10`) → lát 4 mở rộng danh sách nút và kiểu `buy`.
 
+## 6. Thay đổi ở v1.2 (Phase 3, TICKET-03) — kho cá thể + độ tươi
+
+> Kế hoạch, tác động, thứ tự tích hợp: `docs/plan/phase-3.md`. Breaking change + cách sửa fixture: `CHANGELOG.md`.
+
+- **Cá thể nội bộ:** `{"id", "kind", "fresh_units"}` (`chonoi/items.py`); 240 đơn vị = 1 điểm tươi. Xuất ra ngoài bằng `items.public()` / `public_list()` → `{"id", "kind", "fresh"}`.
+- **Bật v1.2:** `items.is_v12(tuning)` = manifest có `tuning.freshness`. Sim kiểm cờ này để chọn luật cá thể.
+- **Hàm dùng chung:** `Freshness(tuning)` (hằng số/tick) · `ItemIds` (một đối tượng cho cả lượt, tăng xuyên pha và Ngày) · `new_item(ids, kind, fr)` · `decay(items, per_tick, fr)` → cá thể vừa ươn theo id · `pick_freshest(items, kind, n, fr, exclude)` · `price_by_fresh(giá, cá_thể_dùng)` · `lifo(items)`.
+- **Sự kiện mới:** `spoiled {item_id, kind, location}` với `location` là `hold` (gather) hoặc `stock` (quán), phát đúng một lần, theo id.
+- **Gather:** hao giỏ ở đầu bước (cùng hồi nút); hàng mới fresh 100, hao từ bước sau.
+- **Quán:** hao kho thô (kể cả hàng giữ) → phát hết `spoiled` theo id → xử lý đơn có phần giữ vừa ươn (theo `order_tick` rồi id bàn): nhả toàn bộ, giữ lại đúng một lần, thiếu → `unfulfillable`. Món chín không hao.
+- **`day`:** bàn giao mảng cá thể cùng tick, không hao thêm; `ItemIds` dùng chung cả lượt; Shop giữ `stock` không hao.
