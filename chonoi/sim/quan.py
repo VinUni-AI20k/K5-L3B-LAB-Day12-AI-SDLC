@@ -9,7 +9,7 @@ Phân chia module (PRD-0 mục F, Quán):
 
 import math
 
-from ..freshness import calc_fresh_base_price, calc_tip, from_units, is_spoiled_units, to_units
+from ..freshness import calc_fresh_base_price
 from ..ids import id_key, sort_by_id
 from .quan_customers import CustomerMixin
 from .quan_fresh import FreshStockMixin
@@ -33,27 +33,12 @@ class QuanSim(CustomerMixin, FreshStockMixin):
         self.vel = [float(c) for c in p.get("vel", [0.0, 0.0])]
         self._tgt = None
         self._ramp_left = 0
-        # kho: --inventory HOẶC scenario.stock (hỗ trợ cả dict v1.1 và list cá thể v1.2)
-        raw_stock = inventory if inventory is not None else scenario.get("stock", {})
-        self.freshness_cfg = tuning.get("freshness", {"initial": 100, "gather_decay_per_s": 0.5,
-                                                      "quan_decay_per_s": 0.25, "spoiled_below": 30})
-        if isinstance(raw_stock, list):
-            self.stock = [
-                {
-                    "id": it["id"],
-                    "kind": it["kind"],
-                    "units": it["units"] if "units" in it else to_units(it["fresh"]),
-                    "fresh": from_units(it["units"]) if "units" in it else from_units(to_units(it["fresh"])),
-                }
-                for it in sort_by_id(raw_stock)
-            ]
-            for it in self.stock:
-                ids.reserve(it["id"])
-        else:
-            self.stock = dict(raw_stock)
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
         # v1.2: kho là mảng cá thể {id, kind, fresh}; v1.0/v1.1: object đếm (M3: quan_fresh.py)
         self._init_stock(inventory if inventory is not None else scenario.get("stock", {}), tuning)
+        if self.item_mode:
+            for it in self.stock:
+                ids.reserve(it["id"])
         hand = scenario.get("hand")
         self.hand = dict(hand) if hand is not None else None
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
@@ -86,71 +71,10 @@ class QuanSim(CustomerMixin, FreshStockMixin):
             by_id[u["id"]].update(u)
         return sort_by_id(list(by_id.values()))
 
-    def _make_customer(self, c):
-        if not isinstance(self.stock, list):
-            return super()._make_customer(c)
-        state = c.get("state", "waiting")
-        status = c.get("order_status", "served" if state == "eating" else "reserved")
-        if "reserved" in c:
-            reserved = list(c["reserved"])
-        elif status == "reserved":
-            reserved = self._auto_reserve_v12(c["dish_id"])
-        else:
-            reserved = []
-        return {
-            "id": c["id"], "table_id": c["table_id"], "dish_id": c["dish_id"],
-            "order_tick": c.get("order_tick", 0), "state": state,
-            "patience_ticks_left": c.get("patience_ticks_left", self._patience_max),
-            "eat_ticks_left": c.get("eat_ticks_left", 0),
-            "order_status": status, "reserved": reserved,
-            "base_price": c.get("base_price"), "tip": c.get("tip"),
-        }
-
-    def _auto_reserve_v12(self, dish_id: str) -> list:
-        """Giữ chỗ tạm cho đơn v1.2 thiếu trường reserved: lấy cá thể tươi nhất chưa ươn, hòa theo id."""
-        spoiled_below = self.freshness_cfg.get("spoiled_below", 30.0)
-        used = {iid for cust in getattr(self, "customers", []) for iid in (cust["reserved"] if isinstance(cust["reserved"], list) else ())}
-        picked = []
-        for kind, qty in self.menu[dish_id]["recipe"].items():
-            avail = [
-                it for it in self.stock
-                if it["id"] not in used and it["kind"] == kind
-                and not is_spoiled_units(it["units"] if "units" in it else to_units(it["fresh"]), spoiled_below)
-            ]
-            avail.sort(key=lambda it: (-(it["units"] if "units" in it else to_units(it["fresh"])), id_key(it["id"])))
-            for it in avail[:qty]:
-                used.add(it["id"])
-                picked.append(it["id"])
-        return picked
-
-    def _customers_snapshot(self):
-        if not isinstance(self.stock, list):
-            return super()._customers_snapshot()
-        fields = ("id", "table_id", "dish_id", "order_tick", "state", "patience_ticks_left",
-                  "eat_ticks_left", "order_status", "reserved", "base_price", "tip")
-        out = []
-        for c in sort_by_id(self.customers):
-            row = {k: c[k] for k in fields}
-            row["reserved"] = list(row["reserved"]) if isinstance(row["reserved"], list) else list(row["reserved"].keys())
-            out.append(row)
-        return out
-
     def snapshot(self) -> dict:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
-        if isinstance(self.stock, list):
-            stock_snap = [
-                {
-                    "id": it["id"],
-                    "kind": it["kind"],
-                    "fresh": from_units(it["units"]) if "units" in it else it["fresh"],
-                }
-                for it in sort_by_id(self.stock)
-            ]
-        else:
-            stock_snap = {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}
         return {
             "player": {"pos": self.pos},
-            "stock": stock_snap,
             "stock": self._stock_snapshot(),
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
@@ -243,23 +167,11 @@ class QuanSim(CustomerMixin, FreshStockMixin):
         cust = min(reserved_orders, key=lambda c: (c["order_tick"], id_key(c["table_id"])))
         dish_id = cust["dish_id"]
         spec = self.menu[dish_id]
-        if isinstance(self.stock, list) or isinstance(cust["reserved"], list):
-            # v1.2: tiêu đúng các id cá thể đang giữ, chốt giá theo avg_fresh bằng số nguyên (scale 240)
-            res_set = set(cust["reserved"])
-            used_items = [it for it in self.stock if it["id"] in res_set]
-            self.stock = [it for it in self.stock if it["id"] not in res_set]
-            used_units = [it["units"] if "units" in it else to_units(it["fresh"]) for it in used_items]
-            base_price = calc_fresh_base_price(spec["price"], used_units)
-            used_sorted = sorted(used_items, key=lambda it: (it["kind"], id_key(it["id"])))
-            items = [
-                {
-                    "id": it["id"],
-                    "kind": it["kind"],
-                    "fresh": from_units(it["units"]) if "units" in it else it["fresh"],
-                }
-                for it in used_sorted
-            ]
-            cust["reserved"] = []
+        if self.item_mode:
+            # v1.2: tiêu đúng các id cá thể đang giữ qua FreshStockMixin, chốt giá theo avg_fresh (scale 240)
+            taken = self._consume_reserved(cust)
+            base_price = calc_fresh_base_price(spec["price"], [it["units"] for it in taken])
+            items = [{"id": it["id"], "kind": it["kind"], "fresh": it["fresh"]} for it in taken]
         else:
             items = []
             for k in sorted(cust["reserved"]):
