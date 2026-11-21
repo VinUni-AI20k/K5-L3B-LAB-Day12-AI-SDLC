@@ -100,7 +100,10 @@ class BrowserSessionTest(unittest.TestCase):
             evening = json.loads(game.state_json())
             self.assertEqual(evening["mode"], "quan")
             self.assertEqual(evening["tick"], 0)
-            self.assertEqual(evening["stock"], {"bong_sung": 2, "ca_loc": 1})
+            if isinstance(evening["stock"], list):
+                self.assertEqual(sorted([it["kind"] for it in evening["stock"]]), ["bong_sung", "bong_sung", "ca_loc"])
+            else:
+                self.assertEqual(evening["stock"], {"bong_sung": 2, "ca_loc": 1})
             self.assertGreater(evening["session_id"], morning["session_id"])
             game.restart()
             self.assertEqual(json.loads(game.state_json())["stock"], evening["stock"])

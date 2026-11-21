@@ -21,6 +21,7 @@ python3 -m chonoi.live --mode gather
 ```
 
 Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Chọn **Bắt đầu hành trình** để xem vòng 5 ngày *Mùa Nước Nổi* qua các tình huống mẫu. Chọn **Chơi trọn ngày** để tự lặn bắt cá, thu hoạch rồi chuyển kho sang quán bằng sim của checkout hiện tại. Có thể vào thẳng **Buổi sáng** hoặc **Buổi tối**.
+Mở địa chỉ máy chủ in ra, mặc định `http://127.0.0.1:8000/`. Chọn **Chơi** để xem vòng 5 ngày *Mùa Nước Nổi*. Bản xem dùng snapshot mẫu v1.2. **Chơi trọn ngày**, **Chỉ chơi buổi sáng** và **Chỉ chơi buổi tối** dùng sim hiện tại.
 
 ## Điều khiển
 

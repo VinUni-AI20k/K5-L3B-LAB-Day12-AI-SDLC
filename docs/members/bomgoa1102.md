@@ -1,7 +1,7 @@
-# Nguyễn Trung Dũng · `bomgoa1102`
+# bomgoa1102 — phản tư cá nhân
 
-**Phase 1 · Bản nháp từ bằng chứng repo**
+Tôi phụ trách phần Gather: bơi, oxy, hái, bắt cá và bàn giao kho; sau đó bổ sung cá di chuyển, cá sấu và logic độ tươi. Bằng chứng có trong [kiểm chứng Phase 2](../proof/phase-2/gather.md), [kiểm chứng Phase 3](../proof/phase-3/gather.md) và commit `60f77df`. Tôi chuẩn bị các trường hợp biên để nhóm dùng khi kiểm tra tích hợp.
 
-- **Đóng góp.** Triển khai hai lát Gather gồm bơi, oxy, ngạt/ngất, hái, bắt cá và chốt kho. [Commit cbb23ef](https://github.com/lam2121/K5-L3B-LAB-Day12-AI-SDLC-NhomBaKhi/commit/cbb23ef), [PR #4](https://github.com/lam2121/K5-L3B-LAB-Day12-AI-SDLC-NhomBaKhi/pull/4)
-- **Kiểm chứng.** Ghi kết quả cho ca oxy/ngạt, nút mọc lại, giỏ đầy và cập bến ở bước cuối. [Bằng chứng Gather](../proof/phase-1/gather.md)
-- **Phản tư cá nhân.** Chờ Dũng bổ sung phần đã review, cách kiểm đầu ra của AI và điều rút ra từ ca biên của Gather.
+AI từng nhầm vai UI và QA khi đề xuất chia việc Phase 3. Đối chiếu lại bảng phân công trong `TEAM.md` cho thấy Duy Hưng phụ trách UI, còn Nhật Minh phụ trách QA. Lỗi này nhắc tôi phải kiểm tra nguồn trong repo trước khi dùng kết quả AI, nhất là khi thông tin nhóm đã thay đổi.
+
+Tôi học được rằng test logic riêng đạt chưa đủ để kết luận tính năng hoàn thành: Gather còn phụ thuộc schema kho, runner và phần Quán. Cần kiểm tra lại luồng bàn giao trên bản tích hợp của nhóm.

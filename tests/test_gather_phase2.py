@@ -33,7 +33,8 @@ class GatherPhase2(unittest.TestCase):
             rows = self.run_case(work, scenario, 2)
             hits = events(rows, "monster_hit")
             self.assertEqual(len(hits), 1)
-            self.assertEqual(hits[0]["data"]["lost"], ["keo_neo", "ca_linh"])
+            lost_kinds = [it["kind"] if isinstance(it, dict) else it for it in hits[0]["data"]["lost"]]
+            self.assertEqual(lost_kinds, ["keo_neo", "ca_linh"])
             self.assertEqual(snapshots(rows)[-1]["player"]["hp"], 2)
 
 

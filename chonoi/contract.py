@@ -1,4 +1,4 @@
-"""Đọc game.contract.json và kiểm dải hợp lệ của tuning P1 (PRD mục 13.2, Test Contract)."""
+"""Đọc game.contract.json và kiểm dải hợp lệ của tuning (PRD mục 13.2, Test Contract v1.2)."""
 
 import json
 import os
@@ -51,7 +51,7 @@ def _bounds(name, b, keys):
 
 
 def _validate_gather(g):
-    """Dải hợp lệ P1 theo PRD mục 13.2."""
+    """Dải hợp lệ P1/P2/P3 theo PRD và Test Contract."""
     _between("gather.duration_s", g.get("duration_s"), 60, 600)
     _bounds("gather", g.get("bounds"), ("x", "d"))
     b = g["bounds"]
@@ -140,7 +140,14 @@ def validate_tuning(t):
     if q.get("burn_s") is not None:
         if not (_num(q["burn_s"]) and q["burn_s"] > 0):
             raise BadInput("burn_s phải là null hoặc số dương")
-    # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
+    if "freshness" in t:
+        f = t["freshness"]
+        if not isinstance(f, dict):
+            raise BadInput("tuning.freshness phải là object")
+        _between("freshness.initial", f.get("initial"), 0, 100)
+        _between("freshness.gather_decay_per_s", f.get("gather_decay_per_s"), 0, 100)
+        _between("freshness.quan_decay_per_s", f.get("quan_decay_per_s"), 0, 100)
+        _between("freshness.spoiled_below", f.get("spoiled_below"), 0, 100)
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
