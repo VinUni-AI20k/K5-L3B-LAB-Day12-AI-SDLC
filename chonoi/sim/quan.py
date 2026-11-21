@@ -233,10 +233,15 @@ class QuanSim:
 
     # --- Lát 4 (TV3): bếp ------------------------------------------------------------
     def _tick_stoves(self, events):
-        """Món ready ở ĐẦU bước tăng tuổi; món đang nấu giảm timer, về 0 thì ready + dish_ready (theo id)."""
+        """Món ready ở ĐẦU bước tăng tuổi; món đang nấu giảm timer, về 0 thì ready + dish_ready (theo id).
+        Mở rộng burn (burn_s hữu hạn): tuổi món > burn ticks thì cháy (xem _burn); đúng burn ticks vẫn bưng được."""
+        burn = self.t.get("burn_s")
+        burn_ticks = None if burn is None else to_ticks(burn)
         for s in self.stoves:  # self.stoves đã sắp theo id
             if s["state"] == "ready":
                 s["ready_ticks"] += 1
+                if burn_ticks is not None and s["ready_ticks"] > burn_ticks:
+                    self._burn(s, events)
             elif s["state"] == "cooking":
                 s["cook_ticks_left"] = max(0, s["cook_ticks_left"] - 1)
                 if s["cook_ticks_left"] == 0:
@@ -245,6 +250,20 @@ class QuanSim:
                     d = s["dish"]
                     events.append(("dish_ready", {"stove_id": s["id"], "order_id": d["order_id"],
                                                   "dish_id": d["dish_id"]}))
+
+    def _burn(self, s, events):
+        """Món cháy: bỏ món (nguyên liệu đã dùng mất), bếp rảnh ngay; thử giữ lại ngay nguyên liệu cho đơn từ kho
+        khả dụng: đủ -> reserved (giữ order_tick), thiếu -> unfulfillable (khách chờ tới hết kiên nhẫn)."""
+        d = s["dish"]
+        s.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
+        c = next(x for x in self.customers if x["id"] == d["order_id"])
+        recipe = self._recipe(c["dish_id"])
+        if recipe_fits(recipe, self.available_stock()):
+            c.update(order_status="reserved", reserved=recipe)
+        else:
+            c.update(order_status="unfulfillable", reserved={})
+        events.append(("dish_burnt", {"stove_id": s["id"], "order_id": d["order_id"], "dish_id": d["dish_id"],
+                                      "order_status": c["order_status"]}))
 
     def _tick_eating(self):
         for c in self.customers:
