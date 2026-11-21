@@ -2,6 +2,8 @@
 
 > Đã được thống nhất tại kickoff (Thành viên 1 — Integrator hoàn thiện). Mọi thay đổi sau này cần được thông qua nhóm và ghi vào `docs/adr/`.
 
+Tôi hiệu chỉnh phần Gather theo PRD-0 mục E/F/G do người dùng cung cấp ngày 2026-11-21. Lý do và phạm vi được ghi ở [ADR 0001](../adr/0001-gather-prd-payloads.md), để Integrator review trước khi tích hợp. Bảng quán bên dưới chưa nằm trong đợt đối chiếu này.
+
 ---
 
 ## 1. Schema file kho (`inventory.json`)
@@ -11,7 +13,7 @@
   - `ca_linh`: Cá linh
   - `bong_dien_dien`: Bông điên điển
   - `bong_sung`: Bông súng
-* **Nguyên tắc ghi kho:** Ghi nguyên tử qua file tạm `.inv-*.tmp` cùng thư mục để tránh corrupt dữ liệu; chỉ ghi một lần duy nhất khi kết thúc `gather` với lý do `docked` hoặc `time`. Nếu ngất (`fainted`), kho rỗng.
+* **Nguyên tắc ghi kho:** Ghi nguyên tử qua file tạm `.inv-*.tmp` cùng thư mục; khi có `--inventory-out`, ghi đúng một lần khi `gather_end` với lý do `docked`, `time` hoặc `fainted`. Ngất phải ghi `{"items":{}}`; chưa kết thúc mà chỉ chạm giới hạn `--ticks` thì không tạo hay ghi đè kho.
 
 ---
 
@@ -51,12 +53,12 @@
 |---|---|---|
 | `dive` | Út Sen chuyển từ mặt nước xuống dưới nước | `{"pos": [x, d]}` |
 | `surface` | Út Sen trồi từ dưới nước lên mặt nước | `{"pos": [x, d]}` |
-| `oxygen_empty` | Bình oxy cạn về 0 dưới nước | `{}` |
+| `oxygen_empty` | Bình oxy vừa giảm từ dương về 0 dưới nước | `{"oxygen_ticks": 0}` |
 | `choke` | Bị ngạt nước do hết oxy (mỗi 60 ticks mất 1 HP) | `{"hp": int}` |
-| `faint` | Hết máu và ngất xỉu | `{"reason": "fainted"}` |
-| `gather` | Hái bông thành công tại nút | `{"node_id": str, "kind": str, "count": 1}` |
-| `hold_full` | Giỏ đầy, không thể chứa thêm nguyên liệu/cá | `{}` |
-| `fish_caught` | Bắt thành công một đàn cá | `{"fish_id": str, "kind": str, "count": int}` |
+| `faint` | Hết máu do ngạt; `lost` là giỏ trước ngất theo thứ tự mới nhất trước, giữ nguyên các phần tử trùng nhau | `{"cause": "choke", "lost": [kind, ...], "hp": 0}` |
+| `gather` | Hái bông thành công tại nút | `{"node_id": str, "kind": str, "amount": int}` |
+| `hold_full` | Không đủ chỗ nhận toàn bộ yield; giỏ và đối tượng giữ nguyên | `{"action": "gather"\|"catch", "node_id" hoặc "fish_id": str, "required": int, "free": int}` |
+| `fish_caught` | Bắt thành công toàn bộ một đàn cá | `{"fish_id": str, "kind": str, "yield": int}` |
 | `node_regrown` | Nút bông hoàn tất thời gian hồi sinh | `{"node_id": str}` |
 | `gather_end` | Kết thúc phiên lặn | `{"reason": "docked"\|"time"\|"fainted", "inventory": {...}}` |
 

@@ -27,9 +27,9 @@
 
 ## 4. Kết quả phần việc của tôi — Thành viên 2
 - Tôi đã hoàn thành phần triển khai tương ứng commit 4–6: chuyển vùng, oxy, ngạt/ngất, giỏ có giới hạn và snapshot.
-- Tôi bổ sung 13 test Gather Core; toàn bộ 45 test hiện có đều qua. Tôi lưu lệnh chạy, fixture và kết quả tại [bằng chứng thành viên 2](../proof/phase-1/member-2/README.md).
-- Tôi bàn giao `_store_in_hold(kind, count)` cho thành viên 3 tích hợp hái/bắt cá. Các tính năng thu hoạch và tag `phase-1` vẫn thuộc lượt tiếp theo.
-- Tôi ghi nhận `check_team.py` chưa đạt vì thành viên 3–6 còn placeholder; kết quả này không được tính là đã hoàn tất hồ sơ cả nhóm.
+- Sau đối chiếu PRD-0, tôi sửa payload oxy/ngất, `lost` LIFO và helper giỏ nhận đủ lô. Tôi giữ 13 test unit, bổ sung 2 test CLI và chạy toàn bộ 70 test sau tích hợp TV3–5; tất cả qua. Tôi lưu [bằng chứng mới](../proof/phase-1/member-2/prd-correction/summary.json) và giữ log cũ để truy vết.
+- Tôi đã nối helper giỏ vào đường hái/bắt của TV3, giữ nguyên quy tắc thiếu chỗ thì phát `hold_full` và không thay đàn/cooldown. Lần sửa nằm trên nhánh `fix/ducbaynao-gather-prd-payloads`, chờ review tích hợp.
+- Tôi ghi nhận `check_team.py` còn chưa đạt vì thành viên 6 chưa điền handle. DoD toàn Phase 1 gồm cả quán, HUD và tag trên main; nhóm cần kiểm chứng riêng các mục đó.
 
 ## 5. Bàn giao sang Phase 2
 

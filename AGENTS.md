@@ -8,6 +8,7 @@
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 - Kiểm tra thành viên: `python3 tools/check_team.py`
 - Kiểm chứng Gather Core và tái tạo bằng chứng TV2: `python docs/proof/phase-1/member-2/verify.py` (Windows dùng `python`; máy khác có thể dùng `python3`).
+- Bằng chứng TV2 sau hiệu chỉnh PRD ở `docs/proof/phase-1/member-2/prd-correction/`; test CLI payload ở `tests/test_gather_core_contract.py` (PRD-0 E/F/G, ADR 0001).
 - Kiểm tra khách quán (TV4) trên PowerShell: `python -m unittest tests.test_quan_customers -v`. Fixture và lệnh headless ở `docs/verification/phase-2.md`.
 
 ## Cấu trúc & quy ước

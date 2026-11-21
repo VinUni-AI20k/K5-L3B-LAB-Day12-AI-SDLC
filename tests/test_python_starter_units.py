@@ -116,7 +116,9 @@ class GatherCore(unittest.TestCase):
 
     def test_oxygen_empty_only_on_positive_to_zero(self):
         s = self.session({"pos": [20, 5], "oxygen_ticks": 1})
-        self.assertEqual([r["name"] for r in self.step(s)], ["oxygen_empty"])
+        rows = self.step(s)
+        self.assertEqual([(r["name"], r["data"]) for r in rows],
+                         [("oxygen_empty", {"oxygen_ticks": 0})])
         self.assertEqual(s.sim.oxygen_ticks, 0)
         self.assertEqual(self.step(s), [])
         self.assertEqual(s.sim.oxygen_ticks, 0)
@@ -157,7 +159,7 @@ class GatherCore(unittest.TestCase):
                          hold=["ca_loc", "bong_sung"], time_left_ticks=1)
         rows = self.step(s, edges=("interact", "catch"))
         self.assertEqual([r["name"] for r in rows], ["choke", "faint", "gather_end"])
-        self.assertEqual(rows[1]["data"], {"reason": "fainted"})
+        self.assertEqual(rows[1]["data"], {"cause": "choke", "lost": ["bong_sung", "ca_loc"], "hp": 0})
         self.assertEqual(rows[2]["data"], {"reason": "fainted", "inventory": {"items": {}}})
         snapshot = s.snapshot()
         self.assertEqual(snapshot["player"]["hp"], 0)
@@ -191,13 +193,15 @@ class GatherCore(unittest.TestCase):
         self.assertEqual(s.sim.hold.pop(), "ca_linh")
         self.assertEqual(s.sim.inventory_items(), {"bong_sung": 1, "ca_linh": 2, "ca_loc": 1})
 
-    def test_hold_capacity_reads_tuning_and_reports_actual_count(self):
+    def test_hold_capacity_reads_tuning_and_rejects_partial_yield(self):
         self.g["hold_capacity"] = 4
         s = self.session(hold=["bong_sung"] * 3)
-        self.assertEqual(s.sim._store_in_hold("ca_linh", 3), 1)
-        self.assertEqual(s.sim._store_in_hold("ca_loc", 1), 0)
+        self.assertEqual(s.sim._store_in_hold("ca_linh", 3), 0)
+        self.assertEqual(s.sim.hold, ["bong_sung"] * 3)
+        self.assertEqual(s.sim._store_in_hold("ca_loc", 1), 1)
+        self.assertEqual(s.sim._store_in_hold("ca_linh", 1), 0)
         snapshot = s.snapshot()
-        self.assertEqual(snapshot["hold"], ["bong_sung"] * 3 + ["ca_linh"])
+        self.assertEqual(snapshot["hold"], ["bong_sung"] * 3 + ["ca_loc"])
         self.assertEqual(snapshot["hold_count"], 4)
         self.assertEqual(snapshot["hold_capacity"], 4)
 

@@ -1,5 +1,31 @@
 # Báo cáo và bàn giao Gather Core — Thành viên 2
 
+## Hiệu chỉnh theo PRD-0 — 2026-11-21
+
+Tôi tạo nhánh `fix/ducbaynao-gather-prd-payloads` từ `6103c8f`, sau khi nhóm đã tích hợp Gather Items và quán. Các thay đổi của lần sửa này chưa được commit, push hoặc merge. Tôi giữ phạm vi TV2 theo phân công.
+
+Tôi sửa `oxygen_empty` thành `{"oxygen_ticks":0}` và `faint` thành `{"cause":"choke","lost":[...],"hp":0}` theo PRD-0 E. Tôi lấy bản đảo của giỏ trước khi xóa, giữ đúng LIFO kể cả nguyên liệu trùng nhau. `gather_end` và dòng end vẫn dùng reason `fainted`, với kho rỗng.
+
+Tôi đổi `_store_in_hold(kind, count)` sang nhận đủ lô hoặc trả 0 và giữ nguyên giỏ khi thiếu chỗ. Ví dụ còn một ô mà yêu cầu ba cá thì nhận 0. Hai đường hái/bắt của TV3 dùng helper sau kiểm tra sức chứa; hành vi `hold_full`, giữ đàn và cooldown được giữ nguyên. Tôi không sửa tuning, schema kho hay luật quán. Lý do sửa hợp đồng và kỳ vọng test nằm trong [ADR 0001](../../../adr/0001-gather-prd-payloads.md).
+
+| Kiểm chứng mới | Kết quả | Bằng chứng hiện hành |
+|---|---|---|
+| Toàn suite sau tích hợp | 70/70 test qua, gồm 2 test CLI mới có subtest giỏ rỗng/trùng nguyên liệu | [Log mới](prd-correction/checks.txt) |
+| Payload oxy/ngất | `oxygen_ticks:0`; ngất có đủ `cause/lost/hp`; `lost` đúng LIFO | [Chu trình oxy](prd-correction/oxygen-cycle.jsonl), [phiên ngất](prd-correction/faint.jsonl) |
+| Giỏ và kho | Không nhận một phần yield; ngất ghi đè kho cũ bằng kho rỗng; cập bến giữ đúng hàng | [Log](prd-correction/checks.txt), [kho ngất](prd-correction/faint.inventory.json), [kho bến](prd-correction/dock.inventory.json) |
+| Hồi quy/tất định | Gather và quan 600 ticks thoát 0; hai lần chạy ngất giống từng byte | [Hash và payload](prd-correction/summary.json) |
+| Hồ sơ nhóm | Chưa đạt: thành viên 6 còn placeholder, TV3–5 đã có thông tin | [Kết quả TEAM thực chạy](prd-correction/summary.json) |
+
+Tôi đã xác nhận ba test unit sửa theo PRD thất bại trên code cũ trước khi sửa code. Test CLI mới kiểm tra JSONL thực xuất, thứ tự event, giỏ rỗng, nguyên liệu trùng nhau và kho rỗng sau ngất. Tôi chỉ kết luận về Gather Core và hồi quy suite hiện có; chưa xác nhận toàn bộ DoD hoặc tag của nhóm.
+
+Để tái chạy từ gốc repo: `python docs/proof/phase-1/member-2/verify.py` (Linux/macOS có thể dùng `python3`). Script tạo launcher Windows tạm, kiểm fixture và lưu kết quả mới vào `prd-correction/`; kiểm tra TEAM theo kết quả thực tế, không cố định thất bại. Nếu TEAM chưa đạt, đây vẫn là hạng mục chưa hoàn thành.
+
+Tôi bàn giao [hợp đồng Gather](../../../contracts/README.md), [clarify 3/4/7](../../../clarify.md) và [ma trận kiểm chứng](../../../verification/phase-1.md) để Integrator review trên nhánh sửa lỗi. Ba commit ban đầu là `9b884d2`, `1fb7fbe`, `486d596`; lần hiệu chỉnh không viết lại lịch sử đã tích hợp.
+
+## Lưu trữ — báo cáo lần bàn giao trước
+
+Phần bên dưới và các log/JSONL/hash ở thư mục cha ghi lại thời điểm bàn giao ban đầu, còn payload cũ. Tôi giữ để truy vết; dùng `prd-correction/` ở trên khi đánh giá bản hiệu chỉnh. Số test, trạng thái tích hợp và TEAM trong bản lưu không còn đại diện cho repo hiện tại.
+
 Tôi là **Phạm Lý Ngọc Đức (`Ducbaynao`)**, phụ trách lát 1 của `sim/gather`. Tôi thực hiện phần tương ứng commit 4–6 trong phân công, dựa trên trạng thái repo sau commit `533de26` của thành viên 1.
 
 ## Kết quả triển khai
