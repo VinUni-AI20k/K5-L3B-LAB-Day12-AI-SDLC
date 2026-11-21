@@ -3,6 +3,32 @@
 > **Làm theo nhóm 4–6 người** · Dùng AI để xây game 2D qua **4 phase** trong **3 giờ**: Út Sen lặn bắt cá, hái rau trên mặt nước rồi tối mở quán phục vụ khách.
 > **Yêu cầu từng phase mở đúng mốc giờ tại lab board:** **[Chợ Nổi Lab](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg)** (cần đăng nhập claude.ai; có trợ giảng AI cho từng phase).
 
+## Nhóm Nhom001 — Phase 2 (Test Contract v1.1)
+
+**Một vòng Ngày headless** (gather → quán → Shop; mỗi Ngày tối đa 22.200 tick, ~1 s):
+
+```bash
+python3 -m chonoi.headless --mode day --days 1 --seed 7 --ticks 30000 --out day.jsonl            # 1 Ngày (mặc định --days 1)
+python3 -m chonoi.headless --mode day --days 5 --seed 7 --ticks 120000 --out week.jsonl          # trọn D1–D5
+python3 -m chonoi.headless --mode day --days 2 --seed 7 --ticks 50000 --out multi.jsonl \
+  --scenario docs/proof/phase-2/multiday-scenario.json --inputs docs/proof/phase-2/multiday-inputs.json  # mua nâng cấp Ngày 1
+bash docs/proof/phase-2/run_proof.sh                                                             # tái tạo toàn bộ bằng chứng P2
+```
+
+- `--days N` chỉ với `day`, 1..5. Kho bàn giao gather → quán **trong bộ nhớ** (schema kho đếm); hai cờ `--inventory`/`--inventory-out` vẫn dành cho hai mode độc lập.
+- Scenario `day`: `{"day":{"money","earned","reputation","upgrades","day_plan"}, "gather":{…}, "quan":{…}}`; `gather`/`quan` là mẫu dựng mỗi Ngày; cấm `quan.stock`, `quan.reputation` (dùng `gather.hold`). Cần `0 ≤ money ≤ earned`.
+- Đầu Ngày Má Tư công bố kế hoạch (`day_plan` D1–D5 trong `game.contract.json`); tối khách chỉ gọi món trong kế hoạch còn đủ nguyên liệu. Quán chạy riêng dùng cả 6 món.
+- Shop cuối Ngày: `buy: "oxygen"` (200 → 45 s, 400 → 60 s), `buy: "hp"` (250 → 4 Máu, 500 → 5 Máu), trừ `money`, giữ `earned`/điểm; cấp vừa mua có hiệu lực từ **Ngày kế**. Đóng bằng `shop_done` hoặc tự đóng sau 600 tick.
+
+**Điều khiển (v1.1):** WASD / mũi tên bơi hoặc đi · **E** `interact` · **Space** `catch` · **Esc / P** `pause` (dừng đồng hồ và mọi timer gameplay, cả trong Shop; bấm lần nữa để tiếp tục) ·
+trong Shop: `buy` = `"oxygen"` / `"hp"`, `shop_done` để đóng Shop. File inputs: nút boolean chỉ tác động ở cạnh lên, `buy` là chuỗi chỉ có hiệu lực tại frame khai báo.
+(Trong cửa sổ `chonoi.live` hiện chưa có mode `day` và chưa map Esc/P — xem phần "chưa đạt" ở ma trận.)
+
+**Điểm:** `earned + 100 × floor(reputation)`. `earned` = tiền món + boa cộng dồn qua mọi Ngày; mua nâng cấp chỉ trừ `money`, không làm giảm `earned` hay điểm.
+Tiền, earned, uy tín và cấp nâng cấp giữ qua Ngày; oxy/Máu hồi đầy theo cấp đang áp dụng; giỏ làm mới, kho dư bị bỏ sau Shop.
+
+**Bằng chứng Phase 2:** [`docs/verification/phase-2.md`](docs/verification/phase-2.md) · kế hoạch [`docs/plan/phase-2.md`](docs/plan/phase-2.md) · giả định [`docs/clarify.md`](docs/clarify.md).
+
 ## Nhóm Nhom001 — Phase 1
 
 **Chạy từ clone sạch (macOS/Linux, Python ≥ 3.9, không cần cài thêm gì):**

@@ -4,7 +4,9 @@
 
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
-- Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
+- Headless: `python3 -m chonoi.headless --mode gather|quan|day --seed 1 --ticks 600 --out out.jsonl` (`--days 1..5` chỉ với `day`; Test Contract v1.1)
+- Bằng chứng Phase 2: `bash docs/proof/phase-2/run_proof.sh`
+- Bản chơi GUI (client/, sáng tạo của nhóm): `python3 -m http.server 8099` rồi mở `http://127.0.0.1:8099/client/index.html`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 
 ## Cấu trúc & quy ước
