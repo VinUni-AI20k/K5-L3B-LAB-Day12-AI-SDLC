@@ -58,8 +58,9 @@ class QuanSim:
             c = deepcopy(source)
             dish_id = c.get("dish_id") or c.get("dish") or c.get("order")
             state = c.get("state", "waiting")
-            if "dish_id" not in c:
-                c["dish_id"] = dish_id
+            c["dish_id"] = dish_id
+            c["order"] = dish_id
+            c["order_tick"] = c.get("order_tick", 0)
             c["state"] = state
             order_tick = c.get("order_tick", 0)
             if isinstance(order_tick, bool) or not isinstance(order_tick, int) or order_tick < 0:
@@ -89,8 +90,8 @@ class QuanSim:
             elif "reserved" in c:
                 reserved = deepcopy(c["reserved"])
                 reservation_state = "reserved" if any(reserved.values()) else "released"
-            elif self.hand == dish_id:
-                # A fixture with the cooked dish already in hand needs no raw
+            elif self.hand == dish_id or any(s.get("dish") == dish_id for s in self.stoves):
+                # A fixture with the cooked dish already in hand or on stove needs no raw
                 # reservation; it can be served directly to this customer.
                 reserved = {}
                 reservation_state = "released"
@@ -124,9 +125,13 @@ class QuanSim:
         by_id = {d["id"]: dict(d) for d in defaults}
         for u in updates:
             if u["id"] not in by_id:
-                from ..errors import BadInput
-                raise BadInput(f"id bếp/bàn không tồn tại: {u['id']}")
-            by_id[u["id"]].update(u)
+                if "pos" in u:
+                    by_id[u["id"]] = dict(u)
+                else:
+                    from ..errors import BadInput
+                    raise BadInput(f"id bếp/bàn không tồn tại: {u['id']}")
+            else:
+                by_id[u["id"]].update(u)
         return sort_by_id(list(by_id.values()))
 
     def snapshot(self) -> dict:
@@ -163,6 +168,12 @@ class QuanSim:
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"
+            self.hand = None
+            for s in self.stoves:
+                s["state"] = "idle"
+                s["dish"] = None
+                s["cook_ticks_left"] = 0
+                s["ready_ticks"] = 0
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
         return events
@@ -270,8 +281,11 @@ class QuanSim:
         tb = free_tables[0]
         c = {"id": self.ids.new("C"), "table_id": tb["id"], "dish_id": dish_id,
              "state": "waiting",
+             "order": dish_id,
              "order_tick": self.elapsed_ticks,
              "patience_ticks_left": int(round(self.t["patience_s"] * self.tick_hz)),
+             "patience_ticks": int(round(self.t["patience_s"] * self.tick_hz)),
+             "patience_max_ticks": int(round(self.t["patience_s"] * self.tick_hz)),
              "eat_ticks_left": int(round(self.t["eat_s"] * self.tick_hz)),
              "reserved": {}}
         if not self._reserve_for_customer(c):
@@ -327,46 +341,57 @@ class QuanSim:
 
     def _tick_stoves(self):
         events = []
+        burn_s = self.t.get("burn_s")
+        burn_ticks = int(round(burn_s * self.tick_hz)) if (burn_s is not None and burn_s > 0) else None
         for s in sort_by_id(self.stoves):
             if s["state"] == "cooking":
                 s["cook_ticks_left"] = max(0, int(s.get("cook_ticks_left", 0)) - 1)
                 if s["cook_ticks_left"] <= 0:
                     s["state"] = "ready"
-                    s["ready_ticks"] = int(s.get("ready_ticks", 0))
                     s["cook_ticks_left"] = 0
+                    s["ready_ticks"] = 0
                     events.append(("dish_ready", {"stove_id": s["id"], "dish_id": s["dish"], "dish": s["dish"]}))
             elif s["state"] == "ready":
                 s["ready_ticks"] = int(s.get("ready_ticks", 0)) + 1
+                if burn_ticks is not None and s["ready_ticks"] > burn_ticks:
+                    s["state"] = "burned"
+                    events.append(("dish_burned", {"stove_id": s["id"], "dish_id": s["dish"], "dish": s["dish"]}))
         return events
 
-    def _nearest_interaction(self):
-        if not hasattr(self, "_interact_radius"):
-            pass
+    def _candidate_interactions(self):
         candidates = []
         for s in sort_by_id(self.stoves):
             dist = ((self.pos[0] - s["pos"][0]) ** 2 + (self.pos[1] - s["pos"][1]) ** 2) ** 0.5
             if dist <= self.t["interact_radius"]:
-                candidates.append((dist, 0, s["id"], "stove", s))
+                candidates.append((round(dist, 5), 0, s["id"], "stove", s))
         for tb in sort_by_id(self.tables):
             dist = ((self.pos[0] - tb["pos"][0]) ** 2 + (self.pos[1] - tb["pos"][1]) ** 2) ** 0.5
             if dist <= self.t["interact_radius"]:
-                candidates.append((dist, 1, tb["id"], "table", tb))
-        if not candidates:
-            return None
-        return min(candidates, key=lambda item: (item[0], item[1], item[2]))[3:]
+                candidates.append((round(dist, 5), 1, tb["id"], "table", tb))
+        candidates.sort(key=lambda item: (item[0], item[1], item[2]))
+        return [item[3:] for item in candidates]
 
-    def _interact(self):
+    def _nearest_interaction(self):
+        cands = self._candidate_interactions()
+        return cands[0] if cands else None
+
+    def _has_reserved_recipe(self, customer):
+        dish_id = customer.get("dish_id") or customer.get("order")
+        if dish_id not in self.menu:
+            return False
+        recipe = self.menu[dish_id]["recipe"]
+        reserved = customer.get("reserved", {})
+        return all(reserved.get(kind, 0) >= amount for kind, amount in recipe.items())
+
+    def _try_interact(self, kind, obj):
         events = []
-        target = self._nearest_interaction()
-        if not target:
-            return events
-        kind, obj = target
         if kind == "stove":
             if obj["state"] == "idle" and self.hand is None:
-                waiting = [c for c in sort_by_id(self.customers)
+                waiting = [c for c in self.customers
                            if c["state"] == "waiting"
                            and self._has_reserved_recipe(c)]
                 if waiting:
+                    waiting.sort(key=lambda c: (c.get("order_tick", 0), c.get("table_id", ""), c.get("id", "")))
                     c = waiting[0]
                     dish_id = c["dish_id"]
                     if not self._consume_reservation(c["id"]):
@@ -375,6 +400,7 @@ class QuanSim:
                     obj["state"] = "cooking"
                     obj["dish"] = dish_id
                     obj["cook_ticks_left"] = int(round(self.menu[dish_id]["cook_s"] * self.tick_hz))
+                    obj["ready_ticks"] = 0
                     events.append(("cook_started", {"stove_id": obj["id"], "customer_id": c["id"],
                                                     "dish_id": dish_id, "dish": dish_id}))
             elif obj["state"] == "ready" and self.hand is None:
@@ -385,6 +411,13 @@ class QuanSim:
                 obj["ready_ticks"] = 0
                 self.hand = dish_id
                 events.append(("dish_picked", {"stove_id": obj["id"], "dish_id": dish_id, "dish": dish_id}))
+            elif obj["state"] == "burned":
+                dish_id = obj["dish"]
+                obj["state"] = "idle"
+                obj["dish"] = None
+                obj["cook_ticks_left"] = 0
+                obj["ready_ticks"] = 0
+                events.append(("dish_discarded", {"stove_id": obj["id"], "dish_id": dish_id, "dish": dish_id}))
         else:
             if self.hand is not None:
                 for c in sort_by_id(self.customers):
@@ -403,13 +436,12 @@ class QuanSim:
                         break
         return events
 
-    def _has_reserved_recipe(self, customer):
-        dish_id = customer.get("dish_id")
-        if dish_id not in self.menu:
-            return False
-        recipe = self.menu[dish_id]["recipe"]
-        reserved = customer.get("reserved", {})
-        return all(reserved.get(kind, 0) >= amount for kind, amount in recipe.items())
+    def _interact(self):
+        for kind, obj in self._candidate_interactions():
+            events = self._try_interact(kind, obj)
+            if events:
+                return events
+        return []
 
     def _move(self, inp):
         speed = self.t["walk_speed"]

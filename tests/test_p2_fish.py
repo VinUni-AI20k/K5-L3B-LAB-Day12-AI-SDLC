@@ -31,6 +31,21 @@ class FishMotionTest(unittest.TestCase):
         session.step(InputState((0, 0), {}, set()))
         return session.snapshot()["fish"]
 
+    def test_default_contract_fish_swim_at_configured_speed(self):
+        path = Path(__file__).resolve().parents[1] / "game.contract.json"
+        tuning = json.loads(path.read_text(encoding="utf-8"))["tuning"]
+        motion = tuning["gather"]["fish_motion"]
+        self.assertEqual(motion["speed"], 1.5)
+
+        session = Session("gather", tuning, {"random_fish": True}, seed=1)
+        initial = {fish["id"]: fish["pos"][0] for fish in session.snapshot()["fish"]}
+        for _ in range(60):
+            session.step(InputState((0, 0), {}, set()))
+        moved = {fish["id"]: fish["pos"][0] for fish in session.snapshot()["fish"]}
+
+        for fish_id, initial_x in initial.items():
+            self.assertAlmostEqual(moved[fish_id], initial_x + motion["speed"], places=5)
+
     def test_boundary_and_spawn_ticks(self):
         session = self.session()
         fish = self.advance(session)

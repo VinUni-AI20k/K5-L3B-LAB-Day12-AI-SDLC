@@ -18,6 +18,7 @@ class CustomersPhase2(unittest.TestCase):
         fixture = json.loads((Path(__file__).parent / "fixtures/p2/q3/tuning.json").read_text(encoding="utf-8"))
         self.tuning["quan"]["tables"] = fixture["tables"]
         self.tuning["quan"]["stoves"].append({"id": "B2", "pos": [5, 8]})
+        self.fixture_dishes = set(fixture["extra_menu"])
         self.tuning["menu"].update(fixture["extra_menu"])
 
     def sim(self, scenario=None, menu_filter=None, seed=1):
@@ -35,7 +36,7 @@ class CustomersPhase2(unittest.TestCase):
             events = self.run_steps(sim, 120)
             self.assertEqual([d["dish_id"] for _, n, d in events if n == "customer_arrived"], [dish])
             self.assertEqual(sim.customers[0]["reserved"], entry["recipe"])
-        self.assertEqual(len(self.tuning["menu"]), 6)
+        self.assertEqual(len(set(self.tuning["menu"]) - self.fixture_dishes), 6)
         self.assertEqual(self.tuning, before)
 
     def test_plan_filters_before_recipe_and_rng(self):
