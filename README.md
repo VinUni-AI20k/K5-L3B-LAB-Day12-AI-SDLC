@@ -16,12 +16,32 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 ## Bắt đầu nhanh
 
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone https://github.com/miao1114/K5-L3B-LAB-Day12-AI-SDLC-CodexGemini.git
+cd K5-L3B-LAB-Day12-AI-SDLC-CodexGemini
+python3 -m chonoi.live --mode gather
 ```
 
-Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
+Mở địa chỉ localhost được in ra để chơi. Đổi `--mode gather` thành `--mode quan` để chơi buổi tối riêng. Chạy toàn bộ test suite bằng **một lệnh** từ gốc repo:
+
+```bash
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+```
+
+Trạng thái kiểm chứng Phase 1 hiện tại: 46/47 test đạt; test ngất còn chờ tích hợp Lát 1 (xem [`docs/verification/phase-1.md`](docs/verification/phase-1.md)). Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
+
+### Buổi sáng — Gather
+
+Út Sen bơi trong mặt cắt sông `[x, d]`, với `d` tăng khi lặn xuống. Dùng **WASD** hoặc **phím mũi tên** để di chuyển; bơi lên mặt nước để hồi oxy, lặn xuống thì oxy giảm. Út Sen có 3 Máu và mất Máu khi ngạt. **E** tương tác với nút bông điên điển/bông súng ở mặt nước hoặc cập bến; **Space** bắt đàn cá khi ở dưới nước; **R** chơi lại. Giỏ chứa tối đa **12 ô**, mỗi nguyên liệu chiếm một ô; cá linh cho 3 con, cá lóc cho 1 con. Giỏ thiếu chỗ thì không lấy lẻ. Cập bến hoặc hết giờ giữ nguyên hàng trong giỏ để chuyển sang quán; ngất thì mất toàn bộ giỏ và kho bàn giao rỗng.
+
+### Hợp đồng file kho (`inventory`)
+
+Hai buổi có thể chạy bằng hai tiến trình headless: `gather --inventory-out kho.json` ghi kho khi có `gather_end`, rồi `quan --inventory kho.json` đọc cùng file. File JSON chỉ có khóa gốc `items`; mỗi khóa con là một trong `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`, giá trị là số nguyên không âm. Loại vắng mặt tính là 0; bên ghi bỏ khóa có lượng 0. Ví dụ hợp lệ:
+
+```json
+{"items":{"bong_sung":2,"ca_loc":1}}
+```
+
+Kho rỗng là `{"items":{}}`. Nếu Gather kết thúc do ngất thì ghi kho rỗng. Nếu chỉ dừng vì giới hạn `--ticks` trước khi kết thúc buổi sáng thì không tạo hoặc ghi đè file kho. Khi có `gather_end`, nội dung file phải khớp `gather_end.inventory` và được ghi bằng cách thay thế nguyên tử. Quán từ chối file sai schema hoặc nguyên liệu lạ (mã thoát 2).
 
 ## Tự do sáng tạo
 
