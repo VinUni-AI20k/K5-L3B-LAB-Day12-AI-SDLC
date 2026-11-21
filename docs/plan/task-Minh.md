@@ -1,12 +1,26 @@
-# Kế hoạch & Checklist tiến độ — M4 (D): `sim/quan` (Phase 1)
+# Kế hoạch & Checklist tiến độ toàn dự án — M4 (D): Nguyễn Nhật Minh (`NhMinh-2610`)
 
-- **Phụ trách:** Nguyễn Nhật Minh (`NhMinh-2610`) — Vai: Dev (dự phòng cho M3 `ththanh8888`)
-- **Phạm vi:** Bếp, Bàn, Bưng, Tiền, Boa (Tip), Uy tín, Hết ca trong `chonoi/sim/quan.py`
-- **Tài liệu chuẩn:** `PRD0.md` (mục D, E, F), `docs/contracts/README.md`, `docs/clarify.md`, `game.contract.json`
+- **Phụ trách:** Nguyễn Nhật Minh (`NhMinh-2610`) — Vai: Dev (dự phòng & review chéo với M3 `ththanh8888`)
+- **Phạm vi xuyên suốt:**
+  - **Phase 1:** Bếp, Bàn, Bưng, Tiền, Boa (Tip), Uy tín, Hết ca trong `chonoi/sim/quan.py`
+  - **Phase 2:** Vòng ngày `--mode day`, Shop (`oxygen`/`hp`), Pause (`paused`/`resumed`), tùy chọn mở rộng `burn`
+  - **Phase 3 & Phase 4:** Cập nhật theo ticket từng mốc (1:55 & 2:30)
+- **Tài liệu chuẩn:** `README.md`, `PRD0.md`, `Ticket02.md`, `phase-1-task.md`, `phase-2-task.md`, `docs/contracts/README.md`, `docs/clarify.md`, `game.contract.json`
+
+## Tổng quan tiến độ 4 Phase
+
+| Phase | Mốc giờ | Hạn tag | Trọng tâm của M4 | Trạng thái |
+|---|---|---|---|---|
+| **Phase 1** | 0:00–1:00 | `phase-1` (1:00) | `sim/quan` (Bếp, Bàn, Bưng, Tiền, Tip, Uy tín, Hết ca) + ghép M3 | ✅ Xong code & 68/68 test (chờ merge PR & tag) |
+| **Phase 2** | 1:00–1:55 | `phase-2` (1:55) | `--mode day`, Shop (`oxygen`/`hp`), Pause 3 mode (+ tùy chọn `burn`) | ⏳ Chờ tag `phase-1` & `M6.1` |
+| **Phase 3** | 1:55–2:30 | `phase-3` (2:30) | *Cập nhật khi mở đề Phase 3* | 🔜 Chưa mở |
+| **Phase 4** | 2:30–3:00 | `phase-4` + `v1.0.0` (3:00) | *Hoàn thiện, đóng gói, tài liệu, demo* | 🔜 Chưa mở |
 
 ---
 
-## 1. Thứ tự ưu tiên & sơ đồ phụ thuộc
+## PHASE 1 — `sim/quan` (`0:00–1:00 · Test Contract v1.0`)
+
+### 1. Thứ tự ưu tiên & sơ đồ phụ thuộc (Phase 1)
 
 > **Hiện trạng:** `M6.1`, `M6.2`, `M6.3` đã xong trên `main` → **M4.1 → M4.2 → M4.3 có thể làm liên tục ngay bây giờ** (chỉ chờ M3 ở bước ghép `M4.4`).
 
@@ -114,3 +128,99 @@ flowchart LR
 | `AC-M4-06` | `paid` (`finished_eating`), cộng tiền, `tip > 0` mới cộng `tip_reputation` và kẹp `[0, 5]`, đúng `score` | [x] | [x] | [x] |
 | `AC-M4-07` | Hết ca: `eating` trả tiền (`closing`), `waiting` rời đi (`closing`) không trừ uy tín + hủy món, phát `quan_end` | [x] | [x] | [x] |
 | `AC-M4-08` | Khách bỏ đi vì hết kiên nhẫn hủy món mồ côi trên bếp/tay, không hoàn nguyên liệu | [x] | [x] | [x] |
+
+---
+
+## 4. Việc cần chốt trước khi gắn tag `phase-1`
+
+- [ ] Mở / merge PR `NguyenNhatMinh` → `main` (đã sạch conflict, 68/68 test xanh).
+- [ ] Review chéo PR/diff với **C (`ththanh8888`)** và xác nhận phần ghép `M3 ↔ M4`.
+- [ ] Báo **M6 (`K0heii`)** cập nhật dòng `AC-P1-M4-01` trong `docs/verification/phase-1.md` trỏ tới `docs/proof/phase-1/m4-test-log.txt`.
+- [x] Tạo file phản tư cá nhân `docs/members/NhMinh-2610.md` (theo `docs/members/TEMPLATE.md`).
+
+---
+
+## 5. Kế hoạch & Checklist Phase 2 — M4 (`1:00–1:55 · Test Contract v1.1`)
+
+> **Lưu ý quan trọng (từ `phase-2-task.md`):** Chỉ bắt đầu sửa code Phase 2 **sau khi M6 đã gắn tag `phase-1`** để không làm hỏng Test Contract v1.0. Riêng **Đợt 1 (`M4.1` — Spec/AC)** có thể đọc `Ticket02.md` và chuẩn bị trước ngay.
+
+### 5.1. Sơ đồ phụ thuộc & bảng ưu tiên Phase 2
+
+```mermaid
+flowchart LR
+    TAG["Tag phase-1"] --> M61["M6.1 Contract v1.1 (An)"]
+    M61 --> M62["M6.2 CLI/Input/Kho v1.1 (An)"]
+    M41["P0: M4.1 Spec day/Shop/Pause"] --> M42["P0: M4.2 Tests day/Shop/Pause"]
+    M61 --> M42
+    M42 --> M43a["P0: M4.3a Code Pause + Shop"]
+    M62 --> M43a
+    M43a --> M43b["P0: M4.3b Ghép --mode day"]
+    M33["M3.3 Quán v1.1 + day_plan (Cao)"] --> M43b
+    M43b --> M44["P1: M4.4 Test nhiều Ngày + Bằng chứng"]
+    M13["M1.3 Cá Sấu (Huy)"] --> M44
+    M43b --> M53["M5.3 HUD/Shop UI (Thanh chờ)"]
+    M43b --> M64["M6.4 Smoke day & Regression P1 (An chờ)"]
+    M44 --> M65["M6.5 Duyệt & Tag phase-2 (An chờ)"]
+```
+
+| Ưu tiên | Mã task | Mục tiêu (theo `phase-2-task.md` & `Ticket02.md`) | Phụ thuộc (Chờ) | Ai chờ mình | Trạng thái |
+|---|---|---|---|---|---|
+| **P0 (Làm ngay)** | **P2-M4.1** | Spec/AC cho vòng ngày `day`, Shop (`oxygen`/`hp`), Pause (`paused`/`resumed`) | Không | `P2-M4.2` | Đã xong ✅ (`docs/plan/spec-p2-m4.md`) |
+| **P0 (1:05–1:20)** | **P2-M4.2** | Viết test/scenario cho `day` (1 & nhiều ngày), Shop, Pause ở cả 3 mode | `P2-M4.1`, `M6.1` | `P2-M4.3a` | Chưa xong |
+| **P0 (1:20–1:30)** | **P2-M4.3a** | Code Pause (`runner.py`) ở cả 3 mode + logic Shop (`oxygen`/`hp`, 600 tick) | `P2-M4.2`, `M6.2` | `P2-M4.3b` | Chưa xong |
+| **P0 (1:30–1:38)** | **P2-M4.3b** | Ghép `--mode day` (`day_start → day_plan → gather → quan → shop → ngày kế`), chuyển kho trong bộ nhớ, áp `active_upgrades` từ Ngày kế | `P2-M4.3a`, `M3.3` (Cao) | `P2-M4.4`, `M5.3`, `M6.4` | Chưa xong |
+| **P1 (1:38–1:50)** | **P2-M4.4** | Chạy test `day --days 1` & nhiều ngày (kiểm `oxygen`/`hp` hiệu lực Ngày 2) + Pause, lưu `docs/proof/phase-2/` | `P2-M4.3b`, `M1.3` (Huy) | `M6.5` | Chưa xong |
+| **P2 (Tùy chọn)** | **Mở rộng `burn`** | Cháy món (`burn_s: 20`, `ready_ticks > 1200` → `dish_burnt`) cùng M3 nếu xong lõi trước 1:35 | Lõi Phase 2 xanh | README + bằng chứng | Tùy chọn |
+
+---
+
+### 5.2. Checklist chi tiết Phase 2
+
+#### Đợt 1 — `P2-M4.1`: Spec & AC (`day`, Shop, Pause) *(Ưu tiên P0 — đã lưu tại `docs/plan/spec-p2-m4.md`)*
+- [x] Chốt luật **Pause** (Contract v1.1 mục 4.2): xét cạnh lên `pause` trước tiên ở cả 3 mode (`gather`, `quan`, `day`); khi vào pause chỉ tăng tick ngoài, giữ nguyên `sim_tick`/`phase_tick`/timer, phát `paused`, bỏ qua hành động & `buy`; cạnh lên tiếp theo phát `resumed` và chạy gameplay ngay bước đó; snapshot có `state: "paused"`.
+- [x] Chốt luật **Shop** (Contract v1.1 mục 2, 4.4, 4.5):
+  - [x] Nâng cấp đọc từ `tuning.shop.upgrades`: `oxygen` (Cấp 1: 200 → 45s/2700 tick, Cấp 2: 400 → 60s/3600 tick), `hp` (Cấp 1: 250 → 4 HP, Cấp 2: 500 → 5 HP).
+  - [x] Mua từng cấp kế tiếp, đủ đúng giá vẫn mua được, trừ `money` (giữ `earned` & `score`), cập nhật `upgrades` ngay nhưng chỉ có hiệu lực từ Ngày kế (`active_upgrades`).
+  - [x] Lỗi mua → phát `buy_failed` với `reason` (`funds` / `max_level` / `out_of_stock` / `unknown`), tiền & cấp giữ nguyên.
+  - [x] Xử lý `buy` trước cạnh `shop_done` (kể cả bước cuối); `shop_done` phát `shop_end(done)`, tự hết 600 tick phát `shop_end(time)`.
+- [x] Chốt luật **Vòng ngày `--mode day`** (Contract v1.1 mục 2, 4.3, 4.4, 4.5):
+  - [x] Thứ tự đổi pha cùng tick: `day_start` → `day_plan` → `phase_start(gather)`; sau `gather_end` (kể cả `fainted`) dựng quán & phát `phase_start(quan)`; sau `quan_end` dựng Shop & phát `phase_start(shop)`; pha mới chạy gameplay từ bước sau, snapshot đổi pha có `phase_tick: 0`.
+  - [x] Mọi snapshot trong `day` có `day`, `day_plan`, `upgrades`, `active_upgrades`; mọi event có thêm `day`.
+  - [x] Giữ `money`, `earned`, `reputation`, `upgrades` qua Ngày; hồi đầy oxy/Máu theo `active_upgrades`, làm mới giỏ, bỏ kho dư sau Shop; đóng Shop tăng `days_completed`, đủ `--days` kết thúc với `reason: "days_complete"`.
+
+#### Đợt 2 — `P2-M4.2`: Viết bộ test Phase 2 *(Ưu tiên P0 — chờ `M6.1`)*
+- [ ] Tạo `tests/test_day_shop_pause_m4.py`:
+  - [ ] Test Pause/Resume ở cả 3 mode (`gather`, `quan`, `day`), gồm cả Pause trong Shop (`time_left_ticks` đứng yên, bỏ qua `buy` khi pause, `resumed` chạy ngay bước đó).
+  - [ ] Test Shop: mua `oxygen` & `hp` cấp 1 → cấp 2, đủ đúng giá, thiếu tiền (`funds`), đã max (`max_level`), lệnh lạ (`unknown`), `buy` + `shop_done` cùng tick cuối, tự đóng sau 600 tick (`time`).
+  - [ ] Test `--mode day --days 1`: `day_start → day_plan → gather → quan → shop → end(days_complete, days_completed=1)` (cả trường hợp ngất vẫn mở quán với kho rỗng).
+  - [ ] Test `--mode day --days 2` (hoặc nhiều ngày): mua `oxygen`/`hp` ở Shop Ngày 1, kiểm tra Ngày 2 áp đúng `oxygen_max_ticks` / `hp_max` mới trong `active_upgrades` và bỏ kho dư.
+
+#### Đợt 3 — `P2-M4.3a` & `P2-M4.3b`: Cài đặt Pause, Shop & `--mode day` *(Ưu tiên P0 — chờ `M6.2` & `M3.3`)*
+- [ ] `P2-M4.3a`: Cài đặt Pause (`paused`/`resumed`, `state: "paused"`) trong `chonoi/runner.py` cho cả 3 mode.
+- [ ] `P2-M4.3a`: Cài đặt Shop (`chonoi/sim/shop.py` hoặc trong `chonoi/sim/day.py`) với `oxygen`/`hp`, `bought`/`buy_failed`/`shop_end`, giới hạn `shop.max_ticks` (600 tick).
+- [ ] `P2-M4.3b`: Cài đặt `DaySim` (`chonoi/sim/day.py`) nối `GatherSim` + `QuanSim` (với `day_plan` từ `M3.3`) + `Shop`, bàn giao kho trong bộ nhớ, sao `upgrades → active_upgrades` khi dựng Ngày mới, kiểm tính hợp lệ kho/khách lúc mở quán (mâu thuẫn → mã 2).
+- [ ] Đảm bảo hiệu năng 1 Ngày không pause (≤ 22.200 tick) chạy nhanh hơn 20 s và tất định byte-for-byte.
+
+#### Đợt 4 — `P2-M4.4` & Quy trình Phase 2 *(Ưu tiên P1)*
+- [ ] Chạy xanh toàn bộ `tests/test_day_shop_pause_m4.py` + regression Phase 1 + `tools/check_team.py`.
+- [ ] Lưu bằng chứng vào `docs/proof/phase-2/` (test log + JSONL `day --days 1` & nhiều ngày).
+- [ ] Review chéo C ↔ D (`ththanh8888`), cập nhật `docs/standup.md`, `docs/ai-usage-log.md`, `docs/retro.md`, `docs/members/NhMinh-2610.md`.
+- [ ] *(Tùy chọn mở rộng `burn` nếu xong lõi trước 1:35)* Cài `burn_s: 20` (`ready_ticks > 1200` → `dish_burnt`, giữ lại `reserved` hoặc `unfulfillable`) + unit test + khai `extensions` cùng M3/M6.
+
+---
+
+## PHASE 3 — `1:55–2:30` *(Cập nhật khi mở đề Phase 3)*
+
+- [ ] Đọc đề Phase 3 & cập nhật bảng task M4 ngay lúc 1:55.
+- [ ] Hoàn thành Spec → Test → Code → Ghép & Bằng chứng (`docs/proof/phase-3/`).
+- [ ] Cập nhật `docs/standup.md`, `docs/ai-usage-log.md`, `docs/retro.md`.
+- [ ] Đảm bảo toàn bộ regression Phase 1 + Phase 2 + Phase 3 xanh trước khi gắn tag `phase-3` (2:30).
+
+---
+
+## PHASE 4 — `2:30–3:00` *(Hoàn thiện & Release `v1.0.0`)*
+
+- [ ] Đọc đề Phase 4 & cập nhật bảng task M4 ngay lúc 2:30.
+- [ ] Hoàn thiện phần việc M4, chạy full regression & lưu bằng chứng (`docs/proof/phase-4/`).
+- [ ] Hoàn tất phản tư cá nhân `docs/members/NhMinh-2610.md`, `docs/ai-usage-log.md`, `docs/retro.md`.
+- [ ] Kiểm tra cuối trước khi gắn tag `phase-4` & Release `v1.0.0` (3:00) + chuẩn bị demo.
