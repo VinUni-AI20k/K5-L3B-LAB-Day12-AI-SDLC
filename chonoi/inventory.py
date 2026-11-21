@@ -10,10 +10,13 @@ import tempfile
 
 from .errors import BadInput
 
-KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
+# ID cố định theo contract v1.1 (6 nguyên liệu); số liệu đi kèm nằm trong game.contract.json
+FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
+NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
+KINDS = FISH_KINDS + NODE_KINDS
 
 
-def validate_items(items, kinds=KINDS_P1):
+def validate_items(items, kinds=KINDS):
     if not isinstance(items, dict):
         raise BadInput("items phải là object")
     out = {}
@@ -27,7 +30,7 @@ def validate_items(items, kinds=KINDS_P1):
     return out
 
 
-def read_inventory(path: str, kinds=KINDS_P1) -> dict:
+def read_inventory(path: str, kinds=KINDS) -> dict:
     try:
         with open(path, encoding="utf-8") as f:
             data = json.load(f)

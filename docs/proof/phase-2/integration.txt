@@ -1,0 +1,29 @@
+# Smoke tích hợp kho Phase 2 (gather --inventory-out -> quan --inventory), contract v1.1, cá bơi/sinh bật
+# Lệnh:
+#   python3 -m chonoi.headless --mode gather --seed 1 --ticks 10800 --snapshot-every 60 --inputs docs/proof/phase-2/integration-inputs.json --inventory-out docs/proof/phase-2/integration-kho.json --out docs/proof/phase-2/integration-gather.jsonl
+#   python3 tools/check_handoff.py docs/proof/phase-2/integration-gather.jsonl docs/proof/phase-2/integration-kho.json
+
+gather_end reason: docked
+kind              kho.json  gather_end  quan.stock
+bong_dien_dien           0           0           0
+bong_sung                0           0           0
+ca_keo                   2           2           2
+ca_linh                  0           0           0
+ca_loc                   0           0           0
+keo_neo                  2           2           2
+tổng: 4 món
+KẾT QUẢ: KHỚP
+
+# Sự kiện chính trong lượt thu:
+360 fish_spawned {"id": "F9", "kind": "ca_loc", "pos": [60.0, 10.0]}
+720 fish_spawned {"id": "F10", "kind": "ca_linh", "pos": [30.0, 10.0]}
+1080 fish_spawned {"id": "F11", "kind": "ca_linh", "pos": [30.0, 10.0]}
+1091 gather {"node_id": "N5", "kind": "keo_neo", "amount": 1}
+1440 fish_spawned {"id": "F12", "kind": "ca_linh", "pos": [15.0, 10.0]}
+1655 fish_caught {"fish_id": "F8", "kind": "ca_keo", "yield": 2}
+1800 fish_spawned {"id": "F13", "kind": "ca_linh", "pos": [60.0, 10.0]}
+2428 gather {"node_id": "N6", "kind": "keo_neo", "amount": 1}
+3704 gather_end {"reason": "docked", "inventory": {"items": {"ca_keo": 2, "keo_neo": 2}}}
+
+# Tất định: chạy lại cùng lệnh ra file khác rồi cmp
+JSONL và kho giống từng byte
