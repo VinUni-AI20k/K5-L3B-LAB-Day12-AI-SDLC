@@ -17,7 +17,7 @@ Phase 1 (PRD mục 13.8, "Gather"):
       - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
       - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
       - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
-Các tính năng của phase sau chưa nằm trong khung này.
+Phase 2: cá bơi, đổi hướng và sinh đàn theo tuning Gather.
 """
 
 import math
@@ -63,9 +63,14 @@ class GatherSim:
             src_fish = t["fish_initial"]
         else:
             src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
                       "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+        self.fish_motion = t.get("fish_motion")
+        self.fish_spawn_by_tick = {}
+        if "fish" not in scenario and scenario.get("random_fish", True):
+            for spawn in t.get("fish_spawn_schedule", ()):
+                self.fish_spawn_by_tick.setdefault(spawn["tick"], []).append(spawn)
+        self.elapsed_ticks = 0
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
@@ -98,6 +103,7 @@ class GatherSim:
     # --- một bước ---------------------------------------------------------------
     def step(self, inp):
         events = []
+        self.elapsed_ticks += 1
         # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
@@ -131,9 +137,37 @@ class GatherSim:
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
+        else:
+            self._tick_fish()
         return events
 
     # --- tiện ích ---------------------------------------------------------------
+    def _tick_fish(self):
+        motion = self.fish_motion
+        if motion:
+            turn_now = self.elapsed_ticks % motion["turn_every_ticks"] == 0
+            turn_rng = self.rng.get("fish_turn") if turn_now else None
+            turn_limit = motion["max_turn_deg"]
+            distance = motion["speed"] / TICK
+            x_min, x_max = self.t["bounds"]["x"]
+            d_min, d_max = motion["min_depth"], self.t["bounds"]["d"][1]
+            for fish in sort_by_id(self.fish):
+                heading = fish["heading_deg"]
+                if turn_rng is not None:
+                    heading += turn_rng.uniform(-turn_limit, turn_limit)
+                angle = math.radians(heading)
+                x = fish["pos"][0] + distance * math.cos(angle)
+                depth = fish["pos"][1] + distance * math.sin(angle)
+                if x < x_min or x > x_max:
+                    heading = 180 - heading
+                if depth < d_min or depth > d_max:
+                    heading = -heading
+                fish["pos"] = [min(x_max, max(x_min, x)), min(d_max, max(d_min, depth))]
+                fish["heading_deg"] = heading % 360
+        for spawn in self.fish_spawn_by_tick.get(self.elapsed_ticks, ()):
+            self.fish.append({"id": self.ids.new("F"), "kind": spawn["kind"],
+                              "pos": list(spawn["pos"]), "heading_deg": spawn["heading_deg"]})
+
     def _at_surface(self) -> bool:
         return self.pos[1] <= self.t["surface_depth"]
 
