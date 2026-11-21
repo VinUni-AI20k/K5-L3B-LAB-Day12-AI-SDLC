@@ -1,0 +1,19 @@
+Commit: f0a1906
+Command 1: python -m chonoi.headless --mode gather --seed 42 --scenario docs/proof/phase-1/dock.json --inputs docs/proof/phase-1/dock-inputs.json --ticks 1 --out <temp>/gather.jsonl --inventory-out docs/proof/phase-1/catch.json
+Exit code 1: 0
+Command 2: python -m chonoi.headless --mode quan --seed 42 --inventory docs/proof/phase-1/catch.json --ticks 0 --out <temp>/quan.jsonl
+Exit code 2: 0
+
+catch.json:
+{"items":{"bong_sung":2,"ca_loc":1}}
+
+gather_end event:
+{"type": "event", "tick": 1, "phase": "gather", "name": "gather_end", "data": {"reason": "docked", "inventory": {"items": {"bong_sung": 2, "ca_loc": 1}}}}
+
+quan tick 0 snapshot:
+{"type": "snapshot", "tick": 0, "sim_tick": 0, "mode": "quan", "phase": "quan", "phase_tick": 0, "state": "playing", "time_left_ticks": 10800, "money": 0, "earned": 0, "reputation": 3.0, "score": 300, "player": {"pos": [8, 5]}, "stock": {"bong_sung": 2, "ca_loc": 1}, "hand": null, "stoves": [{"id": "B1", "pos": [2, 8], "state": "idle", "dish": null, "cook_ticks_left": 0, "ready_ticks": 0}], "tables": [{"id": "T1", "pos": [9, 2], "customer_id": null}], "customers": []}
+
+quan end row:
+{"type": "end", "ticks": 0, "sim_tick": 0, "mode": "quan", "state": "playing", "reason": "tick_limit", "money": 0, "earned": 0, "reputation": 3.0, "score": 300}
+
+Result: PASS

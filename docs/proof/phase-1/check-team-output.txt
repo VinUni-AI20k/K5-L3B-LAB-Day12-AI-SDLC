@@ -1,0 +1,14 @@
+Commit: f0a1906
+Command: python tools/check_team.py
+Exit code: 1
+
+KIỂM TRA DANH SÁCH THÀNH VIÊN KHÔNG ĐẠT:
+  - thành viên #1: GitHub handle chưa điền hoặc không hợp lệ ('')
+  - thành viên #1: thiếu tên
+  - thành viên #2: GitHub handle chưa điền hoặc không hợp lệ ('')
+  - thành viên #2: thiếu tên
+  - thành viên #3: GitHub handle chưa điền hoặc không hợp lệ ('')
+  - thành viên #3: thiếu tên
+  - thành viên #4: GitHub handle chưa điền hoặc không hợp lệ ('')
+  - thành viên #4: thiếu tên
+  - team_size trong game.contract.json (5) khác số thành viên (4)
