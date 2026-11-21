@@ -17,11 +17,6 @@
   }
 </style>
 <script src="pixi.min.js"></script>
-<script>
-  if (typeof PIXI === 'undefined') {
-    document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/pixi.js/7.4.2/pixi.min.js"><\/script>');
-  }
-</script>
 </head>
 <body>
 <canvas id="c"></canvas>
@@ -32,6 +27,7 @@
  * Tích hợp PixiJS WebGL + Client-side LERP + Particle System (bọt khí, khói bếp, sao sáng)
  * Procedural Animated Sprites: Cá quẫy đuôi, Cá sấu vẫy sống lưng, Út Sen đập chân vịt, Bếp lửa bốc khói
  * Full UI: Menu / DayIntro / EveningIntro / DayResult / Shop / Summary / Pause (Esc|P)
+ * Ghép: Pixi render/FX (user) + day/shop/fresh UI logic (Cursor) — canvas 2D overlay trên pixi.min.js local
  * Phím: WASD · E · Space · R · Esc/P · Enter · C (Tương phản cao)
  * Mọi chữ hiển thị ≥ 18px theo quy định chuẩn của Lab.
  */
@@ -141,6 +137,11 @@ const DEMO_DATA = {
     ],
     events: [
       { tick: 180, name: "spoiled", data: { item_id: "I12", kind: "ca_linh", location: "stock" } },
+      { tick: 200, name: "cook_started", data: {
+        stove_id: "B1", dish: "goi_bong_sung",
+        items: [{ id: "I11", kind: "bong_sung", fresh: 45 }, { id: "I14", kind: "bong_sung", fresh: 62.5 }],
+        base_price: 28
+      }},
       { tick: 220, name: "paid", data: { customer_id: "C1", base_price: 34, price: 34, tip: 6 } },
     ],
     meta: { bounds: { x: [0, 16], z: [0, 10] }, patience_s: 60, reputation_min: 0, reputation_max: 5 },
@@ -247,25 +248,43 @@ function checkEventsForFX(events) {
   lastProcessedTick = events[events.length - 1].tick;
 }
 
-// --- Điều khiển & Network ---
+// --- Điều khiển & Network (day mode + shop_done/buy từ UI Cursor) ---
 const down = new Set();
 const MOVE_KEYS = { w: "u", arrowup: "u", s: "d", arrowdown: "d", a: "l", arrowleft: "l", d: "r", arrowright: "r" };
 let queue = [], inflight = false, lastSent = "";
+let pendingPauseEdge = false, pendingShopDone = false, pendingBuy = null;
+let lastSimPhase = null, userStarted = false;
+let shopFlash = "";
 
-function playingLive() { return uiScreen === "play" && !paused && !DEMO; }
+function isDayMode() { return snap && snap.mode === "day"; }
+function simPhase() { return (snap && (snap.phase || (snap.meta && snap.meta.phase))) || null; }
+function playingLive() { return !DEMO && userStarted && (uiScreen === "play" || uiScreen === "shop") && !paused; }
 
 function currentInput() {
-  const mode = snap ? snap.mode : "gather";
+  const phase = simPhase();
+  const moveMode = phase === "quan" || (!isDayMode() && snap && snap.mode === "quan") ? "quan" : "gather";
   const dx = (down.has("r") ? 1 : 0) - (down.has("l") ? 1 : 0);
   let dy = (down.has("d") ? 1 : 0) - (down.has("u") ? 1 : 0);
-  if (mode === "quan") dy = -dy;
-  const body = { move: [dx, dy], interact: down.has("interact"), catch: down.has("catch") };
-  if (paused) body.pause = true;
+  if (moveMode === "quan") dy = -dy;
+  const body = {
+    move: (uiScreen === "play" && !paused) ? [dx, dy] : [0, 0],
+    interact: uiScreen === "play" && !paused && down.has("interact"),
+    catch: uiScreen === "play" && !paused && down.has("catch"),
+    pause: false,
+    shop_done: false,
+  };
+  if (pendingPauseEdge) { body.pause = true; pendingPauseEdge = false; }
+  if (pendingShopDone) { body.shop_done = true; pendingShopDone = false; }
+  if (pendingBuy) { body.buy = pendingBuy; pendingBuy = null; }
   return body;
 }
 
 function pushInput() {
-  if (!playingLive() && !(uiScreen === "play" && paused)) return;
+  if (DEMO && DEMO !== "pause") return;
+  if (!userStarted && !pendingPauseEdge && !pendingShopDone && !pendingBuy) return;
+  if (uiScreen === "menu" || uiScreen === "dayIntro" || uiScreen === "eveningIntro" || uiScreen === "dayResult" || uiScreen === "summary") {
+    if (!pendingPauseEdge && !pendingShopDone && !pendingBuy) return;
+  }
   const s = JSON.stringify(currentInput());
   if (s === lastSent) return;
   lastSent = s;
@@ -280,44 +299,58 @@ async function flush() {
     const body = queue.shift();
     try {
       await fetch("/input", { method: "POST", body, headers: { "Content-Type": "application/json" } });
-      if (body.indexOf('"pause"') >= 0) pauseSupported = !!(snap && snap.paused !== undefined);
+      if (body.indexOf('"pause":true') >= 0) pauseSupported = !!(snap && snap.paused !== undefined);
     } catch (e) { /* poll báo */ }
   }
   inflight = false;
 }
 
-function keyName(e) { return e.key.toLowerCase(); }
+function keyName(e) { return e.key.length === 1 ? e.key.toLowerCase() : e.key.toLowerCase(); }
 
 function setScreen(s) {
   uiScreen = s;
   introSince = performance.now();
-  if (s !== "play") paused = false;
   buttons = [];
 }
 
-function togglePause() {
-  if (uiScreen === "menu" || DEMO && DEMO !== "pause" && uiScreen !== "play") {
-    if (DEMO === "pause" || uiScreen === "play") { /* ok */ }
-    else return;
-  }
-  if (uiScreen !== "play" && DEMO !== "pause") return;
-  paused = !paused;
+function pulseThenRelease() {
   lastSent = "";
   pushInput();
+  setTimeout(() => { lastSent = ""; pushInput(); }, 40);
+}
+
+function togglePause() {
+  if (DEMO === "pause") { paused = !paused; return; }
+  if (!(uiScreen === "play" || uiScreen === "shop")) return;
+  pendingPauseEdge = true;
+  paused = !paused;
+  pulseThenRelease();
 }
 
 function goPlay() {
-  setScreen("play");
-  paused = false;
+  userStarted = true;
+  const ph = simPhase();
+  if (ph === "shop") setScreen("shop");
+  else setScreen("play");
   lastSent = "";
   down.clear();
   pushInput();
 }
 
+function startFromMenu() {
+  userStarted = true;
+  if (isDayMode() && dayPlan()) setScreen("dayIntro");
+  else goPlay();
+}
+
 function skipIntroOrAdvance() {
   if (uiScreen === "dayIntro") goPlay();
   else if (uiScreen === "eveningIntro") setScreen("play");
-  else if (uiScreen === "dayResult") setScreen("shop");
+  else if (uiScreen === "dayResult") {
+    if (DEMO) setScreen("shop");
+    else if (simPhase() === "shop") setScreen("shop");
+    else goPlay();
+  }
   else if (uiScreen === "summary") setScreen("menu");
 }
 
@@ -334,7 +367,12 @@ addEventListener("keydown", (e) => {
   if (uiScreen === "dayIntro" || uiScreen === "eveningIntro" || uiScreen === "dayResult") {
     if (k === "enter" || k === " " || k === "e") { e.preventDefault(); skipIntroOrAdvance(); return; }
   }
-  if (uiScreen === "shop" && (k === "enter" || k === "e")) { setScreen(DEMO ? "summary" : "menu"); return; }
+  if (uiScreen === "shop" && (k === "enter" || k === "e")) {
+    e.preventDefault();
+    if (DEMO) setScreen("summary");
+    else { pendingShopDone = true; pulseThenRelease(); }
+    return;
+  }
   if (uiScreen !== "play") return;
   if (e.repeat) { if (k === " " || k.startsWith("arrow")) e.preventDefault(); return; }
   if (MOVE_KEYS[k]) { down.add(MOVE_KEYS[k]); e.preventDefault(); }
@@ -365,14 +403,21 @@ cv.addEventListener("click", (e) => {
 });
 
 function onButton(id) {
-  if (id === "play") goPlay();
-  else if (id === "quit") setScreen("menu");
-  else if (id === "resume") { paused = false; lastSent = ""; pushInput(); }
-  else if (id === "toMenu") { paused = false; setScreen("menu"); down.clear(); }
+  if (id === "play") startFromMenu();
+  else if (id === "quit") { userStarted = false; setScreen("menu"); }
+  else if (id === "resume") { if (paused) togglePause(); }
+  else if (id === "toMenu") { userStarted = false; paused = false; setScreen("menu"); down.clear(); }
   else if (id === "skipIntro") skipIntroOrAdvance();
-  else if (id === "shopDone") setScreen(DEMO ? "summary" : "dayIntro");
+  else if (id === "shopDone") {
+    if (DEMO) setScreen("summary");
+    else { pendingShopDone = true; pulseThenRelease(); }
+  }
   else if (id === "summaryOk") setScreen("menu");
-  else if (id === "buy_oxygen" || id === "buy_hp") { /* demo */ }
+  else if (id === "buy_oxygen" || id === "buy_hp") {
+    if (DEMO) { shopFlash = "Mua demo · không gửi server"; return; }
+    pendingBuy = id === "buy_oxygen" ? "oxygen" : "hp";
+    pulseThenRelease();
+  }
   else if (id === "demoDay") setScreen("dayIntro");
   else if (id === "demoEve") setScreen("eveningIntro");
   else if (id === "demoRes") setScreen("dayResult");
@@ -382,7 +427,6 @@ function onButton(id) {
   else if (id === "contrast") highContrast = !highContrast;
 }
 
-// Polling dữ liệu chạy nền tách biệt khỏi vòng lặp render
 async function poll() {
   if (DEMO === "fresh") { applyFreshDemo(); setTimeout(poll, 200); return; }
   if (DEMO && DEMO !== "pause") { setTimeout(poll, 200); return; }
@@ -393,7 +437,7 @@ async function poll() {
     syncPhaseFromSnap();
     if (snap && snap.events) checkEventsForFX(snap.events);
   } catch (e) { offline = true; }
-  setTimeout(poll, 24); // ~40Hz poll mạng, render chạy mượt 60-120Hz qua LERP
+  setTimeout(poll, 24);
 }
 
 function applyFreshDemo() {
@@ -406,14 +450,42 @@ function applyFreshDemo() {
 
 function syncPhaseFromSnap() {
   if (!snap || DEMO) return;
-  const ph = snap.ui_phase || snap.phase_ui || snap.screen || snap.day_phase;
-  if (ph === "day_intro" || ph === "DayIntro") setScreen("dayIntro");
-  else if (ph === "evening_intro" || ph === "EveningIntro") setScreen("eveningIntro");
-  else if (ph === "day_result" || ph === "DayResult") setScreen("dayResult");
-  else if (ph === "shop" || ph === "Shop") setScreen("shop");
-  else if (ph === "summary" || ph === "Summary") setScreen("summary");
-  if (snap.paused === true) paused = true;
-  else if (snap.paused === false && pauseSupported) paused = false;
+  if (snap.paused !== undefined) {
+    pauseSupported = true;
+    paused = !!snap.paused;
+  }
+  const ev = snap.events || [];
+  for (let i = ev.length - 1; i >= 0; i--) {
+    if (ev[i].name === "buy_failed") {
+      const d = ev[i].data || {};
+      shopFlash = "Mua thất bại: " + (d.reason || "—") + (d.action ? " (" + d.action + ")" : "");
+      break;
+    }
+    if (ev[i].name === "bought") {
+      const d = ev[i].data || {};
+      shopFlash = "Đã mua " + (d.upgrade || "") + " cấp " + (d.level || "") + " · còn " + (d.money !== undefined ? d.money + "k" : "—");
+      break;
+    }
+  }
+  if (!userStarted || uiScreen === "menu") { lastSimPhase = simPhase(); return; }
+  const ph = simPhase();
+  if (ph === "shop") {
+    if (uiScreen !== "shop" && uiScreen !== "dayResult") setScreen("shop");
+  } else if (ph === "quan") {
+    if (lastSimPhase === "gather" && uiScreen === "play") setScreen("eveningIntro");
+    else if (uiScreen === "shop" || uiScreen === "dayIntro") setScreen("play");
+  } else if (ph === "gather") {
+    if (lastSimPhase === "shop") {
+      const daysDone = snap.days_completed, daysMax = (snap.meta && snap.meta.days) || snap.days;
+      if (snap.finished || (daysMax && daysDone >= daysMax)) setScreen("summary");
+      else setScreen("dayIntro");
+    } else if (uiScreen === "shop") setScreen("play");
+  }
+  if (snap.finished && isDayMode() && uiScreen === "play") {
+    const daysDone = snap.days_completed, daysMax = (snap.meta && snap.meta.days) || snap.days;
+    if (daysMax && daysDone >= daysMax) setScreen("summary");
+  }
+  lastSimPhase = ph;
 }
 poll();
 
@@ -547,10 +619,18 @@ function stockCounts(usableOnly) {
   return o;
 }
 function dayPlan() {
-  return (snap && (snap.day_plan || (snap.day && snap.day.day_plan))) || (DEMO ? DEMO_DATA.day_plan : null);
+  const raw = (snap && (snap.day_plan || (snap.meta && snap.meta.day_plan) || (snap.day && snap.day.day_plan)))
+    || (DEMO ? DEMO_DATA.day_plan : null);
+  if (!raw) return null;
+  let dishes = raw.dishes;
+  if (dishes && !Array.isArray(dishes) && typeof dishes === "object") {
+    dishes = Object.keys(dishes).map((id) => ({ id, count: dishes[id] }));
+  }
+  const need = raw.need || raw.ingredients || null;
+  return { dishes, need, speech: raw.speech };
 }
 function dayNum() {
-  const d = snap && (snap.day_number ?? snap.day ?? (snap.day && snap.day.number));
+  const d = snap && (snap.day ?? (snap.meta && snap.meta.day) ?? snap.day_number);
   if (d !== undefined && d !== null && typeof d !== "object") return d;
   return DEMO ? DEMO_DATA.day : "—";
 }
@@ -568,6 +648,77 @@ function dishOf(obj) {
   if (!obj) return null;
   if (typeof obj === "string") return obj;
   return obj.dish_id || obj.dish || null;
+}
+
+const GATHER_HUD_EVENTS = new Set([
+  "dive", "surface", "oxygen_empty", "choke", "faint", "hold_full", "gather_end",
+  "gather", "fish_caught", "node_regrown", "spoiled",
+]);
+const QUAN_HUD_EVENTS = new Set([
+  "customer_arrived", "customer_left", "cook_started", "dish_ready", "dish_picked",
+  "served", "paid", "quan_end", "no_dish", "spoiled",
+]);
+const EVENT_VI = {
+  dive: "Lặn xuống", surface: "Lên mặt nước", oxygen_empty: "Hết oxy", choke: "Ngạt (−1 Máu)", faint: "Ngất",
+  hold_full: "Giỏ đầy", gather_end: "Kết thúc buổi sáng", gather: "Hái nút", fish_caught: "Bắt cá", node_regrown: "Nút mọc lại",
+  spoiled: "Hàng ươn",
+  customer_arrived: "Khách đến", customer_left: "Khách bỏ đi", cook_started: "Bắt nấu", dish_ready: "Món chín",
+  dish_picked: "Nhặt món", served: "Phục vụ", paid: "Thanh toán + boa", quan_end: "Hết ca", no_dish: "Thiếu món",
+};
+function lastHudEvent(allowed) {
+  const ev = (snap && snap.events) || [];
+  for (let i = ev.length - 1; i >= 0; i--) if (allowed.has(ev[i].name)) return ev[i];
+  return null;
+}
+function formatCookItems(items) {
+  if (!Array.isArray(items) || !items.length) return "—";
+  return items.map((it) => {
+    const k = KIND_NAME[it.kind] || it.kind || it.id || "?";
+    const f = typeof it.fresh === "number" ? freshLabel(it.fresh) : "—";
+    return k + " " + f;
+  }).join(", ");
+}
+function lockedPrice(d) {
+  if (!d || typeof d !== "object") return undefined;
+  if (d.base_price !== undefined && d.base_price !== null) return d.base_price;
+  if (d.price !== undefined && d.price !== null) return d.price;
+  return undefined;
+}
+function hudEventLine(e) {
+  if (!e) return "";
+  const d = e.data || {};
+  if (e.name === "spoiled") {
+    const name = KIND_NAME[d.kind] || d.kind || d.item_id || "?";
+    const loc = d.location === "stock" ? "kho" : (d.location === "hold" ? "giỏ" : (d.location || "—"));
+    return "t" + e.tick + " Hàng ươn: " + name + " (" + loc + ")";
+  }
+  if (e.name === "cook_started") {
+    const dish = d.dish || d.dish_id;
+    let s = "t" + e.tick + " Bắt nấu" + (dish ? " · " + dn(dish) : "");
+    if (d.items !== undefined) s += " · NL: " + formatCookItems(d.items);
+    const bp = lockedPrice(d);
+    if (bp !== undefined) s += " · giá " + bp + "k";
+    return s;
+  }
+  if (e.name === "paid") {
+    let s = "t" + e.tick + " Thanh toán";
+    const bp = lockedPrice(d);
+    s += " · giá chốt " + (bp !== undefined ? bp + "k" : "—");
+    if (d.tip !== undefined && d.tip !== null) s += " · boa " + d.tip + "k";
+    return s;
+  }
+  let s = EVENT_VI[e.name] || e.name;
+  if (d.reason) s += " · " + d.reason;
+  else if (d.dish || d.dish_id) s += " · " + dn(d.dish || d.dish_id);
+  else if (d.kind) s += " · " + (KIND_NAME[d.kind] || d.kind) + (d.count ? "×" + d.count : "");
+  else if (d.node_id) s += " · " + d.node_id;
+  else if (d.fish_id) s += " · " + d.fish_id;
+  return "t" + e.tick + " " + s;
+}
+function eventLog(w, h) {
+  if (!snap) return;
+  const ev = (snap.events || []).slice(-3);
+  ev.forEach((e, i) => text(hudEventLine(e), w - 12, h - 96 - (ev.length - 1 - i) * 22, { size: 18, align: "right", color: "rgba(232,238,242,.75)" }));
 }
 
 function drawFreshSlot(x0, y0, sz, it, highlight) {
@@ -1087,13 +1238,23 @@ function drawGather(w, h) {
     else text("Hồi bắt: SẴN SÀNG", 16, 80, { size: 18, color: "#69f0ae", bold: true });
   }
 
-  // Danh sách cần lấy theo kế hoạch
+  // Danh sách cần lấy theo kế hoạch (không đếm hàng ươn)
   const plan = dayPlan();
+  const countsAll = holdCounts(false);
   const countsOk = holdCounts(true);
+  const holdLine = Object.keys(countsAll).length
+    ? Object.keys(countsAll).map((k) => {
+        const spoiled = (countsAll[k] || 0) - (countsOk[k] || 0);
+        return (KIND_NAME[k] || k) + "×" + (countsOk[k] || 0) + (spoiled ? "(ươn×" + spoiled + ")" : "");
+      }).join("  ")
+    : "(trống)";
+  text("Giỏ " + holdLine, 200, 80, { size: 18, color: "#cfd8dc" });
   if (plan && plan.need) {
     const parts = Object.keys(plan.need).map((k) => (KIND_NAME[k] || k) + " " + (countsOk[k] || 0) + "/" + plan.need[k]);
     text("Cần lấy: " + parts.join(" · "), 16, 106, { size: 18, color: "#ffd54f", bold: true });
-  }
+  } else text("Cần lấy: —", 16, 106, { size: 18, color: "#90a4ae" });
+  const gev = lastHudEvent(GATHER_HUD_EVENTS);
+  if (gev) text(hudEventLine(gev), w - 16, 56, { size: 18, align: "right", color: "#ffe082" });
 
   if (nearDock) text("💡 Nhấn E: Cập bến giao hàng", w / 2, h - 86, { size: 22, align: "center", color: "#ffe082", bold: true });
   else if (nearNode && p && (p.at_surface !== false)) text("💡 Nhấn E: Hái nút rau", w / 2, h - 86, { size: 22, align: "center", color: "#b9f6ca", bold: true });
@@ -1226,6 +1387,10 @@ function drawQuan(w, h) {
     stockLine = (parts.length ? parts.join(", ") : "(hết hàng tươi)") + (spoiledN ? " · ươn×" + spoiledN : "");
   }
   text("Kho nguyên liệu: " + stockLine, 16, 160, { size: 18, color: "#b0bec5" });
+  const spoiledSlots = allSt.filter((it) => !isUsableItem(it)).slice(0, 4);
+  spoiledSlots.forEach((it, i) => drawFreshSlot(16 + i * 52, 172, 44, it, false));
+  const qev = lastHudEvent(QUAN_HUD_EVENTS);
+  if (qev) text(hudEventLine(qev), w - 16, 56, { size: 18, align: "right", color: "#ffe082" });
 
   const angry = (snap.customers || []).some((c) => {
     if (c.state === "eating") return false;
@@ -1287,8 +1452,13 @@ function drawDayIntro(w, h) {
   let y = h * 0.38;
   if (plan && plan.speech) {
     plan.speech.forEach((line) => { text(line, w / 2, y, { size: 22, align: "center" }); y += 36; });
-  } else if (plan && plan.dishes) {
-    plan.dishes.forEach((d) => { text(dn(d.id) + " ×" + d.count, w / 2, y, { size: 22, align: "center" }); y += 34; });
+  } else if (plan && plan.dishes && plan.dishes.length) {
+    plan.dishes.forEach((d) => {
+      const id = d.id || d.dish || d;
+      const count = d.count !== undefined ? d.count : "";
+      text(dn(id) + (count !== "" ? " ×" + count : ""), w / 2, y, { size: 22, align: "center" });
+      y += 34;
+    });
   }
 
   if (plan && plan.need) {
@@ -1346,35 +1516,72 @@ function drawDayResult(w, h) {
   btn("skipIntro", "Vào Cửa Hàng Nâng Cấp (Shop)", w / 2 - 160, h * 0.80, 320, 48);
 }
 
+function shopCatalog() {
+  if (snap && snap.shop && typeof snap.shop === "object" && !Array.isArray(snap.shop)) {
+    const keys = Object.keys(snap.shop);
+    if (keys.length && snap.shop[keys[0]] && snap.shop[keys[0]].level !== undefined) return snap.shop;
+  }
+  const metaShop = snap && snap.meta && snap.meta.shop;
+  if (metaShop && metaShop.upgrades) {
+    const ups = (snap && snap.upgrades) || {};
+    const out = {};
+    Object.keys(metaShop.upgrades).forEach((uid) => {
+      const lv = ups[uid] || 0;
+      const arr = metaShop.upgrades[uid] || [];
+      const nxt = arr.find((e) => e.level === lv + 1) || null;
+      out[uid] = { level: lv, max_level: arr.length, next: nxt };
+    });
+    return out;
+  }
+  return DEMO ? {
+    oxygen: { level: 0, max_level: 2, next: { level: 1, price: 200, oxygen_max_s: 45 } },
+    hp: { level: 0, max_level: 2, next: { level: 1, price: 250, hp_max: 4 } },
+  } : {};
+}
+function upgradeTitle(uid) { return uid === "oxygen" ? "Bình oxy" : uid === "hp" ? "Áo phao" : uid; }
+function upgradeNextDesc(nxt) {
+  if (!nxt) return "";
+  if (nxt.oxygen_max_s) return nxt.oxygen_max_s + " s oxy";
+  if (nxt.hp_max) return nxt.hp_max + " Máu";
+  if (nxt.desc) return nxt.desc;
+  return "cấp " + nxt.level;
+}
 function drawShop(w, h) {
   panel(40, 40, w - 80, h - 80);
-  const sh = (snap && snap.shop) || (DEMO ? DEMO_DATA.shop : {});
-  const money = snap && snap.money !== undefined ? snap.money : sh.money;
-  const ups = (snap && (snap.upgrades || snap.active_upgrades)) || sh.upgrades || {};
+  const money = snap && snap.money !== undefined ? snap.money : ((DEMO ? DEMO_DATA.shop.money : undefined));
+  const bought = (snap && snap.upgrades) || {};
+  const active = (snap && snap.active_upgrades) || {};
+  const cat = shopCatalog();
+  const tLeft = snap && snap.phase === "shop" ? snap.time_left_ticks : undefined;
 
   text("CỬA HÀNG TRANG BỊ CHỢ NỔI", w / 2, 90, { size: 36, align: "center", bold: true, color: "#ffe082" });
-  text("Tiền hiện có: " + dash(money !== undefined ? money + "k" : null), w / 2, 130, { size: 24, align: "center", color: "#69f0ae", bold: true });
+  text("Tiền " + dash(money !== undefined ? money + "k" : null) +
+       " · đồng hồ " + (tLeft !== undefined ? fmtTime(tLeft) : "—") +
+       " · Ngày kế: O₂ L" + dash(active.oxygen || 0) + " / HP L" + dash(active.hp || 0),
+       w / 2, 130, { size: 18, align: "center", color: "#69f0ae", bold: true });
 
-  const catalog = sh.catalog || [
-    { id: "oxygen", name: "Bình oxy lặn", levels: [{ level: 1, price: 200, desc: "45s lặn lâu" }, { level: 2, price: 400, desc: "60s lặn sâu" }] },
-    { id: "hp", name: "Áo phao bảo hộ", levels: [{ level: 1, price: 250, desc: "4 Máu tối đa" }, { level: 2, price: 500, desc: "5 Máu tối đa" }] },
-  ];
-
-  let y = 190;
-  catalog.forEach((u) => {
-    const cur = ups[u.id] || 0;
-    const next = u.levels.find((lv) => lv.level === cur + 1);
-    text(u.name + " (Hiện tại: Cấp " + cur + ")", 80, y, { size: 24, bold: true, color: "#81d4fa" });
+  let y = 180;
+  ["oxygen", "hp"].forEach((uid) => {
+    const u = cat[uid] || { level: bought[uid] || 0, next: null, max_level: 2 };
+    const cur = u.level || 0;
+    const next = u.next;
+    text(upgradeTitle(uid) + " (đã mua L" + cur + "/" + (u.max_level || 2) + ")", 80, y, { size: 24, bold: true, color: "#81d4fa" });
     if (next) {
-      text("Nâng lên Cấp " + next.level + " (" + next.desc + ") — Giá: " + next.price + "k", 80, y + 32, { size: 20, color: "#cfd8dc" });
-      btn("buy_" + u.id, "Nâng cấp (" + next.price + "k)", w - 300, y - 8, 200, 44, { size: 18, fill: "#00695c", stroke: "#64ffda" });
+      text("Mua L" + next.level + ": " + upgradeNextDesc(next) + " — " + next.price + "k", 80, y + 32, { size: 20, color: "#cfd8dc" });
+      btn("buy_" + uid, "Mua (" + next.price + "k)", w - 300, y - 8, 200, 44, { size: 18, fill: "#00695c", stroke: "#64ffda" });
     } else {
       text("Đã nâng cấp tối đa!", 80, y + 32, { size: 20, color: "#a5d6a7" });
     }
     y += 100;
   });
-
-  btn("shopDone", "Hoàn tất nâng cấp (Enter)", w / 2 - 140, h - 100, 280, 50);
+  if (shopFlash) text(shopFlash, 80, y + 8, { size: 18, color: "#ffb347" });
+  const shopStock = asItemList(snap && snap.stock);
+  if (shopStock.length) {
+    text("Kho dư (bỏ sau Shop):", 80, h - 200, { size: 18, color: "#ffd54f" });
+    shopStock.slice(0, 8).forEach((it, i) => drawFreshSlot(80 + i * 52, h - 170, 44, it, false));
+  }
+  text("Esc/P pause · Xong = shop_done", 80, h - 100, { size: 18, color: "#90a4ae" });
+  btn("shopDone", "Hoàn tất nâng cấp (Enter)", w / 2 - 140, h - 80, 280, 50);
 }
 
 function drawSummary(w, h) {
@@ -1464,13 +1671,21 @@ function frame() {
   else if (uiScreen === "dayIntro") drawDayIntro(w, h);
   else if (uiScreen === "eveningIntro") drawEveningIntro(w, h);
   else if (uiScreen === "dayResult") drawDayResult(w, h);
-  else if (uiScreen === "shop") drawShop(w, h);
+  else if (uiScreen === "shop") {
+    drawShop(w, h);
+    if (paused) drawPause(w, h);
+  }
   else if (uiScreen === "summary") drawSummary(w, h);
   else if (uiScreen === "play" || DEMO === "pause") {
-    if (!snap && DEMO !== "pause") {
+    if (DEMO === "pause" && !snap) {
+      text("(demo pause — mở kèm live để thấy nền game)", w / 2, h / 2 - 160, { align: "center", size: 18, color: "#78909c" });
+    } else if (!snap) {
       text(offline ? "Không có kết nối…" : "Đang tải dữ liệu…", w / 2, h / 2, { align: "center", size: 24 });
     } else {
-      if (snap && snap.mode === "quan") drawQuan(w, h); else drawGather(w, h);
+      const ph = simPhase();
+      if (ph === "quan" || (!isDayMode() && snap.mode === "quan")) drawQuan(w, h);
+      else drawGather(w, h);
+      eventLog(w, h);
       overlay(w, h);
     }
     if (paused || DEMO === "pause") drawPause(w, h);

@@ -182,6 +182,18 @@ class _Handler(BaseHTTPRequestHandler):
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
         else:
+            # file tĩnh trong chonoi/web/ (vd. pixi.min.js); chặn thoát khỏi thư mục web
+            rel = path.lstrip("/")
+            file_path = os.path.abspath(os.path.join(WEB_DIR, rel))
+            if file_path.startswith(os.path.abspath(WEB_DIR) + os.sep) and os.path.isfile(file_path):
+                ctype = {".js": "application/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
+                         ".png": "image/png"}.get(os.path.splitext(file_path)[1], "application/octet-stream")
+                try:
+                    with open(file_path, "rb") as f:
+                        self._send(200, f.read(), ctype)
+                    return
+                except OSError:
+                    pass
             self._send(404, b'{"error":"khong co"}')
 
     def do_POST(self):
