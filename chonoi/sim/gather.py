@@ -53,19 +53,58 @@ class GatherSim:
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
+        self.tick = int(scenario.get("tick", 0))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
         self.nodes = [{"id": n["id"], "kind": n["kind"], "pos": [float(c) for c in n["pos"]],
                        "regrow_ticks": n.get("regrow_ticks", 0)} for n in src_nodes]
+        # Fish initialization: support Phase 1 and Phase 2 contracts
         if "fish" in scenario:
             src_fish = scenario["fish"]
-        elif scenario.get("random_fish", True):
+        elif not scenario.get("random_fish", True):
+            src_fish = []
+        elif isinstance(t["fish_initial"], list):
             src_fish = t["fish_initial"]
         else:
-            src_fish = []
-        # Đàn cá đứng yên ở phase này. Cá bơi / sinh thêm là việc của phase sau.
-        self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
-                      "heading_deg": f.get("heading_deg", 0)} for f in src_fish]
+            # Preserve Phase 1 fixtures for regression compatibility
+            src_fish = [
+                {"id": "F1", "kind": "ca_linh", "pos": [15, 5]},
+                {"id": "F2", "kind": "ca_loc", "pos": [30, 10]},
+                {"id": "F3", "kind": "ca_linh", "pos": [45, 10]},
+                {"id": "F4", "kind": "ca_loc", "pos": [60, 16]},
+                {"id": "F5", "kind": "ca_linh", "pos": [75, 5]},
+                {"id": "F6", "kind": "ca_loc", "pos": [90, 16]},
+            ]
+
+            rng = self.rng.get("fish_spawn")
+            kinds = list(t["fish_weights"])
+            weights = [t["fish_weights"][k] for k in kinds]
+
+            for number in range(
+                len(src_fish) + 1,
+                int(t["fish_initial"]) + 1
+            ):
+                kind = rng.choices(kinds, weights=weights, k=1)[0]
+                x = rng.choice(t["fish_spawn_x"])
+                d = rng.choice(t["fish_spawn_depths"][kind])
+
+                src_fish.append({
+                    "id": f"F{number}",
+                    "kind": kind,
+                    "pos": [x, d],
+                    "heading_deg": rng.choice([0, 180])
+                })
+
+        self.fish = [
+            {
+                "id": f["id"],
+                "kind": f["kind"],
+                "pos": [float(c) for c in f["pos"]],
+                "heading_deg": float(f.get("heading_deg", 0))
+            }
+            for f in src_fish
+        ]
+
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
@@ -107,6 +146,10 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        # Phase 2: update fish before player interaction
+        self.tick += 1
+        self._update_fish(events)
+
         # 2. Movement, oxygen and drowning
         was_surface = self._at_surface()
         self._move(inp)
@@ -237,6 +280,104 @@ class GatherSim:
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events
+
+    # --- Phase 2: fish simulation ----------------------------------------------
+    def _update_fish(self, events):
+        """Move fish at 60 Hz, turn every 120 ticks, spawn every 360."""
+        t = self.t
+        rng = self.rng.get("fish_movement")
+        speed = float(t["fish_speed"])
+        x_min, x_max = map(float, t["fish_x"])
+        turn_ticks = int(t["fish_turn_ticks"])
+
+        for fish in sort_by_id(self.fish):
+            kind = fish["kind"]
+            depth_min, depth_max = map(
+                float, t["fish_depths"][kind]
+            )
+
+            # Deterministic direction change on exact tick boundaries.
+            if turn_ticks > 0 and self.tick % turn_ticks == 0:
+                options = [0.0, 90.0, 180.0, 270.0]
+                old = float(fish["heading_deg"]) % 360.0
+                choices = [h for h in options if h != old]
+                fish["heading_deg"] = rng.choice(choices)
+
+            angle = math.radians(fish["heading_deg"])
+            dx = math.cos(angle) * speed / TICK
+            dd = math.sin(angle) * speed / TICK
+
+            new_x = fish["pos"][0] + dx
+            new_d = fish["pos"][1] + dd
+
+            # Reflect rather than leave the allowed area.
+            if new_x < x_min or new_x > x_max:
+                new_x = (
+                    2 * x_min - new_x if new_x < x_min
+                    else 2 * x_max - new_x
+                )
+                fish["heading_deg"] = (
+                    180.0 - fish["heading_deg"]
+                ) % 360.0
+
+            if new_d < depth_min or new_d > depth_max:
+                new_d = (
+                    2 * depth_min - new_d if new_d < depth_min
+                    else 2 * depth_max - new_d
+                )
+                fish["heading_deg"] = (
+                    -fish["heading_deg"]
+                ) % 360.0
+
+            fish["pos"] = [
+                max(x_min, min(x_max, new_x)),
+                max(depth_min, min(depth_max, new_d)),
+            ]
+
+        spawn_ticks = int(t["fish_spawn_ticks"])
+        if spawn_ticks > 0 and self.tick % spawn_ticks == 0:
+            self._spawn_fish(events)
+
+    def _spawn_fish(self, events):
+        """Spawn one school, respecting population and clearance."""
+        t = self.t
+        if len(self.fish) >= int(t["fish_max"]):
+            return
+
+        rng = self.rng.get("fish_spawn")
+        kinds = list(t["fish_weights"])
+        weights = [float(t["fish_weights"][k]) for k in kinds]
+
+        kind = rng.choices(kinds, weights=weights, k=1)[0]
+        depths = t["fish_spawn_depths"][kind]
+        clearance = float(t["fish_spawn_clearance"])
+
+        # Pick a valid spawn location with deterministic retries.
+        for _ in range(100):
+            pos = [
+                float(rng.choice(t["fish_spawn_x"])),
+                float(rng.choice(depths)),
+            ]
+
+            if all(
+                math.dist(pos, other["pos"]) >= clearance
+                for other in self.fish
+            ):
+                fish = {
+                    "id": self.ids.new("F"),
+                    "kind": kind,
+                    "pos": pos,
+                    "heading_deg": float(rng.choice([0, 180])),
+                }
+                self.fish.append(fish)
+                events.append(("fish_spawned", {
+                    "fish_id": fish["id"],
+                    "kind": fish["kind"],
+                    "pos": list(pos),
+                }))
+                return
+
+        # No valid location found: skip this spawn interval.
 
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:
