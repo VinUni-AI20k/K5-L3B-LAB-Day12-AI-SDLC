@@ -1,4 +1,4 @@
-"""Kiem thu lat 4: bep, phuc vu, thanh toan va scenario (PRD-0 D/E/F)."""
+"""Kiem thu Lat 4: gameplay P1 va AC-P2-05/06/08/12 (Ticket-02)."""
 import copy
 import json
 import unittest
@@ -6,6 +6,7 @@ import unittest
 from chonoi.ids import IdAllocator
 from chonoi.inputs import InputState
 from chonoi.rng import Streams
+from chonoi.runner import Session
 from chonoi.sim.quan import QuanSim
 from helpers import Workdir, events, read_jsonl, run_headless, snapshots, write_json
 
@@ -83,8 +84,7 @@ class Cooking(unittest.TestCase):
         self.assertEqual(sim.customers[0]['state'], 'waiting')
 
     def test_oldest_order_then_table_id(self):
-        if len(Q['tables']) < 2:
-            self.skipTest('fixture contract P1 chỉ có một bàn')
+        self.assertGreaterEqual(len(Q['tables']), 4, 'AC-P2-05 can 4 ban trong manifest v1.1')
         t1, t2 = Q['tables'][:2]
         sim = make_sim({'stock': {'ca_loc': 2}, 'random_customers': False,
                         'player': {'pos': list(STOVE['pos'])},
@@ -240,11 +240,11 @@ class ScenarioValidation(unittest.TestCase):
 
 
 class Phase2Compatibility(unittest.TestCase):
-    """Kiểm nhiều bếp/bàn bằng tuning thử; không sửa manifest v1.0 của nhóm."""
+    """Kiểm v1.1 theo manifest thực tế; Burn dùng tuning riêng khi extension chưa bật."""
     def test_hai_bep_hai_ban_lay_don_cu_nhat_va_toi_gan_nhat(self):
         t = copy.deepcopy(TUNING)
-        t['quan']['stoves'].append({'id': 'B2', 'pos': [5, 8]})
-        t['quan']['tables'].append({'id': 'T2', 'pos': [13, 2]})
+        self.assertEqual(len(t['quan']['stoves']), 2)
+        self.assertEqual(len(t['quan']['tables']), 4)
         sim = QuanSim(t, {'random_customers': False, 'stock': {'ca_loc': 2},
                          'player': {'pos': [5, 8]},
                          'customers': [customer(id='C1', table_id='T1', order_tick=12),
@@ -260,8 +260,8 @@ class Phase2Compatibility(unittest.TestCase):
 
     def test_dong_thoi_hai_mon_chin_theo_id_bep(self):
         t = copy.deepcopy(TUNING)
-        t['quan']['stoves'].append({'id': 'B2', 'pos': [5, 8]})
-        t['quan']['tables'].append({'id': 'T2', 'pos': [13, 2]})
+        self.assertEqual(len(t['quan']['stoves']), 2)
+        self.assertEqual(len(t['quan']['tables']), 4)
         dish = {'dish_id': DISH, 'base_price': PRICE}
         stoves = [{'id': 'B2', 'state': 'cooking', 'dish': dict(dish, order_id='C2'),
                    'cook_ticks_left': 1},
@@ -295,13 +295,139 @@ class Phase2Compatibility(unittest.TestCase):
 
     def test_no_burn_in_core_even_after_long_ready(self):
         payload = {'order_id': 'C1', 'dish_id': DISH, 'base_price': PRICE}
-        sim = make_sim({'random_customers': False,
-                        'stoves': [{'id': 'B1', 'state': 'ready', 'dish': payload,
-                                    'ready_ticks': 5000}],
-                        'customers': [customer(order_status='assigned', reserved={}, base_price=PRICE)]})
+        t = copy.deepcopy(TUNING)
+        t['quan']['burn_s'] = None  # Loi khong Burn: khong phu thuoc cau hinh extension trong manifest.
+        sim = QuanSim(t, {'random_customers': False,
+                          'stoves': [{'id': 'B1', 'state': 'ready', 'dish': payload,
+                                      'ready_ticks': 5000}],
+                          'customers': [customer(order_status='assigned', reserved={}, base_price=PRICE)]},
+                      Streams(1), IdAllocator())
         self.assertEqual(step(sim), [])
         self.assertEqual(sim.stoves[0]['state'], 'ready')
 
+
+
+class Phase2Acceptance(unittest.TestCase):
+    """Test AC-P2-05, AC-P2-06, AC-P2-08, AC-P2-12 voi manifest P2 that."""
+
+    def test_ac_p2_05_chon_bep_truoc_ban_va_id_khi_hoa(self):
+        """AC-P2-05: hoa khoang cach -> bep truoc ban, giua 2 bep -> id nho."""
+        self.assertEqual(len(Q['stoves']), 2)
+        self.assertEqual(len(Q['tables']), 4)
+        pos = [2, 8]
+        sim = make_sim({'random_customers': False, 'stock': {'ca_loc': 1},
+                        'player': {'pos': pos},
+                        'stoves': [{'id': 'B2', 'pos': pos}],
+                        'tables': [{'id': 'T1', 'pos': pos}],
+                        'customers': [customer()]})
+        ev = step(sim, True)
+        self.assertEqual([e[0] for e in ev], ['cook_started'])
+        self.assertEqual(ev[0][1]['stove_id'], 'B1')
+
+    def test_ac_p2_05_4_ban_khi_hoa_khoang_cach_chon_id(self):
+        """AC-P2-05: hai ban cung khoang cach, giao mon cho ban id nho."""
+        table_pos = [9, 2]
+        payload = {'order_id': 'C1', 'dish_id': DISH, 'base_price': PRICE}
+        sim = make_sim({'random_customers': False,
+                        'player': {'pos': table_pos},
+                        'tables': [{'id': 'T2', 'pos': table_pos}],
+                        'hand': payload,
+                        'customers': [customer(id='C1', table_id='T1', order_status='assigned',
+                                               reserved={}, base_price=PRICE),
+                                      customer(id='C2', table_id='T2', order_status='assigned',
+                                               reserved={}, base_price=PRICE)]})
+        ev = step(sim, True)
+        self.assertEqual([x[0] for x in ev], ['served'])
+        self.assertEqual(ev[0][1]['table_id'], 'T1')
+        self.assertEqual(next(c for c in sim.customers if c['id'] == 'C2')['state'], 'waiting')
+
+    def test_ac_p2_05_sau_mon_tu_cong_thuc_va_gia_trong_menu(self):
+        """AC-P2-05: 6 mon, cong thuc + gia + so tick nau lay tu menu, khong hardcode."""
+        self.assertEqual(len(MENU), 6)
+        for dish, spec in sorted(MENU.items()):
+            with self.subTest(dish=dish):
+                recipe = dict(spec['recipe'])
+                sim = make_sim({'random_customers': False, 'player': {'pos': list(STOVE['pos'])},
+                                'stock': recipe,
+                                'customers': [customer(dish_id=dish)]})
+                ev = step(sim, True)
+                self.assertEqual(ev[0][0], 'cook_started')
+                self.assertEqual(ev[0][1]['base_price'], spec['price'])
+                self.assertEqual(ev[0][1]['items'], sorted(k for k,n in recipe.items() for _ in range(n)))
+                self.assertEqual(sim.stoves[0]['cook_ticks_left'], int(round(spec['cook_s'] * 60)))
+                self.assertEqual(sim.customers[0]['reserved'], {})
+                self.assertTrue(all(sim.stock[k] == 0 for k in recipe))
+
+    def test_ac_p2_06_tien_va_uy_tin_carry_shift_earned_reset(self):
+        """AC-P2-06: money/earned/reputation qua ca; shift_earned chi cua ca hien tai."""
+        first = QuanSim(TUNING, {'random_customers': False,
+                                 'customers': [customer(state='eating', order_status='served',
+                                                        reserved={}, eat_ticks_left=1,
+                                                        base_price=PRICE, tip=12)]},
+                        Streams(1), IdAllocator(), carry={'money': 200, 'earned': 250, 'reputation': 3.0})
+        self.assertEqual(first.shift_earned, 0)
+        self.assertEqual(step(first)[0][0], 'paid')
+        self.assertEqual((first.money, first.earned, first.shift_earned), (272, 322, 72))
+        self.assertAlmostEqual(first.reputation, 3.0 + Q['tip_reputation'])
+        carry = {'money': first.money, 'earned': first.earned, 'reputation': first.reputation}
+        second = QuanSim(TUNING, {'random_customers': False}, Streams(2), IdAllocator(), carry=carry)
+        self.assertEqual((second.money, second.earned, second.shift_earned), (272, 322, 0))
+        self.assertEqual(second.reputation, first.reputation)
+
+    def test_ac_p2_08_snapshot_hud_quan_du_du_lieu(self):
+        """AC-P2-08: Lat 4 ban giao state cho HUD; KHONG chung minh UI ve dat 18px."""
+        session = Session('quan', TUNING, {'random_customers': False,
+                                          'stock': {'ca_loc': 2},
+                                          'customers': [customer()]}, seed=7)
+        snap = session.snapshot()
+        self.assertEqual(len(snap['stoves']), 2)
+        self.assertEqual(len(snap['tables']), 4)
+        self.assertTrue(all({'id', 'state', 'dish', 'cook_ticks_left', 'ready_ticks'} <= set(b) for b in snap['stoves']))
+        self.assertTrue(all({'id', 'customer_id'} <= set(tb) for tb in snap['tables']))
+        self.assertTrue({'dish_id', 'patience_ticks_left', 'order_status', 'reserved'} <= set(snap['customers'][0]))
+        self.assertTrue({'hand', 'stock', 'time_left_ticks', 'money', 'reputation'} <= set(snap))
+
+    def test_ac_p2_12_dung_1200_tick_bung_duoc_1201_moi_chay(self):
+        """AC-P2-12: ngay 1200 khong chay; vuot 1200 phat dish_burnt."""
+        t = copy.deepcopy(TUNING)
+        t['quan']['burn_s'] = 20
+        limit = int(round(t['quan']['burn_s'] * 60))
+        dish = {'order_id': 'C1', 'dish_id': DISH, 'base_price': PRICE}
+        block = {'random_customers': False, 'player': {'pos': list(STOVE['pos'])},
+                 'stoves': [{'id': 'B1', 'state': 'ready', 'dish': dish, 'ready_ticks': limit-1}],
+                 'customers': [customer(order_status='assigned', reserved={}, base_price=PRICE)]}
+        sim = QuanSim(t, block, Streams(1), IdAllocator())
+        ev = step(sim, True)
+        self.assertEqual([name for name, _ in ev], ['dish_picked'])
+        self.assertEqual(sim.hand['order_id'], 'C1')
+        block['stoves'][0]['ready_ticks'] = limit
+        sim = QuanSim(t, block, Streams(1), IdAllocator())
+        ev = step(sim)
+        self.assertEqual([name for name, _ in ev], ['dish_burnt'])
+        self.assertEqual(ev[0][1]['order_status'], 'unfulfillable')
+        self.assertEqual(sim.stoves[0]['state'], 'idle')
+
+    def test_ac_p2_12_hai_bep_chay_cung_tick_giu_lai_co_han(self):
+        """AC-P2-12: 2 bep chay theo id, chi 1 don du nguyen lieu de re-reserve."""
+        t = copy.deepcopy(TUNING)
+        t['quan']['burn_s'] = 20
+        limit = int(round(t['quan']['burn_s'] * 60))
+        payload = {'dish_id': DISH, 'base_price': PRICE}
+        sim = QuanSim(t, {'random_customers': False, 'stock': {'ca_loc': 1},
+                          'stoves': [
+                              {'id': 'B2', 'state': 'ready', 'dish': dict(payload, order_id='C2'), 'ready_ticks': limit},
+                              {'id': 'B1', 'state': 'ready', 'dish': dict(payload, order_id='C1'), 'ready_ticks': limit}],
+                          'customers': [
+                              customer(id='C1', table_id='T1', order_status='assigned', reserved={}, base_price=PRICE),
+                              customer(id='C2', table_id='T2', order_status='assigned', reserved={}, base_price=PRICE)]},
+                      Streams(1), IdAllocator())
+        ev = step(sim)
+        self.assertEqual([(name, data['stove_id'], data['order_status']) for name, data in ev],
+                         [('dish_burnt', 'B1', 'reserved'), ('dish_burnt', 'B2', 'unfulfillable')])
+        self.assertEqual({c['id']: c['order_status'] for c in sim.customers},
+                         {'C1': 'reserved', 'C2': 'unfulfillable'})
+        self.assertEqual(sim.stock['ca_loc'], 1)  # phan giu chua tru kho
+        self.assertEqual(sim.customers[0]['reserved'], {'ca_loc': 1})
 
 
 if __name__ == '__main__':
