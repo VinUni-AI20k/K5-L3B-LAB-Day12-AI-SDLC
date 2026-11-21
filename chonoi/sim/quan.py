@@ -12,6 +12,7 @@ import math
 from ..ids import id_key, sort_by_id
 from .ramp import ramp_velocity
 
+
 class QuanSim:
     mode = "quan"
     phase = "quan"
@@ -40,12 +41,17 @@ class QuanSim:
         self.customers = []
         for c in scenario.get("customers", []):
             customer = dict(c)
+            # PRD-0 mục D: khách mặc định waiting, order_tick 0, order_status reserved, kiên nhẫn đầy.
+            customer.setdefault("state", "waiting")
+            customer.setdefault("order_tick", 0)
+            customer.setdefault("order_status", "reserved")
+            customer.setdefault("eat_ticks_left", 0)
             reserved = customer.get("reserved")
             if reserved is None:
                 dish = self.menu.get(customer.get("dish_id"), {})
-                reserved = dish.get("recipe", {}) if customer.get("order_status") in (None, "reserved") else {}
+                reserved = dish.get("recipe", {}) if customer["order_status"] == "reserved" else {}
             customer["reserved"] = dict(reserved)
-            if customer.get("state") == "waiting":
+            if customer["state"] == "waiting":
                 customer.setdefault("patience_ticks_left", int(round(t["patience_s"] * self.tick_hz)))
             self.customers.append(customer)
         for e in self.customers:
@@ -108,6 +114,7 @@ class QuanSim:
             if stove.get("state") == "cooking":
                 self._decrement(stove, "cook_ticks_left")
             elif stove.get("state") == "ready":
+                # Only stoves already ready at the start of this step accumulate ready time.
                 stove["ready_ticks"] = max(0, stove.get("ready_ticks", 0)) + 1
         for customer in self.customers:
             if customer.get("state") == "waiting":
@@ -125,7 +132,9 @@ class QuanSim:
                 continue
             stove["state"] = "ready"
             stove["ready_ticks"] = 0
-            dish = stove.get("dish") or {}
+            dish = stove.get("dish")
+            if not isinstance(dish, dict):
+                dish = {}
             events.append(("dish_ready", {
                 "stove_id": stove["id"], "order_id": dish.get("order_id"),
                 "dish_id": dish.get("dish_id"),
@@ -184,7 +193,7 @@ class QuanSim:
             }))
         elif state == "ready" and self.hand is None and self.t["carry_limit"] > 0:
             dish = stove.get("dish")
-            if dish is None:
+            if not isinstance(dish, dict):
                 return
             self.hand = dish
             stove.update({"state": "idle", "dish": None, "cook_ticks_left": 0, "ready_ticks": 0})
@@ -193,7 +202,7 @@ class QuanSim:
             }))
 
     def _interact_table(self, table, customer, events):
-        if customer.get("state") != "waiting" or self.hand is None:
+        if customer.get("state") != "waiting" or not isinstance(self.hand, dict):
             return
         if self.hand.get("order_id") != customer["id"]:
             return
@@ -214,12 +223,12 @@ class QuanSim:
             "patience_ticks_left": patience_left, "base_price": base_price, "tip": tip,
         }))
 
-    def _cleanup_order(self, order_id):
+    def _release_order(self, order_id):
         for stove in self.stoves:
             dish = stove.get("dish")
-            if dish and dish.get("order_id") == order_id:
+            if isinstance(dish, dict) and dish.get("order_id") == order_id:
                 stove.update({"state": "idle", "dish": None, "cook_ticks_left": 0, "ready_ticks": 0})
-        if self.hand is not None and self.hand.get("order_id") == order_id:
+        if isinstance(self.hand, dict) and self.hand.get("order_id") == order_id:
             self.hand = None
 
     def _apply_tip_reputation(self, tip):
@@ -242,7 +251,7 @@ class QuanSim:
         self.customers.remove(customer)
 
     def _leave_customer(self, customer, reason, events, penalize=False):
-        self._cleanup_order(customer["id"])
+        self._release_order(customer["id"])
         if penalize:
             self.reputation = min(self.t["reputation_max"], max(
                 self.t["reputation_min"], self.reputation + self.t["left_reputation_delta"]))
