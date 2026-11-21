@@ -53,10 +53,10 @@ với `score = earned + reputation_multiplier * floor(reputation)`.
 - `nodes[]`: `id, pos, kind, ready, regrow_ticks` · `fish[]`: `id, pos, kind, heading_deg`
 
 **quan** (`QuanSim.snapshot`):
-- `player.pos [x,z]`, `stock` (bỏ mục 0, sắp id), `hand` (null hoặc id món đang bưng)
-- `stoves[]`: `id, pos, state, dish, cook_ticks_left, ready_ticks`
-- `tables[]`: `id, pos, customer_id`
-- `customers[]` (sắp id): tối thiểu `id, table_id, reserved` + trường vòng đời — **[giả định]** `state` ∈ `waiting|assigned|eating`, `dish`, `patience_ticks`, `eat_ticks_left`, `price`, `tip` (chờ PRD-0 mục E, xem clarify #6).
+- `player.pos [x,z]`, `stock` (bỏ mục 0, sắp id), `hand` (payload {order_id, dish_id, base_price} hoặc null)
+- `stoves[]`: `id, pos, state (idle|cooking|ready), dish, cook_ticks_left, ready_ticks`
+- `tables[]`: `id, pos, customer_id (null nếu trống)`
+- `customers[]` (sắp id): `id, table_id, dish_id, order_tick, state (waiting|eating), patience_ticks_left, eat_ticks_left, order_status (reserved|assigned|unfulfillable|served), reserved, base_price, tip`
 
 Thêm trường mới vào snapshot: được (UI bỏ qua trường lạ), nhưng **không đổi tên / bỏ** trường đã liệt kê ở trên.
 
@@ -72,28 +72,28 @@ Thứ tự một bước: (1) đồng hồ, bộ đếm, nút mọc lại → (2
 | `node_regrown` | `{node_id}` | `regrow_ticks` của nút về 0 |
 | `dive` | `{pos}` | d đầu bước ≤ `surface_depth` và d cuối bước > `surface_depth` |
 | `surface` | `{pos}` | ngược lại |
-| `oxygen_empty` | `{}` **[giả định]** | oxy từ dương xuống 0 |
-| `choke` | `{hp}` **[giả định]** | đủ `choke_interval_ticks` tick ở oxy 0 dưới nước → −1 Máu |
-| `faint` | `{}` **[giả định]** | Máu về 0; ngay sau đó `gather_end{reason:"fainted"}` với kho rỗng, dừng bước |
-| `gather` | `{node_id, kind}` **[giả định]** | hái được (ở mặt nước, nút `ready` gần nhất trong `interact_radius`, hòa thì id nhỏ) |
-| `fish_caught` | `{fish_id, kind, count}` **[giả định]** | `catch` dưới nước, hết hồi chiêu, có đàn trong `catch_radius`; nhận `fish_yield[kind]` con |
-| `hold_full` | `{source}` **[giả định]** (`node`/`fish`) | giỏ không còn chỗ khi hái/bắt |
-| `gather_end` | `{reason, inventory:{items}}` | `docked` / `time` / `fainted` — **chốt** (smoke test kiểm) |
+| `oxygen_empty` | `{oxygen_ticks: 0}` | oxy từ dương chạm 0 |
+| `choke` | `{hp}` | đủ `choke_interval_ticks` (60) tick ở oxy 0 dưới nước → −1 Máu |
+| `faint` | `{cause: "choke", lost: [...], hp: 0}` | Máu về 0; rớt giỏ theo LIFO; ngay sau đó `gather_end{reason:"fainted"}` với kho rỗng, dừng bước |
+| `gather` | `{node_id, kind, amount: 1}` | hái được (ở mặt nước, nút `ready` gần nhất trong `interact_radius`, hòa thì id nhỏ) |
+| `fish_caught` | `{fish_id, kind, yield}` | `catch` dưới nước, hết hồi chiêu, có đàn trong `catch_radius`; nhận `fish_yield[kind]` con |
+| `hold_full` | `{action: "gather"|"catch", node_id|fish_id, required, free}` | giỏ không còn đủ chỗ khi hái/bắt |
+| `gather_end` | `{reason: "docked"|"time"|"fainted", inventory: {items: {...}}}` | kết thúc buổi sáng (cập bến / hết giờ / ngất) |
 
 ### 3.2 quan — phát bởi `sim/quan.py`
-Tên sự kiện **chốt** theo khung; `data` là **[giả định]**, chờ PRD-0 mục E (clarify #6).
+Thứ tự một bước: (1) đồng hồ, timer ca, nấu, ăn, kiên nhẫn → (2) món nấu xong thành ready → (3) di chuyển + tối đa 1 `interact` (bếp trước bàn) → (4) ăn xong trả tiền, kiên nhẫn 0 rời bàn, hết ca đóng quán → (5) khách mới theo lịch.
 
-| Sự kiện | `data` đề xuất | Khi nào |
+| Sự kiện | `data` | Khi nào |
 |---|---|---|
-| `customer_arrived` **[giả định tên]** | `{customer_id, table_id, dish}` | khách tới theo lịch `first_customer_tick` + `customer_interval_s`, có bàn trống và món nấu được → giữ chỗ nguyên liệu |
-| `no_dish` | `{table_id}` | tới lượt khách nhưng không món nào đủ nguyên liệu |
-| `customer_left` | `{customer_id, reputation}` | hết kiên nhẫn → `left_reputation_delta`, trả lại nguyên liệu đã giữ |
-| `cook_started` | `{stove_id, dish}` | `interact` tại bếp rảnh |
-| `dish_ready` | `{stove_id, dish}` | nấu đủ `cook_s` |
-| `dish_picked` | `{stove_id, dish}` | `interact` tại bếp `ready`, tay trống (`carry_limit` = 1) |
-| `served` | `{customer_id, dish}` | `interact` tại bàn có khách đúng món |
-| `paid` | `{customer_id, price, tip, reputation}` | ăn xong `eat_s`; boa `tip_rate` nếu kiên nhẫn còn ≥ `tip_min_patience_ratio` (+`tip_reputation`) |
-| `quan_end` | `{reason, money, earned, shift_earned, reputation}` | hết giờ — **chốt** (khung đã phát) |
+| `customer_arrived` | `{order_id, table_id, dish_id}` | khách tới theo lịch `first_customer_tick` + `customer_interval_s`, có bàn trống và món nấu được → giữ chỗ nguyên liệu |
+| `no_dish` | `{}` | tới lượt khách, có bàn trống nhưng không món nào đủ nguyên liệu khả dụng |
+| `customer_left` | `{order_id, table_id, reason: "patience"|"closing", reputation}` | hết kiên nhẫn (trừ `left_reputation_delta`) hoặc đóng ca (không trừ) |
+| `cook_started` | `{stove_id, order_id, dish_id, items, base_price}` | `interact` tại bếp idle; tiêu đúng nguyên liệu giữ của đơn cũ nhất |
+| `dish_ready` | `{stove_id, order_id, dish_id}` | nấu đủ `cook_s` tick |
+| `dish_picked` | `{stove_id, order_id, dish_id}` | `interact` tại bếp `ready`, tay trống |
+| `served` | `{order_id, table_id, dish_id, patience_ticks_left, base_price, tip}` | `interact` tại bàn mang đúng món |
+| `paid` | `{order_id, table_id, base_price, tip, amount, reason: "finished_eating"|"closing"}` | ăn xong `eat_s` hoặc bị đóng ca |
+| `quan_end` | `{reason: "time", money, earned, shift_earned, reputation}` | hết giờ ca |
 
 Một bước quan tối đa **một** `interact`; chọn đối tượng theo (khoảng cách, bếp trước bàn, id nhỏ).
 
@@ -101,3 +101,4 @@ Một bước quan tối đa **một** `interact`; chọn đối tượng theo (
 | Ngày | Đổi gì | Lý do | Ai |
 |---|---|---|---|
 | 2026-11-21 | Chốt v1.0 phase 1 | Kickoff | Integrator |
+| 2026-11-21 | Cập nhật đầy đủ payload sự kiện và snapshot theo PRD-0 Phase 1 | Đối chiếu PRD-0 mục E, F | Integrator (ToanLee5433) |
