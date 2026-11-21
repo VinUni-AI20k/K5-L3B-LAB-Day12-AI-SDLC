@@ -1,0 +1,13 @@
+Kiểm lúc 2026-11-21T04:53:02Z, main = ca074fe
+
+$ python3 tools/check_team.py
+OK: 4 thành viên: ToanLee5433, Ishodayo, itsbra1vo, czx04
+
+$ gh api repos/czx04/K5-L3B-LAB-Day12-AI-SDLC-6667 --jq .visibility
+public
+
+$ gh api repos/czx04/K5-L3B-LAB-Day12-AI-SDLC-6667/collaborators --jq '.[]|"\(.login) \(.role_name)"'
+itsbra1vo write
+czx04 admin
+Ishodayo write
+ToanLee5433 write
