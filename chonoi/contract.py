@@ -1,4 +1,4 @@
-"""Đọc game.contract.json và kiểm tuning v1.1 (PRD mục 13.2, Test Contract v1.0 + TICKET-02 v1.1)."""
+"""Đọc game.contract.json và kiểm tuning v1.2 (freshness, TICKET-03 §1) / v1.1 (PRD mục 13.2, Test Contract v1.0 + TICKET-02 v1.1)."""
 
 import json
 import os
@@ -252,12 +252,26 @@ def _validate_shop(shop):
                 _int_between(f"shop.upgrades.hp[{lv['level']}].hp_max", lv[field], 1, 99)
 
 
+FRESHNESS_KEYS = ("initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below")
+
+
+def _validate_freshness(f):
+    """v1.2 §1: tuning.freshness {initial, gather_decay_per_s, quan_decay_per_s, spoiled_below}."""
+    if not isinstance(f, dict) or set(f) != set(FRESHNESS_KEYS):
+        raise BadInput(f"tuning.freshness phải có đúng {list(FRESHNESS_KEYS)}")
+    _between("freshness.initial", f["initial"], 0, 100)
+    _between("freshness.gather_decay_per_s", f["gather_decay_per_s"], 0, 100)
+    _between("freshness.quan_decay_per_s", f["quan_decay_per_s"], 0, 100)
+    _between("freshness.spoiled_below", f["spoiled_below"], 0, 100)
+
+
 def validate_tuning(t):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
+    _validate_freshness(t.get("freshness"))
     _validate_gather(g)
     # Quán: dải hợp lệ P1 (PRD mục 13.2)
     _between("quan.duration_s", q.get("duration_s"), 60, 600)

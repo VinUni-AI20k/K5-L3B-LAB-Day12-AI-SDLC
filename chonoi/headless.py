@@ -68,7 +68,8 @@ def main(argv=None) -> int:
         tuning = contract["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning, days)
         frames = load_frames(a.inputs)
-        inventory = read_inventory(a.inventory) if a.inventory else None  # schema kho đếm, 6 loại (v1.1)
+        # v1.2: mảng cá thể; file kho đếm / sai schema -> mã 2 (chọn schema theo contract_version)
+        inventory = read_inventory(a.inventory, version=contract["contract_version"]) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
     except BadInput as e:
