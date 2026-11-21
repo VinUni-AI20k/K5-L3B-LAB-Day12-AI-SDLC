@@ -10,6 +10,8 @@
 | 1 | lunaHieu | Codex (GPT-6) | Bổ sung README, nhật ký AI và phản tư cá nhân theo kết quả Git và test thực tế. | Khoảng 5.000–10.000 token, ước tính thô; chi phí không có số đo. | Rà lại commit và proof trước khi ghi tài liệu; không sửa code Python trong lượt này. |
 | 1 | Người 3 | Codex | Rà starter, viết khách/đơn/kho và test | Chưa có số liệu | Lab board hiện chưa phát hành PRD-0 trong phiên kiểm tra; các giả định được ghi ở `docs/clarify.md`. |
 | 1 | Người 3 | Codex | Đối chiếu tài liệu PRD-0, sửa logic và chạy lại test | Chưa có số liệu | Bản đầu ghi tồn khả dụng vào snapshot và cho khách rời trước tương tác. PRD-0 mục D–F xác nhận snapshot ghi tồn vật lý và khách rời sau tương tác. |
+| 2 | Người 3 | Codex | Tích hợp bếp P1-04, triển khai Day/Shop/pause, kế hoạch D1–D5 và test hồi quy | Không đo | Ba kỳ vọng P1 cần cập nhật theo v1.1: số đàn lấy từ manifest, `day` đã hợp lệ và `attack` đúng kiểu được bỏ qua khi tắt mở rộng. |
+| 2 | Người 3 | Codex | Ghép P2-03 và P2-01 trên main | Không đo | Đồng bộ cấu hình cá theo Ticket-02 mục 4.1, dùng `age_ticks` và miền bơi theo loài. |
 
 Ước tính Codex là khoảng rộng dựa trên nội dung trao đổi, không phải số token đo từ ứng dụng hoặc hóa đơn. Thông tin Gemini do `lunaHieu` cung cấp; cập nhật tên model khi có tên hiển thị chính xác.
 

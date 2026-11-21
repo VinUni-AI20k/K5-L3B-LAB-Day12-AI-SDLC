@@ -121,7 +121,7 @@ class GatherCollection(unittest.TestCase):
 
     def test_catch_cooldown_available_at_t_plus_l(self):
         cooldown = int(round(self.g["catch_cooldown_s"] * 60))
-        s = self.session({"player": {"pos": [20, 5]}, "fish": [
+        s = self.session({"player": {"pos": [20, 5]}, "random_fish": False, "fish": [
             {"id": "F1", "kind": "ca_loc", "pos": [20, 5]},
             {"id": "F2", "kind": "ca_loc", "pos": [21, 5]}]})
         p = InputPlayer([{"tick": 0, "catch": True}, {"tick": 1, "catch": False},
