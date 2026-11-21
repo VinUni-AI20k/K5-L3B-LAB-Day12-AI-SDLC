@@ -103,22 +103,109 @@
       "fish_max": 12,
       "fish_spawn_ticks": 360,
       "fish_spawn_clearance": 1.0,
-      "fish_x": [4, 96],
+      "fish_x": [
+        4,
+        96
+      ],
       "fish_depths": {
-        "ca_linh": [3, 12],
-        "ca_loc": [8, 20],
-        "ca_keo": [22, 28]
+        "ca_linh": [
+          3,
+          12
+        ],
+        "ca_loc": [
+          8,
+          20
+        ],
+        "ca_keo": [
+          22,
+          28
+        ]
       },
-      "fish_spawn_x": [15, 30, 45, 60, 75, 90],
+      "fish_spawn_x": [
+        15,
+        30,
+        45,
+        60,
+        75,
+        90
+      ],
       "fish_spawn_depths": {
-        "ca_linh": [5, 10],
-        "ca_loc": [10, 16],
-        "ca_keo": [24, 27]
+        "ca_linh": [
+          5,
+          10
+        ],
+        "ca_loc": [
+          10,
+          16
+        ],
+        "ca_keo": [
+          24,
+          27
+        ]
       },
       "fish_weights": {
         "ca_linh": 0.4,
         "ca_loc": 0.3,
         "ca_keo": 0.3
+      },
+      "monsters": {
+        "species": {
+          "ca_sau": {
+            "patrol_speed": 1.0,
+            "chase_speed": 3.0,
+            "detect_radius": 10,
+            "exit_radius": 16,
+            "depths": [
+              10,
+              30
+            ],
+            "hit_radius": 1.5,
+            "recoil_ticks": 60,
+            "recoil_dist": 2.0
+          }
+        },
+        "spawns": [
+          {
+            "id": "M1",
+            "kind": "ca_sau",
+            "pos": [
+              60,
+              24
+            ],
+            "waypoints": [
+              [
+                60,
+                24
+              ],
+              [
+                64,
+                24
+              ]
+            ],
+            "from_day": 1
+          },
+          {
+            "id": "M2",
+            "kind": "ca_sau",
+            "pos": [
+              85,
+              18
+            ],
+            "waypoints": [
+              [
+                85,
+                18
+              ],
+              [
+                89,
+                18
+              ]
+            ],
+            "from_day": 3
+          }
+        ],
+        "invuln_ticks": 90,
+        "loss_ratio": 0.5
       }
     },
     "quan": {
