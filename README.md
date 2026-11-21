@@ -21,6 +21,20 @@ PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
 python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
 ```
 
+### Lưu kho khi hái/bắt cá
+
+Chạy giao diện Gather và ghi kho tức thì vào `inventory.json`:
+
+```powershell
+python3 -m chonoi.live --mode gather --inventory-out inventory.json
+```
+
+File được tạo sau lần hái/bắt cá đầu tiên, sau đó cập nhật ngay mỗi lần thu hoạch hoặc bắt cá, khi ngất và khi kết thúc buổi. Nếu file đã có kho từ lần chạy trước, số lượng được cộng dồn thay vì xóa. Dùng cùng file cho Quán:
+
+```powershell
+python3 -m chonoi.live --mode quan --inventory inventory.json
+```
+
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
 ## Tự do sáng tạo

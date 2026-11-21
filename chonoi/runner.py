@@ -11,7 +11,7 @@ import math
 
 from .ids import IdAllocator
 from .inputs import InputPlayer
-from .inventory import write_inventory
+from .inventory import merge_items, read_inventory_or_empty, write_inventory
 from .jsonl import JsonlWriter
 from .rng import Streams
 from .sim.gather import GatherSim
@@ -68,14 +68,15 @@ class Session:
                 "reason": sim.reason if sim.done else "tick_limit",
                 "money": sim.money, "earned": sim.earned, "reputation": sim.reputation, "score": score}
 
-    def write_inventory_if_done(self, inventory_out):
-        """File kho: ghi MỘT lần khi có gather_end; chưa kết thúc thì giữ nguyên file đích."""
+    def write_inventory_if_done(self, inventory_out, inventory_base=None):
+        """Persist the run's held items on top of the inventory present at run start."""
         if self.mode == "gather" and self.sim.done and inventory_out:
-            write_inventory(inventory_out, self.sim.inventory_items())
+            write_inventory(inventory_out, merge_items(inventory_base or {}, self.sim.inventory_items()))
 
 
 def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None):
     sess = Session(mode, tuning, scenario, seed, inventory)
+    inventory_base = read_inventory_or_empty(inventory_out) if mode == "gather" and inventory_out else {}
     player = InputPlayer(frames)
     w = JsonlWriter(out_path)
     try:
@@ -83,7 +84,12 @@ def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, i
         last_snapped = 0
         while sess.tick < ticks and not sess.done:
             inp = player.advance(sess.tick)  # bước k đọc input có tick == k
-            for row in sess.step(inp):
+            rows = sess.step(inp)
+            if mode == "gather" and inventory_out:
+                if any(row["name"] in {"gather", "fish_caught", "faint", "gather_end"} for row in rows):
+                    write_inventory(inventory_out,
+                                    merge_items(inventory_base, sess.sim.inventory_items()))
+            for row in rows:
                 w.write(row)
             if sess.tick % snapshot_every == 0 or sess.done:
                 w.write(sess.snapshot())
@@ -93,5 +99,5 @@ def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, i
         w.write(sess.end_row())
     finally:
         w.close()
-    sess.write_inventory_if_done(inventory_out)
+    sess.write_inventory_if_done(inventory_out, inventory_base)
     return sess.sim

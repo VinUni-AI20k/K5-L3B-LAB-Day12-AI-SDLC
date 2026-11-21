@@ -1,0 +1,15 @@
+﻿# Q4 integration / review status
+
+Target working source: current `QuanSim` at branch `Quoosc`; existing Q4 code was present at starting HEAD `cfaa8bfcb7978c998ed449628eb18da901ec352f` and unchanged by the teammate fast-forward to `b72b5655586b170f38aa6296efbca2997860d5a0`.
+
+## Real integration exercised
+
+`tests.test_p1_logic.QuanLogic.test_reserved_customer_cooks_serves_and_pays` ran against production `QuanSim` and passed: fixture customer → cook start → stove ready → pick up → serve → eat/payment. `tests.test_p1_logic.QuanLogic.test_customer_leaves_and_reputation_drops` also passed. Command: `PYTHONPATH=tests:. python -m unittest ...` (Windows equivalent used `PYTHONPATH=tests;.`); 2 tests, exit 0. Full regression also includes both tests.
+
+This is a real Q4 happy path, not a fake seam. It does not cover an order expiring during cooking, exact same-tick precedence, official event payload, or lecturer AC.
+
+## Review finding
+
+See `q4-review.md`, target tree `cfaa8bfcb7978c998ed449628eb18da901ec352f`, Q4 source commits `dcf6694` and `5d77733`. Finding Q4-F1: a customer can time out while cooking; the stove still reaches ready and dish pickup succeeds, but the removed customer/order has no identity to serve or clean up. The code change at `b72b565` touched inventory/live/docs/tests and not Q4, so the finding still applies. Status: pending Q4 owner and authoritative policy; not approved.
+
+No Q4 lifecycle policy was changed in this Q3 task. The Q3 patch made the minimal cook-start callsite use the reservation consume helper and records the review finding.

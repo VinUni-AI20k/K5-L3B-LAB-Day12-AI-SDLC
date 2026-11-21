@@ -1,0 +1,9 @@
+﻿# Baseline runtime — before Q3 edits
+
+- Date: 2026-11-21 Asia/Bangkok
+- Branch/HEAD before edits: `Quoosc` / `cfaa8bfcb7978c998ed449628eb18da901ec352f`; `git status --short --branch` reported clean.
+- Baseline unittest command: `$env:PYTHONPATH='tests;.'; python -m unittest discover -s tests -v` (the test helper's `python3` command resolved through a temporary `python3.exe` shim copied from the installed Python 3.11 executable). Result: `Ran 44 tests`, `OK`, exit 0, 7.07 seconds.
+- Native `python3 -m unittest ...` attempt before shim: 21 subprocess-related failures because Windows resolved `python3` to the Store app-execution alias (9009); in-process tests themselves ran. This was resolved for later checks with a PATH shim outside the checkout.
+- `python3 -m chonoi.headless --mode quan --seed 1 --ticks 600 --out <temp>`: exit 0, JSONL 24,675 bytes.
+- `python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out <temp>`: exit 0, JSONL 69,657 bytes.
+- Baseline outputs and unittest log are stored beside this file.

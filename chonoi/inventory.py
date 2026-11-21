@@ -38,6 +38,22 @@ def read_inventory(path: str, kinds=KINDS_P1) -> dict:
     return validate_items(data["items"], kinds)
 
 
+def read_inventory_or_empty(path: str, kinds=KINDS_P1) -> dict:
+    """Read an existing inventory, or return an empty one when the file is absent."""
+    if not os.path.exists(path):
+        return {}
+    return read_inventory(path, kinds)
+
+
+def merge_items(*collections) -> dict:
+    """Sum item counts across inventories and return keys in stable order."""
+    totals = {}
+    for items in collections:
+        for kind, amount in items.items():
+            totals[kind] = totals.get(kind, 0) + amount
+    return {kind: totals[kind] for kind in sorted(totals) if totals[kind] > 0}
+
+
 def hold_to_items(hold: list) -> dict:
     """Khoang (mảng id theo thứ tự nhặt) -> object đếm, sắp theo id nguyên liệu."""
     counts = {}
