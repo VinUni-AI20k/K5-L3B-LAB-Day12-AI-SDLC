@@ -26,8 +26,9 @@ UI chỉ ĐỌC trạng thái và GỬI lệnh. UI không sửa trạng thái si
 
 - Chung: `tick`, `mode` (`gather` hoặc `quan`), `state` (`playing` hoặc `finished`), `time_left_ticks`, `money`, `earned`, `reputation`, `score`.
 - `gather`: `player` (`pos` `[x, d]`, `vel`, `heading_deg`, `oxygen_ticks`, `oxygen_max_ticks`, `hp`, `hp_max`, `zero_oxy_ticks`, `catch_cd_ticks`, `at_surface`), `hold` (mảng, cuối mảng là món mới nhặt), `hold_count`, `hold_capacity`, `nodes` (`id`, `pos`, `kind`, `ready`, `regrow_ticks`), `fish` (`id`, `pos`, `kind`, `heading_deg`).
-- `quan`: `player` (`pos` `[x, z]`), `stock`, `hand`, `stoves` (`id`, `pos`, `state`, `dish`, `cook_ticks_left`, `ready_ticks`), `tables` (`id`, `pos`, `customer_id`), `customers`.
+- `quan`: `player` (`pos` `[x, z]`), `stock`, `hand` (`null` hoặc payload món `{order_id, dish_id, base_price}`), `stoves` (`id`, `pos`, `state` là `idle`, `cooking` hoặc `ready`, `dish` là `null` hoặc payload món, `cook_ticks_left`, `ready_ticks`), `tables` (`id`, `pos`, `customer_id`, `null` khi trống), `customers` (chỉ khách còn ngồi: `id`, `table_id`, `dish_id`, `order_tick`, `state`, `patience_ticks_left`, `eat_ticks_left`, `order_status`, `reserved`, `base_price`, `tip`).
 - Trường nào chưa có thì UI bỏ qua, không báo lỗi. Sim thêm trường mới thì không được đổi tên hoặc ý nghĩa trường cũ.
+- Riêng cửa sổ `chonoi.live` (không có trong JSONL headless): `GET /state` trả thêm `meta` (tuning của chế độ đang chạy), `events` (tối đa 40 sự kiện gần nhất), `finished` (bool) và `error` (chuỗi lỗi luật hoặc `null`); `POST /input` nhận `{"move": [a, b], "interact": bool, "catch": bool}` (sai thì HTTP 400); `POST /restart` chơi lại cùng seed và scenario.
 
 **UI gửi** (qua `chonoi.inputs.InputState`, mỗi tick một lần):
 
