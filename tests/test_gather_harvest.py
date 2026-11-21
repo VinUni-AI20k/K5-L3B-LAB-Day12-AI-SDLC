@@ -120,7 +120,8 @@ class Gather(unittest.TestCase):
             self.assertEqual(events(rows, "gather"), [])
             hf = events(rows, "hold_full")
             self.assertEqual(len(hf), 1)
-            self.assertEqual(hf[0]["data"]["kind"], "bong_sung")
+            self.assertEqual(hf[0]["data"], {"action": "gather", "node_id": "N1",
+                                             "required": G["node_yield"], "free": 0})
             s = last(rows)
             self.assertEqual(s["hold_count"], CAP)
             self.assertTrue(s["nodes"][0]["ready"])

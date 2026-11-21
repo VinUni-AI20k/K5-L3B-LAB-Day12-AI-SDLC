@@ -43,11 +43,10 @@ def try_gather(sim, events):
     if node is None:
         return
     count = int(sim.t["node_yield"])
-    if not sim._add_to_hold(node["kind"], count, events):
+    if not sim._add_to_hold(node["kind"], count, events, {"action": "gather", "node_id": node["id"]}):
         return
     node["regrow_ticks"] = int(round(sim.t["regrow_s"] * TICK))
-    events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "count": count,
-                              "hold_count": len(sim.hold)}))
+    events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": count}))
 
 
 def try_catch(sim, events):
@@ -62,9 +61,8 @@ def try_catch(sim, events):
     if fish is None:
         return
     count = int(sim.t["fish_yield"][fish["kind"]])
-    if not sim._add_to_hold(fish["kind"], count, events):
+    if not sim._add_to_hold(fish["kind"], count, events, {"action": "catch", "fish_id": fish["id"]}):
         return
     sim.fish.remove(fish)
     sim.catch_cd_ticks = int(round(sim.t["catch_cooldown_s"] * TICK))
-    events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "count": count,
-                                   "hold_count": len(sim.hold)}))
+    events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": count}))

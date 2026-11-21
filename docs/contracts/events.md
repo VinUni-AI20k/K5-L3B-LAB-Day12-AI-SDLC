@@ -15,8 +15,8 @@
 | `hold_full` | `{action, fish_id \| node_id, required, free}` | Lát 1 — phát trong `_add_to_hold`, lát 2 truyền `source` | xong |
 | `node_regrown` | `{node_id}` | khung | có sẵn |
 | `gather_end` | `{reason, inventory: {items}}` | khung | có sẵn |
-| `gather` | `{node_id, kind, count, hold_count}` | Lát 2 | xong |
-| `fish_caught` | `{fish_id, kind, count, hold_count}` | Lát 2 | xong |
+| `gather` | `{node_id, kind, amount}` (theo PRD-0) | Lát 2 | xong |
+| `fish_caught` | `{fish_id, kind, yield}` (theo PRD-0) | Lát 2 | xong |
 | `fish_spawned` | `{id, kind, pos}` (v1.1, chỉ khi sinh theo lịch) | Cá bơi/sinh | xong (sinh) |
 | `monster_hit` | `{monster_id, hp, lost, pos}` — `lost`: mảng kind LIFO, `pos`: vị trí người chơi (v1.1) | Cá Sấu | |
 
