@@ -13,7 +13,7 @@
 
 ## Thỏa thuận làm việc nhóm (điền trong 15 phút kickoff, ≤ 10 dòng)
 
-- Kênh liên lạc: nhóm chat chung của lớp (cả nhóm ghi tên kênh thật vào đây khi chốt).
+- Kênh liên lạc: nhóm chat Zalo.
 - Khi bất đồng về thiết kế: nói 2 phút, không xong thì Integrator (Lương) quyết và ghi lại lý do trong `docs/clarify.md` hoặc ADR.
 - Khi ai đó trễ hoặc vướng quá 10 phút: nói ngay trong kênh chung, người dự phòng (cột cuối bảng) nhận việc.
 - Giờ standup giữa phase: 5 phút ngay sau mỗi mốc tag; Scrum (Cường) ghi vào `docs/standup.md`.
