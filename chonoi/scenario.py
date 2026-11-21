@@ -6,15 +6,15 @@ phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 m
 """
 
 import json
+import math
 
 from .errors import BadInput
-from .inventory import KINDS_P1, validate_items
+from .inventory import FISH_KINDS, KINDS, NODE_KINDS, validate_items
+from .sim.day import gather_tuning, validate_day
 
-GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
+GATHER_KEYS = {"player", "hold", "nodes", "fish", "monsters", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "invuln_ticks", "catch_cd_ticks"}
-NODE_KINDS = ("bong_dien_dien", "bong_sung")
-FISH_KINDS = ("ca_linh", "ca_loc")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
 QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
              "reputation", "time_left_ticks"}
@@ -40,11 +40,27 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
             data = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
-    if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
-        raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
+    if not isinstance(data, dict):
+        raise BadInput("scenario phải là object")
+    if mode == "day":
+        if data.keys() - {"day", "gather", "quan"}:
+            raise BadInput("khối sai mode day")
+        state = data.get("day", {})
+        validate_day(state, tuning)
+        _validate_block(data.get("gather", {}), "gather", gather_tuning(tuning, state.get("upgrades", {})))
+        evening = data.get("quan", {})
+        _validate_block(evening, "quan", tuning)
+        if "stock" in evening or "reputation" in evening:
+            raise BadInput("day tự bàn giao stock và reputation")
+        return data
     if set(data) - {mode}:
         raise BadInput(f"khối sai mode: chạy --mode {mode} chỉ nhận khối '{mode}'")
     block = data.get(mode, {})
+    _validate_block(block, mode, tuning)
+    return block
+
+
+def _validate_block(block, mode, tuning):
     if not isinstance(block, dict):
         raise BadInput(f"khối {mode} phải là object")
     allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
@@ -60,7 +76,6 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
         _validate_gather(block, tuning)
     else:
         _validate_quan(block, tuning)
-    return block
 
 
 def _num(v):
@@ -84,14 +99,14 @@ def _pos(name, pos, bounds, axes=("x", "d")):
 def _validate_gather(b, tuning):
     g = tuning["gather"]
     bounds = g["bounds"]
-    for arr in ("nodes", "fish"):
+    for arr in ("nodes", "fish", "monsters"):
         if arr in b:
             _check_ids(arr, b[arr])
     if "random_fish" in b and not isinstance(b["random_fish"], bool):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
+        if not isinstance(h, list) or any(k not in KINDS for k in h):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
@@ -122,6 +137,8 @@ def _validate_gather(b, tuning):
             raise BadInput("player.zero_oxy_ticks phải trong [0, 59]")
         if p["zero_oxy_ticks"] > 0 and not (oxy == 0 and pos[1] > g["surface_depth"]):
             raise BadInput("player.zero_oxy_ticks > 0 chỉ khi oxy = 0 và đang dưới nước")
+    for monster in b.get("monsters", []):
+        _validate_monster(monster, g)
     for n in b.get("nodes", []):
         if n.get("kind") not in NODE_KINDS:
             raise BadInput(f"nodes.{n['id']}: kind phải là một trong {NODE_KINDS}")
@@ -138,6 +155,41 @@ def _validate_gather(b, tuning):
             raise BadInput(f"fish.{f['id']}: đàn cá phải ở dưới nước")
         if "heading_deg" in f and not _num(f["heading_deg"]):
             raise BadInput(f"fish.{f['id']}.heading_deg phải là số")
+        extra = set(f) - {"id", "kind", "pos", "heading_deg", "age_ticks"}
+        if extra:
+            raise BadInput(f"trường lạ/chưa hỗ trợ trong fish.{f['id']}: {sorted(extra)}")
+        if "age_ticks" in f:
+            _nonneg_int(f"fish.{f['id']}.age_ticks", f["age_ticks"])
+        if b.get("random_fish", True):  # cá có bơi: phải nằm trong miền bơi của loài
+            (xlo, xhi), (dlo, dhi) = g["fish_x"], g["fish_depths"][f["kind"]]
+            if not (xlo <= f["pos"][0] <= xhi and dlo <= f["pos"][1] <= dhi):
+                raise BadInput(f"fish.{f['id']}: ngoài miền bơi của {f['kind']} (x ∈ {g['fish_x']}, d ∈ [{dlo}, {dhi}])")
+
+
+def _validate_monster(m, gather):
+    allowed = {"id", "kind", "pos", "waypoints", "target_idx", "state", "state_ticks_left", "recoil_dir"}
+    species = gather["monsters"]["species"]
+    if m.keys() - allowed or not isinstance(m.get("kind"), str) or m["kind"] not in species:
+        raise BadInput("schema hoặc loài quái không hợp lệ")
+    if type(m.get("target_idx", 1)) is not int or m.get("target_idx", 1) not in (0, 1):
+        raise BadInput("target_idx phải là 0 hoặc 1")
+    bounds = {**gather["bounds"], "d": species[m["kind"]]["depths"]}
+    _pos("monster.pos", m.get("pos"), bounds)
+    points = m.get("waypoints")
+    if not isinstance(points, list) or len(points) != 2:
+        raise BadInput("quái cần hai waypoint")
+    for point in points:
+        _pos("waypoint", point, bounds)
+    state = m.get("state", "patrol")
+    ticks = m.get("state_ticks_left", 0)
+    _nonneg_int("state_ticks_left", ticks)
+    direction = m.get("recoil_dir")
+    if state == "recoil":
+        if (ticks == 0 or not isinstance(direction, list) or len(direction) != 2
+                or not all(_num(v) for v in direction) or not math.isclose(math.hypot(*direction), 1.0)):
+            raise BadInput("recoil cần timer dương và vector đơn vị")
+    elif state not in ("patrol", "chase") or ticks or direction is not None:
+        raise BadInput("trạng thái quái mâu thuẫn")
 
 
 def _validate_quan(b, tuning):

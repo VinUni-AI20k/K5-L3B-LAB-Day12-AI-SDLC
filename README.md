@@ -13,19 +13,51 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 4. **Gắn tag** `phase-1` … `phase-4` đúng hạn; chạy được tại từng tag.
 5. **Ghi chép tối thiểu:** `docs/verification/phase-n.md`, `docs/clarify.md`, `docs/ai-usage-log.md`, `docs/retro.md`, `docs/members/<handle>.md`.
 
-## Bắt đầu nhanh
+## Bắt đầu nhanh (macOS / Linux, ≤ 3 lệnh)
 
 ```bash
 git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # 1 lệnh chạy test
+python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt
 ```
+
+### Demo trọn vòng (Buổi sáng → Cập bến xuất kho → Buổi tối)
+
+```bash
+python3 -m chonoi.live --mode gather --inventory-out kho.json       # Lặn & hái, nhấn E tại bến để xuất kho
+python3 -m chonoi.live --mode quan --inventory kho.json             # Mở quán tối với kho vừa thu hoạch
+```
+
+### Phím điều khiển
+- `WASD` / `Phím mũi tên`: Bơi (buổi sáng) / Đi lại (buổi tối)
+- `E`: Cập bến hoặc hái rau (buổi sáng) · Nấu / Lấy món / Phục vụ (buổi tối)
+- `Space`: Bắt cá (khi đang lặn dưới nước)
+- `P` / `Esc`: Tạm dừng
+- `R`: Chơi lại từ đầu
+
+### Công thức tính điểm
+```text
+score = earned + 100 × floor(reputation)
+```
+Trong đó `earned` là tổng tiền thu được (tiền món + tiền boa, đơn vị nghìn đồng) và `reputation` là điểm uy tín của quán.
 
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
 ## Tự do sáng tạo
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
+
+## Mở rộng đã chọn của nhóm Banana (Extensions)
+
+Nhóm 6 người hoàn thành 2 mở rộng theo yêu cầu của lab:
+1. **Cháy món (`burn`)** (TV4 - Quân phụ trách):
+   - Món chín ở bếp nếu để quá 20s (`burn_s: 20` tương đương 1.200 tick) sẽ bị cháy.
+   - Khi `ready_ticks > 1200`: phát sự kiện `dish_burnt`, giải phóng bếp về `idle`.
+   - Hệ thống tự động kiểm tra kho để giữ lại nguyên liệu (`reserved`) hoặc chuyển đơn sang `unfulfillable` nếu thiếu nguyên liệu tươi.
+   - Kiểm chứng đầy đủ qua test suite `tests/test_tv4_phase2.py`, `tests/test_tv4_phase3.py`.
+2. **Thiết lập âm thanh (`settings/audio`)** (TV5 - Cường phụ trách):
+   - Cho phép người chơi tùy chỉnh riêng âm lượng Master, Music và SFX trên giao diện.
+   - Thiết lập được lưu bền vững qua các phiên chơi.
 
 ## Lịch 3 giờ
 

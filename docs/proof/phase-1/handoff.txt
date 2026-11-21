@@ -1,0 +1,12 @@
+gather_end reason: docked
+kind              kho.json  gather_end  quan.stock
+bong_dien_dien           2           2           2
+bong_sung                0           0           0
+ca_linh                  3           3           3
+ca_loc                   1           1           1
+tổng: 6 món
+KẾT QUẢ: KHỚP
+
+# Lệnh tạo lượt thu (preset mặc định, không scenario):
+# python3 -m chonoi.headless --mode gather --seed 1 --ticks 3000 --inputs docs/proof/phase-1/inputs-thu.json --inventory-out docs/proof/phase-1/kho.json --out docs/proof/phase-1/gather.jsonl
+# Tất định: chạy lại cùng lệnh ra file khác, `cmp` JSONL và kho -> giống từng byte.

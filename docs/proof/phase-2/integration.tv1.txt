@@ -1,0 +1,26 @@
+TV1 Phase 2 | local working tree on sang/tv1 | Phase 1 base 0d867a1
+dock.json: {"gather":{"hold":["ca_loc","bong_sung","bong_sung"]}}
+inputs.json: {"frames":[{"tick":0,"interact":true}]}
+python3 -m chonoi.headless --seed 42 --mode gather --scenario <tmp>\dock.json --inputs <tmp>\inputs.json --ticks 1 --inventory-out <tmp>\catch.json --out <tmp>\gather.jsonl
+exit=0 elapsed_local=0.095s
+python3 tools/check_handoff.py <tmp>\gather.jsonl <tmp>\catch.json
+exit=0 elapsed_local=0.183s
+gather_end reason: docked
+kind              kho.json  gather_end  quan.stock
+bong_dien_dien           0           0           0
+bong_sung                2           2           2
+ca_linh                  0           0           0
+ca_loc                   1           1           1
+tổng: 3 món
+KẾT QUẢ: KHỚP
+python3 -m chonoi.headless --seed 42 --mode day --days 1 --ticks 22200 --out <tmp>\day.jsonl
+exit=0 elapsed_local=0.317s
+{"mode": "day", "state": "finished", "sim_tick": 22200, "money": 0, "earned": 0, "reputation": 3.0, "score": 300, "type": "end", "ticks": 22200, "reason": "days_complete", "days_completed": 1}
+sha256=a46d889a98fe27b70e75bb759491876dc529cee71532e4d2112c7b9e23be03df
+python3 -m chonoi.headless --seed 42 --mode day --days 1 --ticks 22200 --out <tmp>\day.jsonl
+exit=0 elapsed_local=0.411s
+{"mode": "day", "state": "finished", "sim_tick": 22200, "money": 0, "earned": 0, "reputation": 3.0, "score": 300, "type": "end", "ticks": 22200, "reason": "days_complete", "days_completed": 1}
+sha256=a46d889a98fe27b70e75bb759491876dc529cee71532e4d2112c7b9e23be03df
+python3 -m chonoi.headless --seed 42 --mode day --days 5 --ticks 111000 --out <tmp>\day.jsonl
+exit=0 elapsed_local=2.069s
+{"mode": "day", "state": "finished", "sim_tick": 111000, "money": 0, "earned": 0, "reputation": 3.0, "score": 300, "type": "end", "ticks": 111000, "reason": "days_complete", "days_completed": 5}

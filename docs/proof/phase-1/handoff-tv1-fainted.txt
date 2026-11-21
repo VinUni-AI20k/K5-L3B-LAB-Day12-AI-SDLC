@@ -1,0 +1,16 @@
+sang/tv1 - local, seed 1
+scenario.json: {"gather": {"player": {"pos": [2, 1], "hp": 1, "oxygen_ticks": 0, "zero_oxy_ticks": 59}, "hold": ["bong_sung", "ca_loc", "ca_linh"], "time_left_ticks": 1}}
+inputs.json: {"frames": [{"tick": 0, "interact": true, "catch": true}]}
+python3 -m chonoi.headless --mode gather --seed 1 --ticks 8 --scenario scenario.json --inputs inputs.json --out gather.jsonl --inventory-out kho.json
+{"type": "event", "tick": 1, "phase": "gather", "name": "choke", "data": {"hp": 0}}
+{"type": "event", "tick": 1, "phase": "gather", "name": "faint", "data": {"cause": "choke", "lost": ["ca_linh", "ca_loc", "bong_sung"], "hp": 0}}
+{"type": "event", "tick": 1, "phase": "gather", "name": "gather_end", "data": {"reason": "fainted", "inventory": {"items": {}}}}
+python3 tools/check_handoff.py gather.jsonl kho.json
+gather_end reason: fainted
+kind              kho.json  gather_end  quan.stock
+bong_dien_dien           0           0           0
+bong_sung                0           0           0
+ca_linh                  0           0           0
+ca_loc                   0           0           0
+tổng: 0 món
+KẾT QUẢ: KHỚP

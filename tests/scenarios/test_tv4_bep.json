@@ -1,0 +1,21 @@
+{
+  "quan": {
+    "player": {
+      "pos": [2.0, 8.0]
+    },
+    "stock": {
+      "ca_loc": 3,
+      "bong_dien_dien": 2,
+      "bong_sung": 4
+    },
+    "customers": [
+      {
+        "id": "C1",
+        "table_id": "T1",
+        "dish_id": "ca_loc_nuong_trui",
+        "patience_ticks_left": 3600
+      }
+    ]
+  }
+}
+
