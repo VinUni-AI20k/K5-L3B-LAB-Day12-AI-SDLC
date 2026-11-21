@@ -3,9 +3,7 @@
 Mã thoát: 0 bình thường; 2 tham số/đầu vào sai (kiểm TRƯỚC khi ghi đầu ra); 1 lỗi chạy/ghi.
 
 v1.1 (TV6, T240): `--mode day [--days N]` (1–5, mặc định 1); `--days` với mode khác, `--inventory*` với day,
-contract thiếu khóa v1.1 (`tuning.day_plan`, `tuning.shop`) → mã 2.
-v1.2 (TV6, T306): scenario/kho đọc theo `contract_version`; `--inventory`/`--inventory-out` v1.2 cần hàm của
-TV1 (chưa có → mã 2 "chờ TV1", kiểm TRƯỚC khi ghi đầu ra). Biến môi trường `CHONOI_CONTRACT` (tùy chọn)
+contract thiếu khóa v1.1 (`tuning.day_plan`, `tuning.shop`) → mã 2. Biến môi trường `CHONOI_CONTRACT` (tùy chọn)
 trỏ tới contract khác `game.contract.json` — chỉ để test dùng fixture v1.1 khi TV1 chưa nâng contract.
 """
 
@@ -16,7 +14,8 @@ import sys
 from .contract import DEFAULT_PATH, load_contract
 from .errors import BadInput
 from .inputs import buttons_for, load_frames
-from .runner import inventory_io, run
+from .inventory import read_inventory
+from .runner import run
 from .scenario import load_scenario
 from .sim.day import missing_day_keys
 
@@ -78,11 +77,9 @@ def main(argv=None) -> int:
             if miss:
                 raise BadInput(f"--mode day: contract chưa có khóa {', '.join(miss)} (chờ TV1)")
         buttons, strings = buttons_for(contract)
-        version = contract.get("contract_version")
-        scenario = load_scenario(a.scenario, a.mode, tuning, version)
+        scenario = load_scenario(a.scenario, a.mode, tuning)
         frames = load_frames(a.inputs, buttons, strings)
-        read_inv, _ = inventory_io(version) if (a.inventory or a.inventory_out) else (None, None)
-        inventory = read_inv(a.inventory) if a.inventory else None
+        inventory = read_inventory(a.inventory, version=contract["contract_version"]) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
     except BadInput as e:
@@ -91,7 +88,7 @@ def main(argv=None) -> int:
     try:
         run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
             inventory=inventory, inventory_out=a.inventory_out, days=days, buttons=buttons, strings=strings,
-            version=version)
+            contract_version=contract["contract_version"])
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

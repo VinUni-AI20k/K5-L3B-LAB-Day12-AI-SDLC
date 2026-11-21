@@ -148,7 +148,9 @@ class DaySim:
     def _plan_for(self, n):
         src = self.plan_override.get(n)
         if src is None:
-            src = next((p for p in self.tuning["day_plan"] if p.get("day") == n), None)
+            # D1–D5 lặp lại từ Ngày 6 (TICKET-04 soak). Ngày 1–5 vẫn trúng đúng mục.
+            cycle = ((n - 1) % 5) + 1
+            src = next((p for p in self.tuning["day_plan"] if p.get("day") == cycle), None)
         if src is None:
             raise BadInput(f"day_plan không có mục cho Ngày {n}")
         dishes = dict(src["dishes"])
