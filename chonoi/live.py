@@ -6,6 +6,7 @@ Máy chủ HTTP nhỏ (ThreadingHTTPServer) phục vụ `chonoi/web/index.html` 
     GET  /state  -> snapshot JSON hiện tại (cùng trường như dòng snapshot của headless) + `meta` + `events`
     POST /input  -> {"move": [a, b], "interact": bool, "catch": bool}   (trạng thái phím đang giữ)
     POST /restart -> chơi lại từ đầu (cùng seed, cùng scenario)
+    POST /continue -> mở quán sau khi kết thúc thu thập (khi bật --continue-quan)
 
 Mô phỏng chạy 60 tick/s trong một luồng nền, dùng CÙNG lớp sim như headless (qua `runner.Session`).
 Client chỉ ĐỌC snapshot và tự bỏ qua trường chưa có, nên luật do nhóm viết thêm trường nào cũng không vỡ.
@@ -37,17 +38,19 @@ RECENT_EVENTS = 40
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, continue_quan=False):
         self._args = (mode, tuning, scenario, seed, inventory)
         self.mode = mode
         self.tuning = tuning
         self.inventory_out = inventory_out
+        self.continue_quan = continue_quan
         self._lock = threading.Lock()
         self._stop = threading.Event()
         self._thread = None
         self._reset()
 
     def _reset(self):
+        self.mode = self._args[0]
         self.session = Session(*self._args)
         self.inputs = LiveInputs()
         self.events = []
@@ -86,7 +89,19 @@ class LiveGame:
         s = self.session
         if s.done:
             return
-        for row in s.step(self.inputs.advance()):
+        inp = self.inputs.advance()
+        positions = {}
+        if self.mode == "gather":
+            if inp.pressed("catch"):
+                positions.update((fish["id"], fish["pos"].copy()) for fish in s.sim.fish)
+            if inp.pressed("interact"):
+                positions.update((node["id"], node["pos"].copy()) for node in s.sim.nodes)
+        for row in s.step(inp):
+            if row["name"] in ("gather", "fish_caught"):
+                data = row["data"]
+                position = positions.get(data.get("node_id", data.get("fish_id")))
+                if position is not None:
+                    row = {**row, "data": {**data, "pos": position}}
             self.events.append(row)
         del self.events[:-RECENT_EVENTS]
         if s.done and not self._saved:
@@ -101,9 +116,23 @@ class LiveGame:
     def state_json(self) -> bytes:
         with self._lock:
             snap = self.session.snapshot()
+            sim = self.session.sim
+            snap.update(sim.live_hints())
             snap["meta"] = self.tuning[self.mode]
             snap["events"] = list(self.events)
+            if self.mode == "quan":
+                missed_order = next((event for event in reversed(self.events) if event["name"] == "no_dish"), None)
+                if missed_order and snap["tick"] - missed_order["tick"] < 2 * self.tuning["tick_hz"]:
+                    available = sim.available_stock()
+                    shortages = [
+                        {kind: count - max(0, available.get(kind, 0)) for kind, count in recipe["recipe"].items()
+                         if count > max(0, available.get(kind, 0))}
+                        for recipe in sim.menu.values()
+                    ]
+                    if shortages:
+                        snap["missing_ingredients"] = min(shortages, key=lambda items: sum(items.values()))
             snap["finished"] = self.session.done
+            snap["can_open_quan"] = self._can_open_quan()
             snap["reason"] = self.session.sim.reason if self.session.done else None
             snap["error"] = self.error
             return json.dumps(snap, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
@@ -127,6 +156,19 @@ class LiveGame:
     def restart(self):
         with self._lock:
             self._reset()
+
+    def _can_open_quan(self):
+        return self.continue_quan and self.mode == "gather" and self.session.done and not self.error
+
+    def open_quan(self):
+        with self._lock:
+            if not self._can_open_quan():
+                raise ValueError("Chưa thể mở quán")
+            inventory = self.session.sim.inventory_items()
+            self.session = Session("quan", self.tuning, {}, self._args[3], inventory)
+            self.mode = "quan"
+            self.inputs = LiveInputs()
+            self.events = []
 
 
 class _Handler(BaseHTTPRequestHandler):
@@ -175,6 +217,8 @@ class _Handler(BaseHTTPRequestHandler):
                 self.game.set_input(body)
             elif path == "/restart":
                 self.game.restart()
+            elif path == "/continue":
+                self.game.open_quan()
             else:
                 self._send(404, b'{"error":"khong co"}')
                 return
@@ -222,18 +266,21 @@ def main(argv=None) -> int:
     p.add_argument("--scenario")
     p.add_argument("--inventory", help="chỉ với quan: nạp kho từ file")
     p.add_argument("--inventory-out", dest="inventory_out", help="chỉ với gather: ghi kho khi kết thúc buổi")
+    p.add_argument("--continue-quan", action="store_true", help="mở quán với kho vừa thu thập")
     a = p.parse_args(argv)
     try:
         if a.inventory and a.mode != "quan":
             raise BadInput("--inventory chỉ dùng với quan")
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
+        if a.continue_quan and a.mode != "gather":
+            raise BadInput("--continue-quan chỉ dùng với gather")
         tuning = load_contract()["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
         inventory = read_inventory(a.inventory) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, a.continue_quan)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")

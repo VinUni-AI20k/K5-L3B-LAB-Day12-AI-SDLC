@@ -178,10 +178,22 @@ class GatherSim:
                     best_key = key
         return best
 
-    def _try_gather_node(self, events: list):
-        node = self._nearest_in_radius(
+    def _harvest_target(self):
+        return self._nearest_in_radius(
             self.nodes, self.t["interact_radius"], pred=lambda n: n["regrow_ticks"] == 0
         )
+
+    def live_hints(self):
+        if self.done or len(self.hold) >= self.t["hold_capacity"]:
+            return {}
+        if self._at_surface():
+            node = None if self._in_dock() else self._harvest_target()
+            return {"harvest_target_id": node["id"]} if node else {}
+        fish = None if self.catch_cd_ticks else self._nearest_in_radius(self.fish, self.t["catch_radius"])
+        return {"catch_target_id": fish["id"]} if fish else {}
+
+    def _try_gather_node(self, events: list):
+        node = self._harvest_target()
         if node is None:
             return
         space = self.t["hold_capacity"] - len(self.hold)
