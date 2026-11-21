@@ -47,7 +47,7 @@ class QuanSim:
         self._reservation_state = {}
         for source in sort_by_id(scenario.get("customers", [])):
             c = deepcopy(source)
-            dish_id = c.get("dish_id", c.get("dish"))
+            dish_id = c.get("dish_id") or c.get("dish") or c.get("order")
             state = c.get("state", "waiting")
             if "dish_id" not in c:
                 c["dish_id"] = dish_id
@@ -61,6 +61,9 @@ class QuanSim:
             else:
                 patience = int(round(t["patience_s"] * self.tick_hz))
             c["patience_ticks_left"] = patience
+            c["patience_ticks"] = patience
+            c["patience_max_ticks"] = c.get(
+                "patience_max_ticks", int(round(t["patience_s"] * self.tick_hz)))
             eat_ticks = c.get("eat_ticks_left")
             if eat_ticks is None:
                 eat_ticks = int(round(t["eat_s"] * self.tick_hz))
@@ -73,6 +76,11 @@ class QuanSim:
             elif "reserved" in c:
                 reserved = deepcopy(c["reserved"])
                 reservation_state = "reserved" if any(reserved.values()) else "released"
+            elif self.hand == dish_id:
+                # A fixture with the cooked dish already in hand needs no raw
+                # reservation; it can be served directly to this customer.
+                reserved = {}
+                reservation_state = "released"
             else:
                 reserved = deepcopy(self.menu[dish_id]["recipe"])
                 reservation_state = "reserved"
@@ -265,23 +273,29 @@ class QuanSim:
                     dish_id = c["dish_id"]
                     menu = self.menu[dish_id]
                     price = int(menu["price"])
-                    patience_ratio = c["patience_ticks_left"] / (self.t["patience_s"] * self.tick_hz)
+                    p_max = c.get("patience_max_ticks", self.t["patience_s"] * self.tick_hz)
+                    patience_ratio = c.get(
+                        "patience_ratio_served",
+                        c["patience_ticks_left"] / p_max if p_max > 0 else 1.0,
+                    )
                     tip = 0
                     if patience_ratio >= self.t["tip_min_patience_ratio"]:
                         tip = int(round(price * self.t["tip_rate"]))
-                        if tip > 0:
+                        if tip > 0 or self.t.get("tip_reputation", 0) > 0:
                             self.reputation = min(float(self.t["reputation_max"]),
-                                                  self.reputation + float(self.t["tip_reputation"]))
+                                                  round(self.reputation + float(self.t["tip_reputation"]), 3))
                     total = price + tip
                     self.money += total
                     self.earned += total
                     self.shift_earned += total
                     events.append(("paid", {"customer_id": c["id"], "table_id": c["table_id"],
-                                            "dish_id": dish_id, "price": price, "tip": tip,
+                                            "dish_id": dish_id, "dish": dish_id, "price": price,
+                                            "money": price, "tip": tip, "reputation": self.reputation,
                                             "patience_ratio": patience_ratio}))
                     continue
             elif c["state"] in ("waiting", "ordered"):
                 c["patience_ticks_left"] = max(0, int(c.get("patience_ticks_left", 0)) - 1)
+                c["patience_ticks"] = c["patience_ticks_left"]
                 if c["patience_ticks_left"] <= 0:
                     self._release_reservation(c["id"])
                     self.reputation = max(float(self.t["reputation_min"]),
@@ -301,7 +315,10 @@ class QuanSim:
                 if s["cook_ticks_left"] <= 0:
                     s["state"] = "ready"
                     s["ready_ticks"] = int(s.get("ready_ticks", 0))
-                    events.append(("dish_ready", {"stove_id": s["id"], "dish_id": s["dish"]}))
+                    s["cook_ticks_left"] = 0
+                    events.append(("dish_ready", {"stove_id": s["id"], "dish_id": s["dish"], "dish": s["dish"]}))
+            elif s["state"] == "ready":
+                s["ready_ticks"] = int(s.get("ready_ticks", 0)) + 1
         return events
 
     def _nearest_interaction(self):
@@ -341,7 +358,7 @@ class QuanSim:
                     obj["dish"] = dish_id
                     obj["cook_ticks_left"] = int(round(self.menu[dish_id]["cook_s"] * self.tick_hz))
                     events.append(("cook_started", {"stove_id": obj["id"], "customer_id": c["id"],
-                                                    "dish_id": dish_id}))
+                                                    "dish_id": dish_id, "dish": dish_id}))
             elif obj["state"] == "ready" and self.hand is None:
                 dish_id = obj["dish"]
                 obj["state"] = "idle"
@@ -349,7 +366,7 @@ class QuanSim:
                 obj["cook_ticks_left"] = 0
                 obj["ready_ticks"] = 0
                 self.hand = dish_id
-                events.append(("dish_picked", {"stove_id": obj["id"], "dish_id": dish_id}))
+                events.append(("dish_picked", {"stove_id": obj["id"], "dish_id": dish_id, "dish": dish_id}))
         else:
             if self.hand is not None:
                 for c in sort_by_id(self.customers):
@@ -358,10 +375,13 @@ class QuanSim:
                             continue
                         c["state"] = "eating"
                         c["eat_ticks_left"] = int(round(self.t["eat_s"] * self.tick_hz))
+                        p_left = c.get("patience_ticks_left", c.get("patience_ticks", 0))
+                        p_max = c.get("patience_max_ticks", int(round(self.t["patience_s"] * self.tick_hz)))
+                        c["patience_ratio_served"] = p_left / p_max if p_max > 0 else 1.0
                         dish_id = self.hand
                         self.hand = None
                         events.append(("served", {"customer_id": c["id"], "table_id": obj["id"],
-                                                  "dish_id": dish_id}))
+                                                  "dish_id": dish_id, "dish": dish_id}))
                         break
         return events
 
