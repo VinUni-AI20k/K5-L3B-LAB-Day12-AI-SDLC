@@ -94,3 +94,21 @@ class InventoryHandoff(unittest.TestCase):
             imported = initial["stock"][0]
             self.assertEqual((imported["id"], imported["kind"]), ("I1", "ca_linh"))
             self.assertAlmostEqual(imported["fresh"], item["fresh"], delta=0.01)
+
+class InventorySchema(unittest.TestCase):
+    def test_quan_rejects_count_inventory_without_writing_output(self):
+        with Workdir() as work:
+            inventory = write_json(
+                work.path("count-inventory.json"),
+                {"items": {"ca_loc": 1}},
+            )
+            output = work.path("quan.jsonl")
+            code, stderr = run_headless(
+                "--mode", "quan", "--seed", "42", "--ticks", "0",
+                "--inventory", inventory, "--out", output,
+            )
+
+            self.assertEqual(code, 2, stderr or f"Unexpected exit code: {code}")
+            with self.assertRaises(FileNotFoundError):
+                with open(output, encoding="utf-8"):
+                    pass
