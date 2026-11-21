@@ -39,7 +39,7 @@ class LiveDayPreviewTest(unittest.TestCase):
         fish = next(f for f in state["snapshot"]["fish"] if f["kind"] == "ca_loc")
         self.at(fish["pos"])
         state = self.press("catch")
-        self.assertEqual([h["kind"] for h in state["snapshot"]["hold"]], ["ca_loc"])
+        self.assertEqual(state["snapshot"]["hold"], [{"id": "I1", "kind": "ca_loc", "fresh": 100}])
         self.assertIn("fish_caught", [event["name"] for event in state["events"]])
         self.assertTrue(preview.action("pause", {}))
         tick = preview.snapshot()["snapshot"]["tick"]
@@ -49,9 +49,13 @@ class LiveDayPreviewTest(unittest.TestCase):
         self.at(state["snapshot"]["meta"]["dock_pos"])
         state = self.press("interact")
         self.assertEqual(state["screen"], "evening_intro")
-        self.assertEqual(state["inventory"], {"ca_loc": 1})
+        inventory = state["inventory"]
+        self.assertEqual([(item["id"], item["kind"]) for item in inventory], [("I1", "ca_loc")])
+        self.assertGreater(inventory[0]["fresh"], 30)
+        self.assertLess(inventory[0]["fresh"], 100)
         self.assertEqual(state["cookable"], ["ca_loc_nuong_trui"])
         self.assertTrue(preview.action("continue", {}))
+        self.assertEqual(preview.snapshot()["snapshot"]["stock"], inventory)
         state = self.step(preview.game.tuning["quan"]["first_customer_tick"] + 1)
         self.assertEqual([item["kind"] for item in state["snapshot"]["stock"]], ["ca_loc"])
 
@@ -83,6 +87,17 @@ class LiveDayPreviewTest(unittest.TestCase):
         preview = self.start(faint=True)
         state = self.step(2)
         self.assertEqual((state["screen"], state["gather_reason"]), ("evening_intro", "fainted"))
-        self.assertEqual(state["inventory"], {})
+        self.assertEqual(state["inventory"], [])
         self.assertTrue(preview.action("continue", {}))
         self.assertEqual(preview.snapshot()["snapshot"]["stock"], [])
+
+    def test_evening_preview_excludes_spoiled_from_cookable_without_discarding_it(self):
+        preview = self.start()
+        preview.set_screen("evening_intro")
+        inventory = [{"id": "I7", "kind": "ca_loc", "fresh": 29.99}]
+        preview.inventory = inventory
+        state = preview.snapshot()
+        self.assertEqual(state["inventory"], inventory)
+        self.assertEqual(state["cookable"], [])
+        inventory[0]["fresh"] = 30
+        self.assertEqual(preview.snapshot()["cookable"], ["ca_loc_nuong_trui"])

@@ -81,7 +81,7 @@
     box-shadow: inset 0 0 0 1px #1b261d66;
   }
   [data-mode="gather"] .scene { background-image: url("art/gather.webp"); }
-  [data-mode="quan"] .scene { background-image: url("art/quan.webp"); }
+  [data-mode="quan"] .scene { background-image: url("art/quan-nen.webp"); }
   canvas { display: block; width: 100%; height: 100%; }
   .overlay { position: absolute; inset: 0; display: grid; place-items: center; padding: 12px; background: #15241cc2; }
   .result {
@@ -127,6 +127,15 @@
   }
   .stock img { width: 21px; height: 17px; }
   .stock b, .ticket b, .stove b { color: var(--paper-ink); }
+  .inventory-list, .flow .inventory-list { list-style: none; margin: 4px 0 0; padding: 0; }
+  .inventory-list li {
+    display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px;
+    align-items: baseline; padding-block: 4px; border-bottom: 1px solid var(--paper-line); font-size: .88rem;
+  }
+  .inventory-list small { display: block; color: var(--paper-soft); }
+  .inventory-fresh { text-align: right; font-variant-numeric: tabular-nums; }
+  .inventory-list .spoiled, .stock .spoiled b { color: #802512; }
+  .slot.spoiled { border: 2px solid #a34d32; background: #f8d5c6; }
   .orders > * { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--paper-line); }
   .ticket + .ticket, .stove + .stove { margin-top: 5px; }
   .ticket .meter-line { display: flex; margin-top: 3px; }
@@ -276,7 +285,7 @@
       <div class="tray">
         <div id="basket" hidden>
           <h2 id="hold-title">Giỏ</h2><div class="slots" id="slots" aria-hidden="true"></div>
-          <p id="hold-summary" hidden></p>
+          <div id="hold-summary" hidden></div>
           <p id="goal-line" hidden></p>
         </div>
         <div class="stock" id="stock" aria-label="Kho khả dụng" hidden></div>
@@ -659,17 +668,17 @@ function gatherHint(s) {
   }
   return cooldown;
 }
-// giỏ: mỗi phần tử là {id, kind, fresh} (hoặc chuỗi loại ở dạng cũ)
-function kindOf(unit) {
-  return typeof unit === "string" ? unit : unit?.kind;
-}
+const ingredientKind = item => record(item) ? item.kind : item;
+const isSpoiled = (item, threshold) => num(item?.fresh) && num(threshold) && item.fresh < threshold;
+const freshnessFormat = new Intl.NumberFormat("vi-VN", { maximumFractionDigits: 2, roundingMode: "trunc" });
+
 function holdSummary(hold) {
   if (!Array.isArray(hold)) return "Đang chờ dữ liệu giỏ";
   if (!hold.length) return "Giỏ trống";
   const counts = new Map();
-  for (const unit of hold) {
-    const item = kindOf(unit);
-    counts.set(item, (counts.get(item) ?? 0) + 1);
+  for (const item of hold) {
+    const kind = ingredientKind(item);
+    counts.set(kind, (counts.get(kind) ?? 0) + 1);
   }
   return Array.from(counts, ([item, count]) => `${capitalize(String(itemName(item)))} ×${count}`).join(" · ");
 }
@@ -678,6 +687,16 @@ function itemList(items, empty) {
   const rows = Object.entries(items).filter(([, n]) => num(n) && n > 0);
   return rows.length ? "<ul>" + rows.map(([key, n]) => `<li>${escapeHTML(capitalize(itemName(key)))} ×${number(n)}</li>`).join("") + "</ul>" :
     `<p>${empty}</p>`;
+}
+function itemizedInventory(items, threshold, empty, reserved = new Set()) {
+  const rows = items.filter(item => typeof item?.id === "string" && typeof item.kind === "string" && num(item.fresh));
+  if (!rows.length) return `<p>${empty}</p>`;
+  return '<ul class="inventory-list" role="list">' + rows.map(item => {
+    const spoiled = isSpoiled(item, threshold);
+    const status = [spoiled && "Ươn", reserved.has(item.id) && "Đã giữ"].filter(Boolean).join(" · ");
+    return `<li><span>${escapeHTML(capitalize(itemName(item.kind)))}<small>${escapeHTML(item.id)}</small></span>
+      <span class="inventory-fresh${spoiled ? " spoiled" : ""}"><b>${freshnessFormat.format(item.fresh)}%</b>${status ? `<small class="${spoiled ? "spoiled" : ""}">${status}</small>` : ""}</span></li>`;
+  }).join("") + "</ul>";
 }
 function renderGather(s) {
   const p = s.player ?? {};
@@ -693,17 +712,17 @@ function renderGather(s) {
   setHTML("slots", capacity === null || !Array.isArray(s.hold) ? "" :
     Array.from({ length: capacity }, (_, index) => {
       if (index >= hold.length) return '<span class="slot"></span>';
-      const unit = hold[index];
-      const icon = known(itemIcons, kindOf(unit));
-      // độ tươi chỉ hiển thị từ state (không hao ở client); ngưỡng ươn do sim đặt
-      const fresh = typeof unit === "object" && num(unit.fresh) ? `${Math.round(unit.fresh)}%` : "";
-      return `<span class="slot filled" title="${fresh}">${icon ? `<img alt="" src="${icon}">` : "?"}</span>`;
+      const item = hold[index];
+      const icon = known(itemIcons, ingredientKind(item));
+      const spoiled = isSpoiled(item, s.meta?.spoil_threshold);
+      return `<span class="slot filled${spoiled ? " spoiled" : ""}">${icon ? `<img alt="" src="${icon}">` : "?"}</span>`;
     }).join(""));
-  setText("hold-summary", holdSummary(s.hold));
+  setHTML("hold-summary", hold.some(record) ?
+    itemizedInventory(hold, s.meta?.spoil_threshold, "Giỏ trống.") : escapeHTML(holdSummary(s.hold)));
   const targets = record(day?.needed) ? Object.entries(day.needed).filter(([, count]) => num(count) && count > 0) : [];
   $("goal-line").hidden = !targets.length;
   setText("goal-line", targets.length ? "Mục tiêu · " + targets.map(([id, n]) =>
-    `${capitalize(itemName(id))} ${hold.filter(k => k === id).length}/${number(n)}`).join(" · ") : "");
+    `${capitalize(itemName(id))} ${hold.filter(item => ingredientKind(item) === id).length}/${number(n)}`).join(" · ") : "");
   const chasing = list(s.monsters).some(m => m.state === "chase");
   setText("hint", canPlay() ? [chasing ? "Cá sấu đang đuổi!" : "", day?.fixture ? "Bản thử · E kết thúc ca" : gatherHint(s)]
     .filter(Boolean).join(" · ") : "");
@@ -713,29 +732,12 @@ function renderQuan(s) {
     metric("Tiền", num(s.money) ? number(s.money) + " nghìn đồng" : "—") +
     metric("Uy tín", number(s.reputation)));
   const customers = list(s.customers);
-  const stockItems = Array.isArray(s.stock) ? s.stock : null;
-  const claimedItems = new Set(customers.flatMap(c => list(c.reserved)));
-  const spoilThreshold = s.meta?.spoil_threshold;
-  const stockKnown = record(s.stock) && Array.isArray(s.customers) && customers.every(c => record(c.reserved));
-  setHTML("stock", "<h2>Kho khả dụng</h2>" + Object.entries(itemNames).filter(([id]) =>
-    (day && !day.live_scenes) || !["ca_keo", "keo_neo"].includes(id) ||
-    (stockItems ? stockItems.some(item => item.kind === id) : Object.hasOwn(s.stock ?? {}, id))).map(([id, label]) => {
-    let available = null;
-    let spoiled = 0;
-    if (stockItems) {
-      const items = stockItems.filter(item => item.kind === id);
-      const usable = items.filter(item => !num(spoilThreshold) || item.fresh >= spoilThreshold);
-      available = usable.filter(item => !claimedItems.has(item.id)).length;
-      spoiled = items.length - usable.length;
-    } else if (stockKnown) {
-      const reserved = customers.map(c => c.reserved?.[id] ?? 0);
-      const total = s.stock[id] ?? 0;
-      if (num(total) && reserved.every(num)) {
-        available = total - reserved.reduce((sum, quantity) => sum + quantity, 0);
-      }
-    }
-    return `<div class="stock-row" id="stock-${id}"><img alt="" src="${itemIcons[id]}"><span>${capitalize(label)}</span> <b>${number(available)}</b>${spoiled ? `<small>${spoiled} ươn</small>` : ""}</div>`;
-  }).join(""));
+  if (Array.isArray(s.stock)) {
+    const reserved = new Set(customers.flatMap(customer => list(customer.reserved)));
+    setHTML("stock", "<h2>Kho nguyên liệu</h2>" + itemizedInventory(s.stock, s.meta?.spoil_threshold, "Kho trống.", reserved));
+  } else {
+    renderCountStock(s, customers);
+  }
   setHTML("tickets", "<h2>Đơn hàng</h2>" + (customers.length ? customers.map(c => {
     const state = c.state === "eating" ? "Đang ăn" : known({
       reserved: "Đã giữ nguyên liệu", assigned: "Đã nhận đơn", unfulfillable: "Thiếu nguyên liệu"
@@ -760,6 +762,17 @@ function renderQuan(s) {
     dishArt(s.hand, "dish-preview") + "Đang cầm · " + escapeHTML(dishName(s.hand)));
   setText("hint", !canPlay() ? "" : day?.fixture ? "Bản thử · E kết thúc ca" :
     "E · Tương tác với bếp hoặc bàn");
+}
+function renderCountStock(s, customers) {
+  const stockKnown = record(s.stock) && Array.isArray(s.customers) && customers.every(c => record(c.reserved));
+  setHTML("stock", "<h2>Kho khả dụng</h2>" + Object.entries(itemNames).filter(([id]) =>
+    (day && !day.live_scenes) || !["ca_keo", "keo_neo"].includes(id) || Object.hasOwn(s.stock ?? {}, id)).map(([id, label]) => {
+    const reserved = customers.map(c => c.reserved?.[id] ?? 0);
+    const total = Object.hasOwn(s.stock ?? {}, id) ? s.stock[id] : 0;
+    const available = stockKnown && num(total) && reserved.every(num) ?
+      total - reserved.reduce((sum, quantity) => sum + quantity, 0) : null;
+    return `<div class="stock-row" id="stock-${id}"><img alt="" src="${itemIcons[id]}"><span>${capitalize(label)}</span> <b>${number(available)}</b></div>`;
+  }).join(""));
 }
 const flowTitles = {
   menu: "Bắt đầu chuyến chợ", day_intro: "Thực đơn Má Tư", evening_intro: "Chuẩn bị mở quán",
@@ -807,7 +820,8 @@ function renderDay() {
     buttons = flowButton("continue", "Ra bến");
   } else if (stage === "evening_intro") {
     body = (day.gather_reason === "fainted" ? "<p>Bà Út bị ngất. Giỏ đã rỗng.</p>" : "") +
-      '<section><h3>Kho mang về</h3>' + itemList(day.inventory, "Kho trống.") + "</section>" +
+      '<section><h3>Kho mang về</h3>' + (Array.isArray(day.inventory) ?
+        itemizedInventory(day.inventory, day.spoil_threshold, "Kho trống.") : itemList(day.inventory, "Kho trống.")) + "</section>" +
       '<section><h3>Món có thể nấu</h3>' + dishesList(day.cookable, "Chưa đủ nguyên liệu.") + "</section>";
     buttons = flowButton("continue", "Mở quán");
   } else if (stage === "day_result" || stage === "summary") {
@@ -882,7 +896,8 @@ function render() {
     title = known(reasons, snap.reason) ?? "Buổi chơi đã kết thúc";
     const inventory = list(snap.events).findLast(e => e.name === "gather_end")?.data?.inventory?.items;
     const items = record(inventory) ? Object.entries(inventory).map(([k, n]) => `${itemName(k)} ×${n}`).join(" · ") : "";
-    detail = gather ? (record(inventory) ? (items ? capitalize(items) : "Giỏ trống") : holdSummary(snap.hold)) :
+    detail = gather ? (record(inventory) ? (items ? capitalize(items) : "Giỏ trống") :
+      holdSummary(inventory ?? snap.hold)) :
       [num(snap.money) && `${number(snap.money)} nghìn đồng`, num(snap.reputation) && `Uy tín ${number(snap.reputation)}`].filter(Boolean).join(" · ");
     replay = true;
   }
@@ -1043,7 +1058,7 @@ function project(bounds, gather, w, h) {
   const x = bounds?.x, y = bounds?.[gather ? "d" : "z"];
   if (!position(x) || !position(y) || x[1] <= x[0] || y[1] <= y[0]) return null;
   // Artist coordinates anchor the river surface and the deck to their respective backgrounds.
-  const [left, top, right, bottom] = gather ? [.30, .245, .96, .89] : [.13, .10, .85, .85];
+  const [left, top, right, bottom] = gather ? [.30, .245, .96, .89] : [.13, .14, .79, .88];
   return ([a, b]) => [
     w * (left + (right - left) * (a - x[0]) / (x[1] - x[0])),
     h * (top + (bottom - top) * (gather ? b - y[0] : y[1] - b) / (y[1] - y[0]))
@@ -1104,16 +1119,27 @@ function drawGather(at, size) {
     label("Bà Út", x, y + size * .45 + 11, true);
   }
 }
+let quanFixtures;
 function drawQuan(at, size, w) {
+  quanFixtures ??= {
+    B1: loadSprite("bep-mot"), B2: loadSprite("bep-hai"),
+    T1: loadSprite("ban-mot"), T2: loadSprite("ban-hai"),
+    T3: loadSprite("ban-ba"), T4: loadSprite("ban-bon")
+  };
   for (const stove of list(snap.stoves)) {
     if (!position(stove.pos)) continue;
+    const [x, y] = at(stove.pos);
+    const sprite = known(quanFixtures, stove.id);
+    if (sprite) drawSprite(sprite, x, y, w * .116, 0, 1, 1);
     const active = stove.state === "cooking" || stove.state === "ready";
-    pin(...at(stove.pos), stove.id ?? "Bếp", active);
+    pin(x, y, stove.id ?? "Bếp", active);
   }
   const customers = list(snap.customers);
   for (const table of list(snap.tables)) {
     if (!position(table.pos)) continue;
     const [x, y] = at(table.pos);
+    const sprite = known(quanFixtures, table.id);
+    if (sprite) drawSprite(sprite, x, y, w * .105, 0, 1, 1);
     const customer = customers.find(c => c.table_id === table.id);
     if (customer) {
       const offset = x > w / 2 ? size * -.34 : size * .34;
