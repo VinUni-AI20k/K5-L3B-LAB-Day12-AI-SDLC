@@ -64,7 +64,8 @@ class DayFlow(unittest.TestCase):
         # kho quán = giỏ lúc gather_end: cá thể nguyên vẹn (id giữ nguyên), hao 1 đơn vị/tick từ khi vào quán
         self.assertEqual([(it["id"], it["kind"]) for it in s.sim.sub.stock],
                          [("I1", "ca_loc"), ("I2", "bong_sung"), ("I3", "bong_sung")])
-        self.assertEqual({it["u"] for it in s.sim.sub.stock}, {24000})
+        # bước cập bến gather vẫn hao hàng có sẵn 1 lần (2 đơn vị) trước khi bàn giao; quán không trừ thêm lúc bàn giao
+        self.assertEqual({it["u"] for it in s.sim.sub.stock}, {23998})
         snap = s.snapshot()
         self.assertEqual((snap["phase"], snap["phase_tick"], snap["day"]), ("quan", 0, 1))
         for _ in range(4):
@@ -72,9 +73,9 @@ class DayFlow(unittest.TestCase):
         ev = s.step(idle())
         self.assertEqual([e["name"] for e in ev], ["quan_end", "phase_start"])
         self.assertEqual((ev[0]["phase"], ev[1]["phase"]), ("quan", "shop"))
-        stock = s.snapshot()["stock"]  # 5 bước trong quán: hao 5 đơn vị; Shop không hao, kho dư không sang Ngày sau
+        stock = s.snapshot()["stock"]  # 2 đơn vị hao ở gather + 5 bước trong quán; Shop không hao
         self.assertEqual([x["id"] for x in stock], ["I1", "I2", "I3"])
-        self.assertEqual({x["fresh"] for x in stock}, {100 - 5 / 240})
+        self.assertEqual({x["fresh"] for x in stock}, {100 - 7 / 240})
 
     def test_faint_gives_empty_stock(self):
         sc = fast(extra_gather={"hold": hold_of("ca_loc"), "player": {"pos": [50, 25], "hp": 1, "oxygen_ticks": 0}})
@@ -101,6 +102,20 @@ class DayFlow(unittest.TestCase):
         for _ in range(125):
             evs += s.step(idle())
         self.assertEqual([e["name"] for e in evs if e["name"] in ("customer_arrived", "no_dish")], ["no_dish"])
+
+
+class ItemIdsAcrossDays(unittest.TestCase):
+    def test_day2_prebuilt_hold_gets_new_ids_in_array_order(self):
+        sc = fast(extra_gather={"hold": hold_of("ca_loc", "bong_sung")})
+        s = Session("day", tuning(), sc, 1, days=2)
+        d1 = [it["id"] for it in s.sim.sub.hold]
+        to_shop(s)
+        s.step(idle(shop_done=True))  # sang Ngày 2
+        self.assertEqual(s.sim.day, 2)
+        d2 = [it["id"] for it in s.sim.sub.hold]
+        self.assertEqual(d1, ["I1", "I2"])
+        self.assertEqual(d2, ["I3", "I4"])  # mới, theo thứ tự mảng, không trùng id Ngày 1
+        self.assertEqual([it["kind"] for it in s.sim.sub.hold], ["ca_loc", "bong_sung"])
 
 
 class Shop(unittest.TestCase):

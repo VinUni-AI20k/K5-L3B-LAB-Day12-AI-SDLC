@@ -119,7 +119,11 @@ class DaySim:
         kw = {"day": self.day}
         if "item_ids" in inspect.signature(GatherSim.__init__).parameters:  # TODO(Phong merge): gọi thẳng, bỏ inspect
             kw["item_ids"] = self.item_ids
-        self.sub = GatherSim(self._day_tuning(), self.gather_scn, self.rng, IdAllocator(), **kw)
+        scn = self.gather_scn
+        if self.day > 1 and scn.get("hold"):
+            # từ Ngày 2 giỏ dựng sẵn là cá thể MỚI: id mới theo thứ tự mảng (PRD), id I* không lặp lại
+            scn = dict(scn, hold=[dict(it, id=self.item_ids.new()) for it in scn["hold"]])
+        self.sub = GatherSim(self._day_tuning(), scn, self.rng, IdAllocator(), **kw)
         events += [("day_start", {}, "gather", self.day),
                    ("day_plan", copy.deepcopy(self.plan), "gather", self.day),
                    ("phase_start", {}, "gather", self.day)]
