@@ -7,6 +7,10 @@ Thứ tự một bước theo Test Contract v1.0 mục F ("Quán"):
   4. khách theo id bàn: ăn xong trả tiền (paid) rồi rời; hết kiên nhẫn rời (customer_left); hết ca thì dọn và quan_end
   5. còn giờ: lượt khách mới theo lịch (customer_arrived / no_dish)
 
+v1.1: 2 bếp / 4 bàn / 6 món đọc từ contract. Quán độc lập dùng cả 6 món; trong `day`, `menu_filter`
+(id món của kế hoạch Ngày) lọc thực đơn TRƯỚC khi lọc theo nguyên liệu khả dụng (tồn trừ phần giữ).
+Tiền / earned / uy tín được mang sang từ Ngày trước qua tham số của hàm dựng.
+
 Lát 3 (khách, giữ chỗ, kiên nhẫn) và lát 4 (bếp, bưng, phục vụ, tiền). Số liệu chỉ đọc từ tuning/menu,
 ngẫu nhiên chỉ qua Streams("customers"), duyệt thực thể theo ids.sort_by_id.
 """
@@ -37,10 +41,13 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, menu_filter=None,
+                 reputation=None, money=0, earned=0):
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
+        # id món khách được gọi: cả thực đơn (quán độc lập) hoặc chỉ món trong kế hoạch Ngày
+        self.dish_ids = sorted(self.menu) if menu_filter is None else sorted(d for d in menu_filter if d in self.menu)
         self.rng = streams
         self.ids = ids
         self.patience_full = _ticks(t["patience_s"])
@@ -55,7 +62,7 @@ class QuanSim:
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", _ticks(t["duration_s"]))
         self.phase_tick = 0
-        self.reputation = scenario.get("reputation", t["reputation_initial"])
+        self.reputation = reputation if reputation is not None else scenario.get("reputation", t["reputation_initial"])
         self.random_customers = scenario.get("random_customers", True)
         self.stoves = [dict(s, state=s.get("state", "idle"), dish=s.get("dish"),
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
@@ -65,8 +72,8 @@ class QuanSim:
         for e in self.customers:
             ids.reserve(e["id"])
         self._validate_state()
-        self.money = 0
-        self.earned = 0
+        self.money = money
+        self.earned = earned
         self.shift_earned = 0
         self.done = False
         self.reason = None
@@ -90,8 +97,8 @@ class QuanSim:
                 raise BadInput(f"customers.{c.get('id')}: trường lạ/chưa hỗ trợ {sorted(extra)}")
             if c.get("table_id") not in table_ids:
                 raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
-            if c.get("dish_id") not in self.menu:
-                raise BadInput(f"customers.{c['id']}: dish_id ngoài phạm vi")
+            if c.get("dish_id") not in self.dish_ids:
+                raise BadInput(f"customers.{c['id']}: dish_id ngoài phạm vi (thực đơn / kế hoạch Ngày)")
             cu = {
                 "id": c["id"], "table_id": c["table_id"], "dish_id": c["dish_id"],
                 "order_tick": c.get("order_tick", 0), "state": c.get("state", "waiting"),
@@ -348,7 +355,7 @@ class QuanSim:
         if not free:
             return
         avail = self._available(self.customers)
-        dishes = [d for d in sorted(self.menu)
+        dishes = [d for d in self.dish_ids
                   if all(avail.get(k, 0) >= n for k, n in self.menu[d]["recipe"].items())]
         if not dishes:
             events.append(("no_dish", {}))

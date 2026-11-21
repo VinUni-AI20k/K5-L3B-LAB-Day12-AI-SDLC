@@ -64,8 +64,11 @@ class Lat3KhachGiuChoKienNhan(unittest.TestCase):
             self.assertEqual(events(rows, "customer_arrived"), [])
 
     def test_ac_p1_22_reservation_blocks_second_order_and_table_busy_skips(self):
+        """Đổi ở P2: quán có 4 bàn (v1.1), scenario chỉ cập nhật chứ không xóa bàn mặc định; để còn đúng
+        tình huống "mọi bàn bận -> bỏ lượt" ta đặt sẵn khách unfulfillable (không giữ gì) ở T2–T4."""
         with Workdir() as w:
-            sc = {"stock": {"ca_loc": 1}, "tables": [{"id": "T1", "pos": [9, 2]}]}
+            busy = [customer(id=f"C{i}", table_id=f"T{i}", order_status="unfulfillable") for i in (2, 3, 4)]
+            sc = {"stock": {"ca_loc": 1}, "customers": busy}
             rows = run_quan(w, sc, ticks=120 + 900 + 1, every=2000)
             self.assertEqual(len(events(rows, "customer_arrived")), 1)  # bàn duy nhất đang có khách -> bỏ lượt
             self.assertEqual(events(rows, "no_dish"), [])
