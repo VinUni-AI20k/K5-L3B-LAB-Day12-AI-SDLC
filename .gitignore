@@ -3,3 +3,8 @@ __pycache__/
 *.jsonl
 !tests/fixtures/*.jsonl
 .DS_Store
+*.2ddev.md
+*2DDev.md
+*2ddev.md
+.venv/
+venv/
