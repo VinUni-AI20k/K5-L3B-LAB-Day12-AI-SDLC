@@ -1,6 +1,7 @@
 """Lát 4 — phục vụ, trả tiền, boa, uy tín, đóng ca (PRD-0 mục F, Quán).
 
-Khách dựng sẵn khai đủ trường để không phụ thuộc lát 3 (kiên nhẫn chưa tự giảm ở đây).
+Khách dựng sẵn khai đủ trường. Kiên nhẫn (lát 3) giảm 1 ở bước 1, TRƯỚC interact, nên lúc served
+patience_ticks_left = giá trị fixture − 1 và boa xét trên giá trị đó ("sau bước 1", mục F).
 """
 
 import math
@@ -64,7 +65,7 @@ class Serve(unittest.TestCase):
         self.assertEqual(names(rows), ["served"])
         tip = math.floor(LAU["base_price"] * Q["tip_rate"])
         self.assertEqual(rows[0]["data"], {"order_id": "C1", "table_id": "T1", "dish_id": "lau_ca_linh_dien_dien",
-                                           "patience_ticks_left": PATIENCE, "base_price": LAU["base_price"],
+                                           "patience_ticks_left": PATIENCE - 1, "base_price": LAU["base_price"],
                                            "tip": tip})
         snap = s.snapshot()
         self.assertIsNone(snap["hand"])
@@ -73,10 +74,13 @@ class Serve(unittest.TestCase):
                          ("eating", "served", EAT, tip))
 
     def test_tip_threshold(self):
+        # fixture = ngưỡng + 1 -> sau bước 1 còn đúng ngưỡng -> vẫn được boa; fixture = ngưỡng -> dưới ngưỡng
         edge = math.ceil(PATIENCE * Q["tip_min_patience_ratio"])
+        s = session(customers=[assigned(patience_ticks_left=edge + 1)])
+        d = s.step(press())[0]["data"]
+        self.assertEqual(d["patience_ticks_left"], edge)
+        self.assertGreater(d["tip"], 0, "đúng ngưỡng vẫn được boa")
         s = session(customers=[assigned(patience_ticks_left=edge)])
-        self.assertGreater(s.step(press())[0]["data"]["tip"], 0, "đúng ngưỡng vẫn được boa")
-        s = session(customers=[assigned(patience_ticks_left=edge - 1)])
         self.assertEqual(s.step(press())[0]["data"]["tip"], 0)
 
     def test_serve_at_zero_patience_still_valid(self):

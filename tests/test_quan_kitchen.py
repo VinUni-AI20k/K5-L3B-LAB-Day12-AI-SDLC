@@ -91,6 +91,8 @@ class Kitchen(unittest.TestCase):
         self.assertIsNone(snap["stoves"][0]["dish"])
 
     def test_full_hand_cannot_pick(self):
+        # Trạng thái nội bộ, KHÔNG phải fixture hợp lệ theo mục D (Phase 1 chỉ 1 bàn nên không thể có
+        # hai đơn cùng lúc; scenario.py của lát 3 sẽ từ chối C9). Dựng thẳng qua Session để kiểm nhánh phòng thủ.
         dish = {"order_id": "C1", "dish_id": "lau_ca_linh_dien_dien", "base_price": 120}
         other = {"order_id": "C9", "dish_id": "goi_bong_sung", "base_price": 40}
         s = session(stoves=[{"id": "B1", "state": "ready", "dish": dish}], hand=other,
@@ -129,12 +131,21 @@ class Kitchen(unittest.TestCase):
         s = session(player={"pos": [STOVE[0] + r, STOVE[1]]})  # đúng mép vẫn tính
         self.assertEqual(names(s.step(press())), ["cook_started"])
 
-    def test_drop_order_dish_clears_stove_and_hand(self):
-        dish = {"order_id": "C1", "dish_id": "lau_ca_linh_dien_dien", "base_price": 120}
-        s = session(stoves=[{"id": "B1", "state": "ready", "dish": dish}],
-                    customers=[lau_customer(order_status="assigned", reserved={})])
-        s.sim.drop_order_dish("C1")
-        self.assertEqual(s.snapshot()["stoves"][0]["state"], "idle")
+    def test_cook_order_of_customer_spawned_by_lat3(self):
+        # khách tự sinh (lát 3) ở first_customer_tick -> bếp (lát 4) nấu được đơn đó, tiêu đúng phần giữ
+        s = session(customers=[], random_customers=True, stock={"ca_loc": 1})
+        arrived = None
+        while arrived is None:
+            for r in s.step(idle()):
+                if r["name"] == "customer_arrived":
+                    arrived = r
+        self.assertEqual(arrived["tick"], TUNING["quan"]["first_customer_tick"])
+        self.assertEqual(arrived["data"]["dish_id"], "ca_loc_nuong_trui", "chỉ món này đủ nguyên liệu")
+        rows = s.step(press())
+        self.assertEqual(names(rows), ["cook_started"])
+        self.assertEqual(rows[0]["data"]["order_id"], arrived["data"]["order_id"])
+        self.assertEqual(rows[0]["data"]["items"], ["ca_loc"])
+        self.assertEqual(s.snapshot()["stock"], {})
 
 
 class KitchenHeadless(unittest.TestCase):

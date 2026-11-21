@@ -35,5 +35,9 @@ File: [`tests/test_integration_gather_quan.py`](../../../../tests/test_integrati
 | `test_faint_writes_empty_inventory` | G: ngất → kho rỗng | **chờ lát 1** (sim/gather chưa có oxy/ngạt; test tự skip, sẽ chạy khi lát 1 xong) |
 
 ## Còn thiếu / ghi trung thực
-- Luồng đầy đủ dùng khách dựng sẵn trong scenario vì khách tự sinh (lát 3) chưa gộp.
+- Đã gộp lát 3 (nhánh `tv2`) vào `Manh`: toàn bộ 84 test xanh (gồm `test_quan_lat3` và `test_smoke_p1`, chạy bằng
+  `python3` trong venv tạm vì `python3` của máy là alias Store). Bảng ở mục 2 và `test-run.txt` là lần chạy trước khi gộp.
+- Ca quán đầy đủ có khách tự sinh, không điều khiển (`--seed 5`, kho `{"ca_loc":3,"bong_sung":4,"ca_linh":3,"bong_dien_dien":1}`):
+  khách đến ở tick 120, 3720, 7320; hai khách đầu rời vì hết kiên nhẫn (uy tín 3.0 → 2.5 → 2.0), khách cuối rời `closing`
+  không trừ uy tín; `end` score 200; chạy hai lần giống từng byte.
 - Smoke trong `tests/test_smoke_p1.py` gọi `python3` nên chưa chạy được trên máy Windows này; CI (Ubuntu) chạy được.
