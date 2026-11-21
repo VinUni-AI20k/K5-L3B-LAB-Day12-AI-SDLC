@@ -48,6 +48,9 @@ class GatherMonstersTests(unittest.TestCase):
             self.assertEqual(hits[0]["data"]["hp"], 2)
             # floor(5 * 0.5) = 2 món cuối (LIFO): ca_keo, keo_neo
             self.assertEqual(hits[0]["data"]["lost"], ["ca_keo", "keo_neo"])
+            # Payload đúng Test Contract v1.1 mục 4.4: monster_id, hp, lost, pos (vị trí người chơi)
+            self.assertEqual(set(hits[0]["data"]), {"monster_id", "hp", "lost", "pos"})
+            self.assertEqual(hits[0]["data"]["pos"], [61.0, 24.0])
             snaps = {s["tick"]: s for s in snapshots(rows)}
             self.assertEqual(snaps[1]["hold"], ["ca_loc", "ca_linh", "bong_sung"])
             self.assertEqual(snaps[1]["player"]["invuln_ticks"], m_cfg["invuln_ticks"])
