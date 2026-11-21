@@ -111,7 +111,7 @@ class DaySim:
         self.active = dict(self.upgrades)
         self._phase = "gather"
         self.phase_tick = 0
-        self.sub = GatherSim(self._day_tuning(), self.gather_scn, self.rng, IdAllocator())
+        self.sub = GatherSim(self._day_tuning(), self.gather_scn, self.rng, IdAllocator(), day=self.day)
         events += [("day_start", {}, "gather", self.day),
                    ("day_plan", copy.deepcopy(self.plan), "gather", self.day),
                    ("phase_start", {}, "gather", self.day)]

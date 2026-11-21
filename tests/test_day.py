@@ -293,5 +293,18 @@ class Cli(unittest.TestCase):
         self.assertEqual(code, 0)
 
 
+class MonstersByDay(unittest.TestCase):
+    def test_m2_appears_from_day_3(self):
+        """Bố trí Cá Sấu theo Ngày: M1 từ Ngày 1, M2 từ Ngày 3 (spawns.from_day)."""
+        s = Session("day", tuning(), fast(), 1, days=3)
+        seen = {}
+        for day in (1, 2, 3):
+            seen[day] = [m["id"] for m in s.snapshot()["monsters"]]
+            to_shop(s)
+            s.step(idle(shop_done=True))
+        self.assertEqual(seen, {1: ["M1"], 2: ["M1"], 3: ["M1", "M2"]})
+        self.assertTrue(s.done)
+
+
 if __name__ == "__main__":
     unittest.main()
