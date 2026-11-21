@@ -123,6 +123,43 @@ class FreshnessAndReservation(unittest.TestCase):
         self.assertFalse(any(name == "cook_started" for name, _ in events))
         self.assertEqual(re_reserve.stoves[0]["state"], "idle")
 
+    def test_scenario_orders_without_reserved_are_served_by_order_tick_then_table(self):
+        """Ticket-03: bỏ `reserved` cho đơn reserved thì cấp theo order_tick rồi id bàn, lấy tươi nhất rồi id nhỏ."""
+        t = copy.deepcopy(TUNING)
+        t["quan"]["tables"] += [{"id": "T2", "pos": [13, 2]}]
+        stock = [item("I1", fresh=90), item("I2", fresh=70)]
+        late_first_in_list = {"id": "K2", "table_id": "T2", "dish_id": "ca_loc_nuong_trui", "order_tick": 1}
+        early = {"id": "K1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_tick": 5}
+        s = sim({"random_customers": False, "customers": [early, late_first_in_list]}, [item("I1", fresh=90), item("I3", fresh=70)], t)
+        by_id = {c["id"]: c["reserved"] for c in s.customers}
+        self.assertEqual((by_id["K2"], by_id["K1"]), (["I1"], ["I3"]))  # order_tick nhỏ hơn (K2, đứng sau trong danh sách) giữ cá thể tươi nhất
+        same_tick = [dict(early, order_tick=0), dict(late_first_in_list, order_tick=0)]
+        s = sim({"random_customers": False, "customers": same_tick}, stock + [item("I9", fresh=60)], t)
+        by_id = {c["id"]: c["reserved"] for c in s.customers}
+        self.assertEqual((by_id["K1"], by_id["K2"]), (["I1"], ["I2"]))  # hòa order_tick thì theo id bàn T1 rồi T2
+
+    def test_reservation_prefers_the_fresher_item_even_with_a_larger_id(self):
+        """Bổ sung theo phá thử của D: giữ chỗ chọn cũ nhất thay vì tươi nhất không bị test cũ (hai cá thể cùng độ tươi) bắt."""
+        s = sim(stock=[item("I1", fresh=50), item("I9", fresh=90)])
+        step_many(s, FIRST)
+        self.assertEqual(s.customers[0]["reserved"], ["I9"])
+
+    def test_spoiled_event_is_emitted_once_when_crossing_not_every_tick(self):
+        """Bổ sung theo phá thử của D: `spoiled` chỉ phát khi qua ngưỡng, không phát lại mỗi tick khi hàng đã ươn."""
+        s = sim({"random_customers": False}, [item("I1", fresh=30.004)])
+        events = step_many(s, 10)
+        self.assertEqual([data["item_id"] for name, data in events if name == "spoiled"], ["I1"])
+        self.assertTrue(TUNING["freshness"]["spoiled_below"] * UNITS_PER_POINT > s.stock[0]["fresh"])
+
+    def test_spoiled_reserved_item_is_never_cooked(self):
+        """Bổ sung theo phá thử của D: hàng đã ươn không được nấu dù còn trong phần giữ chỗ của khách."""
+        s = sim({"random_customers": False, "player": {"pos": [2, 8]},
+                 "customers": [customer("K1", "T1", ["I1"])]}, [item("I1", fresh=10)])
+        rows = s.step(InputPlayer([{"tick": 0, "interact": True}]).advance(0))
+        self.assertFalse(any(name == "cook_started" for name, _ in rows))
+        self.assertEqual([x["id"] for x in s.stock], ["I1"])
+        self.assertEqual(s.snapshot()["stoves"][0]["state"], "idle")
+
     def test_freshness_price_and_itemized_cook_payload(self):
         stocks = [item("I10", "ca_loc", 80), item("I2", "bong_dien_dien", 60)]
         s = sim({"random_customers": False, "player": {"pos": [2, 8]},

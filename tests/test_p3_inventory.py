@@ -130,12 +130,20 @@ class IndividualSchema(unittest.TestCase):
         self.assertEqual(validate_individuals(items), items)
 
     def test_bad_individuals_rejected(self):
-        for items in ({"ca_loc": 1}, [indiv(1), indiv(1)], [{"id": "X1", "kind": "ca_loc", "fresh": 5}],
-                      [{"id": "I0", "kind": "ca_loc", "fresh": 5}], [indiv(1, "ca_la")], [indiv(1, fresh=-1)],
+        for items in ({"ca_loc": 1}, [indiv(1), indiv(1)], [{"id": "", "kind": "ca_loc", "fresh": 5}],
+                      [{"id": 7, "kind": "ca_loc", "fresh": 5}], [indiv(1, "ca_la")], [indiv(1, fresh=-1)],
+                      [indiv(1, fresh=float("nan"))], [indiv(1, fresh=float("inf"))],
                       [indiv(1, fresh=101)], [indiv(1, fresh=True)], [indiv(1, fresh="100")],
                       [{"id": "I1", "kind": "ca_loc"}], [{"id": "I1", "kind": "ca_loc", "fresh": 5, "x": 1}], ["I1"]):
             with self.assertRaises(BadInput, msg=str(items)):
                 validate_individuals(items)
+
+    def test_any_non_empty_unique_string_is_a_valid_id(self):
+        """Ticket-03: id là chuỗi duy nhất khác rỗng, không bắt buộc dạng I<n>."""
+        items = [{"id": "X1", "kind": "ca_loc", "fresh": 5}, {"id": "abc", "kind": "bong_sung", "fresh": 60}]
+        self.assertEqual(validate_individuals(items), items)
+        self.assertEqual(next_individual_id(items), 1)  # chỉ id dạng I<n> tính vào bộ đếm
+        self.assertEqual(next_individual_id(items + [indiv(4)]), 5)
 
     def test_write_then_read_is_stable_bytes(self):
         items = [indiv(2, "ca_loc", 99.917), indiv(1, "bong_sung", 30)]

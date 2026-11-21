@@ -43,7 +43,7 @@ python3 tools/check_determinism.py                                            # 
 - Từ `contract_version` 1.2 **file kho là mảng cá thể** `{"items": [{"id": "I1", "kind": "ca_linh", "fresh": 100}, ...]}`. File kho đếm của v1.1 (`{"items": {"ca_loc": 2}}`) hoặc sai schema bị từ chối (mã thoát 2) ở `--inventory`. Cách chuyển file cũ: `counts_to_individuals` trong `chonoi/inventory.py`. Chi tiết ở `CHANGELOG.md`.
 
 ## Giới hạn đã biết (nói thẳng)
-- **Không đọc được đề của Ticket-02 và Ticket-03** trong repo, nên nhiều luật (Cá Sấu, độ tươi, giá, payload sự kiện `spoiled`) là giả định đã ghi ở `docs/clarify.md`, chưa có bộ kiểm của giảng viên để đối chiếu. Tên 4 khóa `freshness` và công thức giá lấy từ lời của một thành viên đọc đề.
+- **Đề của Ticket-02 không có trong repo** nên một số luật Phase 2 (Cá Sấu, số chuẩn) là giả định đã ghi ở `docs/clarify.md`, chưa có bộ kiểm của giảng viên để đối chiếu. Ticket-03 và Ticket-04 đã được đối chiếu với đề trên lab board (khóa `freshness`, công thức giá, payload `spoiled`, lệnh bench và soak).
 - **Bench đo bộ vẽ phần mềm trong bộ nhớ**, không phải FPS của giao diện trình duyệt; "hiệu ứng mặc định" của đề chưa rõ nên chưa có.
 - **Soak dùng bot chỉ lặn, hái và về bến**: không nấu, không phục vụ, không mua ở Shop, nên kiểm độ bền nhiều Ngày chứ không kiểm kinh tế hay luồng nấu, phục vụ.
 - **Giấy phép MIT là giả định** chờ xác nhận (`clarify` #13); mốc 25% của cảnh báo oxy và khách cũng là giả định (`clarify` #16).

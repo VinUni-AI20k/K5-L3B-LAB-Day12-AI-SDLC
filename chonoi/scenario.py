@@ -1,8 +1,8 @@
 """Nạp và kiểm scenario (Contract D). Trả về dict của đúng khối theo mode.
 
-KHUNG: kiểm cú pháp, id trùng, bộ đếm âm, khoang vượt sức chứa, trường lạ.
-TODO(nhóm): bổ sung kiểm mâu thuẫn mức luật mà nhóm cần (khách giữ chỗ quá kho, đơn assigned
-phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 mục D và 'Mâu thuẫn -> mã 2'.
+Kiểm cú pháp, id trùng, bộ đếm âm, khoang vượt sức chứa, trường lạ, và các mâu thuẫn mức luật của nhóm (khách giữ chỗ
+quá kho, đơn assigned phải có đúng một món, khách eating thiếu giá/tip, kho cá thể và giữ chỗ theo id từ contract 1.2...)
+-> mã thoát 2 (PRD-0 mục D, 'Mâu thuẫn -> mã 2').
 """
 
 import json
@@ -355,12 +355,13 @@ def _validate_quan_rules(b, tuning, individuals=False):
     reserved_total = {}
     reserved_ids = {}  # v1.2: id cá thể -> khách đang giữ
     kinds_of = {it["id"]: it["kind"] for it in b.get("stock", [])} if individuals and "stock" in b else None
+    spoiled_of = {it["id"] for it in b.get("stock", []) if it["fresh"] < tuning["freshness"]["spoiled_below"]}         if individuals and "stock" in b else None
     for cid, c in customers.items():
         status = c.get("order_status", "reserved")
         if status not in ORDER_STATUSES:
             raise BadInput(f"customers.{cid}.order_status phải thuộc {ORDER_STATUSES}")
         if individuals:
-            reserved = _reserved_ids(cid, c["reserved"], reserved_ids, kinds_of) if "reserved" in c else None
+            reserved = _reserved_ids(cid, c["reserved"], reserved_ids, kinds_of, spoiled_of) if "reserved" in c else None
         else:
             reserved = validate_items(c["reserved"]) if "reserved" in c else None
         dish = c.get("dish_id")
@@ -405,13 +406,15 @@ def _kind_counts(kinds):
     return out
 
 
-def _reserved_ids(cid, ids, owners, kinds_of):
-    """v1.2: `reserved` là mảng id cá thể không trùng; mỗi id có trong kho (nếu khai kho) và chỉ một khách giữ."""
+def _reserved_ids(cid, ids, owners, kinds_of, spoiled_of=None):
+    """v1.2: `reserved` là mảng id cá thể không trùng; mỗi id có trong kho (nếu khai kho), chưa ươn và chỉ một khách giữ."""
     if not isinstance(ids, list) or any(not isinstance(i, str) or not i for i in ids) or len(set(ids)) != len(ids):
         raise BadInput(f"customers.{cid}.reserved phải là mảng id cá thể không trùng")
     for i in ids:
         if kinds_of is not None and i not in kinds_of:
             raise BadInput(f"customers.{cid}: giữ chỗ cá thể {i} không có trong kho")
+        if spoiled_of and i in spoiled_of:
+            raise BadInput(f"customers.{cid}: giữ chỗ cá thể {i} đã ươn")
         if i in owners:
             raise BadInput(f"customers.{cid}: cá thể {i} đã được khách {owners[i]} giữ chỗ")
         owners[i] = cid
@@ -424,11 +427,11 @@ def _check_within_stock(need, stock):
             raise BadInput(f"khách giữ chỗ {k} = {need[k]} vượt kho ({stock.get(k, 0)})")
 
 
-def check_reserved_within_stock(block, stock):
+def check_reserved_within_stock(block, stock, tuning=None):
     """Phần giữ chỗ nguyên liệu của khách (ghi rõ trong `customers[].reserved`) không được vượt kho (PRD-0 mục D, mã 2).
     Dùng cho kho nạp từ --inventory; `block` là khối quan đã qua load_scenario nên `reserved` đã hợp lệ."""
-    if isinstance(stock, list):  # v1.2: giữ chỗ theo id, mỗi id phải có trong kho và chỉ một khách giữ
-        _reserved_by_id(block, stock)
+    if isinstance(stock, list):  # v1.2: giữ chỗ theo id, mỗi id phải có trong kho, chưa ươn và chỉ một khách giữ
+        _reserved_by_id(block, stock, tuning)
         return
     need = {}
     for c in block.get("customers", []):
@@ -437,9 +440,14 @@ def check_reserved_within_stock(block, stock):
     _check_within_stock(need, stock)
 
 
-def _reserved_by_id(block, stock):
+def _reserved_by_id(block, stock, tuning=None):
     kinds_of = {it["id"]: it["kind"] for it in stock}
+    below = tuning["freshness"]["spoiled_below"] if tuning else None
+    spoiled_of = {it["id"] for it in stock if it["fresh"] < below} if below is not None else None
     owners = {}
     for c in block.get("customers", []):
         if "reserved" in c:
-            _reserved_ids(c["id"], c["reserved"], owners, kinds_of)
+            ids = _reserved_ids(c["id"], c["reserved"], owners, kinds_of, spoiled_of)
+            dish = c.get("dish_id")
+            if tuning and c.get("order_status", "reserved") == "reserved" and dish in tuning["menu"]                     and _kind_counts(kinds_of[i] for i in ids) != tuning["menu"][dish]["recipe"]:
+                raise BadInput(f"customers.{c['id']}: phần giữ chỗ khác công thức của {dish}")

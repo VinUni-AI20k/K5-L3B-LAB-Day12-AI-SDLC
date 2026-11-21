@@ -77,12 +77,19 @@ class QuanSim:
                 dish = self.menu.get(customer.get("dish_id"), {})
                 reserved = dish.get("recipe", {}) if customer["order_status"] == "reserved" else {}
             if self.itemized_stock:
-                customer["reserved"] = self._legacy_reservation_to_ids(reserved)
+                customer["reserved"] = list(reserved) if isinstance(reserved, list) else dict(reserved)
             else:
                 customer["reserved"] = dict(reserved)
             if customer["state"] == "waiting":
                 customer.setdefault("patience_ticks_left", int(round(t["patience_s"] * self.tick_hz)))
             self.customers.append(customer)
+        if self.itemized_stock:  # Ticket-03: đơn chưa khai id được cấp theo order_tick rồi id bàn, tươi nhất rồi id nhỏ
+            taken = {i for c in self.customers if isinstance(c["reserved"], list) for i in c["reserved"]}
+            pending = sorted((c for c in self.customers if isinstance(c["reserved"], dict)),
+                             key=lambda c: (c["order_tick"], id_key(c["table_id"])))
+            for c in pending:
+                c["reserved"] = self._reserve_counts(c["reserved"], taken)
+                taken.update(c["reserved"])
         for e in self.customers:
             ids.reserve(e["id"])
         self.random_customers = scenario.get("random_customers", True)
@@ -169,15 +176,14 @@ class QuanSim:
     def _table_order(customer):
         return id_key(customer["table_id"])
 
-    def _legacy_reservation_to_ids(self, reserved):
-        if isinstance(reserved, list):
-            return list(reserved)
-        already = {item_id for customer in self.customers for item_id in customer.get("reserved", [])}
+    def _reserve_counts(self, counts, taken):
+        """Đổi phần giữ dạng số lượng (công thức) thành id: mỗi loại lấy cá thể chưa ươn tươi nhất, hòa theo id nhỏ."""
+        already = set(taken)
         result = []
-        for kind in sorted(reserved):
+        for kind in sorted(counts):
             matching = [item for item in self._available_items(already) if item["kind"] == kind]
             matching.sort(key=lambda item: (-item["fresh"], id_key(item["id"])))
-            quantity = reserved[kind]
+            quantity = counts[kind]
             result.extend(item["id"] for item in matching[:quantity])
             already.update(item["id"] for item in matching[:quantity])
         return result
