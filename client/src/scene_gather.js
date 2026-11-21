@@ -1,5 +1,9 @@
 // GATHER scene — GUI ONLY. Local mock physics so it's playable now; swap `st` for the server snapshot later.
 // World units: x in [0,100], d (depth) in [0,30], d=0 is the surface. Camera follows the diver on x.
+// Core rules mirrored from Test Contract v1.1 (numbers from tuning.gather): swimming fish schools + scheduled
+// spawns, Cá Sấu Năm Chèo (croc.js), HP / faint, oxygen / choke, docking, the day's NEEDED list.
+// Sáng tạo (creative extras, never change the core numbers above): harpoon aiming, sprint, deep zone 30–60 m
+// with big fish (deep.js), water snakes (creatures.js).
 import { W, H, screen, input, clamp, lerp, fx, Particles, txt, panel, measure, reduceMotion } from "./engine.js";
 import { sfx, music } from "./audio.js";
 import { P, R, bands, sky, sun, cloud, bank, hyacinth, godRays, kelp, rock, WATER, diver, fish, nodeArt, dock, KIND_NAME, icon } from "./art.js";
@@ -7,14 +11,17 @@ import { speedLines } from "./cutscene.js";
 import { DEEP, preloadDeep, makeDeepFish, updateDeepFish, drawDeepFish, drawDeepScenery } from "./deep.js";
 import { SNAKE, makeSnakes, updateSnakes, drawSnake, snakeInReach, stunSnake } from "./creatures.js";
 import { stats, recordCatch, save } from "./progress.js";
+import { makeCrocs, updateCrocs, crocHit, startRecoil, crocNear, drawCroc } from "./croc.js";
 
 const VS = 10; // vertical px per metre (camera scrolls with depth)
 
 const TAU = Math.PI * 2;
 
 export class GatherScene {
-  constructor(contract, onEnd) {
+  // opts.day: campaign day (monster from_day filter; standalone = 1); opts.need: { kind: count } from day_plan
+  constructor(contract, onEnd, opts = {}) {
     this.t = contract.tuning.gather; this.menu = contract.tuning.menu; this.onEnd = onEnd;
+    this.hz = contract.tuning.tick_hz || 60; this.day = opts.day || 1; this.need = opts.need || null;
     const t = this.t;
     this.p = { x: t.start_pos[0], d: 0, vx: 0, vd: 0, heading: 0, face: 1, phase: 0 };
     // harpoon (GUI creative layer): aim with movement or the mouse, Space/click fires a spear on a rope
@@ -25,11 +32,21 @@ export class GatherScene {
     const st = this.stats = stats(contract);
     this.oxyMax = st.oxygenMax; this.oxy = st.oxygenMax;
     this.swim = st.swimSpeed; this.catchR = st.catchRadius;
-    this.hpMax = t.hp_max; this.hp = t.hp_max;
+    this.hpMax = st.hpMax ?? t.hp_max; this.hp = this.hpMax;
     this.hold = []; this.cap = st.holdCap;
     this.time = t.duration_s; this.invuln = 0; this.catchCd = 0; this.zeroOxy = 0;
     this.nodes = t.nodes.map((n) => ({ ...n, ready: true, regrow: 0, pop: 0 }));
-    this.fish = t.fish_initial.map((f, i) => ({ ...f, x: f.pos[0], d: f.pos[1], hx: f.pos[0], hd: f.pos[1], face: 1, caught: false, phase: i * 1.7 }));
+    // v1.0: fish_initial is a list of schools; v1.1: a count, placed on distinct standard spawn points
+    const init = Array.isArray(t.fish_initial) ? t.fish_initial : (() => {
+      const pts = []; for (const [kind, ds] of Object.entries(t.fish_spawn_depths || {})) for (const x of t.fish_spawn_x || []) for (const d of ds) pts.push({ kind, pos: [x, d] });
+      const out = [], used = new Set(); let k = 0;
+      while (out.length < Math.min(t.fish_initial, pts.length) && k < 500) { const q = pts[Math.floor(Math.random() * pts.length)]; const key = q.pos.join(","); k++; if (used.has(key)) continue; used.add(key); out.push({ id: "F" + (out.length + 1), ...q }); }
+      return out; })();
+    this.fishSeq = 0;
+    this.fish = init.map((f) => this.newSchool(f.kind, f.pos[0], f.pos[1]));
+    this.spawnT = 0;
+    // Cá Sấu Năm Chèo: M1 from day 1, M2 only from_day 3 (standalone gather = day-1 layout)
+    this.mon = t.monsters || null; this.crocs = makeCrocs(this.mon, this.day); this.crocWarn = 0;
     this.yield = t.fish_yield || {};
     // creative extension: the client river goes deeper than the contract (see deep.js)
     this.maxD = Math.max(t.bounds.d[1], DEEP.depth); preloadDeep(); this.deep = makeDeepFish(); this.camY = 0; this.deepSeen = false;
@@ -45,6 +62,53 @@ export class GatherScene {
   worth(kind) { // rough value of a caught item, for the end tally
     for (const m of Object.values(this.menu)) if (m.recipe[kind]) return m.price / (Object.values(m.recipe).reduce((a, b) => a + b, 0));
     return 10;
+  }
+  // swimming school (v1.1): fish_speed along a random heading, re-rolled every fish_turn_ticks, reflected at edges
+  newSchool(kind, x, d) {
+    const f = { id: "F" + (++this.fishSeq), kind, x, d, face: 1, caught: false, phase: Math.random() * 6, vx: 1, vd: 0, turn: (this.t.fish_turn_ticks || 120) / this.hz };
+    this.heading(f); return f;
+  }
+  heading(f) { const a = Math.random() * TAU; f.vx = Math.cos(a); f.vd = Math.sin(a); f.face = f.vx >= 0 ? 1 : -1; }
+  swimFish(dt) {
+    const t = this.t, sp = t.fish_speed ?? 0, fx0 = t.fish_x || [1, t.bounds.x[1] - 1], turnS = (t.fish_turn_ticks || 120) / this.hz;
+    for (const f of this.fish) {
+      if (f.caught || f.hooked) continue;
+      f.phase += dt; f.turn -= dt;
+      if (f.turn <= 0) { f.turn += turnS; this.heading(f); }
+      const band = (t.fish_depths || {})[f.kind] || [1, t.bounds.d[1] - 1];
+      let nx = f.x + f.vx * sp * dt, nd = f.d + f.vd * sp * dt;
+      if (nx < fx0[0]) { nx = 2 * fx0[0] - nx; f.vx = -f.vx; } else if (nx > fx0[1]) { nx = 2 * fx0[1] - nx; f.vx = -f.vx; }
+      if (nd < band[0]) { nd = 2 * band[0] - nd; f.vd = -f.vd; } else if (nd > band[1]) { nd = 2 * band[1] - nd; f.vd = -f.vd; }
+      f.x = Math.max(fx0[0], Math.min(fx0[1], nx)); f.d = Math.max(band[0], Math.min(band[1], nd));
+      if (Math.abs(f.vx) > 0.05) f.face = f.vx > 0 ? 1 : -1;
+    }
+    // scheduled spawn: every fish_spawn_ticks, at most one school, under fish_max, clearance from every live school
+    if (!t.fish_spawn_ticks) return;
+    this.spawnT += dt;
+    if (this.spawnT < t.fish_spawn_ticks / this.hz) return;
+    this.spawnT -= t.fish_spawn_ticks / this.hz;
+    const alive = this.fish.filter((f) => !f.caught);
+    if (alive.length >= (t.fish_max ?? 12)) return;
+    const clear = t.fish_spawn_clearance ?? 1, ok = {};
+    for (const [kind, ds] of Object.entries(t.fish_spawn_depths || {})) {
+      const pts = []; for (const x of t.fish_spawn_x || []) for (const d of ds) if (alive.every((f) => Math.hypot(f.x - x, f.d - d) > clear)) pts.push([x, d]);
+      if (pts.length) ok[kind] = pts;
+    }
+    const kinds = Object.keys(ok); if (!kinds.length) return; // no free point: skip this turn
+    const wts = kinds.map((k) => (t.fish_weights || {})[k] ?? 1), sum = wts.reduce((a, b) => a + b, 0);
+    let r = Math.random() * sum, kind = kinds[kinds.length - 1];
+    for (let i = 0; i < kinds.length; i++) { r -= wts[i]; if (r < 0) { kind = kinds[i]; break; } }
+    const pt = ok[kind][Math.floor(Math.random() * ok[kind].length)];
+    this.fish.push(this.newSchool(kind, pt[0], pt[1]));
+  }
+  crocBite(m) {
+    const p = this.p, ratio = this.mon.loss_ratio ?? 0.5;
+    const lose = Math.floor(this.hold.length * ratio), lost = lose ? this.hold.splice(this.hold.length - lose, lose) : []; // LIFO
+    startRecoil(m, p.x, p.d, this.hz);
+    this.toast("Cá Sấu Năm Chèo cắn! −1 Máu", "#ff6b6b");
+    if (lost.length) { const by = {}; for (const k of lost) by[k] = (by[k] || 0) + 1; this.toast("Rơi mất: " + Object.entries(by).map(([k, n]) => KIND_NAME[k] + " ×" + n).join(", "), "#ffb36b"); }
+    sfx("slam"); fx.shake(7, 0.45);
+    this.hurt("croc");
   }
   toast(txt, col) { this.toasts.push({ txt, col, life: 1.6, y: 0 }); }
   nearestNode() { let best = null, bd = 1e9; for (const n of this.nodes) { if (!n.ready) continue; const dx = n.pos[0] - this.p.x, dd = (0) - this.p.d; const r = Math.hypot(dx, dd); if (r < bd) { bd = r; best = n; } } return bd <= this.t.interact_radius ? best : null; }
@@ -64,9 +128,11 @@ export class GatherScene {
     if (reason !== "fainted") sfx("fanfare");
   }
 
-  hurt() {
-    if (this.invuln > 0) return;
-    this.hp--; this.invuln = 1.2; this.flashHurt = 0.4; this.zeroOxy = 0;
+  // kind: "choke" (goes through invulnerability, sets none), "croc" (invuln_ticks), "snake" (creative, 1.2 s)
+  hurt(kind = "snake") {
+    if (kind !== "choke" && this.invuln > 0) return;
+    this.hp--; this.flashHurt = 0.4;
+    if (kind === "croc") this.invuln = (this.mon?.invuln_ticks ?? 90) / this.hz; else if (kind === "snake") this.invuln = 1.2;
     fx.shake(5, 0.4); fx.flash("rgba(220,60,60,.5)", 0.2); sfx("hurt");
     this.toast("-1 ♥", "#ff6b6b");
     if (this.hp <= 0) this.endRun("fainted");
@@ -123,7 +189,7 @@ export class GatherScene {
       const deepZone = p.d > DEEP.zone;
       if (deepZone && !this.deepSeen) { this.deepSeen = true; this.toast("Vùng nước sâu! Cá to — O₂ hao ×" + DEEP.pressure, "#9fd8ff"); sfx("whoosh"); }
       this.oxy = clamp(this.oxy - dt * (this.sprint ? 2 : 1) * (deepZone ? DEEP.pressure : 1), 0, this.oxyMax);
-      if (this.oxy <= 0) { this.zeroOxy += dt; if (this.zeroOxy >= t.choke_interval_ticks / 60) { this.hurt(); } }
+      if (this.oxy <= 0) { this.zeroOxy += dt; if (this.zeroOxy >= t.choke_interval_ticks / this.hz) { this.zeroOxy -= t.choke_interval_ticks / this.hz; this.hurt("choke"); if (this.ended) return; } }
       if (Math.random() < 0.3) this.ps.add({ x: this._sx(p.x), y: this._sy(p.d) - 2, vy: -14, g: 0, wobble: 6, seed: Math.random() * 6, size: 1, life: 1.1, color: "rgba(220,245,255,.7)" });
     } else { this.oxy = clamp(this.oxy + t.oxygen_refill_per_tick * dt, 0, this.oxyMax); this.zeroOxy = 0; }
     this.danger = this.oxy < this.oxyMax * 0.25 && underwater ? clamp(this.danger + dt * 2, 0, 1) : clamp(this.danger - dt * 3, 0, 1);
@@ -132,14 +198,12 @@ export class GatherScene {
     if (this.invuln > 0) this.invuln -= dt;
     if (this.catchCd > 0) this.catchCd -= dt;
 
-    // --- fish: phase-1 rule is "fish stand still" (chonoi/sim/gather.py); they only bob around home, no fleeing ---
-    for (const f of this.fish) {
-      if (f.caught || f.hooked) continue;
-      f.phase += dt;
-      const wob = Math.cos(f.phase * 0.7) * 0.6;
-      f.face = -Math.sin(f.phase * 0.7) >= 0 ? 1 : -1;
-      f.x = clamp(f.hx + wob, 1, t.bounds.x[1] - 1); f.d = clamp(f.hd + Math.sin(f.phase * 1.3) * 0.25, 1, t.bounds.d[1] - 1);
-    }
+    // --- Cá Sấu Năm Chèo: move (patrol/chase/recoil), then at most one hit on the nearest ---
+    updateCrocs(this.crocs, dt, { px: p.x, pd: p.d, bx: t.bounds.x });
+    if (p.d >= 10 && this.invuln <= 0) { const m = crocHit(this.crocs, p.x, p.d); if (m) { this.crocBite(m); if (this.ended) return; } }
+    { const n = crocNear(this.crocs, p.x, p.d); this.crocWarn = n && n.dist <= n.m.sp.detect_radius ? Math.min(1, this.crocWarn + dt * 4) : Math.max(0, this.crocWarn - dt * 3); }
+    // --- fish schools swim + scheduled spawns (v1.1) ---
+    this.swimFish(dt);
     updateDeepFish(this.deep.filter((f) => !f.hooked), dt, this.maxD);
     { const e = this.snakeEnv; e.px = p.x; e.pd = p.d; e.underwater = underwater; updateSnakes(this.snakes, dt, e); }
     // --- node regrow ---
@@ -188,7 +252,7 @@ export class GatherScene {
       if (sn) { this.stun(sn); h.state = "back"; }
       else for (const f of [...this.fish, ...this.deep]) {
         if (f.caught || f.hooked || Math.hypot(f.x - h.x, f.d - h.d) > this.hitRadius(f)) continue;
-        if (this.hold.length >= this.cap) { this.toast("Giỏ đầy! Về bến (E)", "#ff8a8a"); sfx("hurt"); }
+        if (this.hold.length + (f.sp ? 1 : this.yield[f.kind] || 1) > this.cap) { this.toast("Giỏ không đủ chỗ cho cả đàn! Về bến (E)", "#ff8a8a"); sfx("hurt"); }
         else { f.hooked = true; h.hit = f; sfx("catch"); fx.hitstop(0.05); fx.shake(f.sp ? 3 : 2, 0.15); }
         h.state = "back"; break;
       }
@@ -219,10 +283,11 @@ export class GatherScene {
   grab(f) {
     f.caught = true; this.catchCd = this.t.catch_cooldown_s;
     const n = Math.min(f.sp ? f.sp.yield : this.yield[f.kind] || 1, this.cap - this.hold.length);
+    if (!f.sp) this.fish = this.fish.filter((x) => x !== f);
     for (let i = 0; i < n; i++) this.hold.push(f.kind);
     sfx("catch"); fx.hitstop(0.05); fx.flash("rgba(180,240,255,.3)", 0.1); fx.shake(2, 0.2);
     if (f.sp) { this.toast(f.sp.name + "!", "#ffe14d"); fx.shake(4, 0.3); }
-    this.toast("+ " + KIND_NAME[f.kind] + (n > 1 ? " ×" + n : ""), f.kind === "ca_linh" ? "#d4e8f2" : "#8a9a5a");
+    this.toast("+ " + KIND_NAME[f.kind] + (n > 1 ? " ×" + n : ""), f.kind === "ca_linh" ? "#d4e8f2" : f.kind === "ca_keo" ? "#c8b89a" : "#8a9a5a");
     // species catalog: contract fish log under their kind, deep fish under their species id
     const name = f.sp ? f.sp.name : KIND_NAME[f.kind].charAt(0).toUpperCase() + KIND_NAME[f.kind].slice(1);
     if (recordCatch(f.sp ? f.sp.id : f.kind, name)) this.discover(name);
@@ -255,7 +320,7 @@ export class GatherScene {
     godRays(c, cam * sc, surY, botY - surY, time, 0.08);
     // deep zone: darker, colder water below DEEP.zone
     { const zy = this._sy(DEEP.zone); const g = c.createLinearGradient(0, zy - 40, 0, botY); g.addColorStop(0, "rgba(4,10,30,0)"); g.addColorStop(0.25, "rgba(4,10,30,.45)"); g.addColorStop(1, "rgba(2,4,16,.8)"); c.fillStyle = g; c.fillRect(0, zy - 40, W, botY - zy + 40);
-      R(c, 0, zy, W, 1, "rgba(140,200,255,.18)"); txt("— VÙNG SÂU · cá to —", W - 6, zy - 2, { size: 6.5, align: "right", color: "rgba(160,215,255,.55)", weight: 800 }); }
+      R(c, 0, zy, W, 1, "rgba(140,200,255,.18)"); txt("— VÙNG SÂU · cá to —", W - 6, zy - 2, { size: 7, align: "right", color: "rgba(160,215,255,.55)", weight: 800 }); }
     if (botY > this._sy(DEEP.zone) && this._sy(DEEP.zone) < H) drawDeepScenery(c, W / 2 - cam * sc, surY, sc, VS, time, W, H, kelp, rock);
     // parallax weeds + hyacinth mats
     for (let i = 0; i < 8; i++) { const wx = ((i * 190 + 40) - cam * sc) ; if (wx > -40 && wx < W + 40) hyacinth(c, wx, surY, 24 + (i % 3) * 10, time, i); }
@@ -263,7 +328,7 @@ export class GatherScene {
     c.fillStyle = "#2c2419"; c.fillRect(0, botY - 4, W, H - botY + 8);
     for (let i = 0; i < 10; i++) { const rx = (i * 70 - cam * sc); const mx = ((rx % (W + 80)) + W + 80) % (W + 80) - 40; rock(c, mx, botY - 3, 10 + (i % 3) * 5, 6); }
     // depth guides
-    for (let d = 5; d <= this.maxD; d += 5) { const y = this._sy(d); R(c, 0, y, W, 1, "rgba(255,255,255,.05)"); txt(d + "m", 3, y - 1, { size: 6, color: "rgba(255,255,255,.3)", weight: 700 }); }
+    for (let d = 5; d <= this.maxD; d += 5) { const y = this._sy(d); R(c, 0, y, W, 1, "rgba(255,255,255,.05)"); txt(d + "m", 3, y - 1, { size: 7, color: "rgba(255,255,255,.3)", weight: 700 }); }
     // surface shimmer
     R(c, 0, surY, W, 1, "rgba(230,250,255,.85)");
     for (let x = 0; x < W; x += 8) R(c, x + Math.round(Math.sin(time * 2 + x) * 2), surY - 1, 4, 1, "rgba(255,255,255,.5)");
@@ -273,13 +338,14 @@ export class GatherScene {
     if (this.hold.length && this.atDock()) { const pz = 0.5 + 0.5 * Math.sin(this.dockPulse * 6); txt("E: Cập bến ↑", this._sx(t.dock_pos[0]), surY - 26, { size: 8, align: "center", color: "#ffe14d", weight: 900, alpha: 0.6 + pz * 0.4, stroke: "#1a1220", sw: 2 }); }
 
     // nodes
-    for (const n of this.nodes) { const x = this._sx(n.pos[0]); if (x < -20 || x > W + 20) continue; const near = !(p.d > t.surface_depth) && Math.hypot(n.pos[0] - p.x, p.d) <= t.interact_radius && n.ready; nodeArt(c, n.kind, x, surY, time, n.ready); if (near && this.hold.length < this.cap) txt("E", x, surY - 16, { size: 8, align: "center", color: "#ffd23a", weight: 900, stroke: "#1a1220", sw: 2 }); }
+    for (const n of this.nodes) { const x = this._sx(n.pos[0]); if (x < -20 || x > W + 20) continue; const near = !(p.d > t.surface_depth) && Math.hypot(n.pos[0] - p.x, p.d) <= t.interact_radius && n.ready; nodeArt(c, n.kind, x, surY, time, n.ready); if (near && this.hold.length < this.cap) txt("E: hái", x, surY - 26, { size: 8, align: "center", color: "#ffd23a", weight: 900, stroke: "#1a1220", sw: 2 }); }
 
     // fish
     for (const f of this.fish) { if (f.caught) continue; const x = this._sx(f.x), y = this._sy(f.d); if (x < -20 || x > W + 20 || y < -20 || y > H + 20) continue; fish(c, f.kind, x, y, f.face, time + f.phase, f.kind === "ca_loc" ? 1 : 1); }
     for (const f of this.deep) { if (f.caught) continue; const x = this._sx(f.x), y = this._sy(f.d); if (x < -60 || x > W + 60 || y < -40 || y > H + 40) continue; drawDeepFish(c, f, x, y, time + f.phase); }
 
     for (const s of this.snakes) drawSnake(c, s, W / 2 - cam * sc, surY, sc, VS, time);
+    for (const m of this.crocs) { const x = this._sx(m.x), y = this._sy(m.d); if (x > -60 && x < W + 60 && y > -30 && y < H + 30) drawCroc(c, m, x, y, time + m.t); }
     const under0 = p.d > t.surface_depth, px0 = this._sx(p.x), py0 = this._sy(p.d);
     const tgt = under0 && !this.harp ? this.aimTarget() : null;
     if (under0 && !this.harp) { // dotted aim guide
@@ -318,39 +384,67 @@ export class GatherScene {
   }
 
   drawHUD(c, time) {
-    const u = screen.ui;
-    // timer pill
+    const u = screen.ui, p = this.p, under = p.d > this.t.surface_depth;
+    // "Thủy quái!" — purple screen border while a monster is within its detect radius
+    if (this.crocWarn > 0.01) {
+      const a = this.crocWarn * (0.65 + 0.35 * Math.sin(time * 9));
+      u.save(); u.strokeStyle = `rgba(170,70,255,${a})`; u.lineWidth = 6; u.strokeRect(3, 3, W - 6, H - 6); u.restore();
+      txt("Thủy quái!", W / 2, 34, { size: 12, align: "center", color: "#d9a6ff", weight: 900, stroke: "#1a0830", sw: 3, alpha: this.crocWarn });
+    }
+    // timer pill (colour change at ≤ 30 s)
     const mm = Math.floor(Math.ceil(this.time) / 60), ss = Math.ceil(this.time) % 60;
-    const low = this.time < 20;
-    panel(W / 2 - 24, 4, 48, 15, { fill: "rgba(8,20,38,.8)", border: low ? "#ff6b6b" : "#f3d27a", r: 7 });
-    txt(`${mm}:${String(ss).padStart(2, "0")}`, W / 2, 15, { size: 11, align: "center", color: low ? "#ff8a8a" : "#fff", weight: 900, alpha: low && Math.floor(time * 4) % 2 ? 0.5 : 1 });
-    // oxygen
+    const low = this.time <= 30;
+    panel(W / 2 - 26, 4, 52, 15, { fill: "rgba(8,20,38,.8)", border: low ? "#ff6b6b" : "#f3d27a", r: 7 });
+    txt(`${mm}:${String(ss).padStart(2, "0")}`, W / 2, 15, { size: 11, align: "center", color: low ? "#ff8a8a" : "#fff", weight: 900, alpha: low && this.time < 10 && Math.floor(time * 4) % 2 ? 0.5 : 1 });
+    // oxygen (< 25 %: red + blink)
     const ox = 8, oy = 6, ow = 92, oh = 11, fr = this.oxy / this.oxyMax;
-    panel(ox, oy, ow, oh, { fill: "rgba(4,16,30,.8)", border: "#2a5a7a", r: 5 });
-    const ocol = fr < 0.25 ? "#ff5a5a" : fr < 0.5 ? "#ffd23a" : "#4fd0ff";
-    u.save(); u.beginPath(); u.roundRect(ox + 1.5, oy + 1.5, (ow - 3) * fr, oh - 3, 4); u.clip();
+    const lowO = fr < 0.25, blinkO = lowO && Math.floor(time * 5) % 2;
+    panel(ox, oy, ow, oh, { fill: "rgba(4,16,30,.8)", border: lowO ? "#ff5a5a" : "#2a5a7a", r: 5 });
+    const ocol = lowO ? "#ff5a5a" : fr < 0.5 ? "#ffd23a" : "#4fd0ff";
+    u.save(); u.globalAlpha = blinkO ? 0.45 : 1; u.beginPath(); u.roundRect(ox + 1.5, oy + 1.5, Math.max(0, (ow - 3) * fr), oh - 3, 4); u.clip();
     u.fillStyle = ocol; u.fillRect(ox, oy, ow, oh);
     u.fillStyle = "rgba(255,255,255,.3)"; u.fillRect(ox, oy + 1, ow, 2); u.restore();
     txt("O₂", ox + 5, oy + 9, { size: 7, color: "#dff4ff", weight: 900 });
-    txt(Math.ceil(this.oxy) + "s", ox + ow - 4, oy + 9, { size: 7, color: "#fff", align: "right", weight: 900 });
-    // hearts
+    txt(Math.ceil(this.oxy) + "/" + this.oxyMax + "s", ox + ow - 4, oy + 9, { size: 7, color: "#fff", align: "right", weight: 900 });
+    if (this.oxy <= 0 && under) txt("Hết hơi!", W / 2, H / 2 - 40, { size: 16, align: "center", color: "#ff5a5a", weight: 900, stroke: "#1a1220", sw: 3, alpha: 0.6 + 0.4 * Math.sin(time * 10) });
+    // HP hearts + depth
     for (let i = 0; i < this.hpMax; i++) { const hx = ox + 6 + i * 12, hy = oy + oh + 8; this.heart(u, hx, hy, i < this.hp, time); }
-    const deepNow = this.p.d > DEEP.zone;
-    txt("↓ " + Math.round(this.p.d) + "m" + (deepNow ? "  O₂×" + DEEP.pressure : ""), ox + 46, oy + oh + 12, { size: 8, color: deepNow ? "#9fd8ff" : "#dff4ff", weight: 900, stroke: "#06101e", sw: 2 });
-    // basket
+    const deepNow = p.d > DEEP.zone;
+    txt("Máu " + this.hp + "/" + this.hpMax, ox + 6, oy + oh + 24, { size: 7, color: "#ffb0c0", weight: 900, stroke: "#06101e", sw: 2 });
+    txt("↓ " + Math.round(p.d) + "m" + (deepNow ? "  O₂×" + DEEP.pressure : ""), ox + 6 + this.hpMax * 12 + 4, oy + oh + 12, { size: 8, color: deepNow ? "#9fd8ff" : "#dff4ff", weight: 900, stroke: "#06101e", sw: 2 });
+    // catch cooldown (harpoon in flight counts as busy)
+    { const cdMax = this.t.catch_cooldown_s || 0.5, busy = !!this.harp, k = busy ? 0 : 1 - clamp(this.catchCd / cdMax, 0, 1);
+      const cx = ox + 50, cy = oy + oh + 18; panel(cx, cy, 42, 9, { fill: "rgba(4,16,30,.8)", border: k >= 1 ? "#7dffb0" : "#5a6a7a", r: 4 });
+      u.fillStyle = k >= 1 ? "#7dffb0" : "#ffd23a"; u.fillRect(cx + 1.5, cy + 1.5, 39 * k, 6);
+      txt(k >= 1 ? "Lao ✓" : "Lao…", cx + 21, cy + 7, { size: 7, align: "center", color: "#08131f", weight: 900 }); }
     // basket: one row for the contract's 12 slots, two rows once the "Giỏ lưới lớn" upgrade adds more
     const bw = 108, bx = W - bw - 6, by = 6, cap = this.cap, rows = cap > 12 ? 2 : 1, perRow = Math.ceil(cap / rows);
     const slotw = (bw - 10) / perRow, ic = Math.min(10, slotw + 1), bh = 6 + rows * 10 - 1;
     panel(bx, by, bw, bh, { fill: "rgba(8,20,38,.8)", border: "#f3d27a", r: 6 });
     u.imageSmoothingEnabled = false;
     for (let i = 0; i < cap; i++) { const row = Math.floor(i / perRow), col = i % perRow, sxx = bx + 5 + col * slotw, syy = by + 3 + row * 10; if (this.hold[i]) u.drawImage(icon(this.hold[i]), sxx + (slotw - 1 - ic) / 2, syy + 4.5 - ic / 2, ic, ic); else { u.fillStyle = "rgba(255,255,255,.08)"; u.fillRect(sxx, syy, slotw - 1, 9); } }
-    txt(`${this.hold.length}/${cap}`, bx + bw / 2, by + bh + 9, { size: 7, align: "center", color: this.hold.length >= cap ? "#ff8a8a" : "#cfe", weight: 900 });
+    txt(`Giỏ ${this.hold.length}/${cap}`, bx + bw / 2, by + bh + 9, { size: 7, align: "center", color: this.hold.length >= cap ? "#ff8a8a" : "#cfe", weight: 900 });
+    // basket by kind + the day's NEEDED list (collected / needed, ✓ when met)
+    const have = {}; for (const k of this.hold) have[k] = (have[k] || 0) + 1;
+    const kinds = this.need ? Object.keys(this.need) : Object.keys(have);
+    for (const k of Object.keys(have)) if (!kinds.includes(k)) kinds.push(k);
+    if (kinds.length) {
+      const ly = by + bh + 13, lh = 11, ph = 12 + kinds.length * lh;
+      panel(bx, ly, bw, ph, { fill: "rgba(8,20,38,.78)", border: "#7ac0ff", r: 6 });
+      txt(this.need ? "CẦN LẤY HÔM NAY" : "TRONG GIỎ", bx + bw / 2, ly + 9, { size: 7, align: "center", color: "#9fd8ff", weight: 900 });
+      kinds.forEach((k, i) => {
+        const yy = ly + 12 + i * lh, n = have[k] || 0, need = this.need?.[k], met = need != null && n >= need;
+        u.drawImage(icon(k), bx + 4, yy, 9, 9);
+        txt(KIND_NAME[k] || k, bx + 16, yy + 8, { size: 7, color: met ? "#7dffb0" : "#fff", weight: 800 });
+        txt(need != null ? `${n}/${need}${met ? " ✓" : ""}` : "×" + n, bx + bw - 4, yy + 8, { size: 7, align: "right", color: met ? "#7dffb0" : need != null ? "#ffd23a" : "#cfe", weight: 900 });
+      });
+    }
 
     // toasts near player
-    const px = this._sx(this.p.x), py = this._sy(this.p.d);
+    const px = this._sx(p.x), py = this._sy(p.d);
     this.toasts.forEach((t, i) => txt(t.txt, px, py - 14 + t.y - (this.toasts.length - 1 - i) * 11, { size: 9, align: "center", color: t.col, weight: 900, stroke: "#1a1220", sw: 2.5, alpha: clamp(t.life, 0, 1) }));
     // controls hint (bottom)
-    txt("WASD bơi · Shift bơi nhanh · E hái/cập bến · Space/chuột: bắn lao (cá → kéo về, rắn → choáng)", W / 2, H - 5, { size: 7, align: "center", color: "rgba(255,255,255,.5)", weight: 700 });
+    txt("WASD bơi · E hái/cập bến · Space/chuột: bắn lao · Shift bơi nhanh · Esc/P tạm dừng", W / 2, H - 5, { size: 7, align: "center", color: "rgba(255,255,255,.55)", weight: 700 });
   }
   heart(u, x, y, full, time) {
     u.save(); u.translate(x, y); u.scale(0.95, 0.95);
@@ -364,7 +458,7 @@ export class GatherScene {
     const a = clamp(this.hintT, 0, 1);
     panel(W / 2 - 92, H / 2 - 20, 184, 40, { fill: `rgba(8,18,34,${0.85 * a})`, border: "#f3d27a", r: 6, alpha: a });
     txt("Lặn xuống bắt cá & hái bông", W / 2, H / 2 - 4, { size: 10, align: "center", color: "#fff", weight: 900, alpha: a });
-    txt("Cá to ở dưới 30m · canh O₂ — hết là mất máu!", W / 2, H / 2 + 10, { size: 8, align: "center", color: "#ffd23a", weight: 700, alpha: a });
+    txt("Coi chừng Cá Sấu Năm Chèo dưới 10 m · canh O₂!", W / 2, H / 2 + 10, { size: 8, align: "center", color: "#ffd23a", weight: 700, alpha: a });
   }
   drawResult(c, time) {
     const r = this.result, k = clamp(r.t / 0.5, 0, 1);

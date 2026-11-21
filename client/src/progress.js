@@ -15,17 +15,22 @@ export const UPGRADES = {
   table2: { name: "Thêm bàn",        desc: "thêm chỗ cho khách",      cost: [0, 250, 600],       eff: [1, 2, 3] },              // tables (for a 1-table contract)
 };
 // which screen sells which track: morning prep (dive gear) vs evening prep (restaurant)
-export const GEAR_UPGRADES = ["oxy", "cap", "fins", "net"];
+// "oxy" is superseded by the contract's oxygen upgrade (v1.1) and is no longer sold.
+export const GEAR_UPGRADES = ["cap", "fins", "net"];
 export const QUAN_UPGRADES = ["stove", "decor", "table2"];
 
 export function freshSave() {
-  return { v: 1, day: 1, money: 0, totalEarned: 0, best: 0, up: { oxy: 0, cap: 0, fins: 0, net: 0, stove: 0, decor: 0, table2: 0 }, catalog: {}, history: [] };
+  // cu = contract upgrade levels bought (Test Contract v1.1 shop: oxygen, hp); active = levels in effect today
+  // (bought levels only apply from the NEXT day: main.js calls activateUpgrades() when it builds a new day).
+  // rep = reputation carried across days (null = contract reputation_initial); sold = dishes sold over the run.
+  return { v: 1, day: 1, money: 0, totalEarned: 0, best: 0, up: { oxy: 0, cap: 0, fins: 0, net: 0, stove: 0, decor: 0, table2: 0 },
+    cu: { oxygen: 0, hp: 0 }, active: { oxygen: 0, hp: 0 }, rep: null, sold: {}, tips: 0, catalog: {}, history: [] };
 }
 
 export let save = load() || freshSave();
 
 export function load() {
-  try { const raw = localStorage.getItem(KEY); if (!raw) return null; const s = JSON.parse(raw); if (s && s.v === 1) return { ...freshSave(), ...s, up: { ...freshSave().up, ...s.up } }; } catch (e) {}
+  try { const raw = localStorage.getItem(KEY); if (!raw) return null; const s = JSON.parse(raw); if (s && s.v === 1) { const f = freshSave(); return { ...f, ...s, up: { ...f.up, ...s.up }, cu: { ...f.cu, ...s.cu }, active: { ...f.active, ...s.active }, sold: { ...s.sold } }; } } catch (e) {}
   return null;
 }
 // Demo mode (title-menu shortcuts): scenes still read stats()/recordCatch() but nothing is written to storage;
@@ -35,14 +40,17 @@ export function setDemo(on) { demo = !!on; if (!demo) resume(); }
 export const isDemo = () => demo;
 export function persist() { if (demo) return; try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} }
 export function hasSave() { const s = load(); return !!(s && (s.day > 1 || s.money > 0)); }
-export function newGame() { save = freshSave(); persist(); return save; }
+export function newGame() { const best = save?.best || 0; save = freshSave(); save.best = best; persist(); return save; }
 export function resume() { save = load() || freshSave(); return save; }
 
 // Effective tuning = contract values + upgrades. Scenes must read numbers from here, never hard-code.
 export function stats(contract) {
   const g = contract.tuning.gather, q = contract.tuning.quan, u = save.up;
+  const lv = (id) => (contract.tuning.shop?.upgrades?.[id] || [])[(save.active?.[id] || 0) - 1];
   return {
-    oxygenMax: g.oxygen_max_s + UPGRADES.oxy.eff[u.oxy],
+    // core (Test Contract v1.1): oxygen / hp come from the contract base or the ACTIVE contract upgrade level
+    oxygenMax: lv("oxygen")?.oxygen_max_s ?? g.oxygen_max_s,
+    hpMax: lv("hp")?.hp_max ?? g.hp_max,
     holdCap: g.hold_capacity + UPGRADES.cap.eff[u.cap],
     swimSpeed: g.swim_speed * UPGRADES.fins.eff[u.fins],
     catchRadius: g.catch_radius + UPGRADES.net.eff[u.net],
@@ -52,6 +60,15 @@ export function stats(contract) {
     tables: (q.tables?.length || 1) - 1 + UPGRADES.table2.eff[u.table2 || 0], // contract tables + extra ones bought
   };
 }
+
+// ---- contract shop (v1.1 core): data-driven levels from tuning.shop.upgrades ----
+export function contractNext(contract, id) { const lv = contract.tuning.shop?.upgrades?.[id] || []; return lv[save.cu[id] || 0] || null; }
+export function buyContract(contract, id) {
+  const nx = contractNext(contract, id); if (!nx || save.money < nx.price) return false; // buy_failed: money and level unchanged
+  save.money -= nx.price; save.cu[id] = nx.level; persist(); return true;
+}
+export function activateUpgrades() { save.active = { ...save.cu }; persist(); }
+export function repNow(contract) { return save.rep ?? contract.tuning.quan.reputation_initial; }
 
 export function upgradeCost(id) { const up = UPGRADES[id], lv = save.up[id]; return lv + 1 < up.cost.length ? up.cost[lv + 1] : null; }
 export function buy(id) {
@@ -70,6 +87,9 @@ export function recordCatch(speciesId, name) {
 export function finishDay(summary) {
   // summary: { haulCount, earned, rep, served, left, score }
   save.money += summary.earned; save.totalEarned += summary.earned; save.best = Math.max(save.best, summary.score || 0);
+  if (summary.rep != null) save.rep = summary.rep;
+  save.tips = (save.tips || 0) + (summary.tips || 0);
+  for (const [k, n] of Object.entries(summary.sold || {})) save.sold[k] = (save.sold[k] || 0) + n;
   save.history.push({ day: save.day, ...summary }); if (save.history.length > 30) save.history.shift();
   save.day++; persist();
 }

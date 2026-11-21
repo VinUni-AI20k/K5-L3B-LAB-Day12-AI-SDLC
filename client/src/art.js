@@ -16,6 +16,7 @@ export const P = {
   silver: "#d4e8f2", silverD: "#8fb0c4",
   loc: "#55603e", locD: "#2f3826", locL: "#8a9a5a",
   straw: "#e9cf8a", strawD: "#c4a35e",
+  keo: "#8a7a66", keoD: "#5a4c3e", keoL: "#b0a28a",
 };
 
 export const R = (c, x, y, w, h, col) => { c.fillStyle = col; c.fillRect(Math.round(x), Math.round(y), w, h); };
@@ -52,6 +53,8 @@ const PAL = {
   g: "#c9c2d4", G: "#8a8399", v: "#7a4fa0", V: "#57357a", n: P.straw, N: P.strawD,
   b: "#3a6fd8", B: "#24479a", r: P.red, R: P.redD, c: "#f2efe6", C: "#b9b2a0", f: P.yellow, F: P.yellowD,
   x: P.leaf, X: P.leafD, i: P.pink, I: P.pinkD, u: P.loc, U: P.locD, z: P.silver, Z: P.silverD, a: P.wood, A: P.woodD, q: "#f7b733",
+  // v1.1 kinds/dishes: cá kèo brown-grey, canh chua orange-red, lẩu mắm dark clay + broth
+  j: P.keo, J: P.keoD, O: "#e8642a", Q: "#ff9a4a", D: "#3a2622", E: "#6a4434", M: "#7a4a2a", K: "#a8683a",
 };
 const cache = new Map();
 export function pmap(key, rows) {
@@ -151,6 +154,8 @@ export const ICONS = {
   ca_loc: ["..........", "..........", ".uuUuUuu..", "uuuuuuuuuU", "eUuUuUuUuu", "uuuuuuuuuU", ".UUUUUUU..", "..........", "..........", ".........."],
   bong_dien_dien: ["....x.....", "...xfx....", "..fFfx.f..", "..fFf.fFf.", "...f.xfFf.", "....x..f..", "....x.x...", "....xx....", "....x.....", "....x....."],
   bong_sung: ["....ii....", "...iIIi...", "..iiIIii..", ".iIiiiiIi.", "..iiqqii..", "...iqqi...", "....xx....", "....x.....", "..xxxxxx..", ".XxxxxxxX."],
+  ca_keo: ["..........", "..k..k....", ".jkjJkjJ..", "jjjjjjjjJ.", "JjJjJjJjjJ", ".JJJJJJJ.J", "..........", ".k........", "jkjjjjjJ..", ".JJJJJJ.J."],
+  keo_neo: ["..f...f...", ".fFx.xfF..", "..xXxXx...", ".xXxxxXx..", "xXx.x.xXx.", ".x..x..x..", "..x.x.x...", "...xxx....", "....X.....", "....X....."],
 };
 // 16x16 dish icons
 export const DISHES = {
@@ -173,8 +178,28 @@ export const DISHES = {
     "...rRrRrRrRrRr..", "..rqrqrqrqrqrqr.", "................", "................",
   ],
 };
-export const DISH_NAME = { ca_loc_nuong_trui: "Cá lóc nướng trui", goi_bong_sung: "Gỏi bông súng", lau_ca_linh_dien_dien: "Lẩu cá linh bông điên điển" };
-export const KIND_NAME = { ca_linh: "cá linh", ca_loc: "cá lóc", bong_dien_dien: "bông điên điển", bong_sung: "bông súng" };
+// v1.1 dishes
+DISHES.canh_chua_ca_loc = [
+  "................", "......c..c......", ".....c..c..c....", "................",
+  "..cccccccccccc..", ".cOOfOOuuOOfOOc.", ".cOfFfOuUuOfFfc.", ".cOOfOxOuOxOfOc.",
+  ".cQOOOOOOOOOOQc.", "..cOOOOOOOOOOc..", "...ccccccccccc..", "....cCCCCCCCc...",
+  ".....cccccccc...", "................", "................", "................",
+];
+DISHES.ca_keo_nuong = [
+  "................", "................", "...r.....r......", "..jjjjjjjjjk....",
+  "aaJjrjJjrjJjjaaa", "..jjjjjjjjjk....", "...J.r..J.r.....", "................",
+  "....r...r.......", "..jjjjjjjjjk....", "aaJjrjJjrjJjjaaa", "..jjjjjjjjjk....",
+  "...J..r..J......", "..nnnnnnnnnnnn..", ".nNNNNNNNNNNNNn.", "..nnnnnnnnnnnn..",
+];
+DISHES.lau_mam = [
+  ".....C...C......", "....C...C...C...", ".....C...C......", ".EEEEEEEEEEEEEE.",
+  "EDMMfMMxxMMjMMDE", "EDMxXMMfMMjjMMDE", "EDMMMxMMMfMMxMDE", "EDMjMMMxXMMMMMDE",
+  "EEEEEEEEEEEEEEEE", "DDKDDDDDDDDDDKDD", ".DDDDDDDDDDDDDD.", "..DKDDDDDDDDKD..",
+  "...rRrRrRrRrRr..", "..rqrqrqrqrqrqr.", "................", "................",
+];
+export const DISH_NAME = { ca_loc_nuong_trui: "Cá lóc nướng trui", goi_bong_sung: "Gỏi bông súng", lau_ca_linh_dien_dien: "Lẩu cá linh bông điên điển",
+  canh_chua_ca_loc: "Canh chua cá lóc bông điên điển", ca_keo_nuong: "Cá kèo nướng muối ớt", lau_mam: "Lẩu mắm miền Tây" };
+export const KIND_NAME = { ca_linh: "cá linh", ca_loc: "cá lóc", bong_dien_dien: "bông điên điển", bong_sung: "bông súng", ca_keo: "cá kèo", keo_neo: "kèo nèo" };
 
 export const icon = (k) => pmap("i:" + k, ICONS[k] || ICONS.ca_linh);
 export const dishIcon = (k) => pmap("d:" + k, DISHES[k] || DISHES.goi_bong_sung);
@@ -356,6 +381,17 @@ export function fish(c, kind, x, y, facing, t, scale = 1) {
     R(c, 7, -2, 4, 4, P.loc); R(c, 9, -1, 1, 1, P.yellow); R(c, 10, 1, 1, 1, P.locD);
     R(c, -15, -3 + w, 4, 2, P.locD); R(c, -15, 1 + w, 4, 2, P.locD);
     R(c, -6, -4, 10, 1, P.locD);
+  } else if (kind === "ca_keo") {
+    // cá kèo: 3 slim brown-grey mudskipper-like gobies, eyes bulging on top of the head
+    const pts = [[0, 0], [-8, 4], [5, 5]];
+    pts.forEach(([dx, dy], i) => {
+      const yy = dy + Math.round(Math.sin(t * 2.5 + i * 2) * 1), xx = dx + Math.round(Math.cos(t * 1.7 + i));
+      const wig = Math.round(Math.sin(t * 10 + i) * 0.8);
+      R(c, xx - 4, yy - 1, 9, 2, P.keo); R(c, xx - 4, yy + 1, 8, 1, P.keoL); R(c, xx - 3, yy - 2, 6, 1, P.keoD);
+      for (let k = -3; k < 4; k += 2) R(c, xx + k, yy - 1, 1, 1, P.keoD);
+      R(c, xx + 3, yy - 3, 1, 1, P.ink); R(c, xx + 5, yy, 1, 1, P.keoD);
+      R(c, xx - 6, yy - 1 + wig, 2, 3, P.keoD);
+    });
   } else {
     const pts = [[0, 0], [-7, -4], [-6, 4], [6, -5], [5, 5], [-13, 1], [11, 0]];
     pts.forEach(([dx, dy], i) => {
@@ -379,6 +415,16 @@ export function nodeArt(c, kind, x, y, t, ready) {
       R(c, x - 3, y - 6 + b, 6, 4, P.pink); R(c, x - 2, y - 8 + b, 4, 3, P.pinkL); R(c, x - 4, y - 4 + b, 2, 2, P.pinkD); R(c, x + 2, y - 4 + b, 2, 2, P.pinkD);
       R(c, x - 1, y - 5 + b, 2, 1, P.yellow);
     } else R(c, x - 1, y - 4, 2, 3, P.leafL);
+  } else if (kind === "keo_neo") {
+    // kèo nèo: a bunch of broad green leaves on stalks standing out of the water, small yellow flowers on top
+    for (let k = 0; k < 14; k++) R(c, x + Math.round(Math.sin(t + k * 0.3) * 1), y + k, 1, 1, "#3d6a3a");
+    for (const [dx, h] of [[-5, 12], [-2, 16], [1, 18], [4, 14], [7, 10]]) {
+      const sw = Math.round(Math.sin(t * 1.5 + dx) * 1);
+      for (let k = 0; k < h; k++) R(c, x + dx + (k > h - 4 ? sw : 0), y - k, 1, 1, P.leafD);
+      R(c, x + dx - 2 + sw, y - h - 1, 5, 3, P.leaf); R(c, x + dx - 1 + sw, y - h - 2, 3, 1, P.leafL); R(c, x + dx + sw, y - h, 1, 2, P.leafD);
+    }
+    if (ready) for (let i = 0; i < 5; i++) { const sw = Math.round(Math.sin(t * 2 + i) * 1); R(c, x - 5 + i * 3 + sw, y - 20 - (i % 2) * 2, 2, 2, i % 2 ? P.yellow : P.yellowD); }
+    else R(c, x - 1, y - 8, 2, 3, P.leafL);
   } else {
     for (let k = 0; k < 20; k++) R(c, x + Math.round(Math.sin(k / 5) * 1), y - k, 1, 1, P.leafD);
     for (let k = 0; k < 14; k++) R(c, x - 6 + k, y - 14 - Math.round(Math.sin(k / 3) * 3), 1, 1, P.leaf);

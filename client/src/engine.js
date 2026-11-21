@@ -40,7 +40,7 @@ const held = new Set(), hit = new Set();
 const MAP = {
   arrowleft: "left", a: "left", arrowright: "right", d: "right",
   arrowup: "up", w: "up", arrowdown: "down", s: "down",
-  e: "interact", " ": "catch", shift: "sprint", enter: "confirm", escape: "back", m: "mute", r: "restart",
+  e: "interact", " ": "catch", shift: "sprint", enter: "confirm", escape: "back", m: "mute", r: "restart", p: "pause", c: "close",
 };
 addEventListener("keydown", (e) => {
   const k = MAP[e.key.toLowerCase()];
@@ -57,6 +57,9 @@ export const input = {
   down: (k) => held.has(k),
   hit: (k) => hit.has(k),
   any: () => hit.has("confirm") || hit.has("catch") || hit.has("interact"),
+  anyKey: () => hit.size > 0, // any mapped key or a click this frame
+  // ?debug / tests: inject a key press for the next frame (same path as a real keydown + keyup)
+  press(k) { hit.add(k); },
   axis() {
     return [(held.has("right") ? 1 : 0) - (held.has("left") ? 1 : 0),
             (held.has("down") ? 1 : 0) - (held.has("up") ? 1 : 0)];
