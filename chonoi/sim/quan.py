@@ -18,10 +18,20 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, day=None):
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
+        # Trong vòng ngày, chỉ các món được ghi ở kế hoạch ngày mới được nhận đơn.
+        # Chế độ quan độc lập giữ toàn bộ menu để thử từng món bằng fixture.
+        if day is None:
+            self.day_dishes = set(self.menu)
+        else:
+            from ..errors import BadInput
+            plan = next((p for p in tuning["day_plan"] if p["day"] == day), None)
+            if plan is None:
+                raise BadInput(f"ngày không có trong day_plan: {day}")
+            self.day_dishes = set(plan["dishes"])
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -333,7 +343,7 @@ class QuanSim:
         if table is None:
             return
         available = self.available_stock()
-        choices = [dish for dish in sorted(self.menu) if all(available.get(k, 0) >= n
+        choices = [dish for dish in sorted(self.day_dishes) if all(available.get(k, 0) >= n
                    for k, n in self.menu[dish]["recipe"].items())]
         if not choices:
             events.append(("no_dish", {}))

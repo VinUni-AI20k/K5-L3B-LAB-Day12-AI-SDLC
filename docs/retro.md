@@ -1,9 +1,9 @@
 # Retro nhóm
 
 ## Phase 2 (nhanh)
-- Điều tốt:
-- Điều tệ:
-- 1 hành động cho Phase 3:
+- Điều tốt: lát quán đọc 2 bếp, 4 bàn và 6 món trực tiếp từ contract v1.1; kiểm tra riêng cho lọc món theo kế hoạch ngày đã chạy đạt.
+- Điều tệ: luồng `day` chưa có trong runner tại thời điểm làm lát quán, nên chưa thể kiểm chứng tích hợp qua CLI. Toàn bộ test repo hiện lỗi ở gather vì contract v1.1 đổi `fish_initial` thành số nhưng `GatherSim` còn duyệt như danh sách; lát quán có 13 test liên quan đạt.
+- 1 hành động cho Phase 3: thêm kiểm thử tích hợp `day` để xác nhận mỗi ngày chỉ nhận các món trong `day_plan` sau khi luồng ngày được ghép.
 
 ## Phase 4 (cuối)
 - Rà lại hành động Phase 2: đã làm chưa? vì sao?
