@@ -29,6 +29,19 @@ from .runner import Session
 from .scenario import load_scenario
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
+ASSETS_DIR = os.path.join(WEB_DIR, "assets")
+MIME_TYPES = {
+    ".png": "image/png",
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".webp": "image/webp",
+    ".gif": "image/gif",
+    ".svg": "image/svg+xml",
+    ".mp3": "audio/mpeg",
+    ".ogg": "audio/ogg",
+    ".wav": "audio/wav",
+    ".json": "application/json; charset=utf-8",
+}
 TICK_S = 1.0 / 60.0
 MAX_BODY = 4096
 RECENT_EVENTS = 40
@@ -154,6 +167,20 @@ class _Handler(BaseHTTPRequestHandler):
                     self._send(200, f.read(), "text/html; charset=utf-8")
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
+        elif path.startswith("/assets/"):
+            rel = path[len("/assets/"):]
+            full = os.path.abspath(os.path.join(ASSETS_DIR, rel))
+            base = os.path.abspath(ASSETS_DIR)
+            if not (full.startswith(base + os.sep) and os.path.isfile(full)):
+                self._send(404, b'{"error":"khong co asset"}')
+                return
+            ext = os.path.splitext(full)[1].lower()
+            ctype = MIME_TYPES.get(ext, "application/octet-stream")
+            try:
+                with open(full, "rb") as f:
+                    self._send(200, f.read(), ctype)
+            except OSError:
+                self._send(404, b'{"error":"khong doc duoc asset"}')
         else:
             self._send(404, b'{"error":"khong co"}')
 
