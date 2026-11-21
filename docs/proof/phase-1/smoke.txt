@@ -1,0 +1,10 @@
+Phase 1 smoke verification
+
+Command: PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+Result: 36 tests passed
+
+Command: python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out gather-smoke.jsonl
+Result: exit code 0
+
+Command: python3 -m chonoi.headless --mode quan --seed 1 --ticks 600 --out quan-smoke.jsonl
+Result: exit code 0
