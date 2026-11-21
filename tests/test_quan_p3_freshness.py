@@ -73,6 +73,31 @@ def waiting(cid, table, dish="ca_loc_nuong_trui", patience=60, reserved=None):
 
 
 class CookingWithFreshStock(unittest.TestCase):
+    def test_burn_boundary_and_re_reservation(self):
+        tuning = v12_tuning()
+        tuning["quan"]["burn_s"] = 20
+        interact = InputState((0, 0), frozenset(), frozenset({"interact"}))
+        for stock, reserved, expected in (
+            (items(("I1", "ca_loc", 100)), ["I1"], "reserved"),
+            ([], [], "unfulfillable"),
+        ):
+            customer = waiting("C1", "T1", patience=1000, reserved=[])
+            customer["order_status"] = "assigned"
+            sim = make_sim({"customers": [customer], "random_customers": False},
+                           stock=stock, tuning=tuning)
+            stove = sim.stoves[0]
+            dish = {"order_id": "C1", "dish_id": customer["dish_id"], "base_price": 60}
+            stove.update(state="ready", dish=dish, ready_ticks=1199)
+            sim.pos = list(stove["pos"])
+            picked, = by_name(sim.step(interact), "dish_picked")
+            self.assertEqual(picked["order_id"], "C1")
+            sim.hand = None
+            stove.update(state="ready", dish=dish, ready_ticks=1200)
+            burnt, = by_name(sim.step(IDLE), "dish_burnt")
+            self.assertEqual(burnt["order_status"], expected)
+            self.assertEqual(stove["state"], "idle")
+            self.assertEqual(sim.customers[0]["reserved"], reserved)
+
     def test_reserved_item_sets_price_through_payment(self):
         sim = make_sim({"random_customers": False,
                         "customers": [waiting("C1", "T1", patience=1000, reserved=["I2"])]},
