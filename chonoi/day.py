@@ -54,7 +54,9 @@ class DaySession(PauseMixin):
 
     # --- dựng pha -------------------------------------------------------------
     def _plan(self):
-        return self.plans[self.day]
+        """Kế hoạch D1–D5; soak chạy quá 5 Ngày thì lặp lại (Ngày 6 = D1...)."""
+        n = len(self.plans)
+        return self.plans[(self.day - 1) % n + 1]
 
     def _start_day(self, out):
         out.append(("gather", "day_start", {}))
