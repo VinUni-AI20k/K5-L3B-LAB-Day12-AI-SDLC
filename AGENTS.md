@@ -21,6 +21,7 @@
 - Không sửa test cho xanh khi luật sai; phải sửa luật hoặc ghi lý do đổi test trong commit.
 
 ## Quy tắc làm việc với agent
+- Phase 1 dùng [spec trong TEAM.md](TEAM.md#phase-1) để xác định module, phần phụ thuộc và tiêu chí bàn giao. Đối chiếu luật và payload theo mục D–G của PRD-0.
 - Mỗi agent một việc rõ ràng (một lát). Cho agent đọc PRD/ticket đúng phase và hợp đồng kho trước.
 - Agent làm xong phải chạy test và ghi kết quả vào mô tả commit hoặc `docs/proof/`; người đọc lại thay đổi trước khi đẩy.
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
