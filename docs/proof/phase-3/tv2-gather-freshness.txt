@@ -1,0 +1,15 @@
+test_catch_creates_individual_items_and_lifo_on_hit_and_faint (tests.test_gather_freshness_p3.GatherFreshnessPhase3Tests.test_catch_creates_individual_items_and_lifo_on_hit_and_faint)
+Bắt cá tạo đúng yield cá thể; monster_hit và faint trả lost dạng cá thể LIFO. ... ok
+test_dock_exports_sorted_by_id_after_decay (tests.test_gather_freshness_p3.GatherFreshnessPhase3Tests.test_dock_exports_sorted_by_id_after_decay)
+Cập bến xuất kho sắp theo id_key (I2 trước I10) và đã trừ hao bước đó. ... ok
+test_new_items_fresh_100_no_decay_same_tick_and_id_continues (tests.test_gather_freshness_p3.GatherFreshnessPhase3Tests.test_new_items_fresh_100_no_decay_same_tick_and_id_continues)
+Hái/bắt cấp ID tiếp sau max trong hold, fresh=100 không hao trong bước nhận. ... ok
+test_spoiled_at_threshold_30_once_and_id_order (tests.test_gather_freshness_p3.GatherFreshnessPhase3Tests.test_spoiled_at_threshold_30_once_and_id_order)
+Scenario chuẩn PRD: fresh=30 ươn ngay tick 1, phát spoiled đúng 1 lần theo thứ tự ID. ... ok
+test_validate_gather_rejects_invalid_v12_hold (tests.test_gather_freshness_p3.GatherFreshnessPhase3Tests.test_validate_gather_rejects_invalid_v12_hold)
+Validate scenario v1.2 từ chối hold dạng chuỗi, id trùng, kind lạ, fresh ngoài [0,100]. ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.002s
+
+OK

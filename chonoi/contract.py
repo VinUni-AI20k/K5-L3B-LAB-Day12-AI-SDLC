@@ -1,6 +1,7 @@
 """Đọc game.contract.json và kiểm dải hợp lệ của tuning P1 (PRD mục 13.2, Test Contract)."""
 
 import json
+import math
 import os
 
 from .errors import BadInput
@@ -23,7 +24,12 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
+    ver = c.get("contract_version")
+    if ver is not None and ver not in ("1.0", "1.1", "1.2"):
+        raise BadInput(f"contract_version không hỗ trợ: {ver!r}")
     validate_tuning(c.get("tuning"))
+    # Truyền version tới sim/scenario mà không đổi manifest trên đĩa.
+    c["tuning"]["_contract_version"] = ver or "1.1"
     return c
 
 
@@ -113,6 +119,23 @@ def _validate_gather(g):
         raise BadInput("tuning.gather.fish_initial phải là số nguyên dương hoặc danh sách 6 đàn")
 
 
+def _validate_freshness(f):
+    """Kiểm cấu hình freshness v1.2 (initial, gather_decay_per_s, quan_decay_per_s, spoiled_below)."""
+    expected = {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}
+    if not isinstance(f, dict) or set(f.keys()) != expected:
+        raise BadInput(f"tuning.freshness phải có đúng các khóa {sorted(expected)}")
+    for k in expected:
+        v = f[k]
+        if not _num(v) or not math.isfinite(v):
+            raise BadInput(f"tuning.freshness.{k} phải là số hữu hạn, đang là {v!r}")
+    if not (0 < f["initial"] <= 100):
+        raise BadInput(f"tuning.freshness.initial phải trong (0, 100], đang là {f['initial']!r}")
+    if not (0 <= f["spoiled_below"] < f["initial"]):
+        raise BadInput(f"tuning.freshness.spoiled_below phải trong [0, initial), đang là {f['spoiled_below']!r}")
+    if f["gather_decay_per_s"] <= 0 or f["quan_decay_per_s"] <= 0:
+        raise BadInput("tuning.freshness.gather_decay_per_s và quan_decay_per_s phải > 0")
+
+
 def validate_tuning(t):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
@@ -152,6 +175,8 @@ def validate_tuning(t):
         if not isinstance(recipe, dict) or not recipe:
             raise BadInput(f"menu.{dish_id}: recipe phải là object không rỗng")
     day_plan = t.get("day_plan")
+    if "freshness" in t:
+        _validate_freshness(t["freshness"])
     if day_plan is not None:
         if not isinstance(day_plan, list) or len(day_plan) != 5:
             raise BadInput("tuning.day_plan phải là mảng 5 Ngày")

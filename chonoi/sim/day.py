@@ -85,7 +85,8 @@ class DaySim:
         fixture = deepcopy(self.scenario.get("gather", {}))
         _validate_gather(fixture, tuning)
         self.fixture_item_ids = {}
-        if self.day > 1 and "freshness" in tuning:
+        if (self.day > 1 and tuning.get("freshness")
+                and tuning.get("_contract_version", "1.2") == "1.2"):
             for item in fixture.get("hold", []):
                 new_id = self.ids.new("I")
                 self.fixture_item_ids[item["id"]] = new_id

@@ -11,9 +11,25 @@ from chonoi.sim.quan import QuanSim
 
 
 TUNING = load_contract()["tuning"]
+TUNING = dict(TUNING, _contract_version="1.2")
 
 
 class FreshKitchen(unittest.TestCase):
+    def test_decay_to_exact_price_boundary_before_cooking(self):
+        scenario = {
+            "stock": [{"id": "I1", "kind": "ca_loc", "fresh": 50.25}],
+            "random_customers": False, "player": {"pos": [2, 8]},
+            "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                           "reserved": ["I1"]}],
+        }
+        sim = QuanSim(TUNING, scenario, Streams(1), IdAllocator())
+        inputs = InputPlayer([{"tick": 59, "interact": True}])
+        for tick in range(60):
+            emitted = sim.step(inputs.advance(tick))
+        cooked = next(data for name, data in emitted if name == "cook_started")
+        self.assertEqual(cooked["items"][0]["fresh"], 50)
+        self.assertEqual(cooked["base_price"], 30)
+
     def test_consume_only_reserved_items_and_keep_the_price_through_payment(self):
         tuning = dict(TUNING, freshness={"initial": 100})
         sim = QuanSim(tuning, {}, Streams(1), IdAllocator())

@@ -43,7 +43,9 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        self.freshness = tuning.get("freshness") if tuning.get("_contract_version", "1.2") == "1.2" else None
+        self._fresh_units = {}
+        self.hold = self._init_hold(scenario.get("hold", []), ids)
         self.monster_tuning = t.get("monsters")
         self.monsters = []
         if self.monster_tuning:
@@ -78,17 +80,20 @@ class GatherSim:
         self.reason = None
 
     # --- giao diện cho runner -------------------------------------------------
-    def inventory_items(self) -> dict:
+    def inventory_items(self):
+        if self.freshness:
+            return [dict(item) for item in sort_by_id(self.hold)]
         return hold_to_items(self.hold)
 
     def snapshot(self) -> dict:
+        hold_out = [dict(item) for item in self.hold] if self.freshness else list(self.hold)
         return {
             "player": {"pos": self.pos, "vel": self.vel, "heading_deg": self.heading,
                        "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": self.hold, "hold_count": len(self.hold),
+            "hold": hold_out, "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "monsters": [dict(m, pos=m["pos"].copy()) for m in sort_by_id(self.monsters)],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
@@ -112,6 +117,7 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        self._decay_hold(events)
         # 2. Bơi, chặn mép và tính oxy theo vị trí cuối bước.
         was_at_surface = self._at_surface()
         self._move(inp)
@@ -141,6 +147,48 @@ class GatherSim:
         return events
 
     # --- tiện ích ---------------------------------------------------------------
+    @staticmethod
+    def _to_units(fresh: float) -> float:
+        u = float(fresh) * 240.0
+        r = round(u)
+        return float(r) if abs(u - r) < 1e-9 else u
+
+    def _init_hold(self, raw_hold, ids):
+        if not self.freshness:
+            return list(raw_hold)
+        hold = []
+        for item in raw_hold:
+            ids.reserve(item["id"])
+            u = self._to_units(item["fresh"])
+            self._fresh_units[item["id"]] = u
+            hold.append({"id": item["id"], "kind": item["kind"], "fresh": float(item["fresh"])})
+        return hold
+
+    def _decay_hold(self, events):
+        if not self.freshness or not self.hold:
+            return
+        decay_u = float(self.freshness["gather_decay_per_s"]) * 240.0 / TICK
+        spoiled_u = float(self.freshness["spoiled_below"]) * 240.0
+        for item in sort_by_id(self.hold):
+            iid = item["id"]
+            old_u = self._fresh_units[iid]
+            new_u = max(0.0, old_u - decay_u)
+            self._fresh_units[iid] = new_u
+            item["fresh"] = new_u / 240.0
+            if old_u >= spoiled_u and new_u < spoiled_u:
+                events.append(("spoiled", {"item_id": iid, "kind": item["kind"], "location": "hold"}))
+
+    def _add_hold(self, kind: str, amount: int):
+        if not self.freshness:
+            self.hold.extend([kind] * amount)
+            return
+        initial = float(self.freshness["initial"])
+        initial_u = self._to_units(initial)
+        for _ in range(amount):
+            iid = self.ids.new("I")
+            self._fresh_units[iid] = initial_u
+            self.hold.append({"id": iid, "kind": kind, "fresh": initial})
+
     def _init_fish(self, scenario, t, ids):
         if "fish" in scenario:
             fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
@@ -264,7 +312,7 @@ class GatherSim:
                 "action": "gather", "node_id": node["id"], "required": amount, "free": free,
             }))
             return
-        self.hold.extend([node["kind"]] * amount)
+        self._add_hold(node["kind"], amount)
         node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
         events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
 
@@ -282,7 +330,7 @@ class GatherSim:
                 "action": "catch", "fish_id": fish["id"], "required": yld, "free": free,
             }))
             return
-        self.hold.extend([fish["kind"]] * yld)
+        self._add_hold(fish["kind"], yld)
         self.fish.remove(fish)
         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
         events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": yld}))

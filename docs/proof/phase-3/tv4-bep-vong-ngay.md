@@ -28,3 +28,11 @@ PYTHONPATH=tests:. python3 -m unittest tests.test_tv4_freshness_p3 tests.test_ga
 Dựng quán với một cá lóc fresh `50.25` đã giữ cho cá lóc nướng trui, đứng ở B1 và bấm E tại frame `tick: 59`. Sau 60 bước, fresh theo ticket là 50 và giá phải là 30. Bản ghép đo `49.9999999999998` và phát `cook_started.base_price: 29`. Sai số phát sinh trong phép trừ float lặp ở `chonoi/freshness.py` của nhánh TV3. Phép tính giá của TV4 giữ độ chính xác của giá trị được truyền vào.
 
 TV1/TV3 cần chốt biểu diễn hao tươi dùng chung đủ chính xác rồi kiểm lại ca này. Smoke bàn giao qua file và từ chối kho đếm v1.2 chờ adapter của TV1. [Test TV4](../../../tests/test_tv4_freshness_p3.py)
+
+## Review tích hợp PR #17
+
+Đã resolve xung đột với main chứa adapter TV1 và kho cá thể TV2/TV3. Dùng price_for_items để tính giá từ chính xác các cá thể giữ chỗ. decay_units dùng decay_items của TV1 để tránh tích lũy sai số float. Bổ sung regression cá lóc fresh=50.25 sau đúng 60 bước quán có fresh=50 và giá 30, đạt.
+
+Cấp lại ID fixture qua ngày chọn theo version nội bộ, giữ đường chạy v1.1 trong giai đoạn chuyển tiếp. Test vòng ngày cá thể đặt version 1.2 rõ ràng.
+
+Bản cuối đạt 121/121 test, gồm live/live_day và 4 test TV4. [Log review](pr17-review.log). Manifest hiện giữ v1.1, việc bật toàn bộ v1.2 và kiểm smoke file/day qua CLI thuộc bước nghiệm thu tích hợp Phase 3 tiếp theo.
