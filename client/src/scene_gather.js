@@ -693,7 +693,7 @@ export class GatherScene {
     // HP hearts + depth
     for (let i = 0; i < this.hpMax; i++) { const hx = ox + 6 + i * 12, hy = oy + oh + 8; this.heart(u, hx, hy, i < this.hp, time); }
     const deepNow = p.d > DEEP.zone;
-    txt("Máu " + this.hp + "/" + this.hpMax, ox + 6, oy + oh + 24, { size: 7, color: "#ffb0c0", weight: 900, stroke: "#06101e", sw: 2 });
+    txt("Máu " + this.hp + "/" + this.hpMax, ox + 6, oy + oh + 24, { size: 7, color: "#ff6b6b", weight: 900, stroke: "#06101e", sw: 2 });
     txt("↓ " + Math.round(p.d) + "m" + (deepNow ? "  O₂×" + DEEP.pressure : ""), ox + 6 + this.hpMax * 12 + 4, oy + oh + 12, { size: 8, color: deepNow ? "#f0d9a0" : "#fff3dc", weight: 900, stroke: "#06101e", sw: 2 });
     // catch cooldown (harpoon in flight counts as busy)
     { const cdMax = this.t.catch_cooldown_s || 0.5, busy = !!this.harp, k = busy ? 0 : 1 - clamp(this.catchCd / cdMax, 0, 1);
@@ -938,7 +938,7 @@ export class GatherScene {
   heart(u, x, y, full, time) {
     u.save(); u.translate(x, y); u.scale(0.95, 0.95);
     const beat = full && this.hp === 1 ? 1 + Math.sin(time * 8) * 0.12 : 1; u.scale(beat, beat);
-    u.fillStyle = full ? "#ff5a7a" : "rgba(40,20,30,.75)";
+    u.fillStyle = full ? "#ff2a2a" : "rgba(40,20,30,.75)";
     for (const [dx, dy, w, h] of [[-4, -3, 3, 3], [1, -3, 3, 3], [-5, 0, 10, 3], [-4, 3, 8, 2], [-2, 5, 4, 2]]) u.fillRect(dx, dy, w, h);
     if (full) u.fillStyle = "rgba(255,255,255,.6)", u.fillRect(-3, -2, 2, 2);
     u.restore();

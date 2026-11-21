@@ -14,3 +14,8 @@
 - Việc: contract 1.3 + `validate_root`; `DaySim.plan_for` (lặp kế hoạch); `tools/soak.py` (bot tham lam), `tools/bench.py` + `client/bench.html` + `client/src/bench.js`; `tests/test_p4_soak.py` (11 test); proof `docs/proof/phase-4/`; `docs/verification/phase-4.md`.
 - Kiểm: 162 test OK; bench 30 s thật trên Chrome headless; soak 10/10.
 - AI sai/thiếu: 3 test cũ khóa cứng `contract_version == "1.2"` → nới thành chấp nhận "1.2"/"1.3" (có lý do: ticket đổi version). Bot chưa đủ nguyên liệu ở Ngày 4/8/10 (earned không tăng). Lần đo thử đầu `load_ms` 9909 ms (Chrome lạnh) — cần đo lại trên máy chấm. Người cần đọc lại trước commit (chưa commit).
+
+## Sau Release — Duyet (Claude Code · Claude Opus 5.5) — 2 skill + cập nhật AGENTS.md
+- Việc: viết `.agents/skills/pre-push-check/` (SKILL.md + `check.py`) và `.agents/skills/verify-tag/` (SKILL.md + `verify_tag.py`); cập nhật AGENTS.md (lệnh Phase 3/4: soak, bench, proof, GUI chạy từ gốc repo; quy tắc "xong" và sở hữu file rút từ retro; mục Skills). Trước đó đổi màu tim Máu ở client (`39fc18e`).
+- Kiểm: `check.py` → contract v1.3 OK, unittest 162 OK, headless gather/quan/day exit 0 (1 Ngày 1.0 s ≤ 20 s), 28 file JS không lỗi cú pháp, `check_team` WARN (handle Duyet/Nhat Minh chưa điền, 3 người < 4). Thử đường lỗi (JS sai cú pháp, thiếu `chonoi`) → FAIL đúng. Lệnh soak trong AGENTS.md chạy thật 10/10; bench chưa chạy được trên máy này (không có Chrome).
+- AI sai: script kiểm đầu tiên treo vì để stderr của `http.server` vào pipe không đọc; bước `team` ra thông báo rỗng vì `check_team.py` in lỗi ra stderr; tham số mặc định `cwd=ROOT` bị chốt lúc định nghĩa; lỗi node lấy nhầm dòng phiên bản thay vì dòng `SyntaxError`. Đều phát hiện khi chạy thử và đã sửa.
