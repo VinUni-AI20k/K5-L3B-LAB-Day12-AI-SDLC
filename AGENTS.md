@@ -27,4 +27,11 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `.agents/skills/headless-contract-check/` — chạy test + headless + so byte cùng seed + lưu proof. Dùng sau mỗi lần sửa luật và trước khi push.
+- `.agents/skills/phase-gate-audit/` — checklist trước khi gắn tag (team, test, commit mỗi người, hồ sơ, bí mật). Dùng cuối mỗi phase.
+
+## Chia việc không đụng nhau (6 người)
+- Lát 1 (An) và Lát 2 (Bảo) cùng file `chonoi/sim/gather.py`: mỗi người viết helper riêng, `step()` chỉ thêm 1 dòng gọi helper. Lát 1: `_step_oxygen_and_hp`. Lát 2: `_try_harvest_node`, `_try_catch_fish`.
+- Lát 3 (Vũ) và Lát 4 (Hà Anh) cùng file `chonoi/sim/quan.py`: Lát 3: `_init_customers`, `_spawn_customer`, `_step_customer_patience`. Lát 4: `_step_stoves_and_eating`, `_handle_interact`.
+- Pull trước khi sửa `step()`, commit nhỏ, push thường xuyên. Godot (`godot/`) chỉ đọc snapshot, không nhân đôi luật sim.
+- Số liệu thật chỉ từ PRD của phase trên lab board; chưa rõ thì ghi `docs/clarify.md`, không đoán.
