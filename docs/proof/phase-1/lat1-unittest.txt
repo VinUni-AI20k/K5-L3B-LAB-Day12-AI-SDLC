@@ -1,0 +1,19 @@
+test_cham_0_o_t_thi_ngat_o_t_cong_59 (tests.test_gather_lat1.Choke.test_cham_0_o_t_thi_ngat_o_t_cong_59)
+oxy 1 -> chạm 0 ở tick 1 (đếm ngạt = 1 ngay bước đó) -> choke lần đầu ở tick 60. ... ok
+test_noi_len_dung_buoc_dang_le_ngat_thi_khong_ngat (tests.test_gather_lat1.Choke.test_noi_len_dung_buoc_dang_le_ngat_thi_khong_ngat) ... ok
+test_boi_ngang_duoi_nuoc_khong_phat_su_kien (tests.test_gather_lat1.DiveSurface.test_boi_ngang_duoi_nuoc_khong_phat_su_kien) ... ok
+test_lan_xuong_roi_noi_len_moi_lan_doi_phia_mot_su_kien (tests.test_gather_lat1.DiveSurface.test_lan_xuong_roi_noi_len_moi_lan_doi_phia_mot_su_kien) ... ok
+test_ba_lan_ngat_moi_ngat_xiu (tests.test_gather_lat1.Faint.test_ba_lan_ngat_moi_ngat_xiu) ... ok
+test_het_mau_bo_gio_lifo_va_kho_rong (tests.test_gather_lat1.Faint.test_het_mau_bo_gio_lifo_va_kho_rong) ... ok
+test_ngat_xiu_thang_het_gio_cung_tick (tests.test_gather_lat1.Faint.test_ngat_xiu_thang_het_gio_cung_tick) ... ok
+test_tat_dinh_tung_byte (tests.test_gather_lat1.Faint.test_tat_dinh_tung_byte) ... ok
+test_dung_mep_surface_depth_tinh_la_mat_nuoc (tests.test_gather_lat1.Oxygen.test_dung_mep_surface_depth_tinh_la_mat_nuoc) ... ok
+test_duoi_nuoc_tru_1_moi_tick (tests.test_gather_lat1.Oxygen.test_duoi_nuoc_tru_1_moi_tick) ... ok
+test_khong_oxygen_empty_khi_da_bang_0_tu_dau (tests.test_gather_lat1.Oxygen.test_khong_oxygen_empty_khi_da_bang_0_tu_dau) ... ok
+test_mat_nuoc_hoi_va_kep_toi_da (tests.test_gather_lat1.Oxygen.test_mat_nuoc_hoi_va_kep_toi_da) ... ok
+test_oxygen_empty_dung_mot_lan_khi_tu_duong_ve_0 (tests.test_gather_lat1.Oxygen.test_oxygen_empty_dung_mot_lan_khi_tu_duong_ve_0) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 1.833s
+
+OK
