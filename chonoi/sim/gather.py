@@ -120,7 +120,7 @@ class GatherSim:
             self._step_harvest(events)
         # 4. bắt cá
         if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+            self._step_catch(events)
         # 5. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)
@@ -158,6 +158,28 @@ class GatherSim:
         self.hold.extend([chosen["kind"]] * add_n)
         chosen["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
         events.append(("gather", {"node_id": chosen["id"], "kind": chosen["kind"]}))
+
+    # --- DEV 2: Săn bắt cá dưới lòng sông ---------------------------------------
+    def _step_catch(self, events):
+        """Bắt cá dưới nước (d > surface_depth), cooldown 30 ticks, tie-breaking id_key."""
+        if self._at_surface() or self.catch_cd_ticks > 0:
+            return
+        self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+        cands = [f for f in self.fish if math.dist(self.pos, f["pos"]) <= self.t["catch_radius"]]
+        if not cands:
+            return  # Quăng hụt: vẫn mất hồi chiêu 30 ticks
+        cands.sort(key=lambda f: (round(math.dist(self.pos, f["pos"]), 6), id_key(f["id"])))
+        chosen = cands[0]
+        capacity = self.t["hold_capacity"]
+        if len(self.hold) >= capacity:
+            events.append(("hold_full", {}))
+            return
+        y = self.t["fish_yield"].get(chosen["kind"], 1)
+        space = capacity - len(self.hold)
+        add_n = min(y, space)
+        self.hold.extend([chosen["kind"]] * add_n)
+        self.fish = [f for f in self.fish if f["id"] != chosen["id"]]
+        events.append(("fish_caught", {"fish_id": chosen["id"], "kind": chosen["kind"]}))
 
     def _move(self, inp):
         speed = self.t["swim_speed"]
