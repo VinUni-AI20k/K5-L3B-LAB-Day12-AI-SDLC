@@ -23,7 +23,7 @@ Các tính năng của phase sau chưa nằm trong khung này.
 import math
 
 from ..ids import sort_by_id
-from ..inventory import hold_to_items
+from ..inventory import clone_items, materialize_items
 from .monsters import init_monsters, monster_snapshot, step_monsters, upgrade_limit
 from .ramp import ramp_velocity
 
@@ -59,7 +59,8 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        self.hold_items = materialize_items(scenario.get("hold", []), ids, allow_legacy=True)
+        self.hold = [item["kind"] for item in self.hold_items]  # adapter cho luật cũ
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
@@ -87,8 +88,8 @@ class GatherSim:
         self.reason = None
 
     # --- giao diện cho runner -------------------------------------------------
-    def inventory_items(self) -> dict:
-        return hold_to_items(self.hold)
+    def inventory_items(self) -> list:
+        return clone_items(self.hold_items)
 
     def snapshot(self) -> dict:
         return {
@@ -150,11 +151,13 @@ class GatherSim:
                             "cause": "choke", "lost": list(reversed(self.hold)), "hp": self.hp,
                         }))
                         self.hold.clear()
+                        self.hold_items.clear()
                         self._finish("fainted", events)
                         return events
         self.hp, self.invuln_ticks, monster_events, fainted = step_monsters(
             self.monsters, self.t, self.pos, self.hp, self.invuln_ticks,
             self.hold, tick_hz=self.tick_hz)
+        del self.hold_items[len(self.hold):]  # monster_hit bỏ đúng phần đuôi LIFO
         events.extend(monster_events)
         if fainted:
             self._finish("fainted", events)
@@ -178,6 +181,8 @@ class GatherSim:
                                                      "required": amount, "free": free}))
                     else:
                         self.hold.extend([node["kind"]] * amount)
+                        self.hold_items.extend({"id": self.ids.next_item_id(), "kind": node["kind"],
+                                                "fresh": 100.0} for _ in range(amount))
                         node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
                         events.append(("gather", {"node_id": node["id"], "kind": node["kind"],
                                                   "amount": amount}))
@@ -196,6 +201,8 @@ class GatherSim:
                                                      "required": amount, "free": free}))
                     else:
                         self.hold.extend([fish["kind"]] * amount)
+                        self.hold_items.extend({"id": self.ids.next_item_id(), "kind": fish["kind"],
+                                                "fresh": 100.0} for _ in range(amount))
                         self.fish.remove(fish)
                         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
                         events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"],
