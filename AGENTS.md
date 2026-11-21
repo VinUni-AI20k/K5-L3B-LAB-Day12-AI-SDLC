@@ -5,11 +5,16 @@
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
-- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
+- Test TV4 Phase 3: `PYTHONPATH=tests:. python3 -m unittest tests.test_tv4_freshness_p3 -v` (ca day cá thể cần ghép TV2/TV3).
+- Smoke vòng ngày: `python3 -m chonoi.headless --mode day --seed 42 --days 1 --ticks 22200 --out out.jsonl`
+- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan|day` (mở địa chỉ in ra; WASD, E, Space, Esc pause; `--days N`, `--speed N` để tua nhanh)
+- QA Phase 2 (smoke liên tiến trình, tất định, thời gian headless, regression): `python3 tools/qa_p2.py`
+- QA Phase 3 (ngưỡng 30, file/day cá thể, giữ lại khi ươn, giá theo độ tươi, regression; tự chạy trên bản sao bật 1.2 nếu manifest chưa bật): `python3 tools/qa_p3.py`
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
 - Luật chơi của nhóm: `chonoi/sim/gather.py`, `chonoi/sim/quan.py` (tìm `TODO(nhóm)`).
+- Phase 2: `chonoi/sim/day.py` điều phối ngày, kế hoạch và Shop. CLI, input, scenario, runner và API live được cập nhật để dùng chung pause và vòng ngày. `GatherSim` nhận số ngày qua `day`, còn giới hạn oxy/Máu đã áp cấp nằm trong tuning của ca.
 - **Số liệu chỉ đọc từ `game.contract.json` / dữ liệu**, không hard-code trong luật.
 - Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.

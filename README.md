@@ -27,6 +27,48 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
 
+### Sáng tạo của nhóm (Nhóm Hallucination)
+Nhóm đã tích hợp 3 tính năng mở rộng đặc sắc mang đậm bản sắc sông nước miền Tây trên client trực tiếp (`chonoi/web/index.html`):
+1. **Hệ thống âm thanh tương tác (Web Audio API)**: Tổng hợp âm thanh tự động (không phụ thuộc file ngoài): tiếng tủm khi lặn (`dive`), tiếng nhô lên thở (`surface`), tiếng ting vui tai khi bắt cá / hái hoa, tiếng xèo xèo khi nấu bếp, tiếng leng keng khi nhận tiền & boa, và cảnh báo âm thanh khi oxy dưới 25%.
+2. **Hệ thống Lời thoại Nam Bộ & Hộp thoại nhân vật**: Nhân vật có lời thoại tương tác theo thời gian thực: Má Tư dặn dò con gái, Út Sen cảm thán khi lặn/bắt cá/hụt hơi, và thực khách khen ngợi *"Món ngon bá cháy bọ chét luôn cô chủ nhỏ ơi! Thối tiền khỏi thối nghen!"*.
+3. **Hiệu ứng đồ họa môi trường trên Canvas**: Sóng nước nhấp nhô trên mặt sông Chín Khúc, bọt khí nước (`bubbles`) nổi lên khi bơi lặn, khói bếp bốc lên từ bếp B1 và ánh đèn vàng lung linh trên sàn gỗ nhà bè Má Tư.
+
+#### Phase 2 · Giao diện trọn vòng ngày (TV5)
+Chơi trọn 5 Ngày trên trình duyệt: `python3 -m chonoi.live --mode day` (thêm `--days 2` để thử nhanh, `--speed 10` để tua nhanh ca chơi khi demo).
+
+| Phím | Tác dụng |
+|---|---|
+| WASD / mũi tên | bơi (sáng) · đi (tối) |
+| E | hái bông, cập bến · nấu, bưng, dọn món |
+| Space | bắt cá (dưới nước) |
+| Esc / P | tạm dừng (Tiếp tục · Cài đặt · Về menu) |
+| Enter / phím bất kỳ | qua màn DayIntro, EveningIntro, DayResult |
+| 1 / 2 · Enter | Shop: mua Bình oxy / Áo phao · đóng Shop |
+| Z | ca sáng: đổi camera bám theo Út Sen ↔ toàn cảnh khúc sông |
+| C | ca tối (day): đóng quán sớm — hỏi xác nhận, đóng theo luật closing |
+| H | bật/tắt hướng dẫn Ngày 1 |
+| F3 / F2 | hiện FPS / nhật ký event (QA) |
+
+Điểm = `earned + 100 × floor(uy tín)`. Màn hình: Menu → DayIntro (Má Tư đọc món + nguyên liệu) → Lặn & Hái (HUD đã lấy/cần) → EveningIntro (nhập kho, món nấu được) → Mở Quán → DayResult → Shop → Summary.
+
+4. **Cài đặt âm thanh**: âm lượng Tổng / Nhạc nền / Hiệu ứng lưu trong trình duyệt giữa các lần mở; nhạc nền ngũ cung kiểu đàn tranh tự tổng hợp.
+5. **Nhân vật & cảnh vẽ tay trên canvas**: Út Sen đội nón lá, bờ dừa lúc bình minh, tia nắng dưới nước, đèn lồng nhà bè, bong bóng gọi món có vòng kiên nhẫn.
+6. **Chợ Chú Sáu (mở rộng `vendor` của TICKET-02, bản cửa sổ chơi)**: trong Shop bán kho dư (cá lóc 20k, cá linh 8k, cá kèo 10k, mỗi loại bông/kèo nèo 5k; cộng money và earned) và mua lại giá `floor(giá × 1.5)`, hàng mua giao thẳng vào kho quán tối Ngày kế, tách khỏi `gather_end.inventory`; phát `vendor_trade` / `buy_failed(out_of_stock|funds|unknown)`. Chỉ chạy ở cửa sổ chơi, DaySim headless chưa có lệnh vendor nên **chưa** khai `vendor` ở `extensions`.
+7. **Thời tiết theo Ngày** (chỉ hình + tiếng): D1 nắng, D2 sương sớm, D3 mưa lâm râm (có tiếng mưa), D4 gió chướng (sóng lớn, lá bay), D5 nắng. Má Tư nhắc thời tiết ở DayIntro.
+8. **Chuyện Má Tư kể**: 5 mẩu chuyện gốc về chợ nổi hiện ở DayResult, mở theo uy tín (D1 luôn mở, D5 cần ≥ 3.5); Summary đếm số chuyện đã nghe.
+9. **Khách quen có tên**: Ông Ba vé số, Cô Tư áo dài, Chú Năm ghe lúa, Bé Bi, Dì Bảy bán bông, Anh Sáu xe ôm — gán theo id đơn, có lời chào/khen/than riêng. Chỉ là lớp hiển thị, không đổi luật chọn món.
+
+10. **Hướng dẫn Ngày 1**: 5 bước ca sáng + 5 bước ca tối, tự qua bước theo event thật (`gather`, `fish_caught`, `cook_started`…), vòng sáng chỉ mục tiêu; phím H ẩn, nhớ trong trình duyệt.
+11. **Đóng quán sớm** (chỉ cửa sổ chơi): phím C → xác nhận → đưa đồng hồ ca về bước cuối để QuanSim tự đóng ca theo luật closing (khách đang ăn trả tiền, khách chờ về không trừ uy tín); phát event live `closed_early`. Headless không đổi.
+12. **Đồ họa mới**: Út Sen áo bà ba, bím tóc, nón lá, quay theo chiều bơi; cá lóc/cá linh/cá kèo khác dáng và hoa văn; Cá Sấu có mõm, răng, vảy lưng, mắt đỏ khi đuổi; quán nhà bè ván gỗ, bếp lò đất có lửa, bàn khăn caro, ghế đẩu, khách mặc áo màu riêng.
+13. **Độ tươi (chuẩn bị v1.2)**: giá dự kiến theo độ tươi trên bong bóng gọi món, đồng hồ "⏳ ươn sau N s", hàng ngả xám dần/ruồi bay khi ươn/lấp lánh khi tươi, Má Tư chấm hàng lúc nhập kho.
+
+Cửa sổ chơi dùng **cùng DaySim với headless** (`runner.Session("day")`); `chonoi/live_day.py` chỉ thêm màn chờ UI, gộp số liệu và Chợ Chú Sáu, không đụng headless.
+
+**Mở rộng đã làm (nhóm 5 người, ≥ 1 mục):** *Settings & âm thanh* — âm lượng Master/Music/SFX lưu giữa các lần mở (mục này không có mã trong Test Contract nên không khai `extensions`). Bằng chứng: [docs/verification/phase-2.md](docs/verification/phase-2.md) mục 4. QA một lệnh: `python3 tools/qa_p2.py` → [docs/proof/phase-2/qa-report.md](docs/proof/phase-2/qa-report.md).
+
+> **Bằng chứng lõi vẫn đúng**: Các hiệu ứng sáng tạo được đóng gói hoàn toàn trong client web (`index.html`), không tác động đến logic tick hay sự kiện của mô phỏng headless. Test contract và smoke test chạy độc lập đạt 100% (xem `docs/verification/phase-1.md`).
+
 ## Lịch 3 giờ
 
 | Mốc | Phase | Hạn tag |
