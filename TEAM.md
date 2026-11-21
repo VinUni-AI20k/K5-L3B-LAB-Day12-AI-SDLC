@@ -5,7 +5,7 @@
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
 | Vũ Huy Hiệu | hieunhangia | governance/contracts | Integrator | Thành viên 2 |
-| [Chưa điền] | <github-handle-2> | sim/gather | Dev Lead Gather | Thành viên 3 |
+| Phạm Lý Ngọc Đức | Ducbaynao | sim/gather | Dev Lead Gather | Thành viên 3 |
 | [Chưa điền] | <github-handle-3> | sim/gather | Dev Gather Items | Thành viên 4 |
 | [Chưa điền] | <github-handle-4> | sim/quan | PO | Thành viên 5 |
 | [Chưa điền] | <github-handle-5> | sim/quan | Dev Lead Quán | Thành viên 6 |

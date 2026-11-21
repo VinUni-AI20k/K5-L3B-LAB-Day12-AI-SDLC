@@ -1,4 +1,4 @@
-"""Buổi sáng — Lặn & Hái (`gather`). KHUNG: bơi, chặn mép, đồng hồ, cập bến, xuất kho.
+"""Buổi sáng — Lặn & Hái (`gather`): bơi, oxy, ngạt, giỏ và khung thu hoạch.
 
 Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` độ sâu hướng xuống, d = 0 là mặt nước).
 `move = [x, d]`: thành phần thứ hai DƯƠNG = bơi xuống. Hướng mặt là góc từ +x, dương = xuống.
@@ -6,13 +6,9 @@ Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` đ�
 Đã làm sẵn để smoke test chạy được: bơi + tăng/giảm tốc, chặn mép (d không âm), đồng hồ và hết giờ,
 cập bến (`interact` trong vùng bến -> `gather_end` reason `docked`), xuất kho, snapshot đầy đủ trường gather.
 
+Lát 1 đã có: chuyển vùng theo vị trí cuối bước, oxy, ngạt và ngất trước interact/catch/hết giờ.
+Giỏ giữ thứ tự nhặt (mới nhất ở cuối); lát 2 dùng _store_in_hold để giới hạn sức chứa.
 Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gather"):
-  TODO(nhóm, lát 1): bơi + oxy + biên + giỏ
-      - oxy: dưới nước (d > surface_depth) trừ 1 tick/tick, mặt nước hồi oxygen_refill_per_tick, kẹp [0, max]
-      - ngạt: oxy = 0 và đang dưới nước -> đếm zero_oxy_ticks, đủ choke_interval_ticks thì -1 Máu (choke)
-      - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
-      - sự kiện dive / surface / oxygen_empty / choke / faint
-      - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
   TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
       - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
       - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
@@ -79,14 +75,20 @@ class GatherSim:
     def inventory_items(self) -> dict:
         return hold_to_items(self.hold)
 
+    def _store_in_hold(self, kind, count) -> int:
+        """Thêm theo thứ tự nhặt, trả số món thực nhận để lát 2 tạo event tương ứng."""
+        stored = min(count, max(0, self.t["hold_capacity"] - len(self.hold)))
+        self.hold.extend([kind] * stored)
+        return stored
+
     def snapshot(self) -> dict:
         return {
-            "player": {"pos": self.pos, "vel": self.vel, "heading_deg": self.heading,
+            "player": {"pos": list(self.pos), "vel": list(self.vel), "heading_deg": self.heading,
                        "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": self.hold, "hold_count": len(self.hold),
+            "hold": list(self.hold), "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
@@ -108,10 +110,31 @@ class GatherSim:
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
         # 2. bơi + chặn mép
+        was_at_surface = self._at_surface()
         self._move(inp)
-        # TODO(nhóm, lát 1): so phân vùng đầu/cuối bước -> dive / surface (data: pos).
-        # TODO(nhóm, lát 1): oxy theo d CUỐI bước (mặt nước hồi, dưới nước trừ), oxygen_empty khi từ dương
-        #   xuống 0, đếm ngạt, choke (-1 Máu). Máu 0 -> faint + gather_end("fainted") với giỏ rỗng, return.
+        at_surface = self._at_surface()
+        if was_at_surface != at_surface:
+            events.append(("surface" if at_surface else "dive", {"pos": list(self.pos)}))
+        oxygen_before = self.oxygen_ticks
+        if at_surface:
+            self.oxygen_ticks = min(self.oxygen_max, self.oxygen_ticks + self.t["oxygen_refill_per_tick"])
+        else:
+            self.oxygen_ticks = max(0, self.oxygen_ticks - 1)
+            if oxygen_before > 0 and self.oxygen_ticks == 0:
+                events.append(("oxygen_empty", {}))
+        if not at_surface and self.oxygen_ticks == 0:
+            self.zero_oxy_ticks += 1
+            if self.zero_oxy_ticks >= self.t["choke_interval_ticks"]:
+                self.zero_oxy_ticks = 0
+                self.hp = max(0, self.hp - 1)
+                events.append(("choke", {"hp": self.hp}))
+                if self.hp == 0:
+                    self.hold = []
+                    events.append(("faint", {"reason": "fainted"}))
+                    self._finish("fainted", events)
+                    return events
+        else:
+            self.zero_oxy_ticks = 0
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
