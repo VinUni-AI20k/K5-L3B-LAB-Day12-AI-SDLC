@@ -1,4 +1,5 @@
 // Core: two stacked canvases. `px` = low-res pixel world (crisp upscaled), `ui` = full-res text/HUD layer.
+import { highContrast } from "./a11y.js";
 export const W = 480, H = 270;
 
 export const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -42,6 +43,8 @@ const MAP = {
   arrowup: "up", w: "up", arrowdown: "down", s: "down",
   e: "interact", " ": "catch", shift: "sprint", enter: "confirm", escape: "back", m: "mute", r: "restart", p: "pause", c: "close",
   n: "next", tab: "tab", // N = "Mở quán" on the menu board · Tab = switch Shop tabs
+  h: "contrast", // H = toggle high-contrast mode (a11y.js, handled by main.js)
+  o: "open", // O = "Mở quán" button on the pre-open raft (N works too)
 };
 addEventListener("keydown", (e) => {
   const k = MAP[e.key.toLowerCase()];
@@ -135,8 +138,13 @@ export function txt(str, x, y, o = {}) {
   if (o.rot) { u.translate(x, y); u.rotate(o.rot); x = 0; y = 0; }
   if (o.scale && o.scale !== 1) { u.translate(x, y); u.scale(o.scale, o.scale); x = 0; y = 0; }
   if (o.shadow) { u.fillStyle = o.shadow; u.fillText(str, x + (o.sd || 1.2), y + (o.sd || 1.2)); }
-  if (o.stroke) { u.lineJoin = "round"; u.strokeStyle = o.stroke; u.lineWidth = o.sw || 3; u.strokeText(str, x, y); }
-  u.fillStyle = o.color || "#fff";
+  let col = o.color || "#fff";
+  if (highContrast) { // a11y: no faint tints, solid outlines
+    if (u.globalAlpha < 0.85 && u.globalAlpha > 0.05) u.globalAlpha = 0.95;
+    const m = /^rgba\((\d+),\s*(\d+),\s*(\d+),\s*[\d.]+\)$/.exec(col); if (m) col = `rgb(${m[1]},${m[2]},${m[3]})`;
+    if (o.stroke) { u.lineJoin = "round"; u.strokeStyle = "#000"; u.lineWidth = Math.max(o.sw || 3, 3); u.strokeText(str, x, y); }
+  } else if (o.stroke) { u.lineJoin = "round"; u.strokeStyle = o.stroke; u.lineWidth = o.sw || 3; u.strokeText(str, x, y); }
+  u.fillStyle = col;
   u.fillText(str, x, y);
   u.restore();
 }
@@ -160,6 +168,12 @@ export function panel(x, y, w, h, o = {}) {
   u.save(); u.globalAlpha = o.alpha ?? 1;
   u.beginPath(); u.roundRect(x, y, w, h, r);
   u.fillStyle = o.fill || "rgba(8,20,38,.82)"; u.fill();
-  if (o.border !== false) { u.lineWidth = o.bw || 1.2; u.strokeStyle = o.border || "#f3d27a"; u.stroke(); }
+  if (o.border !== false) {
+    if (highContrast) { // a11y: black outer outline + opaque border (faint rgba borders become white)
+      const b = o.border || "#f3d27a", faint = typeof b === "string" && b.startsWith("rgba");
+      u.lineWidth = (o.bw || 1.2) + 2; u.strokeStyle = "#000"; u.stroke();
+      u.lineWidth = Math.max(o.bw || 1.2, 1.5); u.strokeStyle = faint ? "#fff" : b; u.stroke();
+    } else { u.lineWidth = o.bw || 1.2; u.strokeStyle = o.border || "#f3d27a"; u.stroke(); }
+  }
   u.restore();
 }

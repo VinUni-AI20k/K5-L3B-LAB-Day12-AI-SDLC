@@ -26,11 +26,14 @@ export function vendorPrices(contract) {
   const v = contract?.tuning?.shop?.vendor || {}, sell = { ...VENDOR_SELL, ...(v.sell_prices || {}) }, mul = v.buy_multiplier ?? 1.5;
   return Object.fromEntries(Object.entries(sell).map(([k, p]) => [k, { sell: p, buy: Math.floor(p * mul) }]));
 }
-export function vendorBuy(contract, kind) {
+// deliverDay (GUI hubs): the campaign day whose evening receives the goods — always "tomorrow evening" (a morning
+// purchase on day N → N+1; a night purchase, after finishDay already moved save.day to N+1 → N+1). Omitted = next evening.
+export function vendorBuy(contract, kind, deliverDay = null) {
   const pr = vendorPrices(contract)[kind], s = progress.save;
   if (!pr || s.money < pr.buy) return null; // buy_failed: money unchanged
   s.money -= pr.buy;
   const it = { id: nextItemId(), kind, fresh: freshCfg(contract).initial };
+  if (deliverDay != null) it.day = deliverDay;
   if (!Array.isArray(s.pendingDelivery)) s.pendingDelivery = [];
   s.pendingDelivery.push(it); progress.persist(); return it;
 }
@@ -43,6 +46,8 @@ export function vendorSell(contract, leftover, kind) {
   return { item: it, price: pr.sell };
 }
 const countKinds = (items) => { const o = {}; for (const it of items || []) o[it.kind] = (o[it.kind] || 0) + 1; return o; };
+// pending goods that arrive on the evening of `day` (items without a day tag = the next evening, the old Shop behaviour)
+export const dueOn = (items, day) => (items || []).filter((it) => it.day == null || it.day <= day);
 export const deliveryText = (items) => Object.entries(countKinds(items)).map(([k, n]) => `${n} ${kindName(k)}`).join(", ");
 
 class Base {
@@ -65,7 +70,7 @@ export class DayIntro extends Base {
     const total = p ? Object.values(p.ingredients).reduce((a, b) => a + b, 0) : 0;
     this.line = p ? `Hôm nay quán nấu ${dishes}. Con lặn lấy đủ ${total} nguyên liệu nghen!` : "Hôm nay con cứ lặn kiếm thật nhiều đồ nghen!";
     this.autoS = 4;
-    const pend = progress.save.pendingDelivery || [];
+    const pend = dueOn(progress.save.pendingDelivery, day);
     this.delivery = pend.length ? `Chú Sáu giao tối nay: ${deliveryText(pend)}` : null;
     try { voiceLine("ba", this.line); } catch (e) {}
     sfx("whoosh");
@@ -112,6 +117,7 @@ export function servings(recipe, stock) { let n = Infinity; for (const [k, q] of
 export class EveningIntro extends Base {
   constructor(contract, day, stock, onDone, items = null, opts = {}) {
     super("dusk"); this.onDone = onDone; this.day = day; this.stock = stock || {}; this.menu = contract.tuning.menu;
+    this.popup = !!(opts && opts.popup); // pre-open raft: centred board over the live quán instead of a full screen
     this.below = { spoiled_below: 30, ...contract.freshness }.spoiled_below;
     this.items = Array.isArray(items) ? items : null;
     this.delivered = new Set((opts && opts.delivered) || []);
@@ -161,12 +167,21 @@ export class EveningIntro extends Base {
       if (!r.on) { sfx("hurt"); this.msg = { text: "Bật món này trước (E/Enter)", col: "#ffb36b", life: 1.4 }; }
       else { const d = input.hit("right") ? 1 : -1, nt = clamp(r.target + d, r.can > 0 ? 1 : 0, r.can); if (nt !== r.target) { r.target = nt; sfx("click"); this.recalc(); } else sfx("hurt"); }
     }
-    if (input.hit("next")) return this.open();
+    if (input.hit("next")) return this.popup ? this.finish({ ...this.selection(), open: true }) : this.open();
+    if (this.popup && input.hit("back")) return this.finish(this.selection()); // Esc closes the board, keeping the picks
     if (input.hit("confirm") || input.hit("interact") || input.hit("catch")) {
-      if (!r) return this.open();
+      if (!r) return this.popup ? this.finish(this.selection()) : this.open();
       r.on = !r.on; r.auto = r.on; sfx(r.on ? "select" : "click"); this.recalc();
     }
   }
+  // what the board would open with right now (the pre-open raft reads this when the bell is rung without visiting the board)
+  selection() {
+    const menu = this.ids;
+    if (!this.rows.some((r) => r.alone > 0)) return { menu: menu.length ? menu : this.planIds.length ? this.planIds : Object.keys(this.menu), portions: null };
+    return { menu, portions: Object.fromEntries(this.rows.filter((r) => r.on).map((r) => [r.id, r.target])) };
+  }
+  // popup mode (pre-open raft): reopenable — done resets, onDone receives the picks each time it closes
+  reopen() { this.done = false; this.t = 0.6; this.sel = this.rows.length; this.msg = null; }
   open() {
     const menu = this.ids, anyCook = this.rows.some((r) => r.alone > 0);
     if (!anyCook) { // nothing cookable at all: open anyway with the plan dishes — guests still come, read the board and go home
@@ -177,6 +192,7 @@ export class EveningIntro extends Base {
     this.finish({ menu, portions: Object.fromEntries(this.rows.filter((r) => r.on).map((r) => [r.id, r.target])) });
   }
   draw() {
+    if (this.popup) return this.drawPopup();
     this.bg(); const u = screen.ui; u.imageSmoothingEnabled = false;
     txt(`NGÀY ${this.day} · CHUẨN BỊ MỞ QUÁN`, W / 2, 24, { size: 16, align: "center", color: "#ff8a3d", weight: 900, italic: true, stroke: "#3a1410", sw: 5 });
     // stock received (left)
@@ -193,11 +209,17 @@ export class EveningIntro extends Base {
       for (const it of mine) { const bad = it.fresh < this.below || it.spoiled; spoiled ||= bad; const part = `${it.id}${this.delivered.has(it.id) ? "(chợ)" : ""} ${bad ? "ươn" : Math.floor(it.fresh) + "%"}`; const next = line ? line + " · " + part : part; if (measure(next, 7, 700) > pw - 16) { line += " …"; break; } line = next; }
       txt(line, 18, y + 18, { size: 7, color: spoiled ? "#ffb0a0" : "rgba(220,245,255,.8)", weight: 700 }); });
     this.warn.forEach((w, i) => txt("! " + w, 16, 34 + ph + 10 + i * 10, { size: 7, color: "#ff8a8a", weight: 900, stroke: "#1a0a0a", sw: 2 }));
-    // wooden menu board (right)
-    const x0 = 186, w0 = W - x0 - 8, rH = 26, y0 = 50;
-    panel(x0, 32, w0, 18 + this.rows.length * rH + 4, { fill: "rgba(96,58,30,.96)", border: "#d9a05a", r: 6, bw: 1.5 });
+    this.drawBoard(186, 32, W - 186 - 8, "Mở quán ▶");
+    if (this.msg) txt(this.msg.text, W / 2, H - 20, { size: 9, align: "center", color: this.msg.col, weight: 900, stroke: "#1a1220", sw: 2 });
+    if (this.t > 0.6) txt("↑↓ chọn món · E/Enter bật/tắt · ←→ số phần · N: mở quán", W / 2, H - 6, { size: 7, align: "center", color: "rgba(255,255,255,.7)", weight: 700 });
+  }
+  // the wooden board (rows, toggles, steppers, button) — shared by the full screen and the popup
+  drawBoard(x0, top, w0, btn) {
+    const u = screen.ui; u.imageSmoothingEnabled = false;
+    const rH = 26, y0 = top + 18;
+    panel(x0, top, w0, 18 + this.rows.length * rH + 4, { fill: "rgba(96,58,30,.96)", border: "#d9a05a", r: 6, bw: 1.5 });
     u.fillStyle = "rgba(60,34,16,.35)"; for (let i = 0; i < this.rows.length; i++) u.fillRect(x0 + 3, y0 + i * rH + rH - 1, w0 - 6, 1); // plank seams
-    txt("BẢNG THỰC ĐƠN TỐI NAY", x0 + w0 / 2, 44, { size: 8, align: "center", color: "#ffe9c4", weight: 900, stroke: "#3a1a08", sw: 2 });
+    txt("BẢNG THỰC ĐƠN TỐI NAY", x0 + w0 / 2, top + 12, { size: 8, align: "center", color: "#ffe9c4", weight: 900, stroke: "#3a1a08", sw: 2 });
     this.rows.forEach((r, i) => {
       const y = y0 + i * rH, m = this.menu[r.id], sel = this.sel === i, dim = r.on ? 1 : 0.55;
       if (sel) panel(x0 + 3, y, w0 - 6, rH - 2, { fill: "rgba(255,210,100,.2)", border: GOLD, r: 4 });
@@ -217,18 +239,35 @@ export class EveningIntro extends Base {
     // "Mở quán ▶" button
     const bs = this.sel === this.rows.length, by = y0 + this.rows.length * rH + 8;
     panel(x0 + w0 / 2 - 50, by, 100, 15, { fill: bs ? "rgba(200,90,30,.95)" : "rgba(110,64,32,.95)", border: bs ? GOLD : "#3a2410", bw: 1.5, r: 5 });
-    txt("Mở quán ▶", x0 + w0 / 2, by + 11, { size: 9, align: "center", color: "#fff", weight: 900, alpha: bs ? 0.75 + 0.25 * Math.sin(this.t * 5) : 1 });
+    txt(btn, x0 + w0 / 2, by + 11, { size: 9, align: "center", color: "#fff", weight: 900, alpha: bs ? 0.75 + 0.25 * Math.sin(this.t * 5) : 1 });
+  }
+  // popup over the live pre-open raft: dim, centred board (~70% width), a compact stock line, key hints
+  drawPopup() {
+    const u = screen.ui; u.imageSmoothingEnabled = false;
+    u.save(); u.fillStyle = "rgba(10,6,4,.55)"; u.fillRect(0, 0, W, H); u.restore();
+    const w0 = Math.round(W * 0.7), x0 = Math.round((W - w0) / 2), top = 30;
+    this.drawBoard(x0, top, w0, "Xong ✓");
+    const ks = Object.entries(this.usable).filter(([, n]) => n > 0);
+    const sy = top + 18 + this.rows.length * 26 + 30;
+    panel(x0, sy, w0, 15, { fill: "rgba(8,20,38,.9)", border: "#7ac0ff", r: 5 });
+    txt("Kho dùng được:", x0 + 6, sy + 10.5, { size: 7, color: "#9fd8ff", weight: 900 });
+    let x = x0 + 70; for (const [k, n] of ks) { u.drawImage(icon(k), x, sy + 3, 9, 9); txt("×" + n, x + 10, sy + 10.5, { size: 7, color: "#fff", weight: 900 }); x += 30; }
+    if (!ks.length) txt("trống — khách tới đọc bảng rồi về", x, sy + 10.5, { size: 7, color: "#ffb0b0", weight: 800 });
+    if (this.warn.length) txt("! " + this.warn.join(" · "), x0 + w0 - 6, sy + 10.5, { size: 7, align: "right", color: "#ff8a8a", weight: 900 });
     if (this.msg) txt(this.msg.text, W / 2, H - 20, { size: 9, align: "center", color: this.msg.col, weight: 900, stroke: "#1a1220", sw: 2 });
-    if (this.t > 0.6) txt("↑↓ chọn món · E/Enter bật/tắt · ←→ số phần · N: mở quán", W / 2, H - 6, { size: 7, align: "center", color: "rgba(255,255,255,.7)", weight: 700 });
+    txt("↑↓ chọn món · E/Enter bật/tắt · ←→ số phần · Esc/Xong: lưu & đóng · N: lưu & mở quán", W / 2, H - 6, { size: 7, align: "center", color: "rgba(255,255,255,.75)", weight: 700, stroke: "rgba(10,8,20,.6)", sw: 2 });
   }
 }
 
 // ---------- DayResult: served / left, money, tips, reputation change ----------
 export class DayResult extends Base {
-  constructor(sum, onDone) { super("night"); this.s = sum; this.onDone = onDone; sfx("fanfare"); }
+  // opts.under = the finished quán scene: the result is then a centred pop-up over the frozen raft (campaign), not a full screen
+  constructor(sum, onDone, opts = {}) { super("night"); this.s = sum; this.onDone = onDone; this.under = opts.under || null; this.next = opts.next || "Enter: vào Shop ▶"; sfx("fanfare"); }
   update(dt) { this.tick(dt); if (this.t > 0.8 && (input.hit("confirm") || input.hit("interact") || input.hit("catch"))) this.finish(); }
   draw() {
-    this.bg(); const s = this.s;
+    if (this.under) { try { this.under.draw(); } catch (e) { this.bg(); } const u = screen.ui, k = clamp(this.t / 0.3, 0, 1); u.save(); u.fillStyle = `rgba(6,8,18,${0.6 * k})`; u.fillRect(0, 0, W, H); u.restore(); }
+    else this.bg();
+    const s = this.s;
     if (s.closedEarly) txt("Đóng sớm", W / 2 + 118, 44, { size: 8, align: "right", color: "#ffb36b", weight: 900 });
     txt(`KẾT SỔ NGÀY ${s.day}`, W / 2, 34, { size: 20, align: "center", color: GOLD, weight: 900, italic: true, stroke: "#3a1410", sw: 5 });
     panel(W / 2 - 130, 46, 260, 166, { fill: "rgba(8,20,38,.9)", border: BORDER, r: 8 });
@@ -246,14 +285,15 @@ export class DayResult extends Base {
     ];
     const rh = rows.length > 8 ? 16.5 : 18;
     rows.forEach(([a, b, col], i) => { const y = 66 + i * rh; txt(a, W / 2 - 118, y, { size: 8, color: "rgba(255,255,255,.8)", weight: 700 }); txt(b, W / 2 + 118, y, { size: 9, align: "right", color: col, weight: 900 }); });
-    if (this.t > 0.8) txt("Enter: vào Shop ▶", W / 2, H - 12, { size: 9, align: "center", color: "#fff", weight: 900, alpha: 0.7 + 0.3 * Math.sin(this.t * 5) });
+    if (this.t > 0.8) txt(this.next, W / 2, H - 12, { size: 9, align: "center", color: "#fff", weight: 900, alpha: 0.7 + 0.3 * Math.sin(this.t * 5) });
   }
 }
 
 // ---------- Shop: tab "Nâng cấp" (contract upgrades first, creative extras after) + tab "Chợ Chú Sáu" (buy / sell raw goods);
-// auto-closes after shop.max_ticks. opts.leftover = tonight's leftover quán items (spoiled included), mutated by sales and
+// no timer in the GUI (the headless contract still auto-closes its shop after tuning.shop.max_ticks; the GUI is a
+// creative layer and never rushes the player). opts.leftover = tonight's leftover quán items (spoiled included), mutated by sales and
 // thrown away by main.js when the Shop closes. this.bought = { kind: n } bought this visit (main.js sends Chú Sáu's message).
-const CU = { oxygen: { name: "Bình oxy", eff: (l) => `O₂ ${l.oxygen_max_s} s` }, hp: { name: "Áo phao (thêm Máu)", eff: (l) => `${l.hp_max} Máu` } };
+export const CU = { oxygen: { name: "Bình oxy", eff: (l) => `O₂ ${l.oxygen_max_s} s` }, hp: { name: "Áo phao (thêm Máu)", eff: (l) => `${l.hp_max} Máu` } };
 export const SHOP_TABS = ["NÂNG CẤP", "CHỢ CHÚ SÁU"];
 export class Shop extends Base {
   constructor(contract, nextLabel, onDone, opts = {}) {
@@ -266,8 +306,7 @@ export class Shop extends Base {
     this.rows.push({ done: true });
     this.items = this.rows.map((r, i) => (r.head ? -1 : i)).filter((i) => i >= 0);
     this.sel = 0; this.msg = null;
-    // contract: auto-close after shop.max_ticks of activity. GUI: counted as IDLE time (any key resets it) so trading isn't rushed
-    this.maxLeft = (contract.tuning.shop?.max_ticks ?? 600) / (contract.tuning.tick_hz || 60); this.left = this.maxLeft; // frozen while paused
+    // no auto-close here: the headless contract still uses tuning.shop.max_ticks, the GUI shop waits for the player
     // Chợ Chú Sáu
     this.tab = opts.tab === 1 ? 1 : 0;
     this.leftover = Array.isArray(opts.leftover) ? opts.leftover : [];
@@ -277,11 +316,9 @@ export class Shop extends Base {
     this.bought = {}; this.pops = [];
   }
   update(dt) {
-    this.tick(dt); this.left -= dt;
-    if (input.anyKey?.()) this.left = this.maxLeft;
+    this.tick(dt);
     if (this.msg) { this.msg.life -= dt; if (this.msg.life <= 0) this.msg = null; }
     for (const p of this.pops) p.life -= dt; this.pops = this.pops.filter((p) => p.life > 0);
-    if (this.left <= 0) { this.left = 0; return this.finish("time"); }
     if (input.hit("tab") || (this.tab === 0 && (input.hit("left") || input.hit("right")))) { this.tab = 1 - this.tab; sfx("click"); return; }
     const ok = this.t > 0.3 && (input.hit("confirm") || input.hit("interact") || input.hit("catch"));
     if (this.tab === 1) {
@@ -338,7 +375,6 @@ export class Shop extends Base {
     this.bg(); const s = progress.save;
     txt("SHOP CHỢ NỔI", W / 2, 18, { size: 14, align: "center", color: GOLD, weight: 900, italic: true, stroke: "#3a1410", sw: 4 });
     txt(`Ví ${s.money}k · Tổng thu ${s.totalEarned}k`, 16, 18, { size: 8, color: GOLD, weight: 900 });
-    txt(`Tự đóng nếu không thao tác ${Math.ceil(this.left)} s`, W - 16, 18, { size: 8, align: "right", color: this.left < 4 ? "#ff8a8a" : "#cfe", weight: 800 });
     SHOP_TABS.forEach((name, i) => { const on = this.tab === i, x = W / 2 - 112 + i * 116;
       panel(x, 23, 108, 13, { fill: on ? "rgba(255,160,60,.35)" : "rgba(8,20,38,.75)", border: on ? GOLD : "rgba(243,210,122,.35)", r: 5 });
       txt(name, x + 54, 32.5, { size: 8, align: "center", color: on ? "#fff" : "rgba(255,255,255,.6)", weight: 900 }); });
@@ -428,12 +464,12 @@ export function drawPause(sel, items = PAUSE_ITEMS) {
   const u = screen.ui;
   u.save(); u.fillStyle = "rgba(4,8,20,.66)"; u.fillRect(0, 0, W, H); u.restore();
   const extra = (items.length - 2) * 20;
-  panel(W / 2 - 80, H / 2 - 46, 160, 92 + extra, { fill: "rgba(14,22,40,.95)", border: BORDER, r: 10, bw: 1.5 });
+  panel(W / 2 - 95, H / 2 - 46, 190, 92 + extra, { fill: "rgba(14,22,40,.95)", border: BORDER, r: 10, bw: 1.5 });
   txt("TẠM DỪNG", W / 2, H / 2 - 24, { size: 14, align: "center", color: GOLD, weight: 900 });
   items.forEach((s, i) => {
     const y = H / 2 - 4 + i * 20, on = i === sel;
-    if (on) panel(W / 2 - 60, y - 11, 120, 16, { fill: "rgba(255,160,60,.25)", border: GOLD, r: 6 });
+    if (on) panel(W / 2 - 80, y - 11, 160, 16, { fill: "rgba(255,160,60,.25)", border: GOLD, r: 6 });
     txt((on ? "▶ " : "") + s, W / 2, y + 1, { size: 10, align: "center", color: on ? "#fff" : "rgba(255,255,255,.7)", weight: 900 });
   });
-  txt("Esc/P: tiếp tục · ↑↓ Enter", W / 2, H / 2 + 40 + extra, { size: 7, align: "center", color: "rgba(255,255,255,.55)", weight: 700 });
+  txt("Esc/P: tiếp tục · ↑↓ Enter · H: tương phản", W / 2, H / 2 + 40 + extra, { size: 7, align: "center", color: "rgba(255,255,255,.55)", weight: 700 });
 }

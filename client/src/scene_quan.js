@@ -6,6 +6,8 @@ import { W, H, screen, input, clamp, lerp, fx, Particles, txt, panel, measure, w
 import { sfx, music, voiceLine } from "./audio.js";
 import { P, R, ripple, dishIcon, icon, DISH_NAME, KIND_NAME } from "./art.js";
 import { speedLines } from "./cutscene.js";
+import { highContrast, hc } from "./a11y.js";
+import { promptTag, drawPhoneIcon, PHONE_BTN } from "./hub.js";
 const dishName = (k) => DISH_NAME[k] || k;
 import { riverWorld } from "./story.js";
 import { save, stats } from "./progress.js";
@@ -18,6 +20,7 @@ let META = {};
 try { META = await import("./meta.js"); } catch (e) { META = {}; }
 
 const TAU = Math.PI * 2;
+const ANGRY_AT = 0.25; // patience fraction under which a waiting guest shows the "Sắp giận!" warning
 
 // Customer types (GUI-only "Sáng tạo của nhóm"; the headless sim knows one customer kind).
 // Multipliers apply on top of contract numbers (tuning.quan / tuning.menu), never replace them.
@@ -74,6 +77,8 @@ const X0 = 34, XS = 24, Y0 = 238, ZS = 6;
 const DECK_L = 12, DECK_R = 436, Y_BACK = 172, Y_FRONT = 244, HORIZON = 118;
 const DOCK = { x: 16.6, z: 4 }, BOAT_X = 17.6, SEAT_DX = 0.8, WALK = 4.5;
 const BA_TU = { x: 1.1, z: 9.2 }, PASS = { x: 3.6, z: 8.4 };
+// pre-open walk (campaign evening): the menu board hangs on the back rail beside the kitchen, the bell at the gangway
+const BOARD = { x: 5.8, z: 9.3 }, BELL = { x: 15.0, z: 4.2 };
 const depthScale = (z) => Math.round((1 - clamp(z, 0, 10) * 0.02) * 16) / 16;
 // warm-wood HUD palette
 const HUD = { fill: "rgba(42,24,14,.88)", border: "#e8b04a", dim: "#7a5232", text: "#ffe9c4" };
@@ -92,14 +97,17 @@ function pixIcon(c, kind, x, y) {
 
 export class QuanScene {
   // opts.menu: array of dish ids allowed tonight (default: every contract dish)
+  // opts.preopen (campaign): the evening starts in a PRE-OPEN phase — no guests, clock/arrivals frozen; the player walks the
+  // raft, sets the menu on the board (opts.board = an EveningIntro in popup mode), talks to Bà Tư, then rings the bell.
+  // opts.onOpen({ menu, portions }) tells main.js what the bell opened with (R on the result replays it).
   constructor(contract, stock, onEnd, opts = {}) {
     this.t = contract.tuning.quan; this.onEnd = onEnd;
-    const t = this.t, all = contract.tuning.menu;
-    const allowed = Array.isArray(opts && opts.menu) ? opts.menu.filter((k) => all[k]) : Object.keys(all);
-    this.menu = Object.fromEntries(allowed.map((k) => [k, all[k]]));
-    // opts.portions (menu board in EveningIntro): { dish: target } — once sold + open orders reach the target the dish
-    // is "Hết suất" and no new guest orders it (they pick another selected dish or go home as no_dish)
-    this.portions = opts && opts.portions && typeof opts.portions === "object" ? Object.fromEntries(Object.entries(opts.portions).filter(([k, n]) => this.menu[k] && Number.isFinite(+n)).map(([k, n]) => [k, Math.max(0, +n | 0)])) : null;
+    const t = this.t; this.allMenu = contract.tuning.menu;
+    this.setMenu(opts && opts.menu, opts && opts.portions);
+    this.phase = opts && opts.preopen ? "preopen" : "open";
+    this.board = (opts && opts.board) || null; this.boardOpen = false; this.boardSel = null; this.onOpen = opts && opts.onOpen; this.openOpts = opts;
+    this.bellConfirm = 0; this.openAsk = false; // openAsk = the "Mở quán bây giờ?" confirm box (HUD button O/N/click, or the bell)
+    this.openBtn = { x: W - 104, y: H - 32, w: 98, h: 18 };
     this.p = { x: t.start_pos[0], z: t.start_pos[1], vx: 0, vz: 0, face: 1, walk: 0 };
     const counts = stock ? { ...stock } : { ca_loc: 3, ca_linh: 6, bong_sung: 4, bong_dien_dien: 3, ca_keo: 4, keo_neo: 1 }; // null = demo stock; {} = empty basket
     // v1.2 freshness: item-level stock { id, kind, fresh, spoiled, res } (res = id of the guest holding it). opts.items =
@@ -130,6 +138,12 @@ export class QuanScene {
     this._onMove = (e) => {
       if (this.ended || this.menuOpen || !screen.pc?.getBoundingClientRect) return;
       const r = screen.pc.getBoundingClientRect(), mx = (e.clientX - r.left) / r.width * W, my = (e.clientY - r.top) / r.height * H, b = this.closeBtn;
+      if (this.phase === "preopen") {
+        const q = PHONE_BTN, o = this.openBtn;
+        if (mx >= q.x && mx <= q.x + q.w + 16 && my >= q.y && my <= q.y + q.h) this.openOpts?.openPhone?.();
+        else if (mx >= o.x && mx <= o.x + o.w && my >= o.y && my <= o.y + o.h) { this.openAsk = true; sfx("click"); }
+        return;
+      }
       if (mx >= b.x && mx <= b.x + b.w && my >= b.y && my <= b.y + b.h) this.requestClose();
     };
     addEventListener("pointerdown", this._onMove);
@@ -151,8 +165,15 @@ export class QuanScene {
     this.applyMeta();
     music("restaurant");
   }
-  // cooking menu flag; reads true while Bà Tư's overlay is open too (so main.js leaves Esc to the overlay)
-  get menuOpen() { return !!this._menuOpen || !!this.overlay; }
+  // dishes allowed tonight + portion targets (menu board): once sold + open orders reach a target the dish is
+  // "Hết suất" and no new guest orders it (they pick another selected dish or go home as no_dish)
+  setMenu(menu, portions) {
+    const all = this.allMenu, allowed = Array.isArray(menu) ? menu.filter((k) => all[k]) : Object.keys(all);
+    this.menu = Object.fromEntries(allowed.map((k) => [k, all[k]]));
+    this.portions = portions && typeof portions === "object" ? Object.fromEntries(Object.entries(portions).filter(([k, n]) => this.menu[k] && Number.isFinite(+n)).map(([k, n]) => [k, Math.max(0, +n | 0)])) : null;
+  }
+  // cooking menu flag; reads true while Bà Tư's overlay / the menu board popup is open too (so main.js leaves Esc to them)
+  get menuOpen() { return !!this._menuOpen || !!this.overlay || !!this.boardOpen || !!this.openAsk; }
   set menuOpen(v) { this._menuOpen = !!v; }
   callMeta(name, ...a) { const f = this.meta && this.meta[name]; if (typeof f !== "function") return undefined; try { return f(...a); } catch (e) { return undefined; } }
   // (re)read staff levels, décor and its patience bonus from meta.js (start of shift + after Bà Tư's dialog closes)
@@ -582,22 +603,17 @@ export class QuanScene {
       if (ov.done && this.overlay === ov) { this.overlay = null; this.applyMeta(); }
       return;
     }
+    if (this.boardOpen && this.board) { try { this.board.update(dt); } catch (e) { console.warn("menu board", e); this.boardOpen = false; } return; }
     this.ps.update(dt);
     this.toasts.forEach((t) => { t.life -= dt; t.oy -= dt * 16; }); this.toasts = this.toasts.filter((t) => t.life > 0);
     if (this.repFlash > 0) this.repFlash -= dt;
     this.updateActors(dt);
+    if (this.phase === "preopen") return this.updatePreopen(dt);
     if (this.result) { this.result.t += dt; if (input.hit("restart")) this.onEnd({ restart: true }); else if (this.result.t > 0.8 && input.any()) this.onEnd(this.result); return; }
 
     if (this._menuOpen) { this.updateMenu(); return; }
-    const t = this.t, p = this.p;
     this.decayStock(dt); // v1.2 freshness (frozen while the cook menu / Bà Tư / pause is open)
-    let [mx, mz] = input.axis(); mz = -mz; // up key = toward the back rail (+z)
-    if (mx || mz) { const n = Math.hypot(mx, mz) || 1; mx /= n; mz /= n; this.started = true; this.hintT = 0; }
-    p.vx = lerp(p.vx, mx * t.walk_speed, 0.25); p.vz = lerp(p.vz, mz * t.walk_speed, 0.25);
-    p.x = clamp(p.x + p.vx * dt, 0.5, t.bounds.x[1] - 0.5);
-    p.z = clamp(p.z + p.vz * dt, 0.5, t.bounds.z[1] - 0.5);
-    if (Math.abs(mx) > 0.01) p.face = mx > 0 ? 1 : -1;
-    p.walk = (mx || mz) ? p.walk + dt : 0;
+    this.walk(dt);
 
     if (input.hit("interact")) this.interact();
     if (input.hit("restart")) this.onEnd({ restart: true });
@@ -633,6 +649,61 @@ export class QuanScene {
     this.score = this.money + 100 * Math.floor(this.rep);
     if (this.time <= 0) { this.time = 0; this.endRun(); }
     if (this.hintT > 0) this.hintT -= dt;
+  }
+  walk(dt) {
+    const t = this.t, p = this.p;
+    let [mx, mz] = input.axis(); mz = -mz; // up key = toward the back rail (+z)
+    if (mx || mz) { const n = Math.hypot(mx, mz) || 1; mx /= n; mz /= n; this.started = true; this.hintT = 0; }
+    p.vx = lerp(p.vx, mx * t.walk_speed, 0.25); p.vz = lerp(p.vz, mz * t.walk_speed, 0.25);
+    p.x = clamp(p.x + p.vx * dt, 0.5, t.bounds.x[1] - 0.5);
+    p.z = clamp(p.z + p.vz * dt, 0.5, t.bounds.z[1] - 0.5);
+    if (Math.abs(mx) > 0.01) p.face = mx > 0 ? 1 : -1;
+    p.walk = (mx || mz) ? p.walk + dt : 0;
+  }
+  // ---- PRE-OPEN phase: walk the raft before service. No guests, the shift clock and arrivals are frozen, and freshness
+  // is FROZEN too (fairness: browsing the board or chatting with Bà Tư must not cost the player stock quality). ----
+  preNear() {
+    const d = (o) => Math.hypot(o.x - this.p.x, o.z - this.p.z);
+    if (this.nearBaTu()) return "batu";
+    if (d(BOARD) <= 1.6) return "board";
+    if (d(BELL) <= 1.6) return "bell";
+    return null;
+  }
+  updatePreopen(dt) {
+    if (this.openAsk) { // confirm box: E/Enter/Space opens, Esc (or N/O again does nothing) keeps walking
+      if (input.hit("back")) { this.openAsk = false; sfx("click"); return; }
+      if (input.hit("interact") || input.hit("confirm") || input.hit("catch")) { this.openAsk = false; this.openService(); }
+      return;
+    }
+    if (input.hit("open") || input.hit("next")) { this.openAsk = true; sfx("click"); return; }
+    this.walk(dt);
+    if (this.bellConfirm > 0) this.bellConfirm -= dt;
+    const done = this.callMeta("popCompletions");
+    if (Array.isArray(done)) for (const d of done) { this.toast(this.p.x, this.p.z + 2.2, "Xong việc: " + (d.title || ""), "#ffd23a"); sfx("coin"); }
+    if (!(input.hit("interact") || input.hit("confirm") || input.hit("catch"))) return;
+    const n = this.preNear();
+    if (n === "batu") return this.openBaTu();
+    if (n === "board") return this.openBoard();
+    if (n === "bell") { this.openAsk = true; this.bellConfirm = 0.6; sfx("click"); }
+  }
+  openBoard() {
+    if (!this.board) { this.toast(BOARD.x, BOARD.z + 1.5, "Tối nay bán đủ món", "#ffe9c4"); return; }
+    this.board.reopen();
+    this.board.onDone = (sel) => { this.boardOpen = false; this.boardSel = sel; this.applyBoard(); if (sel && sel.open) this.openAsk = true; }; // N on the board → the same "Mở quán bây giờ?" confirm
+    this.boardOpen = true; sfx("select");
+  }
+  applyBoard() { const sel = this.boardSel || this.board?.selection?.(); if (sel) this.setMenu(sel.menu, sel.portions); }
+  // the bell: service starts with the board's picks (the plan dishes if the board was never opened)
+  openService() {
+    if (this.phase !== "preopen") return;
+    const sel = this.boardSel || (this.board ? this.board.selection() : null);
+    if (sel && !sel.menu.length) { sfx("hurt"); this.toast(BOARD.x, BOARD.z + 1.5, "Chọn ít nhất 1 món trên bảng!", "#ff8a8a"); return this.openBoard(); }
+    if (sel) this.setMenu(sel.menu, sel.portions);
+    this.phase = "open"; this.started = false; this.hintT = 4; this.bellConfirm = 0;
+    sfx("ding"); sfx("fanfare"); fx.flash("rgba(255,220,120,.25)", 0.15);
+    this.toast(BELL.x - 1, BELL.z + 2.4, "Mở quán!", "#ffd23a");
+    try { voiceLine("sen", "Mở quán rồi! Mời bà con ghé ăn nghen!"); } catch (e) {}
+    this.onOpen?.({ menu: Object.keys(this.menu), portions: this.portions });
   }
   // visual-only motion: arrivals, walkers, boats, coins, sizzle sparks (no gameplay state)
   updateActors(dt) {
@@ -734,6 +805,8 @@ export class QuanScene {
     for (const s of this.stoves) ents.push({ z: s.pos[1], draw: () => this.drawStove(c, s, time) });
     ents.push({ z: PASS.z, draw: () => this.drawPass(c, time) });
     ents.push({ z: BA_TU.z, draw: () => this.drawBaTu(c, time) });
+    ents.push({ z: BOARD.z + 0.3, draw: () => this.drawMenuBoard(c, time) });
+    if (this.phase === "preopen") ents.push({ z: BELL.z + 0.3, draw: () => this.drawBell(c, time) });
     for (const tb of this.tables) ents.push({ z: tb.pos[1] + 0.05, draw: () => this.drawTable(c, tb, time) });
     for (const cu of this.customers) if (cu.state !== "gone" && cu.state !== "done" && cu.vis) ents.push({ z: cu.vis.z - 0.02, draw: () => this.drawCustomer(c, cu, time) });
     for (const w of this.walkers) ents.push({ z: w.z - 0.02, draw: () => this.drawWalker(c, w, time) });
@@ -766,11 +839,64 @@ export class QuanScene {
     this.drawPrompts(time);
     this.toasts.forEach((t) => txt(t.txt, this._sx(t.x), this._sy(t.z) - 26 + t.oy, { size: 9, align: "center", color: t.col, weight: 900, stroke: "#1a1220", sw: 2.5, alpha: clamp(t.life, 0, 1) }));
 
+    if (this.hudOff) return; // DayResult pop-up draws over the frozen raft
     this.drawHUD(c, time);
+    if (this.phase === "preopen") this.drawPreopen(c, time);
     if (this._menuOpen) this.drawMenu(c, time);
     if (this.result) this.drawResult(c, time);
-    else if (this.hintT > 0 && !this.started && !this.menuOpen) this.drawHint(c);
+    else if (this.hintT > 0 && !this.started && !this.menuOpen && this.phase === "open") this.drawHint(c);
+    if (this.boardOpen && this.board) { try { this.board.draw(); } catch (e) { console.warn("menu board draw", e); } }
     if (this.overlay) { try { this.overlay.draw && this.overlay.draw(); } catch (e) { console.warn("Bà Tư dialog draw", e); } }
+  }
+  // wooden menu board on the back rail (pixel layer; it stays up all night)
+  drawMenuBoard(c, time) {
+    const x = this._sx(BOARD.x), y = this._sy(BOARD.z);
+    R(c, x - 1, y - 30, 2, 30, P.woodD);
+    R(c, x - 14, y - 46, 28, 20, P.woodL); R(c, x - 13, y - 45, 26, 18, "#4a2e18");
+    const keys = Object.keys(this.phase === "preopen" && this.boardSel ? Object.fromEntries(this.boardSel.menu.map((k) => [k, 1])) : this.menu);
+    for (let i = 0; i < Math.min(4, keys.length); i++) R(c, x - 10, y - 42 + i * 4, 14 + ((i * 5) % 6), 1, "#fff6e8");
+    if (this.phase === "preopen") { const k = Math.sin(time * 4) > 0 ? 1 : 0; R(c, x - 14, y - 47, 28, 1, k ? P.yellow : P.woodL); }
+  }
+  // bell on a post at the gangway (pre-open only): ring it to open for service
+  drawBell(c, time) {
+    const x = this._sx(BELL.x), y = this._sy(BELL.z), sw = this.bellConfirm > 0 ? Math.round(Math.sin(time * 20) * 1.5) : 0;
+    R(c, x, y - 34, 2, 34, P.woodD); R(c, x - 6, y - 34, 14, 2, P.woodD);
+    R(c, x - 6 + sw, y - 32, 1, 3, P.ink); R(c, x - 9 + sw, y - 29, 7, 6, P.yellow); R(c, x - 10 + sw, y - 23, 9, 1, P.yellowD); R(c, x - 7 + sw, y - 28, 2, 3, "#fff3b0");
+  }
+  // pre-open UI: prompt tags, banner, chosen-menu card, phone icon
+  drawPreopen(c, time) {
+    if (this.overlay || this.boardOpen) return;
+    // always-visible wooden "Mở quán ▶" button (bottom-right; click, O or N) + its confirm box
+    { const b = this.openBtn, a = 0.85 + 0.15 * Math.sin(time * 4);
+      panel(b.x, b.y, b.w, b.h, { fill: "rgba(150,70,24,.97)", border: "#ffd23a", bw: 1.6, r: 5 });
+      const u = screen.ui; u.save(); u.translate(b.x + 5, b.y + 4); u.scale(1.1, 1.1); R(u, 3, 0, 3, 1, P.yellowD); R(u, 2, 1, 5, 5, P.yellow); R(u, 1, 6, 7, 1, P.yellowD); R(u, 4, 7, 1, 2, P.yellowD); u.restore();
+      txt("Mở quán ▶", b.x + 18, b.y + 12.5, { size: 9, color: "#fff", weight: 900, alpha: a });
+      panel(b.x + b.w - 15, b.y + 4, 11, 10, { fill: "#ffe9c4", border: false, r: 2.5 }); txt("O", b.x + b.w - 9.5, b.y + 12, { size: 7.5, align: "center", color: "#2a1608", weight: 900 }); }
+    if (this.openAsk) {
+      const u = screen.ui; u.save(); u.fillStyle = "rgba(6,4,2,.5)"; u.fillRect(0, 0, W, H); u.restore();
+      panel(W / 2 - 130, H / 2 - 30, 260, 60, { fill: "rgba(46,26,14,.98)", border: "#ffd23a", bw: 1.8, r: 8 });
+      txt("Mở quán bây giờ?", W / 2, H / 2 - 10, { size: 12, align: "center", color: "#ffd23a", weight: 900 });
+      txt("Khách sẽ bắt đầu tới — đồng hồ và độ tươi chạy từ lúc này", W / 2, H / 2 + 5, { size: 7.5, align: "center", color: "#ffe9c4", weight: 800 });
+      txt("E/Enter: Mở   ·   Esc: Chưa", W / 2, H / 2 + 20, { size: 9, align: "center", color: "#fff", weight: 900 });
+      return;
+    }
+    const n = this.preNear();
+    const tag = (o, key, label, col, glyph, dy) => promptTag(this._sx(o.x), this._sy(o.z) - dy, key, label, col, glyph, 1, time);
+    if (n === "board") tag(BOARD, "E", "Bảng thực đơn", "#ffe9c4", "board", 50);
+    else if (n === "bell") tag(BELL, "E", "Mở quán ▶", "#ffd23a", "bell", 40);
+    else if (n === "batu") tag(BA_TU, "E", "Nói chuyện", "#e8c8ff", "talk", 30);
+    const a = 0.8 + 0.2 * Math.sin(time * 3);
+    panel(W / 2 - 132, 36, 264, 16, { fill: "rgba(42,24,14,.9)", border: "#ffd23a", r: 6, alpha: a });
+    txt("Chưa mở quán — đi dạo, nói chuyện với Bà Tư, chọn thực đơn", W / 2, 47, { size: 7.5, align: "center", color: "#ffe9c4", weight: 900 });
+    // chosen menu card (bottom-left, right of the phone icon)
+    const sel = this.boardSel || this.board?.selection?.() || { menu: Object.keys(this.menu), portions: this.portions };
+    const items = sel.menu.map((k) => dishName(k) + (sel.portions && sel.portions[k] != null ? " ×" + sel.portions[k] : ""));
+    const w = Math.min(300, Math.max(120, Math.ceil(measure(items.join(" · "), 7, 800)) + 16)), x = 46, y = H - 34;
+    panel(x, y, w, 24, { fill: HUD.fill, border: HUD.border, r: 6 });
+    txt("THỰC ĐƠN TỐI NAY", x + 6, y + 9, { size: 7, color: "#ffd23a", weight: 900 });
+    txt(items.length ? items.join(" · ") : "chưa chọn món", x + 6, y + 19, { size: 7, color: items.length ? HUD.text : "#ff9a9a", weight: 800 });
+    let unread = 0; try { unread = this.callMeta("unreadCount") || 0; } catch (e) {}
+    drawPhoneIcon(unread, time);
   }
   // small name tag over a staff member / Bà Tư (UI layer)
   nameTag(x, y, name, col = "#ffe9c4") {
@@ -904,11 +1030,23 @@ export class QuanScene {
     if (type !== "quen") pixIcon(c, type, bx - 12, by - 12);
     // patience ring: fraction of THIS customer's own max patience
     const fr = Math.min(1, cu.patience / (cu.patienceMax || this.t.patience_s));
-    this.ring(c, bx, by, fr, fr < 0.3 ? "#ff5a5a" : fr < 0.6 ? "#ffd23a" : "#79c75a", 11);
-    if (fr < 0.3 && Math.floor(time * 6) % 2) txt("!", x + 8, y - 30, { size: 11, color: "#ff5a5a", weight: 900, stroke: "#1a1220", sw: 2 });
+    const angry = fr < ANGRY_AT; // a11y warning: "khách sắp giận" below 25% of this guest's patience — ring turns red
+    this.ring(c, bx, by, fr, angry ? hc("#ff3a3a", "#ff1a1a") : fr < 0.6 ? "#ffd23a" : "#79c75a", 11);
     if (this.menuOpen || this.result) return; // UI-layer labels would sit above the dimmed overlay
     txt(this.payFor(cu) + "k", bx + 13, by + 3, { size: 7, color: ty.col, weight: 900, stroke: "#1a1220", sw: 2 });
     this.drawBadge(cu, bx, by - 12);
+    if (angry) this.drawAngry(bx, by, time);
+  }
+  // "Sắp giận!" warning (UI layer): pulsing red "!" disc right of the bubble + label over the type badge; high-contrast
+  // mode draws a bigger disc with a white ring and a black outline, label in yellow on black
+  drawAngry(bx, by, time) {
+    const u = screen.ui, pulse = 1 + 0.18 * Math.sin(time * 10), r = (highContrast ? 7.5 : 5.5) * pulse, cx = bx + 15, cy = by - 9;
+    u.save();
+    if (highContrast) { u.fillStyle = "#000"; u.beginPath(); u.arc(cx, cy, r + 2.6, 0, TAU); u.fill(); u.fillStyle = "#fff"; u.beginPath(); u.arc(cx, cy, r + 1.4, 0, TAU); u.fill(); }
+    u.fillStyle = highContrast ? "#ff1a1a" : `rgba(230,40,40,${0.8 + 0.2 * Math.sin(time * 10)})`; u.beginPath(); u.arc(cx, cy, r, 0, TAU); u.fill();
+    u.restore();
+    txt("!", cx, cy + r * 0.55, { size: r * 1.6, align: "center", color: "#fff", weight: 900 });
+    txt("Sắp giận!", bx, by - 27, { size: highContrast ? 9 : 8, align: "center", color: highContrast ? "#ffef00" : "#ff5a5a", weight: 900, stroke: "#1a1220", sw: 2.5, alpha: highContrast ? 1 : 0.8 + 0.2 * Math.sin(time * 10) });
   }
   // type badge above the order bubble (UI layer): pixel icon + short label
   drawBadge(cu, x, top) {
@@ -920,7 +1058,7 @@ export class QuanScene {
     txt(ty.badge, bx + 10, by + 8, { size: 7, color: ty.col, weight: 900 });
   }
   drawPrompts(time) {
-    if (this.menuOpen || this.result) return;
+    if (this.menuOpen || this.result || this.phase === "preopen") return;
     const s = this.nearStove(), o = { size: 8, align: "center", weight: 900, stroke: "#1a1220", sw: 2.5 };
     if (!this.hand && this.nearBaTu()) { txt("E: Nói chuyện với Bà Tư", clamp(this._sx(BA_TU.x) + 20, 60, W - 60), this._sy(BA_TU.z) + 12, { ...o, color: "#e8c8ff" }); return; }
     if (s) {
@@ -943,8 +1081,9 @@ export class QuanScene {
   drawHUD(c, time) {
     const u = screen.ui, F = HUD.fill;
     const mm = Math.floor(Math.ceil(this.time) / 60), ss = Math.ceil(this.time) % 60, low = this.time < 20;
+    const pre = this.phase === "preopen";
     panel(W / 2 - 24, 4, 48, 15, { fill: F, border: low ? "#ff6b6b" : HUD.border, r: 7 });
-    txt(`${mm}:${String(ss).padStart(2, "0")}`, W / 2, 15, { size: 11, align: "center", color: low ? "#ff8a8a" : HUD.text, weight: 900 });
+    txt(pre ? "CHƯA MỞ" : `${mm}:${String(ss).padStart(2, "0")}`, W / 2, pre ? 14.5 : 15, { size: pre ? 8 : 11, align: "center", color: low ? "#ff8a8a" : HUD.text, weight: 900 });
     panel(W / 2 - 22, 21, 44, 11, { fill: F, border: HUD.dim, r: 5 });
     txt("Ngày " + this.day, W / 2, 29.5, { size: 7.5, align: "center", color: "#ffd23a", weight: 900 });
     // shift tally: served / walked out
@@ -986,7 +1125,7 @@ export class QuanScene {
         freshBar(u, x + 3, 20, 18, 3, best, false); u.fillStyle = "#fff"; u.fillRect(x + 3 + Math.round(18 * avg / 100), 19, 1, 5); }
       if (nSp) txt(nSp + "ươn", x + sw2 - 4, 25, { size: 7, align: "right", color: "#ff5a5a", weight: 900 }); });
     // early-close button (wood style, clickable) + confirmation / no-dish banners
-    if (!this.result) {
+    if (!this.result && !pre) {
       const b = this.closeBtn, armed = this.confirmClose > 0;
       panel(b.x, b.y, b.w, b.h, { fill: armed ? "rgba(140,40,20,.95)" : "rgba(110,64,32,.95)", border: armed ? "#ffb36b" : "#3a2410", bw: 1.5, r: 4 });
       txt(armed ? "Nhấn lần nữa!" : "Đóng quán sớm (C)", b.x + b.w / 2, b.y + 10.5, { size: 7, align: "center", color: "#ffe9c4", weight: 900 });
@@ -995,7 +1134,7 @@ export class QuanScene {
     }
     // hand indicator
     if (this.hand) { const s = "Đang bưng: " + dishName(this.hand.key), hw = Math.max(86, Math.ceil(measure(s, 7, 800)) + 10); panel(W - 6 - hw, 30, hw, 14, { fill: "rgba(70,30,12,.9)", border: "#ff8a3d", r: 6 }); txt(s, W - 1 - hw, 40, { size: 7, color: "#ffd0a0", weight: 800 }); }
-    txt("WASD đi · E nấu/bưng/phục vụ/trò chuyện · C đóng quán sớm · Esc/P tạm dừng", W / 2, H - 4, { size: 7, align: "center", color: "rgba(255,233,196,.55)", weight: 700, stroke: "rgba(10,8,20,.6)", sw: 2 });
+    txt(pre ? "WASD đi · E: bảng thực đơn / Bà Tư / chuông · O/N: mở quán · T điện thoại · Esc/P tạm dừng" : "WASD đi · E nấu/bưng/phục vụ/trò chuyện · C đóng quán sớm · Esc/P tạm dừng", W / 2, H - 4, { size: 7, align: "center", color: "rgba(255,233,196,.55)", weight: 700, stroke: "rgba(10,8,20,.6)", sw: 2 });
   }
   star(u, x, y, fill, time, i) {
     u.save(); u.translate(x, y);

@@ -6,16 +6,22 @@ import { riverWorld, introScript, duskScript } from "./story.js";
 import { Cutscene, slamText, speedLines, halftone } from "./cutscene.js";
 import { GatherScene } from "./scene_gather.js";
 import { QuanScene } from "./scene_quan.js";
-import { DayIntro, EveningIntro, DayResult, Shop, Summary, drawPause, PAUSE_ITEMS, PAUSE_ITEMS_QUAN, planFor, planDays, deliveryText } from "./scene_day.js";
+import { DayIntro, EveningIntro, DayResult, Shop, Summary, drawPause, PAUSE_ITEMS, PAUSE_ITEMS_QUAN, planFor, planDays, deliveryText, dueOn } from "./scene_day.js";
 import { newItem, plain, freshCfg } from "./fresh.js";
+import { DockHub } from "./hub.js";
 import * as progress from "./progress.js";
 import * as meta from "./meta.js";
+import { toggleHighContrast, applyFilter, hcLabel, highContrast } from "./a11y.js";
 
 let CONTRACT = null, MANIFEST = [];
 // haul null = demo stock (title-menu shortcut), {} = empty basket (fainted).
 // campaign = the saved day loop (day card → morning prep → gather → dusk → evening prep → quán → results);
 // false = demo shortcuts (no prep screens, all dishes), never written to the save.
 // v1.1 day loop: DayIntro → gather → (dusk) → EveningIntro → quán → DayResult → Shop → next DayIntro / Summary.
+// v1.3 hubs (GUI): DayIntro → MORNING DOCK HUB (walk our ghe: Chú Sáu's shop pop-up, Bà Tư, ladder "Lặn ▶") → gather → dusk →
+// quán PRE-OPEN (walk the raft: menu board pop-up, Bà Tư, bell "Mở quán") → service → DayResult pop-up over the raft →
+// NIGHT DOCK HUB (shop pop-up sells leftovers / orders for tomorrow, hammock "Đi ngủ ▶") → next DayIntro / Summary.
+// EveningIntro (full screen) and Shop (full screen) remain for the debug shortcuts go("evening") / go("shop").
 // paused = { sel } while the pause overlay is open (Esc/P in gather, quán, shop): scene.update is skipped, so
 // every gameplay timer (clock, O₂, cooldowns, shop auto-close) is frozen.
 // overlay = meta overlay ({ update, draw, done }: phone / Bà Tư) opened from main; it freezes the scene like pause.
@@ -112,7 +118,7 @@ class Title {
     const cur = this.items[this.sel];
     const note = cur[3] ? "Chơi thử: dùng đồ nghề hiện có, không tính ngày, không lưu tiến trình" : cur[2] || "";
     if (note) txt(note, art ? 12 : foot, H - 26, { size: 7.5, align: art ? "left" : "center", color: cur[3] ? "rgba(255,255,255,.55)" : "#ffe2a8", weight: 700, shadow: "rgba(0,0,0,.6)" });
-    txt("↑↓ chọn · Enter/Space chơi · M tắt tiếng", art ? 12 : foot, H - 15, { size: 8, align: art ? "left" : "center", color: "rgba(255,255,255,.6)", weight: 700 });
+    txt("↑↓ chọn · Enter/Space chơi · M tắt tiếng · H " + hcLabel().toLowerCase(), art ? 12 : foot, H - 15, { size: 8, align: art ? "left" : "center", color: "rgba(255,255,255,.6)", weight: 700 });
     txt(isMuted() ? "🔇" : "🔊", W - 12, 14, { size: 10, align: "right" });
     txt("Nhóm 001 · Day 12 AI-SDLC · Test Contract v1.2", art ? W - 8 : W / 2, H - 5, { size: 7, align: art ? "right" : "center", color: "rgba(255,255,255,.4)", weight: 700 });
     if (this.press > 0) { u.save(); u.fillStyle = `rgba(255,255,255,${this.press})`; u.fillRect(0, 0, W, H); u.restore(); }
@@ -130,7 +136,7 @@ let wipe = null;
 function transition(next, kind = "iris") { wipe = { k: 0, phase: "in", next, kind }; }
 
 // where: "continue" | "new" ("play" = old alias) | "gather" | "quan" | "intro"
-//        debug only: "shop" | "evening" | "summary" (on the real save)
+//        debug only: "shop" | "evening" | "summary" | "hub" (morning dock) | "night" (night dock) | "preopen" (on the real save)
 function go(where) {
   if (where === "continue") { campaign(); progress.resume(); transition(startDay); }
   else if (where === "new" || where === "play") {
@@ -142,6 +148,9 @@ function go(where) {
   else if (where === "quan") { demo(); state.haul = null; state.haulItems = null; state.menu = null; state.portions = null; transition(() => startQuan(null)); }
   else if (where === "evening") { campaign(); if (!state.haul) state.haulItems = null; state.haul = state.haul || {}; transition(startEvening); }
   else if (where === "shop") { campaign(); transition(startShop); }
+  else if (where === "hub") { campaign(); transition(startMorningHub); }
+  else if (where === "night") { campaign(); state.leftover = state.leftover || []; transition(startNightHub); }
+  else if (where === "preopen") { campaign(); if (!state.haul) state.haulItems = null; state.haul = state.haul || {}; transition(startPreopen); }
   else if (where === "summary") { campaign(); transition(startSummary); }
 }
 function campaign() { progress.setDemo(false); state.campaign = true; }
@@ -155,7 +164,29 @@ function startDay() {
   progress.activateUpgrades(); // levels bought in yesterday's Shop take effect now
   if (s.day > 1) { const w = meta.payWages(); if (!w.skipped && !w.owed && s.day % 2 === 0) meta.pushMessage("Bà Tư", BA_TU_REMIND[s.day % BA_TU_REMIND.length]); } // yesterday's wages (once per day)
   state.mode = "intro"; state.haul = {}; state.haulItems = null; state.menu = null; state.portions = null; state.delivered = null; state.leftover = null; state.dayPaid = false;
-  state.scene = new DayIntro(CONTRACT, s.day, progress.stats(CONTRACT), () => transition(startGather));
+  state.scene = new DayIntro(CONTRACT, s.day, progress.stats(CONTRACT), () => transition(startMorningHub));
+}
+// morning dock hub: shop pop-up (orders arrive TOMORROW evening, contract upgrades from tomorrow), Bà Tư, ladder → dive
+function startMorningHub() {
+  state.mode = "hub";
+  const hub = new DockHub(CONTRACT, { phase: "dawn", meta, openPhone: () => openPhoneOverlay(), onDive: () => {
+    const got = Object.entries(hub.bought).flatMap(([k, n]) => Array.from({ length: n }, () => ({ kind: k })));
+    if (got.length) meta.pushMessage("Chú Sáu", `Chú ghi sổ ${deliveryText(got)} rồi nghen. Tối Ngày ${progress.save.day + 1} Chú chèo ghe giao tận quán!`);
+    transition(startGather);
+  } });
+  state.scene = hub;
+}
+// night dock hub (after the result): sell tonight's leftovers, order for tomorrow, hammock → next day (leftovers discarded)
+function startNightHub() {
+  state.mode = "hub";
+  const last = progress.save.day > planDays(CONTRACT);
+  const hub = new DockHub(CONTRACT, { phase: "night", meta, leftover: state.leftover || [], last, openPhone: () => openPhoneOverlay(), onSleep: ({ bought }) => {
+    state.leftover = null; // contract: leftover goods are discarded once the shop phase ends
+    const got = Object.entries(bought || {}).flatMap(([k, n]) => Array.from({ length: n }, () => ({ kind: k })));
+    if (got.length) meta.pushMessage("Chú Sáu", `Chú gom đủ ${deliveryText(got)} rồi nghen. Tối Ngày ${progress.save.day} Chú chèo ghe giao tận quán, hàng tươi rói!`);
+    transition(startDay);
+  } });
+  state.scene = hub;
 }
 function startGather() {
   state.mode = "gather"; meta.beginPhase();
@@ -167,19 +198,28 @@ function onGatherEnd(res) {
   meta.gatherFallback(res.by); // chore progress from the haul, unless the gather scene reported it itself
   state.haul = res.by || {}; // fainted = {} (basket lost); quán still opens
   state.haulItems = Array.isArray(res.items) ? res.items : null; // v1.2: same tick handover, ids + fresh kept
-  transition(() => { state.mode = "cut"; state.scene = new Cutscene(duskScript(flat(state.haul)), () => state.campaign ? startEvening() : startQuan(state.haul)); });
+  transition(() => { state.mode = "cut"; state.scene = new Cutscene(duskScript(flat(state.haul)), () => state.campaign ? startPreopen() : startQuan(state.haul)); });
 }
 // Chợ Chú Sáu: yesterday's purchases (save.pendingDelivery, fresh 100, own ids) join tonight's quán stock after the gather
-// haul, separate from the gather inventory; the list is cleared once taken
+// haul, separate from the gather inventory; only goods due tonight are taken (a morning order tagged for tomorrow waits)
 function takeDelivery() {
   state.delivered = null;
-  const pend = progress.save.pendingDelivery;
-  if (!state.campaign || !Array.isArray(pend) || !pend.length) return;
+  const all = progress.save.pendingDelivery;
+  if (!state.campaign || !Array.isArray(all) || !all.length) return;
+  const today = progress.save.day, pend = dueOn(all, today);
+  if (!pend.length) return;
   const haul = state.haul = { ...(state.haul || {}) };
   const items = state.haulItems ? [...state.haulItems] : flat(haul).map((k) => plain(newItem(k, freshCfg(CONTRACT))));
   for (const it of pend) { items.push({ id: it.id, kind: it.kind, fresh: it.fresh ?? freshCfg(CONTRACT).initial }); haul[it.kind] = (haul[it.kind] || 0) + 1; }
   state.haulItems = items; state.delivered = pend.map((it) => it.id);
-  progress.save.pendingDelivery = []; progress.persist();
+  progress.save.pendingDelivery = all.filter((it) => !pend.includes(it)); progress.persist();
+}
+// campaign evening: the quán opens in its PRE-OPEN phase with the menu board as a pop-up (EveningIntro, popup mode)
+function startPreopen() {
+  takeDelivery();
+  const board = new EveningIntro(CONTRACT, progress.save.day, state.haul || {}, () => {}, state.haulItems, { delivered: state.delivered, popup: true });
+  const sel0 = board.selection(); state.menu = sel0.menu; state.portions = sel0.portions;
+  startQuan(state.haul || {}, null, { preopen: true, board, openPhone: () => openPhoneOverlay(), onOpen: (sel) => { state.menu = sel.menu; state.portions = sel.portions; } });
 }
 function startEvening() {
   state.mode = "evening";
@@ -191,9 +231,9 @@ function startEvening() {
   }, state.haulItems, { delivered: state.delivered });
 }
 // opts.menu = dish ids allowed tonight (menu board); opts.portions = target per dish; opts.rep = reputation carried from the previous day
-function startQuan(stock, menu = null) {
+function startQuan(stock, menu = null, extra = null) {
   state.mode = "quan"; meta.beginPhase();
-  const opts = {}; if (menu) opts.menu = menu; if (menu && state.portions) opts.portions = state.portions;
+  const opts = { ...(extra || {}) }; if (menu) opts.menu = menu; if (menu && state.portions) opts.portions = state.portions;
   if (stock && state.haulItems) opts.items = state.haulItems; // QuanScene copies them (R replays the same items)
   if (state.campaign) opts.rep = progress.repNow(CONTRACT);
   state.scene = new QuanScene(CONTRACT, stock, onQuanEnd, opts);
@@ -207,7 +247,9 @@ function onQuanEnd(res) {
   const summary = { day, haulCount: flat(state.haul || {}).length, earned: res.money ?? 0, rep: res.rep, rep0: res.rep0, served: res.served ?? 0, left: res.left ?? 0, score: res.score, tips: res.tips ?? 0, sold: res.sold || {}, closedEarly: !!res.closedEarly, missed: res.missed ?? 0 };
   progress.finishDay(summary);
   meta.quanFallback(res); meta.trackChore("day_done"); shiftMessages(summary);
-  transition(() => { state.mode = "result"; state.scene = new DayResult(summary, () => transition(startShop)); });
+  // result as a pop-up over the frozen raft (no wipe), then the night dock hub
+  const raft = state.scene; if (raft) raft.hudOff = true;
+  state.mode = "result"; state.scene = new DayResult(summary, () => transition(startNightHub), { under: raft, next: "Enter: lên ghe nghỉ đêm ▶" });
 }
 function startShop() {
   state.mode = "shop";
@@ -239,7 +281,7 @@ function shiftMessages(sum) {
   if (st.cook && Math.random() < 0.5) meta.pushMessage("Chú Bảy", "Than còn nửa bao, mai Bảy mua thêm nghen.");
 }
 // T key: engine.js does not map it, so main listens itself and consumes it on the next frame
-const PHONE_MODES = new Set(["gather", "quan", "intro", "evening", "result", "shop"]);
+const PHONE_MODES = new Set(["gather", "quan", "intro", "evening", "result", "shop", "hub"]);
 let phoneKey = false;
 addEventListener("keydown", (e) => { if (e.key && e.key.toLowerCase() === "t" && !e.repeat) phoneKey = true; });
 function openPhoneOverlay(opts) {
@@ -262,17 +304,19 @@ function drawGlobalToast(dt) {
 function flat(by) { const a = []; for (const k in by) for (let i = 0; i < by[k]; i++) a.push(k); return a; }
 
 // ---------- pause (Esc / P) ----------
-const PAUSABLE = new Set(["gather", "quan", "shop"]);
-const pauseItems = () => (state.mode === "quan" ? PAUSE_ITEMS_QUAN : PAUSE_ITEMS);
+const PAUSABLE = new Set(["gather", "quan", "shop", "hub"]);
+// pause menu: the quán adds "Đóng quán sớm" once it is open for service; every pause menu ends with the a11y toggle
+const pauseItems = () => [...(state.mode === "quan" && state.scene?.phase !== "preopen" ? PAUSE_ITEMS_QUAN : PAUSE_ITEMS), hcLabel()];
 function updatePause() {
   const p = state.paused, items = pauseItems();
   if (input.hit("pause") || input.hit("back")) { state.paused = null; sfx("click"); return; }
   if (input.hit("up")) { p.sel = (p.sel + items.length - 1) % items.length; sfx("click"); }
   if (input.hit("down")) { p.sel = (p.sel + 1) % items.length; sfx("click"); }
   if (input.hit("confirm") || input.hit("interact") || input.hit("catch")) {
+    if (items[p.sel].startsWith("Tương phản cao")) { toggleHighContrast(); sfx("select"); return; } // stays paused
     sfx("select"); state.paused = null;
     if (items[p.sel] === "Đóng quán sớm") { state.scene?.closeEarly?.(); return; } // the menu choice is the confirmation
-    if (items[p.sel] === "Về menu") { const m = state.scene?._onMove; if (m) { removeEventListener("pointermove", m); removeEventListener("pointerdown", m); } transition(toTitle); }
+    if (items[p.sel] === "Về menu") { state.scene?.dispose?.(); const m = state.scene?._onMove; if (m) { removeEventListener("pointermove", m); removeEventListener("pointerdown", m); } transition(toTitle); }
   }
 }
 
@@ -305,7 +349,7 @@ const FALLBACK_CONTRACT = { tuning: {
 } };
 
 async function boot() {
-  screen.init();
+  screen.init(); applyFilter(); // a11y: high-contrast CSS filter from the saved setting
   try {
     const r = await fetch("../game.contract.json", { cache: "no-store" });
     CONTRACT = r.ok ? await r.json() : FALLBACK_CONTRACT;
@@ -341,7 +385,7 @@ async function loadFont(f) {
   try { const face = new FontFace(f.family, `url(assets/${f.path})`); await face.load(); document.fonts.add(face); setFont(f.family); } catch (e) {}
 }
 
-let last = 0;
+let last = 0, hcToast = 0;
 function loop(ts) {
   requestAnimationFrame(loop);
   const now = ts / 1000; const dt = now - (last || now); last = now;
@@ -352,6 +396,7 @@ function step(n = 1, dt = 1 / 60) { for (let i = 0; i < n; i++) frame(dt); }
 function frame(dt) {
   if (fx.stop > 0) { fx.stop -= dt; dt *= 0.08; }
   fx.update(dt);
+  if (input.hit("contrast")) { toggleHighContrast(); sfx("click"); meta.globalToasts.push({ text: hcLabel(), sub: "Phím H để đổi" }); hcToast = 1.6; }
 
   // update: scene runs except while the wipe is closing over it
   if (!wipe || wipe.phase === "out") {
@@ -361,7 +406,7 @@ function frame(dt) {
       state.overlay.update(dt);
       if (state.overlay.done) state.overlay = null;
     }
-    else if (tKey && !wipe && !state.scene?.result && openPhoneOverlay()) {}
+    else if (tKey && !wipe && !state.scene?.result && !state.scene?.overlay && !state.scene?.boardOpen && openPhoneOverlay()) {}
     else if (state.paused) updatePause();
     else if (PAUSABLE.has(state.mode) && !wipe && !state.scene?.result && (input.hit("pause") || (input.hit("back") && !state.scene?.menuOpen && !state.scene?.overlay))) { state.paused = { sel: 0 }; sfx("click"); }
     else state.scene?.update(dt);
@@ -378,6 +423,7 @@ function frame(dt) {
   if (state.paused) drawPause(state.paused.sel, pauseItems());
   if (state.overlay) state.overlay.draw();
   drawGlobalToast(dt);
+  if (hcToast > 0) { hcToast -= dt; if (state.mode === "quan" || state.mode === "title") { const w = 150; panel(W / 2 - w / 2, 6, w, 16, { fill: "rgba(10,10,10,.92)", border: "#ffef00", r: 5, bw: 1.5 }); txt(hcLabel(), W / 2, 17.5, { size: 9, align: "center", color: "#ffef00", weight: 900 }); } }
   if (fx.flashT > 0) { px.globalAlpha = (fx.flashT / 0.2) * 0.6; px.fillStyle = fx.flashCol; px.fillRect(-8, -8, W + 16, H + 16); px.globalAlpha = 1; }
   drawWipe(dt);
   px.restore();
