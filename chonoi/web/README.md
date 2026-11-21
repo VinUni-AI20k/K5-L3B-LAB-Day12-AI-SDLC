@@ -5,10 +5,13 @@ Client **chỉ vẽ**: đọc snapshot từ `GET /state`, gửi phím qua `POST 
 ## Chạy
 
 ```powershell
-python -X utf8 -m chonoi.live --mode gather      # hoặc --mode quan; --mode day khi lát 4a xong
+python -X utf8 -m chonoi.live --mode day         # vòng D1–D5 (mặc định 5 Ngày; --days 1..5 để chơi ngắn hơn)
+python -X utf8 -m chonoi.live --mode gather      # hoặc --mode quan: chơi riêng một buổi
 ```
 
 Mở http://127.0.0.1:8000/ → Menu → **Chơi**. (`-X utf8` tránh lỗi in tiếng Việt trên Windows.)
+
+Luồng `day`: Menu → DayIntro (4 s) → Lặn → EveningIntro → Quán → DayResult → Shop → Ngày kế … → Tổng kết. Intro/kết quả gửi `pause` nên đồng hồ đứng yên. Chạy riêng `gather`/`quan`, máy chủ live tự giữ trạng thái tạm dừng (sim hai pha này không có `pause`), xem ADR 0001.
 
 **Mock** (vẽ khi sim chưa xong; phím không gửi lên máy chủ, `P` bật/tắt tạm dừng tại chỗ, `R` đọc lại file):
 

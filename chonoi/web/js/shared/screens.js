@@ -212,7 +212,7 @@
     dim(w, h, 0.75);
     const best = Object.entries(S.dishesSold).sort((a, b) => b[1] - a[1])[0];
     const rows = [
-      ["Số Ngày", snap.days_completed ?? snap.day ?? "?"], ["Tổng tiền", (snap.earned ?? 0) + "k"], ["Tiền còn", (snap.money ?? 0) + "k"],
+      ["Số Ngày", (snap.days_completed ?? snap.day ?? "?") + (snap.max_days ? "/" + snap.max_days : "")], ["Tổng tiền", (snap.earned ?? 0) + "k"], ["Tiền còn", (snap.money ?? 0) + "k"],
       ["Tổng điểm", snap.score ?? 0], ["Uy tín", (snap.reputation ?? 0).toFixed(1)], ["Món bán chạy", best ? dname(best[0]) + " × " + best[1] : "—"],
     ];
     const cw = 560, ch = 140 + rows.length * 42;

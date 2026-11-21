@@ -1,6 +1,6 @@
 """Cửa sổ chơi trực tiếp bằng TRÌNH DUYỆT, chỉ dùng thư viện chuẩn Python.
 
-    python3 -m chonoi.live --mode gather|quan [--seed N] [--port 8000]
+    python3 -m chonoi.live --mode gather|quan|day [--seed N] [--port 8000] [--days 1-5]
 
 Máy chủ HTTP nhỏ (ThreadingHTTPServer) phục vụ `chonoi/web/index.html` và hai API:
     GET  /state  -> snapshot JSON hiện tại (cùng trường như dòng snapshot của headless) + `meta` + `events`
@@ -68,8 +68,8 @@ class _LiveInputsV11(LiveInputs):
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None):
-        self._args = (mode, tuning, scenario, seed, inventory)
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, days=None):
+        self._args = (mode, tuning, scenario, seed, inventory, days)
         self.mode = mode
         self.tuning = tuning
         self.inventory_out = inventory_out
@@ -86,6 +86,9 @@ class LiveGame:
         self.events = []
         self._saved = False
         self.error = None
+        # Nhóm F7: chạy riêng gather/quan thì sim không có pause (headless v1.0), nên bản chơi tự giữ cờ
+        # tạm dừng: không bước sim, tick/timer đứng yên, bỏ qua cạnh hành động (docs/contracts §4, clarify #3).
+        self.live_paused = False
 
     # --- luồng nền ----------------------------------------------------------------
     def start(self):
@@ -119,7 +122,14 @@ class LiveGame:
         s = self.session
         if s.done:
             return
-        for row in s.step(self.inputs.advance()):
+        inp = self.inputs.advance()
+        if self.mode != "day" and inp.pressed("pause"):   # mode day: DaySim tự xử lý pause
+            self.live_paused = not self.live_paused
+            self.events.append({"type": "event", "tick": s.tick, "phase": s.sim.phase,
+                                "name": "paused" if self.live_paused else "resumed", "data": {}})
+        if self.live_paused:
+            return
+        for row in s.step(inp):
             self.events.append(row)
         del self.events[:-RECENT_EVENTS]
         if self.mode in ("gather", "day") and self.inventory_out:
@@ -148,6 +158,16 @@ class LiveGame:
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None
             snap["error"] = self.error
+            if self.live_paused:
+                snap["state"] = "paused"
+            # Chỉ để hiển thị (không vào JSONL): tiền của ca đang chạy và số Ngày đã xong cho HUD/Tổng kết.
+            sim = self.session.sim
+            quan = sim if self.mode == "quan" else getattr(sim, "quan", None)
+            if quan is not None and "shift_earned" not in snap:
+                snap["shift_earned"] = getattr(quan, "shift_earned", None)
+            if self.mode == "day" and "days_completed" not in snap:
+                snap["days_completed"] = getattr(sim, "days_completed", 0)
+                snap["max_days"] = getattr(sim, "max_days", None)
             return json.dumps(snap, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
     def set_input(self, body: dict):
@@ -282,8 +302,15 @@ def main(argv=None) -> int:
     p.add_argument("--inventory", help="nạp kho cho quan hoặc day")
     p.add_argument("--inventory-out", dest="inventory_out",
                    help="chỉ với gather: ghi kho ngay khi khởi động, hái/bắt và kết thúc buổi")
+    p.add_argument("--days", type=int, default=None,
+                   help="chỉ với day: số Ngày 1–5 (mặc định 5 ở bản chơi để đi hết D1–D5 rồi Tổng kết)")
     a = p.parse_args(argv)
     try:
+        if a.days is not None and a.mode != "day":
+            raise BadInput("--days chỉ dùng với day")
+        if a.days is not None and not 1 <= a.days <= 5:
+            raise BadInput("--days phải là số nguyên 1–5")
+        days = (a.days or 5) if a.mode == "day" else None
         if a.inventory and a.mode not in ("quan", "day"):
             raise BadInput("--inventory chỉ dùng với quan hoặc day")
         if a.inventory_out and a.mode not in ("gather", "day"):
@@ -303,7 +330,7 @@ def main(argv=None) -> int:
             inventory = None
         else:
             inventory = read_inventory_for_mode(a.mode, None)
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, days=days)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
