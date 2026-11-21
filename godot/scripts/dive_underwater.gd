@@ -21,10 +21,10 @@ var ray_nodes: Array = []
 var bubble_nodes: Array = []
 var loaded_models := 0
 
-const SHALLOW_FOG := Color("#45bfd1")
-const DEEP_FOG := Color("#0a4361")
-const SHALLOW_BG := Color("#3ab4c8")
-const DEEP_BG := Color("#072e47")
+const SHALLOW_FOG := Color("#6c8e58")
+const DEEP_FOG := Color("#1e3120")
+const SHALLOW_BG := Color("#648652")
+const DEEP_BG := Color("#162618")
 
 const PRD_NODES := [
 	{"id": "N1", "kind": "bong_dien_dien", "pos": Vector2(12.0, 0.0)},
@@ -82,30 +82,30 @@ func _setup_environment() -> void:
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = SHALLOW_BG
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("#7fd6e2")
-	env.ambient_light_energy = 0.92
+	env.ambient_light_color = Color("#b8c88c")
+	env.ambient_light_energy = 0.88
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
 	env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 	env.fog_light_color = SHALLOW_FOG
-	env.fog_light_energy = 1.05
-	env.fog_density = 0.022
+	env.fog_light_energy = 1.0
+	env.fog_density = 0.024
 	world.environment = env
 	add_child(world)
 
 	var sun := DirectionalLight3D.new()
 	sun.name = "UnderwaterSun"
-	sun.rotation_degrees = Vector3(-68.0, -22.0, 0.0)
-	sun.light_color = Color("#d8f7ff")
-	sun.light_energy = 1.45
+	sun.rotation_degrees = Vector3(-66.0, -25.0, 0.0)
+	sun.light_color = Color("#ffe0a3")
+	sun.light_energy = 1.4
 	sun.shadow_enabled = true
 	add_child(sun)
 
 	var rim := DirectionalLight3D.new()
 	rim.name = "DepthFillLight"
 	rim.rotation_degrees = Vector3(25.0, 145.0, 0.0)
-	rim.light_color = Color("#399bb5")
-	rim.light_energy = 0.45
+	rim.light_color = Color("#6f8c54")
+	rim.light_energy = 0.42
 	add_child(rim)
 
 
@@ -123,7 +123,7 @@ func _build_water_surface_and_shore() -> void:
 	water.material_override = water_mat
 	add_child(water)
 
-	# Underside translucent surface sheen so looking up from underwater glows like Dave the Diver
+	# Underside warm sunlit alluvial water sheen
 	var under_surface := MeshInstance3D.new()
 	var upm := PlaneMesh.new()
 	upm.size = Vector2(140.0, 44.0)
@@ -131,10 +131,10 @@ func _build_water_surface_and_shore() -> void:
 	under_surface.position = Vector3(50.0, -0.08, -14.0)
 	under_surface.rotation_degrees = Vector3(180.0, 0.0, 0.0)
 	var us_mat := StandardMaterial3D.new()
-	us_mat.albedo_color = Color(0.55, 0.94, 0.98, 0.42)
+	us_mat.albedo_color = Color(0.86, 0.80, 0.46, 0.36)
 	us_mat.emission_enabled = true
-	us_mat.emission = Color(0.35, 0.85, 0.95)
-	us_mat.emission_energy_multiplier = 0.65
+	us_mat.emission = Color(0.76, 0.72, 0.38)
+	us_mat.emission_energy_multiplier = 0.55
 	us_mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	us_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	under_surface.material_override = us_mat
@@ -155,36 +155,64 @@ func _build_water_surface_and_shore() -> void:
 
 
 func _build_underwater_cliffs_and_seabed() -> void:
-	# Riverbed floor at d = 30m (y = -30.5)
+	# Warm muddy alluvial riverbed floor at d = 30m (y = -30.5)
 	var floor_mesh := MeshInstance3D.new()
 	var bm := BoxMesh.new()
 	bm.size = Vector3(145.0, 2.0, 50.0)
 	var fmat := StandardMaterial3D.new()
-	fmat.albedo_color = Color("#1b4d5c")
-	fmat.roughness = 0.95
+	fmat.albedo_color = Color("#4a3a26")
+	fmat.roughness = 0.96
 	bm.material = fmat
 	floor_mesh.mesh = bm
 	floor_mesh.position = Vector3(50.0, -31.0, -14.0)
 	add_child(floor_mesh)
 
-	# Monumental 3D layered cliff walls behind the gameplay plane (Dave the Diver sense of scale!)
-	# Far mega-cliff layer (z = -16..-24)
-	for i in range(14):
-		var cx := -12.0 + i * 10.2
-		var cy := rng.randf_range(-24.0, -10.0)
-		var cz := rng.randf_range(-23.0, -15.0)
-		var s := rng.randf_range(5.5, 9.5)
-		var cliff_id := "cliff_basalt" if i % 2 == 0 else "cliff_block"
-		_asset("underwater", cliff_id, Vector3(cx, cy, cz), Vector3(s, s * 1.35, s * 0.9), Vector3(rng.randf_range(-8.0, 8.0), rng.randf_range(-35.0, 35.0), rng.randf_range(-10.0, 10.0)))
+	# Sloping muddy riverbank clay wall in the background (warm Mekong earth tones, NO ice cliffs!)
+	var mud_wall := MeshInstance3D.new()
+	var wbm := BoxMesh.new()
+	wbm.size = Vector3(145.0, 32.0, 4.0)
+	var wmat := StandardMaterial3D.new()
+	wmat.albedo_color = Color("#4f4029")
+	wmat.roughness = 0.95
+	wbm.material = wmat
+	mud_wall.mesh = wbm
+	mud_wall.position = Vector3(50.0, -15.5, -24.0)
+	mud_wall.rotation_degrees = Vector3(-12.0, 0.0, 0.0)
+	add_child(mud_wall)
 
-	# Mid-ground rock ledges & overhangs (z = -7..-13)
-	for i in range(22):
-		var rx := -6.0 + i * 5.4 + rng.randf_range(-1.5, 1.5)
-		var ry := rng.randf_range(-29.0, -4.0)
-		var rz := rng.randf_range(-12.5, -6.5)
-		var rs := rng.randf_range(2.2, 4.8)
-		var rock_id := "boulder_large" if i % 3 == 0 else ("boulder_mossy" if i % 3 == 1 else "cliff_block")
-		_asset("underwater", rock_id, Vector3(rx, ry, rz), Vector3(rs, rs * rng.randf_range(0.8, 1.3), rs), Vector3(rng.randf_range(-12.0, 12.0), rng.randf_range(-180.0, 180.0), rng.randf_range(-12.0, 12.0)))
+	# Wooden stilt-house pilings descending from the surface deep into the Mekong river mud
+	var piling_mat := StandardMaterial3D.new()
+	piling_mat.albedo_color = Color("#4c331e")
+	piling_mat.roughness = 0.92
+	for i in range(18):
+		var px := -2.0 + i * 6.2 + rng.randf_range(-0.6, 0.6)
+		var pz := rng.randf_range(-13.5, -6.5)
+		var pile := MeshInstance3D.new()
+		var cm := CylinderMesh.new()
+		cm.top_radius = 0.24
+		cm.bottom_radius = 0.30
+		cm.height = 24.0
+		cm.radial_segments = 8
+		cm.material = piling_mat
+		pile.mesh = cm
+		pile.position = Vector3(px, -10.5, pz)
+		pile.rotation_degrees = Vector3(rng.randf_range(-3.0, 3.0), 0.0, rng.randf_range(-3.0, 3.0))
+		add_child(pile)
+
+	# Submerged mangrove root systems & mossy river-bank terraces (z = -7..-18)
+	for i in range(16):
+		var mx := -4.0 + i * 7.2
+		var mz := rng.randf_range(-16.0, -8.5)
+		var m_id := "mangrove_large" if i % 2 == 0 else "mangrove_red"
+		_asset("tropical", m_id, Vector3(mx, -3.5, mz), Vector3(2.8, 3.6, 2.8), Vector3(0.0, rng.randf_range(-180.0, 180.0), 0.0))
+
+	for i in range(20):
+		var rx := -6.0 + i * 5.8 + rng.randf_range(-1.5, 1.5)
+		var ry := rng.randf_range(-29.0, -10.0)
+		var rz := rng.randf_range(-16.0, -7.0)
+		var rs := rng.randf_range(2.4, 4.8)
+		var rock_id := "boulder_mossy" if i % 2 == 0 else "cliff_block"
+		_asset("underwater", rock_id, Vector3(rx, ry, rz), Vector3(rs, rs * rng.randf_range(0.7, 1.1), rs), Vector3(rng.randf_range(-8.0, 8.0), rng.randf_range(-180.0, 180.0), rng.randf_range(-8.0, 8.0)))
 
 	# Seabed flora (kelp forests, seaweed rocks, sunken driftwood & roots at y = -30)
 	for i in range(24):
@@ -217,10 +245,10 @@ func _build_light_shafts_and_bubbles() -> void:
 		qm.size = Vector2(rng.randf_range(3.5, 6.5), rng.randf_range(18.0, 26.0))
 		ray.mesh = qm
 		var rmat := StandardMaterial3D.new()
-		rmat.albedo_color = Color(0.68, 0.96, 1.0, 0.11)
+		rmat.albedo_color = Color(1.0, 0.88, 0.52, 0.12)
 		rmat.emission_enabled = true
-		rmat.emission = Color(0.55, 0.92, 1.0)
-		rmat.emission_energy_multiplier = 0.8
+		rmat.emission = Color(0.95, 0.82, 0.44)
+		rmat.emission_energy_multiplier = 0.75
 		rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		rmat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 		rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
