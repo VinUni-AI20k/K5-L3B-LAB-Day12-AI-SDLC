@@ -7,3 +7,5 @@ The Q4 review at the starting tree recorded a reproducible orphaned-dish case wh
 Quốc should review and confirm this draft before using it as a personal reflection.
 
 Phase 2 draft: added `menu_filter`, customer `order_tick` and tests for four tables and six fixture dishes; [evidence](../proof/phase-2/q3/README.md). Reviewed Q4 branch `8b3b93f`: its cooking flow needs reconciliation with the Q3 reservation ledger. DaySim and official v1.1 remain pending. Quốc should confirm the personal reflection and lessons before final submission.
+
+Update: reviewed Q4 `5dbdf13`, which uses the reservation ledger; produced an isolated proposed patch for filter and order validation and checked the combined tests. This is a factual draft, awaiting Quốc's personal confirmation.

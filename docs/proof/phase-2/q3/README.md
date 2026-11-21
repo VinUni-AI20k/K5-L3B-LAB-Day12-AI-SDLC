@@ -5,3 +5,5 @@ Trên `3ce5cc6` cùng working tree Q3, Python 3.11 Windows, script verification 
 Headless `quan` ở đây dùng contract v1.0. Chưa chạy được headless `day` hoặc headless bằng contract v1.1 chính thức do chưa có DaySim/v1.1. Hai bếp trên code hiện tại không dùng lại reservation; test Q4-F1 tái hiện món mồ côi, không biểu thị lỗi đã sửa. Nhánh Q4 `8b3b93f` cần tích hợp/retest thực tế; xem `specs/001-p2-q3-day-customers/contracts/q3-q4-day.md`.
 
 Lệnh tái hiện: `python -m unittest tests.test_p2_q3 tests.test_p2_quoc -v`; `python -m unittest tests.test_p1_q3 -v`; `python .agents/skills/phase-1-verification/scripts/verify_phase1.py --no-proof`.
+
+Kiểm lại trên base `d2daf42` với hai test mới: 12 test P2, 23 test P1 Q3 và 100 regression, exit 0; 9/9 bước headless/invalid/determinism đạt. Các log `current-*` ghi kết quả. Q4 base `5dbdf13` được kiểm riêng: 2/17 test không đạt (filter rỗng, order_tick âm); patch đề xuất tại `q4-5dbdf13-proposed.patch` cho 19/19 đạt, trong đó test Q4-F1 chứng minh lỗi vẫn tái hiện. Đây là kiểm thử worktree tách biệt, chưa phải nhánh tích hợp.

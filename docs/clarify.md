@@ -16,3 +16,5 @@ The local checkout and feature source review contain no full Phase 1 PRD-0/Test 
 ## Phase 2 — giao diện kế hoạch khách (chờ PO và integrator)
 
 Mock UI biểu diễn `day_plan.dishes` là mapping món sang số lượng. Cần chốt schema chính thức, số lượng là hạn mức hay chỉ là mục tiêu, cách liên kết món đang cầm với khách. Kế hoạch phân công chỉ định `menu_filter` cho `QuanSim`; DaySim cần truyền danh sách món qua tham số này. Xem `docs/proof/phase-2/quoc.md`.
+
+Chờ PO xác nhận: `no_dish` phát khi bàn đầy hay khi không còn món hợp lệ, và có kết thúc ca không; cơ hội đến hạn khi bàn đầy hoặc thiếu món được bỏ hay thử lại; `order_tick` mặc định của fixture; khách `ordered` có tiếp tục mất kiên nhẫn khi nấu; snapshot `stock` là kho vật lý hay kho sau reservation; món đang nấu xử lý thế nào khi khách rời. Những lựa chọn hiện hành chỉ là tạm thời, chưa phải AC chính thức.

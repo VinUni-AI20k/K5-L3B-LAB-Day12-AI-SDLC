@@ -97,3 +97,28 @@ class CustomersPhase2(unittest.TestCase):
         self.run_steps(sim, 1)
         self.assertEqual([n for n, _ in sim._interact()], ["dish_picked"])
         self.assertEqual(sim.hand, "ca_loc_nuong_trui")
+
+    def test_each_new_shift_restarts_arrival_clock_and_copies_inventory(self):
+        stock = {"ca_loc": 2}
+        def new_shift():
+            return QuanSim(self.tuning, {}, Streams(1), IdAllocator(), inventory=stock,
+                           menu_filter=["ca_loc_nuong_trui"])
+        first, second = new_shift(), new_shift()
+        for sim in (first, second):
+            events = self.run_steps(sim, 120)
+            self.assertEqual([t for t, name, _ in events if name == "customer_arrived"], [120])
+            self.assertEqual(sim.snapshot()["customers"][0]["order_tick"], 120)
+            self.assertEqual(sim.snapshot()["stock"], {"ca_loc": 1})
+        self.assertEqual(stock, {"ca_loc": 2})
+
+    def test_two_distinct_orders_consumed_once(self):
+        sim = self.sim({"player": {"pos": [2, 8]}, "stock": {"ca_loc": 2}, "random_customers": False,
+                        "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"},
+                                      {"id": "C2", "table_id": "T2", "dish_id": "ca_loc_nuong_trui"}]})
+        self.assertEqual([n for n, _ in sim._interact()], ["cook_started"])
+        sim.pos = [5, 8]
+        self.assertEqual([n for n, _ in sim._interact()], ["cook_started"])
+        self.assertEqual(sim.stock.get("ca_loc", 0), 0)
+        self.assertEqual([c["state"] for c in sim.customers], ["ordered", "ordered"])
+        self.assertFalse(sim._consume_reservation("C1"))
+        self.assertEqual(sim._release_reservation("C1"), {})
