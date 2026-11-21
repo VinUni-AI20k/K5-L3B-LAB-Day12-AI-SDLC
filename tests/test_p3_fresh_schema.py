@@ -1,7 +1,7 @@
 """Test nền Test Contract v1.2 (LeBao403, Integrator): đơn vị độ tươi, cá thể, file kho cá thể, manifest freshness,
 scenario hold/stock dạng cá thể, phần khung của GatherSim/QuanSim. Ticket-03 mục 1.
 
-Manifest còn ở 1.1 trong lúc chuyển, nên test dựng tuning v1.2 trong bộ nhớ (thêm khối freshness).
+Test dựng cả tuning 1.1 (bỏ khối freshness) và 1.2 (có freshness) trong bộ nhớ, nên chạy đúng dù manifest ở bản nào.
 Luật của từng lát (hao tươi giỏ, giữ chỗ theo id, hao kho, giá theo tươi) có test riêng của chủ lát.
 
 Chạy: PYTHONPATH=tests:. python3 -m unittest discover -s tests -p "test_p3_fresh_schema.py" -v
@@ -22,7 +22,7 @@ from chonoi.sim.gather import GatherSim
 from chonoi.sim.quan import QuanSim
 from helpers import Workdir, write_json
 
-T11 = load_contract()["tuning"]
+T11 = {k: v for k, v in copy.deepcopy(load_contract()["tuning"]).items() if k != "freshness"}
 T12 = dict(copy.deepcopy(T11), freshness=dict(FRESHNESS_V12))
 
 
@@ -149,7 +149,9 @@ class SimFramework(unittest.TestCase):
                       Streams(1), IdAllocator())
         from chonoi.inputs import InputState
         ev = dict(g.step(InputState((0.0, 0.0), {}, set())))
-        self.assertEqual(ev["faint"]["lost"], [item("I2", "ca_loc", 100.0), item("I1", "ca_linh", 100.0)])
+        # giỏ đã hao đúng một bước (2 đơn vị = 1/120 điểm) trước khi ngất: lát giỏ của B đã viết _decay_hold
+        aged = 100.0 - 1 / 120
+        self.assertEqual(ev["faint"]["lost"], [item("I2", "ca_loc", aged), item("I1", "ca_linh", aged)])
         self.assertEqual(ev["gather_end"]["inventory"], {"items": []})
 
     def test_gather_v11_khong_doi(self):

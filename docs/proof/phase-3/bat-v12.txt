@@ -1,0 +1,27 @@
+# Bật Test Contract v1.2 (LeBao403, Integrator) - nhánh p3/LeBao403/enable-v12
+# game.contract.json: contract_version 1.2 + tuning.freshness {100, 0.5, 0.25, 30}
+
+## Test của A sau khi chuyển fixture sang cá thể (v1.2)
+test_gather_lat1             Ran 12 tests in 1.547s OK 
+test_p2_monsters             Ran 15 tests in 1.618s OK 
+test_p2_nen_v11              Ran 18 tests in 1.984s OK 
+test_p2_snake                Ran 6 tests in 0.545s OK 
+test_p3_fresh_schema         Ran 15 tests in 0.051s OK 
+test_python_starter_units    Ran 7 tests in 0.014s OK 
+
+## Toàn bộ
+Ran 226 tests in 18.341s
+FAILED (failures=25, errors=22)
+
+## Test còn đỏ theo file (chờ chủ lát chuyển code + test sang cá thể)
+      4 test_e_qa_p1
+     10 test_gather_lat2
+      1 test_lat3_day
+      2 test_lat3_day_scenario
+     10 test_lat3_khach
+      4 test_lat3_p2
+      8 test_lat4_quan
+      6 test_p2_quan
+      2 test_smoke_p1
+#  test_gather_lat2 -> B | test_lat3_*, test_lat3_day* -> C | test_lat4_quan, test_p2_quan -> D | test_smoke_p1, test_e_qa_p1 -> E
+# Nhánh này chỉ merge sau khi B, C, D, E đã gộp phần chuyển sang cá thể (ADR-0001 bước 4).

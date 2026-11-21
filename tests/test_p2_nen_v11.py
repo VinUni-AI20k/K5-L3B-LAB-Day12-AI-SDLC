@@ -17,6 +17,16 @@ CONTRACT = load_contract()
 T = CONTRACT["tuning"]
 G = T["gather"]
 
+def items(*kinds, start=1):
+    """Fixture v1.2: cá thể I<start>, I<start+1>, ... fresh 100 theo thứ tự vào giỏ."""
+    return [{"id": f"I{start + i}", "kind": k, "fresh": 100} for i, k in enumerate(kinds)]
+
+
+def ik(lst):
+    """(id, kind) của danh sách cá thể public: so không phụ thuộc fresh (giỏ hao theo tick)."""
+    return [(x["id"], x["kind"]) for x in lst]
+
+
 
 def headless(w, *args, scenario=None, inputs=None):
     extra = []
@@ -29,7 +39,7 @@ def headless(w, *args, scenario=None, inputs=None):
 
 class Manifest(unittest.TestCase):
     def test_v11_so_chuan(self):
-        self.assertEqual(CONTRACT["contract_version"], "1.1")
+        self.assertEqual(CONTRACT["contract_version"], "1.2")  # Ticket-03: số chuẩn v1.1 giữ nguyên ở 1.2
         self.assertEqual(len(T["menu"]), 6)
         self.assertEqual([s["id"] for s in T["quan"]["stoves"]], ["B1", "B2"])
         self.assertEqual([t["id"] for t in T["quan"]["tables"]], ["T1", "T2", "T3", "T4"])
@@ -74,11 +84,11 @@ class Cli(unittest.TestCase):
 
     def test_kho_6_nguyen_lieu(self):
         with Workdir() as w:
-            inv = write_json(w.path("inv.json"), {"items": {"ca_keo": 2, "keo_neo": 1}})
+            inv = write_json(w.path("inv.json"), {"items": items("ca_keo", "ca_keo", "keo_neo")})  # v1.2
             code, err = run_headless("--mode", "quan", "--seed", "1", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], {"ca_keo": 2, "keo_neo": 1})
+            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], items("ca_keo", "ca_keo", "keo_neo"))
 
 
 class Pause(unittest.TestCase):
@@ -108,7 +118,7 @@ class Pause(unittest.TestCase):
 
     def test_trong_pause_bo_qua_canh_hanh_dong(self):
         rows = self.run_pause(extra_frames=[{"tick": 3, "interact": True}, {"tick": 4, "interact": False}],
-                              block={"player": {"pos": [2, 0]}, "random_fish": False, "hold": ["ca_loc"]})
+                              block={"player": {"pos": [2, 0]}, "random_fish": False, "hold": items("ca_loc")})
         self.assertEqual(events(rows, "gather_end"), [])
         self.assertEqual(rows[-1]["reason"], "tick_limit")
 
@@ -163,7 +173,7 @@ class ScenarioV11(unittest.TestCase):
         self.assertEqual(self.code("gather", {"gather": {
             "nodes": [{"id": "N1", "kind": "keo_neo", "pos": [76, 0]}],
             "fish": [{"id": "F1", "kind": "ca_keo", "pos": [30, 24]}],
-            "hold": ["ca_keo", "keo_neo"]}}), 0)
+            "hold": items("ca_keo", "keo_neo")}}), 0)
 
     def test_monsters_fixture(self):
         ok = {"id": "M1", "kind": "ca_sau", "pos": [50, 20], "waypoints": [[50, 20], [54, 20]]}

@@ -21,6 +21,16 @@ REFILL = G["oxygen_refill_per_tick"]
 CHOKE = G["choke_interval_ticks"]
 DEEP = [50, 10]  # chắc chắn dưới nước, không có cá/nút gần
 
+def items(*kinds, start=1):
+    """Fixture v1.2: cá thể I<start>, I<start+1>, ... fresh 100 theo thứ tự vào giỏ."""
+    return [{"id": f"I{start + i}", "kind": k, "fresh": 100} for i, k in enumerate(kinds)]
+
+
+def ik(lst):
+    """(id, kind) của danh sách cá thể public: so không phụ thuộc fresh (giỏ hao theo tick)."""
+    return [(x["id"], x["kind"]) for x in lst]
+
+
 
 def run_gather(block, ticks, inputs=None, inventory_out=False, every=1):
     """Chạy gather với scenario `block` (cá mặc định tắt). Trả (rows, nội dung file kho hoặc None, bytes JSONL)."""
@@ -107,28 +117,30 @@ class Choke(unittest.TestCase):
 
 class Faint(unittest.TestCase):
     def test_mau_ve_0_ngat_mat_gio_lifo_kho_rong(self):
-        hold = ["ca_loc", "bong_sung", "ca_linh"]
+        hold = items("ca_loc", "bong_sung", "ca_linh")  # v1.2: giỏ là cá thể
         rows, inv, _ = run_gather({"player": {"pos": DEEP, "hp": 1, "oxygen_ticks": 0, "zero_oxy_ticks": CHOKE - 1},
                                    "hold": hold}, 100, inventory_out=True)
         names = [r["name"] for r in events(rows)]
         self.assertEqual(names, ["choke", "faint", "gather_end"])
         self.assertTrue(all(e["tick"] == 1 for e in events(rows)))
         self.assertEqual(events(rows, "choke")[0]["data"], {"hp": 0})
-        self.assertEqual(events(rows, "faint")[0]["data"], {"cause": "choke", "lost": list(reversed(hold)), "hp": 0})
+        faint = events(rows, "faint")[0]["data"]
+        self.assertEqual((faint["cause"], faint["hp"]), ("choke", 0))
+        self.assertEqual(ik(faint["lost"]), ik(list(reversed(hold))))  # LIFO: I3, I2, I1
         end_ev = events(rows, "gather_end")[0]["data"]
-        self.assertEqual(end_ev, {"reason": "fainted", "inventory": {"items": {}}})
+        self.assertEqual(end_ev, {"reason": "fainted", "inventory": {"items": []}})
         last = snapshots(rows)[-1]
         self.assertEqual((last["tick"], last["state"], last["hold"], last["player"]["hp"]), (1, "finished", [], 0))
         self.assertEqual(rows[-1]["type"], "end")
         self.assertEqual((rows[-1]["reason"], rows[-1]["ticks"]), ("fainted", 1))
-        self.assertEqual(inv, {"items": {}})
+        self.assertEqual(inv, {"items": []})  # v1.2: kho rỗng là mảng rỗng
 
     def test_ngat_truoc_ca_cap_ben(self):
         """Ngất xét trước interact: E trong bến ở đúng bước ngất vẫn là fainted."""
         rows, _, _ = run_gather({"player": {"pos": [2, 1], "hp": 1, "oxygen_ticks": 0, "zero_oxy_ticks": CHOKE - 1},
-                                 "hold": ["ca_loc"]}, 5, inputs=frames({"tick": 0, "interact": True}))
+                                 "hold": items("ca_loc")}, 5, inputs=frames({"tick": 0, "interact": True}))
         self.assertEqual(rows[-1]["reason"], "fainted")
-        self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": {}})
+        self.assertEqual(events(rows, "gather_end")[0]["data"]["inventory"], {"items": []})
 
 
 class DiveSurface(unittest.TestCase):
