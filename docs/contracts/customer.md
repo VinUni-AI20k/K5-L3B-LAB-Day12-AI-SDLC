@@ -17,7 +17,7 @@ Số liệu (thời gian, giá, tip…) chỉ đọc từ `game.contract.json` �
 | `order_tick` | int ≥ 0 | `phase_tick` lúc khách đến (sau khi tăng). Dùng để chọn đơn cũ nhất. Mặc định `0`. |
 | `state` | `"waiting"` \| `"eating"` | Xem mục 2. Mặc định `waiting`. |
 | `patience_ticks_left` | int ≥ 0 | Kiên nhẫn còn lại. Mặc định đầy = `patience_s × 60`. |
-| `eat_ticks_left` | int ≥ 0 | Thời gian ăn còn lại. Chỉ > 0 khi `eating` (đầy = `eat_s × 60` lúc bắt đầu ăn). Mặc định `0`. |
+| `eat_ticks_left` | int ≥ 0 | Thời gian ăn còn lại. Chỉ > 0 khi `eating` (đầy = `eat_s × 60` lúc bắt đầu ăn). Mặc định `0`; **scenario khách `eating` phải khai > 0** (không tự điền đầy). |
 | `order_status` | `reserved` \| `assigned` \| `unfulfillable` \| `served` | Trạng thái đơn, xem mục 2. Mặc định `reserved`. |
 | `reserved` | object `{kind: n}` | Nguyên liệu đang giữ chỗ (map kind → số lượng). |
 | `base_price` | int | Tiền món, chốt **lúc phục vụ**. Bắt buộc khi `eating`; chưa có thì không khai. |
@@ -77,13 +77,16 @@ Bước `k` đọc tick `k`, biến trạng thái `k → k+1`, event ghi tại `
 
 Lưu ý: phục vụ đúng tick kiên nhẫn về 0 vẫn hợp lệ (interact ở bước 2 chạy trước bước 4).
 
-Đề xuất hàm cho @minhthu27 gắn vào `quan.py`:
+Hàm trong `chonoi/sim/quan_customers.py` để @minhthu27 gắn vào `quan.py` (giữ đúng tên phan-cong, thêm tham số `phase`):
 ```python
-tick_customers_timers(sim, events)  # bước 1
-customers_leave(sim, events)        # bước 4 (+ closing ở bước 5)
-spawn_customers(sim, events)        # bước 6
+tick_customers(sim, events, "timers")   # bước 1: giảm kiên nhẫn (waiting) / thời gian ăn (eating)
+tick_customers(sim, events, "leave")    # bước 4 và 5: waiting hết kiên nhẫn rời (patience); hết ca -> closing
+spawn_customers(sim, events)            # bước 6, cuối bước, chỉ khi ca còn giờ
+remove_customer(sim, customer)          # khi khách ăn xong, trả tiền, rời bàn (nhả giữ chỗ, bỏ món liên quan)
+build_fixture_customers(raw, tuning, stock, stoves, hand)  # __init__: khách từ scenario (kiểm + dựng reserved)
 ```
-⚠ Phan-cong chỉ định **hai** hàm (`tick_customers`, `spawn_customers`). Nếu giữ hai hàm, `tick_customers` phải được gọi **tách** ở bước 1 và 4, hoặc nhận tham số `phase`. Cần chốt với @minhthu27.
+`phase="all"` (mặc định) = `timers` rồi `leave`. `tick_customers` **không** xử lý khách `eating`: @minhthu27 trả tiền và gọi `remove_customer` trước.
+QuanSim cần có: `phase_tick` (tăng 1 mỗi bước, lịch khách tính theo nó), `random_customers` (từ scenario, mặc định True).
 
 ## 6. Scenario `quan.customers[]` (PRD mục D)
 
