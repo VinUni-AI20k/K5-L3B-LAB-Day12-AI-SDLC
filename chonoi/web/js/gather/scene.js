@@ -421,7 +421,7 @@
     const fill = Math.min(1, (snap.hold_count ?? held.length) / cap);
     ctx.fillStyle = "rgba(120,90,50,.35)"; CN.rrect(-0.55 * s, -0.78 * s, 0.85 * s, 0.5 * s, 0.12 * s); ctx.fill();
     held.slice(0, 6).forEach((k, i) => {
-      ctx.fillStyle = CN.kc(k);
+      ctx.fillStyle = CN.kc(CN.kindOf(k));
       ctx.beginPath(); ctx.arc(-0.42 * s + (i % 3) * 0.28 * s, -0.4 * s - Math.floor(i / 3) * 0.17 * s * fill * 2, 0.1 * s, 0, TAU); ctx.fill();
     });
     ctx.strokeStyle = "#a07a45"; ctx.lineWidth = 1; ctx.beginPath();

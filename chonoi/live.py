@@ -154,6 +154,8 @@ class LiveGame:
             # meta theo pha hiện tại (day đổi gather -> quan -> shop); menu để client hiện tên món / tiến độ nấu
             snap["meta"] = self.tuning.get(snap.get("phase") or self.mode, self.tuning.get(self.mode, {}))
             snap["menu"] = self.tuning.get("menu", {})
+            if "freshness" in self.tuning:   # v1.2: ngưỡng "ươn" cho HUD độ tươi
+                snap["freshness"] = self.tuning["freshness"]
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None

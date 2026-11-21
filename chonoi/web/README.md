@@ -23,6 +23,8 @@ Luồng `day`: Menu → DayIntro (4 s) → Lặn → EveningIntro → Quán → 
 | `/?mock=day-quan` | EveningIntro (nhập kho, món nấu được), kiên nhẫn < 25% |
 | `/?mock=day-shop` | Shop nâng cấp oxygen/hp |
 | `/?mock=day-summary` | Tổng kết sau Ngày 5 |
+| `/?mock=day-gather-v12` | v1.2: giỏ cá thể, số + thanh độ tươi từng ô, "ươn" khi < 30 |
+| `/?mock=day-quan-v12` | v1.2: kho cá thể, thanh độ tươi theo loài, số hàng ươn |
 
 Sửa file JSON trong `mock/` để thử trạng thái khác (vd. `"state": "paused"`, `"finished": true`).
 

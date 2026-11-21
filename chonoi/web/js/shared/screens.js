@@ -53,7 +53,7 @@
       if (S.pendingStart && (CN.events.restarted || (snap.tick || 0) < 30)) {
         S.pendingStart = false;
         if (snap.day === undefined && !S.card) {
-          if ((snap.phase || snap.mode) === "quan") showCard("evening", { stock: { ...(snap.stock || {}) }, menu: snap.menu });
+          if ((snap.phase || snap.mode) === "quan") showCard("evening", { stock: CN.inv.counts(snap.stock), menu: snap.menu });
           else showCard("day", { plan: snap.day_plan });
         }
       }
@@ -91,7 +91,7 @@
         if (ph === "gather") showCard("day", { day: e.day ?? snap.day, plan: snap.day_plan });
         else if (ph === "quan") {
           S.repAtQuan = snap.reputation;
-          showCard("evening", { day: e.day ?? snap.day, stock: { ...(snap.stock || {}) }, plan: snap.day_plan, menu: snap.menu });
+          showCard("evening", { day: e.day ?? snap.day, stock: CN.inv.counts(snap.stock), plan: snap.day_plan, menu: snap.menu });
         }
         break;
       }

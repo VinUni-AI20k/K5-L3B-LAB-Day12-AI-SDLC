@@ -1,7 +1,7 @@
 "use strict";
 /* HUD buổi tối (Ticket-02 §2): đồng hồ ca, tiền ca, uy tín, món đang cầm, kho khả dụng. Món + kiên nhẫn từng bàn và bếp vẽ trong cảnh. */
 (function (CN) {
-  const { text, ui, COLOR, fmtTime, dname } = CN;
+  const { ctx, text, ui, COLOR, fmtTime, dname } = CN;
 
   function stars(rep) {
     let s = "";
@@ -22,16 +22,28 @@
     else text("Ví " + (snap.money ?? 0) + "k", 556, 35, { size: 18, base: "middle", align: "right", color: COLOR.muted });
     if (snap.day !== undefined) { ui.panel(w - 130, 8, 120, 52); text("Ngày " + snap.day, w - 70, 35, { size: 20, align: "center", base: "middle", weight: "800", color: COLOR.gold }); }
 
-    // kho khả dụng
-    const stock = snap.stock || {}, kinds = Object.keys(stock).filter((k) => stock[k] > 0);
-    const pw = Math.max(220, 90 + kinds.length * 84), y0 = h - 76;
-    ui.panel(10, y0, pw, 66);
+    // kho khả dụng (v1.2: mảng cá thể có fresh → thêm thanh độ tươi từng cá thể + số "ươn", AC-P3-09)
+    const fresh = CN.inv.hasFresh(snap.stock), below = CN.inv.spoiledBelow(snap);
+    const stock = CN.inv.counts(snap.stock), kinds = Object.keys(stock);
+    const cw = fresh ? 112 : 84, ph = fresh ? 86 : 66;
+    const pw = Math.max(220, 90 + kinds.length * cw), y0 = h - ph - 10;
+    ui.panel(10, y0, pw, ph);
     text("Kho", 24, y0 + 40, { size: 20, weight: "800" });
     if (!kinds.length) text("(trống)", 80, y0 + 40, { size: 18, color: COLOR.muted });
     kinds.forEach((k, i) => {
-      const x0 = 80 + i * 84;
+      const x0 = 80 + i * cw;
       CN.ui.icon(k, x0 + 18, y0 + 33, 32);
       text("×" + stock[k], x0 + 38, y0 + 40, { size: 20, weight: "700" });
+      if (!fresh) return;
+      const items = snap.stock.filter((it) => it.kind === k).sort((a, b) => b.fresh - a.fresh);
+      const bw = Math.max(3, Math.min(10, (cw - 16) / items.length - 2));
+      items.forEach((it, j) => {
+        const bh = 14 * Math.max(0.08, it.fresh / 100);
+        ctx.fillStyle = "rgba(0,0,0,.4)"; ctx.fillRect(x0 + j * (bw + 2), y0 + 50, bw, 14);
+        ctx.fillStyle = CN.freshColor(it.fresh, below); ctx.fillRect(x0 + j * (bw + 2), y0 + 64 - bh, bw, bh);
+      });
+      const bad = items.filter((it) => it.fresh < below).length;
+      if (bad) text(bad + " ươn", x0, y0 + 82, { size: 18, weight: "800", color: COLOR.danger });
     });
 
     // món đang cầm

@@ -72,6 +72,22 @@ window.CN = window.CN || { scenes: {}, hud: {}, layout: {} };
     return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
   };
 
+  // Kho/giỏ theo hai schema (docs/contracts §2): v1.0/v1.1 là mảng tên loài (giỏ) hoặc map loài → số (kho);
+  // v1.2 là mảng cá thể {id, kind, fresh}. Client chỉ đọc để vẽ; ngưỡng "ươn" lấy từ tuning.freshness.
+  CN.kindOf = (x) => (x && typeof x === "object" ? x.kind : x);
+  CN.inv = {
+    counts(v) {
+      const c = {};
+      if (Array.isArray(v)) v.forEach((x) => { const k = CN.kindOf(x); c[k] = (c[k] || 0) + 1; });
+      else if (v) for (const k of Object.keys(v)) if (v[k] > 0) c[k] = v[k];
+      return c;
+    },
+    hasFresh: (v) => Array.isArray(v) && v.some((x) => x && typeof x === "object" && typeof x.fresh === "number"),
+    spoiledBelow: (snap) => ((snap && snap.freshness) || {}).spoiled_below ?? 30,
+  };
+  // Màu độ tươi: ươn (< ngưỡng) đỏ, dưới 60 vàng, còn lại xanh. Luôn đi kèm số hoặc chữ "ươn", không chỉ dựa vào màu.
+  CN.freshColor = (f, below) => (f < below ? CN.COLOR.danger : f < 60 ? CN.COLOR.gold : CN.COLOR.ok);
+
   CN.brief = function (d) {
     try { const s = JSON.stringify(d); return s.length > 60 ? s.slice(0, 57) + "…" : s; } catch (e) { return ""; }
   };
