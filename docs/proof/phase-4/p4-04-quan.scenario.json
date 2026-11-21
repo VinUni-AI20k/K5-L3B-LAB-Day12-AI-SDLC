@@ -1,0 +1,2 @@
+{"quan": {"customers": [{"id": "C1", "table_id": "T2", "dish_id": "ca_loc_nuong_trui", "order_tick": 0,
+ "state": "waiting", "patience_ticks_left": 700, "order_status": "unfulfillable"}]}}
