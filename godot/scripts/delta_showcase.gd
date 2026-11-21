@@ -78,8 +78,12 @@ func _cylinder(pos: Vector3, radius: float, height: float, color: String, parent
 func _asset(family: String, asset_id: String, at: Vector3, scale := 1.0, yaw := 0.0) -> Node3D:
     var path := "res://assets/external/%s/%s.glb" % [family, asset_id]
     if not ResourceLoader.exists(path):
-        missing_models[asset_id] = true
-        return null
+        var gltf_path := "res://assets/external/%s/%s.gltf" % [family, asset_id]
+        if ResourceLoader.exists(gltf_path):
+            path = gltf_path
+        else:
+            missing_models[asset_id] = true
+            return null
     var packed = load(path)
     if not (packed is PackedScene):
         missing_models[asset_id] = true
@@ -239,6 +243,27 @@ func _gather_scene() -> void:
     for i in range(6):
         _asset("river_delta", "fruit_baskets", Vector3(-13.3,0.6,-54.0+i*19.0),0.7)
         _asset("river_delta", "nets", Vector3(13.5,0.6,-56.0+i*19.0),0.85)
+    # Aquatic flora (lotus & water lilies) along river edges.
+    for i in range(14):
+        var side := -1.0 if i % 2 == 0 else 1.0
+        var z := -65.0 + i * 10.0
+        var x := side * rng.randf_range(11.0, 15.2)
+        if i % 3 == 0:
+            _asset("aquatic", "lotus_clump", Vector3(x, WATER_LEVEL + 0.02, z), rng.randf_range(0.9, 1.3), rng.randf_range(-3.14, 3.14))
+        elif i % 3 == 1:
+            _asset("aquatic", "lily_pads_blossom", Vector3(x, WATER_LEVEL + 0.02, z), rng.randf_range(1.0, 1.4), rng.randf_range(-3.14, 3.14))
+        else:
+            _asset("aquatic", "lily_pads_swamp", Vector3(x, WATER_LEVEL + 0.02, z), rng.randf_range(0.9, 1.3), rng.randf_range(-3.14, 3.14))
+    # Fish schools (ca loc / ca linh) swimming near the river surface.
+    for i in range(12):
+        var fx := rng.randf_range(-9.5, 9.5)
+        var fz := -45.0 + i * 8.0
+        var fish_id := "fish_carp" if i % 2 == 0 else "fish_perch"
+        _asset("aquatic", fish_id, Vector3(fx, WATER_LEVEL - 0.18, fz), rng.randf_range(0.7, 1.05), rng.randf_range(-3.14, 3.14))
+    # Characters on docks (Ut Sen 3D girl + fisherman).
+    _asset("characters", "ut_sen_girl", Vector3(-13.2, 0.55, -2.0), 0.42, 1.57)
+    _asset("river_delta", "conical_hats", Vector3(-13.2, 2.55, -2.0), 0.55, 0.0)
+    _asset("characters", "tidal_navigator", Vector3(13.2, 0.55, 6.0), 1.15, -1.57)
 
 func _restaurant_scene() -> void:
     # Restaurant raft is an actual elevated timber floor with a readable 16 x 10m play area.
@@ -257,21 +282,33 @@ func _restaurant_scene() -> void:
     for i in range(22):
         var x := -7.8+i*.30
         _box(Vector3(x,5.22,2.45),Vector3(.055,.055,3.62),"#cab374")
-    # Kitchen B1 and table T1: keep the PRD semantic positions labelled.
-    _box(Vector3(-4.9,1.60,2.9),Vector3(2.3,.76,1.4),"#62442e")
-    _cylinder(Vector3(-4.9,2.12,2.9),.48,.24,"#3a3634")
-    _box(Vector3(2.0,1.62,-1.6),Vector3(2.4,.17,1.65),WOOD_LIGHT)
-    for x in [1.05,2.95]:
-        for z in [-2.25,-.95]:
-            _cylinder(Vector3(x,1.18,z),.10,.58,WOOD)
-    for p in [Vector2(-4.9, 3.8), Vector2(2.0, -1.6)]:
-        _cylinder(Vector3(p.x, 1.96, p.y), .28, .10, "#f3eee0")
-    # Wooden lantern beam with warm lantern blocks.
+    # Kitchen B1 and table T1 with 3D KayKit CC0 kitchenware, dishes & characters.
+    _asset("kitchen", "stove_single", Vector3(-4.9, 1.18, 2.9), 1.15, 3.14)
+    _asset("kitchen", "pot_A_stew", Vector3(-5.15, 2.15, 2.85), 1.1, 0.4)
+    _asset("kitchen", "pan_A", Vector3(-4.6, 2.15, 2.95), 1.05, -0.5)
+    _asset("kitchen", "cuttingboard", Vector3(-3.3, 1.20, 2.9), 1.2, 0.2)
+    _asset("aquatic", "fish_whole_raw", Vector3(-3.3, 1.32, 2.9), 0.85, 0.6)
+    _asset("kitchen", "table_round_A", Vector3(2.0, 1.18, -1.6), 1.15, 0.0)
+    _asset("kitchen", "stew_bowl", Vector3(1.75, 2.08, -1.5), 1.15, 0.0)
+    _asset("kitchen", "food_dinner", Vector3(2.30, 2.08, -1.7), 1.15, 0.4)
+    _asset("kitchen", "plate", Vector3(2.0, 2.08, -1.15), 1.1, 0.0)
+    for p in [Vector2(0.85, -1.6), Vector2(3.15, -1.6), Vector2(2.0, -2.75)]:
+        _asset("kitchen", "chair_stool", Vector3(p.x, 1.18, p.y), 1.1, 0.0)
+    # Ut Sen 3D girl at kitchen B1 and customers at table T1 / raft.
+    _asset("characters", "ut_sen_girl", Vector3(-4.8, 1.18, 1.5), 0.42, 0.2)
+    _asset("river_delta", "conical_hats", Vector3(-4.8, 3.18, 1.5), 0.55, 0.0)
+    _asset("characters", "customer_girl", Vector3(0.75, 1.18, -1.6), 0.42, 1.57)
+    _asset("characters", "tidal_navigator", Vector3(3.25, 1.18, -1.6), 1.15, -1.57)
+    # Wooden lantern beam with 3D hanging silk/paper lanterns.
     _box(Vector3(0.0,5.5,-3.85),Vector3(15.3,.10,.10),WOOD)
-    for i in range(11):
-        var x := -7.0+i*1.4
-        _box(Vector3(x,4.95,-3.85),Vector3(.22,.54,.22),LANTERN)
-        _box(Vector3(x,5.23,-3.85),Vector3(.32,.08,.32),WOOD)
+    for i in range(9):
+        var x := -6.4 + i * 1.6
+        var lantern_id := "lantern_silk" if i % 2 == 0 else "lantern_paper"
+        _asset("props", lantern_id, Vector3(x, 4.95, -3.85), 0.75, 0.0)
+    # Aquatic lotus & lily pads around the floating restaurant.
+    for p in [Vector2(-10.5, -6.5), Vector2(10.8, -5.5), Vector2(-11.0, 6.2), Vector2(10.2, 6.8)]:
+        _asset("aquatic", "lotus_clump", Vector3(p.x, WATER_LEVEL + 0.02, p.y), 1.15, rng.randf_range(-3.14, 3.14))
+        _asset("aquatic", "lily_pads_blossom", Vector3(p.x + 1.2, WATER_LEVEL + 0.02, p.y - 0.8), 1.2, rng.randf_range(-3.14, 3.14))
     # Grape / fruit trading and bamboo market identity from actual Delta assets.
     for i in range(5):
         var z := -40.0 + i*20.0
@@ -285,7 +322,6 @@ func _restaurant_scene() -> void:
     for p in [Vector2(6.0, -4.0), Vector2(-6.0, -4.0), Vector2(0.0, 4.0)]:
         _asset("river_delta", "fruit_baskets", Vector3(p.x, 1.28, p.y), .7)
         _asset("river_delta", "fish_traps", Vector3(p.x, 1.28, p.y + 1.0), .4)
-    _asset("river_delta", "delta_boat_seller",Vector3(12,.45,-12),.75)
 
 func _camera() -> void:
     cam = Camera3D.new()
@@ -307,7 +343,7 @@ func _overlay() -> void:
     var canvas := CanvasLayer.new()
     add_child(canvas)
     var hint := Label.new()
-    hint.text = "CHO NOI TAY NAM BO | F1: SONG | F2: QUAN BE | F3: LONG SONG | CHUOT PHAI: XOAY | CUON: ZOOM"
+    hint.text = "F1: SONG | F2: QUAN BE | F3: LAN BAT CA | F4: XEM LONG SONG\nCHUOT PHAI: XOAY | CUON: ZOOM"
     hint.position = Vector2(18, 15)
     hint.add_theme_color_override("font_color", Color("#fff1cb"))
     hint.add_theme_font_size_override("font_size", 16)
@@ -315,7 +351,7 @@ func _overlay() -> void:
     if loaded_models == 0:
         var missing := Label.new()
         missing.text = "Chua cai asset: chay 'python3 tools/download_assets.py --all' roi mo lai project"
-        missing.position = Vector2(18,48)
+        missing.position = Vector2(18, 64)
         missing.add_theme_color_override("font_color", Color("#ffcb9d"))
         canvas.add_child(missing)
 
@@ -323,7 +359,8 @@ func _unhandled_input(ev: InputEvent) -> void:
     if ev is InputEventKey and ev.pressed and not ev.echo:
         if ev.keycode == KEY_F1: get_tree().change_scene_to_file("res://scenes/GatherRiver.tscn")
         if ev.keycode == KEY_F2: get_tree().change_scene_to_file("res://scenes/RestaurantNight.tscn")
-        if ev.keycode == KEY_F3: get_tree().change_scene_to_file("res://scenes/UnderwaterRiver.tscn")
+        if ev.keycode == KEY_F3: get_tree().change_scene_to_file("res://scenes/DiveUnderwater.tscn")
+        if ev.keycode == KEY_F4: get_tree().change_scene_to_file("res://scenes/UnderwaterRiver.tscn")
     elif ev is InputEventMouseButton:
         if ev.button_index == MOUSE_BUTTON_RIGHT: orbit = ev.pressed
         elif ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_UP:
