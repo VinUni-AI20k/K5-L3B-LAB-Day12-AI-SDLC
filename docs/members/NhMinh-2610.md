@@ -1,10 +1,9 @@
 # NhMinh-2610 — phản tư cá nhân (≤ 200 từ)
 
 - **Tôi đã làm (kèm link commit):**
-  - `M4.1` (`7a57f3b`): Lập kế hoạch, AC (`AC-M4-01`–`AC-M4-08`) và checklist tiến độ toàn dự án (`docs/plan/task-Minh.md`).
-  - `M4.2` (`7f31375`): Viết bộ 11 test hộp đen & unit `tests/test_quan_m4.py` cho bếp, bàn, bưng, tiền, boa, uy tín và hết ca.
-  - `M4.3` (`06d8ef5`): Cài đặt luật M4 trong `chonoi/sim/quan.py`, chạy xanh test và lưu bằng chứng `docs/proof/phase-1/m4-test-log.txt`.
-  - `M4.4` (`b42538f`): Gộp `main` (`M3.3` + `M6`), xử lý xung đột `quan.py`/`standup.md`/`ai-usage-log.md`, bổ sung test ghép `M3 ↔ M4` đạt 68/68 test xanh.
-- **Tôi đã review (kèm link):** Đã kiểm tra chéo `chonoi/sim/quan_customers.py` và `tests/test_quan_customers_m3.py` của `ththanh8888` khi ghép `M3 ↔ M4`.
-- **AI sai ở đâu và tôi phát hiện thế nào:** Trên Windows, `python3` trỏ vào alias Microsoft Store gây `WinError 1920` khi chạy test hộp đen; giữ nguyên `game.contract.json` cho CI Linux và dùng shim `python3.exe` tạm ở `$env:TEMP`. Ngoài ra đã rà kỹ sai số float ở ngưỡng `tip` và `reputation` để không lệch `floor(reputation)`.
-- **Điều tôi học được:** Tách rõ interface giữa M3 (`CustomerMixin`) và M4 trong `quan.py` cùng viết test TDD từ AC giúp ghép nhánh nhanh, không vỡ luật lõi.
+  - **Phase 1** (`7a57f3b`, `7f31375`, `06d8ef5`, `b42538f`): Chốt AC, viết 12 test `tests/test_quan_m4.py`, cài luật bếp/bàn/bưng/tiền/tip/uy tín/hết ca trong `chonoi/sim/quan.py` và ghép `CustomerMixin` của M3 (68/68 test xanh).
+  - **Phase 2** (`0f46a50`, `9a1f5e9`, `55a66fb`, `12c98f5`, `d29de32`, `41d199a`): Viết `spec-p2-m4.md`, cài `chonoi/sim/shop.py`, `chonoi/sim/day.py`, Pause 3 mode trong `chonoi/runner.py`, bổ sung test CLI hộp đen `tests/test_day_shop_pause_m4.py` (gồm Ngày 3 sinh `M2`, ngất mở quán kho rỗng), ghép M1+M3 đạt 110/110 test xanh.
+  - **Phase 3–4 chuẩn bị sớm** (`b194801`): Chốt `spec-p3-m4.md` (giá theo độ tươi `fresh_units`) và dựng trước `chonoi/soak.py` (bot tất định 10 Ngày).
+- **Tôi đã review:** Kiểm tra chéo `quan_customers.py`, `test_quan_customers_m3.py`, `test_day_m3_integration.py` với Cao (`ththanh8888`) và điểm nối `day` với Huy (`huyvu-03`).
+- **AI sai ở đâu & phát hiện thế nào:** Khi nâng v1.1 thêm bếp `B2 [5, 8]`, test P1 cũ dùng `[3.51, 8]` vô tình lọt tầm `B2`; chạy regression phát hiện ngay và dời sang phía tây `B1` (`[0.5, 8]`/`[0.49, 8]`).
+- **Bài học:** Tách sạch module (`shop.py`, `day.py`, `quan_customers.py`) và chạy regression sau mỗi lần pull giúp ghép 6 người gần như không conflict.

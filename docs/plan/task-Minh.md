@@ -10,9 +10,9 @@
 | Phase | Khung giờ | Hạn tag | Việc của M4 | Tiến độ | Trạng thái hiện tại |
 |---|---|---|---|---|---|
 | **Phase 1** | 0:00–1:00 | `phase-1` | `sim/quan` (bếp, bàn, bưng, tiền, tip, uy tín, hết ca) + ghép M3 | **100%** | ✅ Đã gắn tag `phase-1` |
-| **Phase 2** | 1:00–1:55 | `phase-2` | `day`, `Shop`, `Pause` 3 mode *(+ tùy chọn `burn`)* | **98%** | ✅ Xong `P2-M4.1`–`P2-M4.4` + ghép `M1.3` Cá Sấu (`day=self.day`); chờ `M3.3` & retro |
-| **Phase 3** | 1:55–2:30 | `phase-3` | Độ tươi v1.2: giá `floor(giá × avg_fresh/100)`, `cook_started.items` cá thể, kho cá thể trong `day`/Shop *(+ tùy chọn `reservations`)* | **25%** | 🟡 Đã xong `P3-M4.1` (`spec-p3-m4.md`), chờ tag `phase-2` |
-| **Phase 4** | 2:30–3:00 | `phase-4` + `v1.0.0` | Bot tất định cho `soak_cmd` 10 Ngày (cùng Quang M2), Retro & chốt báo cáo *(+ tùy chọn `leaderboard`)* | **0%** | ⏳ Chờ tag `phase-3` |
+| **Phase 2** | 1:00–1:55 | `phase-2` | `day`, `Shop`, `Pause` 3 mode *(+ tùy chọn `burn`)* | **100%** | ✅ Xong toàn bộ M4 + ghép M1 & M3 (110/110 test xanh) + retro P2; chờ An tag `phase-2` |
+| **Phase 3** | 1:55–2:30 | `phase-3` | Độ tươi v1.2: giá `floor(giá × avg_fresh/100)`, `cook_started.items` cá thể, kho cá thể trong `day`/Shop *(+ tùy chọn `reservations`)* | **25%** | 🟡 Đã xong `P3-M4.1` (`spec-p3-m4.md`), chờ tag `phase-2` & `M6.1`–`M6.2` v1.2 |
+| **Phase 4** | 2:30–3:00 | `phase-4` + `v1.0.0` | Bot tất định cho `soak_cmd` 10 Ngày (cùng Quang M2), Retro & chốt báo cáo *(+ tùy chọn `leaderboard`)* | **60%** | 🟡 Đã dựng sẵn `chonoi/soak.py` + `test_soak_m4.py` (10 ngày lặp D1–D5, 0 crash, tất định); chờ tag `phase-3` & khai `soak_cmd` |
 
 ---
 
@@ -61,8 +61,8 @@ flowchart LR
 
 ### Việc còn lại (chờ đồng đội / tùy chọn)
 - [x] Ghép kiểm chung với **Huy (`M1.3` Cá Sấu)**: truyền `day=self.day` vào `GatherSim` (Ngày 3 sinh đủ `M1`, `M2`) & test ngất do Cá Sấu trong `day` vẫn mở quán kho rỗng.
-- [ ] Kiểm chung với **Cao (`M3.3`)** khi Cao cập nhật test/code Quán v1.1 vào `main`.
-- [ ] Tham gia **retro nhanh 5 phút** (`docs/retro.md`) cuối Phase 2 (~1:45–1:50) & cập nhật `docs/members/NhMinh-2610.md`.
+- [x] Ghép kiểm chung với **Cao (`M3.3` / `M3.4`)**: merge `c7a8797`, chạy xanh **110/110 test** toàn bộ M1 + M2 + M3 + M4 + M6.
+- [x] Điền **retro nhanh Phase 2** (`docs/retro.md`) & cập nhật `docs/members/NhMinh-2610.md`.
 - [ ] *(Tùy chọn nếu muốn làm mở rộng)* **Mở rộng `burn`** (Cháy món `burn_s: 20`, `ready_ticks > 1200` → `dish_burnt`) cùng M3/M6.
 
 ---
@@ -108,8 +108,8 @@ flowchart LR
     M62 --> M63
 ```
 
-- [ ] **P4-M4.1** *(P0 — chờ `M2.1` Quang)*: Hỗ trợ Quang hoàn thiện script bot tất định cho `soak_cmd --seed 7 --days 10 --out soak.json`:
-  - Chạy 10 Ngày liên tục trong 1 tiến trình headless (D1–D5 lặp cho D6–D10, tiền/earned/uy tín/cấp/id cá thể xuyên suốt).
-  - Test kỹ chuyển tiếp Ngày 5 → Ngày 6, đảm bảo `days_completed == 10`, `crashes == 0`, chạy lại cho kết quả gameplay giống hệt.
+- [x] **P4-M4.1 (dựng trước lõi)** *(không phá v1.1)*: Tạo `chonoi/soak.py` + `tests/test_soak_m4.py` và bổ sung lặp `D1–D5` cho `D6–D10` trong `DaySim._get_plan()`:
+  - Chạy 10 Ngày liên tục trong 1 tiến trình headless, `days_completed == 10`, `crashes == 0`, chạy 2 lần cho `results[]` giống hệt nhau.
+  - *(Chờ Phase 4)* Phối hợp Quang (`M2.1`) & An (`M6.1`) khai báo `soak_cmd` trong `game.contract.json` v1.3 và chạy lại trên kho cá thể v1.2.
 - [ ] *(Tùy chọn nếu nhóm cần đủ 2 Mở rộng)* **Mở rộng `leaderboard`**: lưu top 10 lượt chuẩn 5 Ngày cục bộ, `<run_cmd> --export-leaderboard`, cờ `--leaderboard` + `--player-name` trong `day` (thiếu 1 cờ hoặc sai mode → mã `2`), không đổi JSONL, `soak` không ghi xếp hạng.
 - [ ] **ALL-R** *(P1 — 2:45–2:55)*: Tham gia Retro tổng kết 5 phút (`docs/retro.md`), chốt phản tư cá nhân `docs/members/NhMinh-2610.md` (≤ 200 từ, dẫn đủ commit), cập nhật `docs/ai-usage-log.md` trước **2:55** để An gắn tag `phase-4` & công bố Release `v1.0.0` trước **3:00**.
