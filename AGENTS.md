@@ -4,12 +4,14 @@
 
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
-- Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
-- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
+- Headless: `python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out out.jsonl` (đổi `gather` thành `quan` để thử quán).
+- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather` (hoặc `--mode quan`; mở địa chỉ in ra. Phím WASD, E, Space, R).
+- Trên PowerShell, dùng `$env:PYTHONPATH = 'tests;.'` rồi chạy lệnh unittest. Kiểm tra `python3 --version` trước vì `headless_cmd` gọi `python3` trong tiến trình con.
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
-- Luật chơi của nhóm: `chonoi/sim/gather.py`, `chonoi/sim/quan.py` (tìm `TODO(nhóm)`).
+- Phase 1 chia luật theo lát, từ `chonoi/sim/gather.py` (oxy, Máu, giỏ) và `chonoi/sim/gather_harvest.py` (hái, bắt cá) đến `chonoi/sim/quan_customers.py` (khách), `chonoi/sim/quan_service.py` và `chonoi/sim/quan.py` (bếp, phục vụ).
+- Trước khi sửa, đọc kế hoạch và hợp đồng tích hợp. Sau khi chạy test, đối chiếu với ma trận. [Kế hoạch Phase 1](docs/plan/phase-1.md), [hợp đồng tích hợp](docs/contracts/README.md), [ma trận kiểm chứng](docs/verification/phase-1.md)
 - **Số liệu chỉ đọc từ `game.contract.json` / dữ liệu**, không hard-code trong luật.
 - Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.
@@ -26,4 +28,7 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+
+- `python3 tools/phase_evidence.py tests --out playground/phase-1/unittest.txt` chạy unittest và lưu toàn bộ log để review PR hoặc cập nhật ma trận.
+- `python3 tools/phase_evidence.py headless --out playground/phase-1/headless.txt` chạy hai lượt mỗi mode cùng seed, so từng byte và lưu SHA-256. Dùng trước khi Lead gắn tag.
+- Sau khi thống nhất commit kiểm chứng, đưa bằng chứng vào `docs/proof/phase-1/` và ghi commit tương ứng trong ma trận.
