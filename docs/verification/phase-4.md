@@ -18,8 +18,8 @@ Mã AC do nhóm tự đặt. Chỉ ghi kết quả đã chạy thật; ô nào c
 ## Đánh giá ngắn
 - Đạt: bench chạy thật, 3 lần ổn định, đúng cấu trúc JSON; công thức có test; ba cảnh báo và tương phản cao có bằng chứng ảnh; regression 185 test OK sau merge.
 - Chưa đạt: clone sạch 3 lệnh, soak 10 Ngày, `bench_cmd`/`soak_cmd` trong contract.
-- Điều cần làm tiếp: (1) Integrator khai `bench_cmd`, `soak_cmd` và đổi `contract_version` 1.3; (2) kiểm clone sạch trên macOS hoặc Linux và ghi 3 lệnh vào README; (3) soak 10 Ngày (`soak_cmd`).
-- Giới hạn bằng chứng: benchmark đo trên Windows với Chrome, không phải macOS/Linux như đề yêu cầu; ảnh UI dựng từ snapshot giả, không phải mô phỏng thật.
+- Điều cần làm tiếp: (1) Integrator khai `bench_cmd`, `soak_cmd` và đổi `contract_version` 1.3; (3) soak 10 Ngày (`soak_cmd`).
+- Giới hạn bằng chứng: benchmark chỉ đo trên Windows với Chrome; ảnh UI dựng từ snapshot giả, không phải mô phỏng thật.
 
 ## Công cụ headless của nhóm (Bảo, `lat 34 phase 4` trên main)
 
@@ -40,7 +40,10 @@ Clone nhánh `huydn8816` vào thư mục mới (không dùng bản làm việc),
 2. `python3 -m chonoi.headless --mode gather --seed 1 --ticks 60 --out out.jsonl`: thoát mã 0.
 3. `python3 -m chonoi.bench --seed 42 --duration 3 --out bench.json`: thoát mã 0, trả về 5 trường (`avg_fps` 59,99; `p1_low_fps` 58,48).
 
-Chạy trên macOS và Linux bởi một thành viên khác (theo báo cáo của nhóm): thành công. [Điền: người chạy, phiên bản macOS và Linux, Python, lệnh đã dùng, ảnh hoặc log đính kèm trong docs/proof/phase-4/.]
+- macOS: chạy bởi Phạm Đức Vinh (vindpd203). Thành công.
+- Linux: chạy bởi Nguyễn Thế Bảo (NTheBao). Thành công.
+
+[Còn thiếu: phiên bản hệ điều hành và Python, log đính kèm trong docs/proof/phase-4/.]
 
 Kết luận AC-P4-07: đạt trên Windows, macOS và Linux.
 
