@@ -21,6 +21,28 @@ PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
 python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
 ```
 
+Buổi tối có thể tự tìm `inventory.json` trong thư mục chạy lệnh; không bắt buộc truyền `--inventory`:
+
+```powershell
+python -m chonoi.live --mode quan --seed 1
+```
+
+Với `--mode day`, kho mặc định cũng được nạp tự động từ `inventory.json`, sau đó buổi sáng có thể cộng nguyên liệu mới vào kho.
+
+### Chơi nối buổi sáng sang quán
+
+```powershell
+python -m chonoi.live --mode day --seed 1 --inventory-out inventory.json
+```
+
+Mode `day` tự thu thập cá/rau ở buổi sáng, chuyển kho sang buổi tối và cho Út Sen nấu/bán món trong cùng cửa sổ trình duyệt. Sau buổi tối, kho dùng cho quán là kho khả dụng sau phần nguyên liệu khách đang giữ chỗ.
+
+Chạy headless một Ngày:
+
+```powershell
+python -m chonoi.headless --mode day --seed 1 --ticks 21600 --inventory-out inventory.json --out day.jsonl
+```
+
 ### Lưu kho khi hái/bắt cá
 
 Chạy giao diện Gather và ghi kho tức thì vào `inventory.json`:
@@ -29,7 +51,7 @@ Chạy giao diện Gather và ghi kho tức thì vào `inventory.json`:
 python3 -m chonoi.live --mode gather --inventory-out inventory.json
 ```
 
-File được tạo sau lần hái/bắt cá đầu tiên, sau đó cập nhật ngay mỗi lần thu hoạch hoặc bắt cá, khi ngất và khi kết thúc buổi. Dùng cùng file cho Quán:
+File được tạo sau lần hái/bắt cá đầu tiên, sau đó cập nhật ngay mỗi lần thu hoạch hoặc bắt cá, khi ngất và khi kết thúc buổi. Nếu file đã có kho từ lần chạy trước, số lượng được cộng dồn thay vì xóa. Dùng cùng file cho Quán:
 
 ```powershell
 python3 -m chonoi.live --mode quan --inventory inventory.json
@@ -40,6 +62,19 @@ Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headl
 ## Tự do sáng tạo
 
 Ngoài phần đề yêu cầu, nhóm được **thêm** nhân vật, loài cá/cây, sinh vật, món, bản đồ, cơ chế, câu chuyện, đồ họa, âm nhạc… với ba điều kiện: **không phá phần cố định** (tắt ở headless), ghi mục **"Sáng tạo của nhóm"** trong README của nhóm, và **làm lõi đúng trước**.
+
+
+## Sáng tạo của nhóm
+
+**Đồ họa client web (P2, lát `p2/ui-visual`)** — chỉ ở `chonoi/web/`, tự vẽ bằng canvas, không dùng ảnh ngoài; luật, `game.contract.json`, schema kho và JSONL không đổi (headless giống từng byte, xem [`docs/proof/phase-2/ui-visual.md`](docs/proof/phase-2/ui-visual.md)).
+
+- **Cảnh lặn buổi sáng** (mặt cắt ngang): trời hồng lúc mặt trời mọc, mây trôi, rặng cây xa, nhà sàn có đèn cửa sổ, ghe, dừa nước đung đưa; nước phù sa đậm dần theo độ sâu (nông / giữa / sâu), tia nắng xiên, hạt phù sa lơ lửng, đáy bùn có sỏi và rong.
+- **Út Sen**: áo bà ba, khăn rằn bay theo nước, kính lặn, búi tóc, giỏ lưới đầy dần theo số món trong giỏ; đạp chân/sải tay khi bơi, nổi đứng khi ở mặt nước.
+- **Loài**: cá linh bạc đi đàn (hai con nhỏ bơi kèm chỉ để trang trí), cá lóc thân dài có đốm, cá kèo mắt lồi; bông súng có lá và cuống dưới nước, cây điên điển ra chùm bông vàng, bó kèo nèo; nút chưa hồi chỉ còn lá/nụ kèm đồng hồ.
+- **Bến**: cầu tàu, biển "Bến", ghe có mui, sọc sơn, mắt ghe và đèn treo. **Cá Sấu**: vảy gai lưng, chân chèo, há mõm khi đuổi; khi đến gần thì có viền tím, quầng tím và chữ "Thủy quái!" ngay trên con quái (HUD vẫn giữ viền màn hình tím).
+- **Quán buổi tối** (nhìn từ trên): nhà bè có phao gỗ, sàn ván, góc bếp lát gạch tàu với quầy hũ mắm, thớt, rổ rau; đèn dây vàng nhấp nháy, đèn lồng đỏ bốn góc, biển "QUÁN ĂN CHỢ NỔI"; sông đêm có ánh trăng và hoa đăng trôi.
+- **Bếp cà ràng** B1/B2: than hồng chập chờn, nồi đất có nước dùng sôi, khói bếp; **bàn** T1–T4: bàn gỗ, ghế nhựa đỏ, ống đũa, chén nước mắm, đèn dầu; **khách** áo nhiều màu, có người đội nón lá, bong bóng order có món và thanh kiên nhẫn (< 25% đỏ nhấp nháy); Út Sen quấn khăn rằn, quay theo hướng đi, bưng món còn bốc hơi.
+- Mọi chi tiết "ngẫu nhiên" lấy từ hàm băm cố định `CN.art.hash` (`chonoi/web/js/core/art.js`), không dùng `Math.random` hay `Streams`; hiệu ứng chỉ chạy trên trình duyệt nên tự tắt ở headless.
 
 ## Lịch 3 giờ
 

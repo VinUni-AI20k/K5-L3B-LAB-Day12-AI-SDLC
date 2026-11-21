@@ -10,7 +10,7 @@ import tempfile
 
 from .errors import BadInput
 
-KINDS_P1 = ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung")
+KINDS_P1 = ("ca_loc", "ca_linh", "ca_keo", "bong_dien_dien", "bong_sung", "keo_neo")
 
 
 def validate_items(items, kinds=KINDS_P1):
@@ -36,6 +36,32 @@ def read_inventory(path: str, kinds=KINDS_P1) -> dict:
     if not isinstance(data, dict) or set(data.keys()) != {"items"}:
         raise BadInput("file kho chỉ được có khóa gốc 'items'")
     return validate_items(data["items"], kinds)
+
+
+def read_inventory_or_empty(path: str, kinds=KINDS_P1) -> dict:
+    """Read an existing inventory, or return an empty one when the file is absent."""
+    if not os.path.exists(path):
+        return {}
+    return read_inventory(path, kinds)
+
+
+def read_inventory_for_mode(mode: str, inventory_path=None, kinds=KINDS_P1):
+    """Nạp kho chỉ định hoặc inventory.json mặc định cho quan/day."""
+    path = inventory_path
+    if path is None and mode in ("quan", "day") and os.path.exists("inventory.json"):
+        path = "inventory.json"
+    if path is None:
+        return None
+    return read_inventory(path, kinds)
+
+
+def merge_items(*collections) -> dict:
+    """Sum item counts across inventories and return keys in stable order."""
+    totals = {}
+    for items in collections:
+        for kind, amount in items.items():
+            totals[kind] = totals.get(kind, 0) + amount
+    return {kind: totals[kind] for kind in sorted(totals) if totals[kind] > 0}
 
 
 def hold_to_items(hold: list) -> dict:

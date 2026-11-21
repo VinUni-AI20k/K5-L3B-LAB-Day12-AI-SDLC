@@ -73,7 +73,9 @@
     const x = w - 290, y = 8, mw = 280, mh = 56, ix = x + 10, iy = y + 10, iw = mw - 20, ih = mh - 20;
     ui.panel(x, y, mw, mh);
     const mx = (wx) => ix + ((wx - v.X0) / (v.X - v.X0)) * iw, my = (d) => iy + (d / v.D) * ih;
-    ctx.fillStyle = "rgba(45,122,150,.6)"; ctx.fillRect(ix, iy, iw, ih);
+    const mg = ctx.createLinearGradient(0, iy, 0, iy + ih);                // nước phù sa như cảnh chính
+    mg.addColorStop(0, "rgba(207,163,106,.8)"); mg.addColorStop(1, "rgba(60,46,28,.85)");
+    ctx.fillStyle = mg; ctx.fillRect(ix, iy, iw, ih);
     const dp = v.meta.dock_pos || [2, 0];
     ctx.fillStyle = "#c98f4a"; ctx.fillRect(mx(dp[0]) - 4, iy - 4, 8, 5);
     (snap.nodes || []).forEach((n) => { ctx.fillStyle = n.ready !== false ? CN.kc(n.kind) : "rgba(255,255,255,.3)"; ctx.fillRect(mx(n.pos[0]) - 3, iy, 6, 4); });

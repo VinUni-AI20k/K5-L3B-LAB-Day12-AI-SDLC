@@ -1,0 +1,11 @@
+﻿Checkout: starting clean HEAD cfaa8bfcb7978c998ed449628eb18da901ec352f; current preserved base b72b5655586b170f38aa6296efbca2997860d5a0; no task commit/push.
+Gather command: python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out docs/proof/phase-1/q3/smoke-gather.jsonl
+Gather exit=0 runtime_seconds=0.1683309 bytes=69657
+Quan command: python3 -m chonoi.headless --mode quan --seed 1 --ticks 600 --inventory docs/contracts/inventory.sample.json --out docs/proof/phase-1/q3/smoke-quan.jsonl
+Quan exit=0 runtime_seconds=0.0806303 bytes=32841
+Replay A command: python3 -m chonoi.headless --mode quan --seed 7 --ticks 1100 --scenario tests/fixtures/p1/q3/spawn-one-dish.json --snapshot-every 1 --out docs/proof/phase-1/q3/quoosc-replay-a.jsonl
+Replay B: same command, output docs/proof/phase-1/q3/quoosc-replay-b.jsonl
+Replay exits=0,0 runtime_A_seconds=0.1386333 bytes=586868 SHA256_A=5CA0945575EBD04D96037028480F6611C45B881DA490B80FFF6F50B1F89B208A SHA256_B=5CA0945575EBD04D96037028480F6611C45B881DA490B80FFF6F50B1F89B208A byte_equal=True
+Q4 real happy-path/departure command: python -m unittest tests.test_p1_logic.QuanLogic.test_reserved_customer_cooks_serves_and_pays tests.test_p1_logic.QuanLogic.test_customer_leaves_and_reputation_drops -v
+Q4 tests: 2, exit 0; see q4-happy-path-tests.txt.
+Invalid overreservation: CLI exit 2, output absent; exact command/stderr in invalid-input.txt. Partial-recipe invalid input: exit 2/no output is also asserted in q3-tests.txt.

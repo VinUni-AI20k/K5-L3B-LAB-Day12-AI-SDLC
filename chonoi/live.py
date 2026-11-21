@@ -27,7 +27,7 @@ from urllib.parse import unquote
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
-from .inventory import read_inventory, write_inventory
+from .inventory import merge_items, read_inventory_for_mode, read_inventory_or_empty, write_inventory
 from .runner import Session
 from .scenario import load_scenario
 
@@ -79,6 +79,8 @@ class LiveGame:
         self._reset()
 
     def _reset(self):
+        self.inventory_base = (read_inventory_or_empty(self.inventory_out)
+                               if self.mode in ("gather", "day") and self.inventory_out else {})
         self.session = Session(*self._args)
         self.inputs = _LiveInputsV11()
         self.events = []
@@ -120,16 +122,18 @@ class LiveGame:
         for row in s.step(self.inputs.advance()):
             self.events.append(row)
         del self.events[:-RECENT_EVENTS]
-        if self.mode == "gather" and self.inventory_out:
+        if self.mode in ("gather", "day") and self.inventory_out:
             inventory_events = {"gather", "fish_caught", "faint", "gather_end"}
             if any(row["name"] in inventory_events for row in self.events[-RECENT_EVENTS:]
                    if row["tick"] == s.tick):
-                write_inventory(self.inventory_out, s.sim.inventory_items())
+                items = (s.sim.inventory_items() if self.mode == "day"
+                         else merge_items(self.inventory_base, s.sim.inventory_items()))
+                write_inventory(self.inventory_out, items)
         if s.done and not self._saved:
             self._saved = True
             if self.inventory_out:
                 try:
-                    s.write_inventory_if_done(self.inventory_out)
+                    s.write_inventory_if_done(self.inventory_out, self.inventory_base)
                 except OSError as e:
                     sys.stderr.write(f"lỗi ghi kho: {e}\n")
 
@@ -270,25 +274,35 @@ class LiveServer:
 
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="chonoi.live", description="Chơi trực tiếp trên trình duyệt (starter).")
-    p.add_argument("--mode", required=True, choices=["gather", "quan"])
+    p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--port", type=int, default=8000, help="0 = cổng ngẫu nhiên")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--scenario")
-    p.add_argument("--inventory", help="chỉ với quan: nạp kho từ file")
+    p.add_argument("--inventory", help="nạp kho cho quan hoặc day")
     p.add_argument("--inventory-out", dest="inventory_out",
                    help="chỉ với gather: ghi kho ngay khi khởi động, hái/bắt và kết thúc buổi")
     a = p.parse_args(argv)
     try:
-        if a.inventory and a.mode != "quan":
-            raise BadInput("--inventory chỉ dùng với quan")
-        if a.inventory_out and a.mode != "gather":
-            raise BadInput("--inventory-out chỉ dùng với gather")
+        if a.inventory and a.mode not in ("quan", "day"):
+            raise BadInput("--inventory chỉ dùng với quan hoặc day")
+        if a.inventory_out and a.mode not in ("gather", "day"):
+            raise BadInput("--inventory-out chỉ dùng với gather hoặc day")
         tuning = load_contract()["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
-        inventory = read_inventory(a.inventory) if a.inventory else None
-        if inventory is not None and "stock" in scenario:
-            raise BadInput("vừa có quan.stock vừa có --inventory")
+        has_scenario_stock = (
+            "stock" in scenario
+            if a.mode == "quan"
+            else a.mode == "day" and "stock" in scenario.get("quan", {})
+        )
+        if a.inventory is not None:
+            inventory = read_inventory_for_mode(a.mode, a.inventory)
+            if has_scenario_stock:
+                raise BadInput("vừa có quan.stock vừa có --inventory")
+        elif has_scenario_stock:
+            inventory = None
+        else:
+            inventory = read_inventory_for_mode(a.mode, None)
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
