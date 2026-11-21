@@ -6,7 +6,7 @@ Từ contract 1.2 (Ticket-03) giỏ `hold`, kho `stock` và `customers[].reserve
 - `spoiled_count`, `min_fresh`;
 - `affected_orders`: đơn bị ảnh hưởng ở quán, gồm khách đang chờ có hàng giữ chỗ đã ươn (`spoiled_reserved`) và
   đơn không làm được (`order_status` là `unfulfillable`).
-Ngưỡng ươn đọc từ `tuning.freshness.spoil_below` (ươn khi `fresh < spoil_below`, giống `chonoi/freshness.py`).
+Ngưỡng ươn đọc từ `tuning.freshness.spoiled_below` (ươn khi `fresh < spoiled_below`, giống `chonoi/freshness.py`).
 Snapshot v1.1 (giỏ là chuỗi loại, kho là object đếm) thì không có cá thể: `view` trả None và UI giữ cách hiển thị cũ.
 """
 
@@ -59,7 +59,7 @@ def view(snap, tuning):
     f = tuning.get("freshness")
     if not isinstance(f, dict):
         return None
-    spoil_below = f["spoil_below"]
+    spoil_below = f["spoiled_below"]
     phase = snap.get("phase") or snap.get("mode")
     source = snap.get("hold") if phase == "gather" else snap.get("stock")
     items = [_item(it, spoil_below) for it in _individuals(source)]
@@ -68,7 +68,7 @@ def view(snap, tuning):
         return None
     spoiled_ids = {i["id"] for i in items if i["spoiled"]}
     return {
-        "fresh_max": f["fresh_max"],
+        "fresh_max": f["initial"],
         "spoil_below": spoil_below,
         "items": items,
         "spoiled_count": len(spoiled_ids),

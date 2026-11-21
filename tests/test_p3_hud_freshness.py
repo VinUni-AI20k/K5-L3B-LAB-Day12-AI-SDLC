@@ -6,7 +6,7 @@ import unittest
 
 from chonoi import freshness_view
 from chonoi.contract import load_contract
-from chonoi.freshness import Freshness
+from chonoi.freshness import UNITS_PER_POINT, Freshness
 from chonoi.ids import IdAllocator
 from chonoi.inputs import InputPlayer
 from chonoi.rng import Streams
@@ -18,8 +18,8 @@ from helpers import ROOT
 
 TUNING = load_contract()["tuning"]
 F = TUNING["freshness"]
-SPOIL = F["spoil_below"]
-UNIT = 1 / F["units_per_point"]  # một đơn vị nhỏ nhất, tính bằng điểm
+SPOIL = F["spoiled_below"]
+UNIT = 1 / UNITS_PER_POINT  # một đơn vị nhỏ nhất, tính bằng điểm
 
 
 def with_fresh(items, *fresh):
@@ -35,11 +35,11 @@ class Gather(unittest.TestCase):
         return {"phase": "gather", "mode": "gather", "hold": hold}
 
     def test_items_and_spoiled_boundary(self):
-        v = freshness_view.view(self.snap(SPOIL, SPOIL - UNIT, F["fresh_max"]), TUNING)
+        v = freshness_view.view(self.snap(SPOIL, SPOIL - UNIT, F["initial"]), TUNING)
         self.assertEqual([(i["id"], i["kind"], i["spoiled"]) for i in v["items"]],
                          [("I1", "ca_loc", False), ("I2", "bong_sung", True), ("I3", "ca_linh", False)])
         self.assertEqual((v["spoiled_count"], v["min_fresh"]), (1, SPOIL - UNIT))
-        self.assertEqual((v["fresh_max"], v["spoil_below"]), (F["fresh_max"], SPOIL))
+        self.assertEqual((v["fresh_max"], v["spoil_below"]), (F["initial"], SPOIL))
         self.assertEqual(v["affected_orders"], [])
 
     def test_matches_freshness_module(self):
