@@ -1,0 +1,69 @@
+﻿python : test_ac_m4_01_interact_edge_and_tiebreak_no_fallback 
+(tests.test_quan_m4.QuanM4BlackBox.test_ac_m4_01_interact_edge_and_tiebreak_no_fallback)
+At line:1 char:382
++ ...  "tests;."; python -m unittest tests.test_quan_m4 tests.test_scenario ...
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (test_ac_m4_01_i...ak_no_fallback):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+AC-M4-01: Đúng mép interact_radius (<=), hòa ưu tiên bếp trước bàn và không fallback khi bận. ... ok
+test_ac_m4_02_cook_started_consumes_stock_and_sorts_items 
+(tests.test_quan_m4.QuanM4BlackBox.test_ac_m4_02_cook_started_consumes_stock_and_sorts_items)
+AC-M4-02: Bắt đầu nấu trừ đúng kho, items sắp theo kind, khách sang assigned và nhả reserved. ... ok
+test_ac_m4_03_dish_ready_and_ready_ticks_increment 
+(tests.test_quan_m4.QuanM4BlackBox.test_ac_m4_03_dish_ready_and_ready_ticks_increment)
+AC-M4-03: Món chín đúng tick về 0 với ready_ticks=0, chỉ tăng ready_ticks từ tick sau, không cháy. ... ok
+test_ac_m4_04_dish_picked_moves_to_hand_and_resets_stove 
+(tests.test_quan_m4.QuanM4BlackBox.test_ac_m4_04_dish_picked_moves_to_hand_and_resets_stove)
+AC-M4-04: Bưng món từ bếp ready lên hand khi tay trống, bếp về idle. ... ok
+test_ac_m4_05_served_tip_boundary_and_zero_patience_tick 
+(tests.test_quan_m4.QuanM4BlackBox.test_ac_m4_05_served_tip_boundary_and_zero_patience_tick)
+AC-M4-05: Tip đạt đúng biên 50% sau Bước 1, thiếu 1 tick -> tip 0, phục vụ đúng tick patience=0 vẫn hợp lệ. ... ok
+test_ac_m4_06_paid_finished_eating_reputation_clamp_and_score 
+(tests.test_quan_m4.QuanM4BlackBox.test_ac_m4_06_paid_finished_eating_reputation_clamp_and_score)
+AC-M4-06: Ăn xong trả tiền, tip > 0 cộng tip_reputation (kẹp trần 5.0), tip = 0 giữ nguyên uy tín. ... ok
+test_ac_m4_07_closing_served_at_last_tick_and_waiting_no_penalty 
+(tests.test_quan_m4.QuanM4BlackBox.test_ac_m4_07_closing_served_at_last_tick_and_waiting_no_penalty)
+AC-M4-07: Hết ca — khách vừa được phục vụ ở tick cuối vẫn paid(closing); khách chờ rời closing không trừ uy tín. ... ok
+test_ac_m4_08_patience_leave_cleans_stove_and_hand_no_refund 
+(tests.test_quan_m4.QuanM4BlackBox.test_ac_m4_08_patience_leave_cleans_stove_and_hand_no_refund)
+AC-M4-08: Khách hết kiên nhẫn rời đi hủy món đang nấu/ready hoặc trên hand, không hoàn kho, kẹp uy tín >= 0. ... ok
+test_full_kitchen_loop_and_determinism (tests.test_quan_m4.QuanM4BlackBox.test_full_kitchen_loop_and_determinism)
+Vòng đầy đủ: nấu -> chín -> bưng -> phục vụ -> ăn xong trả tiền, cùng seed giống từng byte. ... ok
+test_carry_limit_blocks_pick_and_wrong_order_id_blocks_serve 
+(tests.test_quan_m4.QuanM4UnitEdges.test_carry_limit_blocks_pick_and_wrong_order_id_blocks_serve)
+Tay đang cầm món không bưng thêm được; đưa sai order_id cho bàn bị bỏ qua. ... ok
+test_cook_picks_oldest_order_tick_then_table_id_key 
+(tests.test_quan_m4.QuanM4UnitEdges.test_cook_picks_oldest_order_tick_then_table_id_key)
+Đơn reserved cũ nhất chọn theo (order_tick, id_key(table_id)): T2 đứng trước T10. ... ok
+test_assigned_stove_hand_conflicts_exit_2 
+(tests.test_scenario_m6.ScenarioQuanValidationM6.test_assigned_stove_hand_conflicts_exit_2) ... ok
+test_eating_and_misc_conflicts_exit_2 
+(tests.test_scenario_m6.ScenarioQuanValidationM6.test_eating_and_misc_conflicts_exit_2) ... ok
+test_reserved_mismatch_or_exceeds_stock_exit_2 
+(tests.test_scenario_m6.ScenarioQuanValidationM6.test_reserved_mismatch_or_exceeds_stock_exit_2) ... ok
+test_valid_assigned_cooking_ready_hand 
+(tests.test_scenario_m6.ScenarioQuanValidationM6.test_valid_assigned_cooking_ready_hand) ... ok
+test_valid_eating_and_unfulfillable 
+(tests.test_scenario_m6.ScenarioQuanValidationM6.test_valid_eating_and_unfulfillable) ... ok
+test_valid_reserved_with_stock_and_inventory 
+(tests.test_scenario_m6.ScenarioQuanValidationM6.test_valid_reserved_with_stock_and_inventory) ... ok
+test_bad_frames_raise (tests.test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not 
+(tests.test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (tests.test_python_starter_units.Units.test_id_allocator_continues_after_max) 
+... ok
+test_id_sorting (tests.test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (tests.test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (tests.test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (tests.test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_good (tests.test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (tests.test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (tests.test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (tests.test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
+
+----------------------------------------------------------------------
+Ran 28 tests in 6.474s
+
+OK
+OK: 6 thành viên: huyvu-03, QuangNEU, ththanh8888, NhMinh-2610, thanhvu101, K0heii
