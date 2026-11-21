@@ -44,6 +44,10 @@ def load_contract(path=DEFAULT_PATH) -> dict:
         for key in ("bench_cmd", "soak_cmd"):
             if not isinstance(c.get(key), str) or not c[key].strip():
                 raise BadInput(f"contract v1.3 cần {key} (chuỗi lệnh) ở gốc manifest")
+    burn_enabled = "burn" in extensions
+    burn_configured = c["tuning"]["quan"].get("burn_s") is not None
+    if burn_enabled != burn_configured:
+        raise BadInput('extensions có "burn" khi và chỉ khi tuning.quan.burn_s được đặt')
     return c
 
 

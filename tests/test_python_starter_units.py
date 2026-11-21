@@ -3,8 +3,10 @@
 
 import copy
 import unittest
+from unittest.mock import patch
 
 from chonoi.errors import BadInput
+from chonoi.headless import main as headless_main
 from chonoi.ids import IdAllocator, id_key, sort_by_id
 from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer, LiveInputs, load_frames
@@ -30,6 +32,15 @@ class Units(unittest.TestCase):
             for i, invalid in enumerate(mismatches):
                 with self.subTest(case=i), self.assertRaises(BadInput):
                     load_contract(write_json(w.path(f"contract-{i}.json"), invalid))
+
+    def test_headless_disables_burn_extension(self):
+        with Workdir() as w, patch("chonoi.headless.load_scenario", return_value={}), \
+                patch("chonoi.headless.run") as run:
+            result = headless_main(["--mode", "quan", "--seed", "1", "--ticks", "0", "--out", w.path("out.jsonl")])
+
+        self.assertEqual(result, 0)
+        tuning = run.call_args[0][1]
+        self.assertIsNone(tuning["quan"]["burn_s"])
 
     def test_id_sorting(self):
         self.assertEqual([e["id"] for e in sort_by_id([{"id": "F10"}, {"id": "F2"}, {"id": "B1"}])], ["B1", "F2", "F10"])

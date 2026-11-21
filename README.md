@@ -62,9 +62,9 @@ python3 .agents/skills/kiem-tat-dinh/kiem_tat_dinh.py    # chạy 2 lần, so t�
 
 ### Cháy món quá hạn (`burn`)
 
-- Ý tưởng: món chín để quá 20 giây sẽ cháy, bếp được dọn, đơn chuyển `unfulfillable` và phát `dish_burnt`.
-- Bật/tắt: trong `game.contract.json`, bật bằng `"extensions": ["burn"]` cùng `"burn_s": 20`; tắt bằng `"extensions": []` cùng `"burn_s": null`.
-- Bằng chứng: `python -m unittest discover -s tests -p "test_quan_service.py" -v` (7 test), `python -m unittest discover -s tests -p "test_python_starter_units.py" -v` (8 test), và `python .agents/skills/kiem-tat-dinh/kiem_tat_dinh.py` (15/15 cặp giống từng byte).
+- Ý tưởng: món chín để quá 20 giây sẽ cháy, bếp được dọn, nguyên liệu cũ mất; thử giữ lại công thức từ kho. Đủ nguyên liệu thì đơn `reserved`, thiếu thì `unfulfillable` và khách tiếp tục chờ.
+- Bật/tắt ở chơi live: trong `game.contract.json`, bật bằng `"extensions": ["burn"]` cùng `"burn_s": 20`; tắt bằng `"extensions": []` cùng `"burn_s": null`. Headless luôn tắt phần sáng tạo để giữ nguyên luật lõi.
+- Bằng chứng: `python -m unittest discover -s tests -p "test_quan_service.py" -v` (12 test), `python -m unittest discover -s tests -p "test_python_starter_units.py" -v` (9 test), và `python .agents/skills/kiem-tat-dinh/kiem_tat_dinh.py` (15/15 cặp giống từng byte).
 
 Khi thêm sáng tạo, mỗi mục ghi: ý tưởng · cách bật/tắt · bằng chứng lõi vẫn đúng (test + `kiem_tat_dinh.py` xanh, headless không đổi).
 

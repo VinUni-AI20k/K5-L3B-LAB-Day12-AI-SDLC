@@ -4,6 +4,7 @@ Mã thoát: 0 bình thường; 2 tham số/đầu vào sai (kiểm TRƯỚC khi 
 """
 
 import argparse
+import copy
 import os
 import sys
 
@@ -65,7 +66,9 @@ def main(argv=None) -> int:
         if len(set(paths)) != len(paths):
             raise BadInput("các đường dẫn đầu vào/đầu ra phải khác nhau")
         contract = load_contract()
-        tuning = contract["tuning"]
+        tuning = copy.deepcopy(contract["tuning"])
+        if "burn" in contract["extensions"]:
+            tuning["quan"]["burn_s"] = None
         scenario = load_scenario(a.scenario, a.mode, tuning)
         frames = load_frames(a.inputs)
         inventory = read_inventory(a.inventory, v12=is_v12(tuning)) if a.inventory else None

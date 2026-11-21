@@ -179,7 +179,7 @@ DayIntro → gather → EveningIntro → quan → DayResult → Shop → DayIntr
 | `bought` | `upgrade`, `level`, `price`, `money` | lát 4 |
 | `buy_failed` | `action`, `reason` (`funds`/`max_level`/`out_of_stock`/`unknown`) | lát 4 |
 | `shop_end` | `reason` (`done`/`time`) | lát 4 |
-| `dish_burnt` | `stove_id`, `order_id`, `dish_id`, `order_status` (nếu bật burn) | mở rộng |
+| `dish_burnt` | `stove_id`, `order_id`, `dish_id`, `order_status` (`reserved`/`unfulfillable` sau khi thử giữ lại nguyên liệu) | mở rộng `burn` |
 
 Trong `day`, vỏ mọi event có thêm `day`; snapshot mọi pha có `day`, `day_plan`, `upgrades`, `active_upgrades`. Dòng `end` thêm `days_completed`; đủ Ngày → `reason: "days_complete"`.
 

@@ -181,6 +181,76 @@ class QuanService(unittest.TestCase):
         self.assertIsNone(session.sim.stoves[0]["dish"])
         self.assertEqual(session.sim.customers[0]["order_status"], "unfulfillable")
 
+    def test_burned_v12_dish_rereserves_freshest_available_recipe(self):
+        tuning = load_contract()["tuning"]
+        burn_ticks = int(round(tuning["quan"]["burn_s"] * tuning["tick_hz"]))
+        scenario = {
+            "random_customers": False,
+            "stock": [
+                {"id": "I1", "kind": "bong_sung", "fresh": 90},
+                {"id": "I2", "kind": "bong_sung", "fresh": 100},
+                {"id": "I3", "kind": "bong_sung", "fresh": 100},
+            ],
+            "customers": [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung",
+                           "order_status": "assigned", "reserved": [], "patience_ticks_left": 3000}],
+            "stoves": [{"id": "B1", "state": "ready", "dish": {
+                "order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40,
+            }, "ready_ticks": burn_ticks}],
+        }
+        session = Session("quan", tuning, scenario, 1)
+
+        burnt = session.step(LiveInputs().advance())
+
+        self.assertEqual([row["name"] for row in burnt], ["dish_burnt"])
+        self.assertEqual(burnt[0]["data"]["order_status"], "reserved")
+        self.assertEqual(session.sim.customers[0]["order_status"], "reserved")
+        self.assertEqual(session.sim.customers[0]["reserved"], ["I2", "I3"])
+        self.assertEqual([item["id"] for item in session.sim.stock], ["I1", "I2", "I3"])
+
+    def test_burned_v12_dish_without_stock_stays_unfulfillable_until_patience_expires(self):
+        tuning = load_contract()["tuning"]
+        burn_ticks = int(round(tuning["quan"]["burn_s"] * tuning["tick_hz"]))
+        scenario = {
+            "random_customers": False,
+            "stock": [{"id": "I1", "kind": "bong_sung", "fresh": 100}],
+            "customers": [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung",
+                           "order_status": "assigned", "reserved": [], "patience_ticks_left": 2}],
+            "stoves": [{"id": "B1", "state": "ready", "dish": {
+                "order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40,
+            }, "ready_ticks": burn_ticks}],
+        }
+        session = Session("quan", tuning, scenario, 1)
+
+        burnt = session.step(LiveInputs().advance())
+
+        self.assertEqual(burnt[0]["data"]["order_status"], "unfulfillable")
+        self.assertEqual(session.sim.customers[0]["order_status"], "unfulfillable")
+        self.assertEqual(session.sim.customers[0]["reserved"], [])
+        self.assertEqual(session.sim.customers[0]["patience_ticks_left"], 1)
+        left = session.step(LiveInputs().advance())
+        self.assertEqual([row["name"] for row in left], ["customer_left"])
+        self.assertEqual(session.sim.customers, [])
+
+    def test_ready_dish_can_be_picked_at_exact_burn_threshold(self):
+        burn_ticks = int(round(self.tuning["quan"]["burn_s"] * self.tuning["tick_hz"]))
+        scenario = {
+            "random_customers": False, "player": {"pos": [2, 8]},
+            "customers": [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung",
+                           "order_status": "assigned", "reserved": {}}],
+            "stoves": [{"id": "B1", "state": "ready", "dish": {
+                "order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40,
+            }, "ready_ticks": burn_ticks - 1}],
+        }
+        session = Session("quan", self.tuning, scenario, 1)
+        controls = LiveInputs()
+        controls.set(interact=True)
+
+        rows = session.step(controls.advance())
+
+        self.assertEqual([row["name"] for row in rows], ["dish_picked"])
+        self.assertEqual(session.sim.hand["order_id"], "C1")
+        self.assertEqual(session.sim.stoves[0]["state"], "idle")
+
     def test_ready_dish_does_not_burn_when_extension_is_disabled(self):
         burn_ticks = int(round(self.tuning["quan"]["burn_s"] * self.tuning["tick_hz"]))
         tuning = copy.deepcopy(self.tuning)
