@@ -64,6 +64,8 @@ test_ac_p1_02_surface_mot_lan_khi_noi_len (test_gather_p1.Oxygen.test_ac_p1_02_s
 test_ac_p1_03_oxygen_empty_roi_choke_o_t_cong_59 (test_gather_p1.Oxygen.test_ac_p1_03_oxygen_empty_roi_choke_o_t_cong_59) ... ok
 test_ac_p1_04_ngat_bo_gio_lifo_va_kho_rong (test_gather_p1.Oxygen.test_ac_p1_04_ngat_bo_gio_lifo_va_kho_rong) ... ok
 test_ac_p1_05_noi_len_dung_buoc_ngat_thi_khong_ngat (test_gather_p1.Oxygen.test_ac_p1_05_noi_len_dung_buoc_ngat_thi_khong_ngat) ... ok
+test_burn_chi_hop_le_khi_bat_extension (test_lat0_v11.ContractV11.test_burn_chi_hop_le_khi_bat_extension)
+Quyết định I-1 (clarify #9): manifest bật burn, burn_s 20; contract kiểm burn_s theo extensions. ... ok
 test_day_plan_ingredients_bang_tong_cong_thuc (test_lat0_v11.ContractV11.test_day_plan_ingredients_bang_tong_cong_thuc) ... ok
 test_so_chuan_v11 (test_lat0_v11.ContractV11.test_so_chuan_v11) ... ok
 test_upgrades_ap_dung_oxygen_hp (test_lat0_v11.ContractV11.test_upgrades_ap_dung_oxygen_hp) ... ok
@@ -80,7 +82,7 @@ test_snapshot_ngay_1_chi_co_m1 (test_lat0_v11.Monsters.test_snapshot_ngay_1_chi_
 test_catch_surface_ignored_and_hold_full_no_cooldown (test_lat2.TestGatherLat2.test_catch_surface_ignored_and_hold_full_no_cooldown)
 Catch at surface does nothing; catch when hold lacks space emits hold_full without cooldown or removal. ... ok
 test_catch_underwater_removes_fish_and_sets_cooldown (test_lat2.TestGatherLat2.test_catch_underwater_removes_fish_and_sets_cooldown)
-Catching underwater adds full yield, removes fish school, and enforces catch_cooldown_s. ... FAIL
+Catching underwater adds full yield, removes fish school, and enforces catch_cooldown_s. ... ok
 test_dock_priority_over_harvest_and_last_tick_collect (test_lat2.TestGatherLat2.test_dock_priority_over_harvest_and_last_tick_collect)
 Docking takes priority over overlapping harvest node; harvesting on final tick still enters inventory. ... ok
 test_gather_hold_full_leaves_node_ready (test_lat2.TestGatherLat2.test_gather_hold_full_leaves_node_ready)
@@ -204,16 +206,7 @@ test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) 
 test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
-======================================================================
-FAIL: test_catch_underwater_removes_fish_and_sets_cooldown (test_lat2.TestGatherLat2.test_catch_underwater_removes_fish_and_sets_cooldown)
-Catching underwater adds full yield, removes fish school, and enforces catch_cooldown_s.
 ----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\nghia\Documents\GitHub\K5-L3B-LAB-Day12-AI-SDLC-ChoNoiCaMau\tests\test_lat2.py", line 185, in test_catch_underwater_removes_fish_and_sets_cooldown
-    self.assertEqual(len(caught), 2)
-AssertionError: 1 != 2
+Ran 179 tests in 36.311s
 
-----------------------------------------------------------------------
-Ran 178 tests in 54.159s
-
-FAILED (failures=1)
+OK

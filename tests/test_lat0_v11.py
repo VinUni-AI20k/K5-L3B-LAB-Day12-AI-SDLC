@@ -50,6 +50,27 @@ class ContractV11(unittest.TestCase):
             cells.append(sum(e["ingredients"].values()))
         self.assertEqual(cells, [9, 10, 12, 9, 10])  # cột "Số ô cần" của Ticket-02
 
+    def test_burn_chi_hop_le_khi_bat_extension(self):
+        """Quyết định I-1 (clarify #9): manifest bật burn, burn_s 20; contract kiểm burn_s theo extensions."""
+        import copy
+        from chonoi.contract import validate_extensions, validate_tuning
+        with open("game.contract.json", encoding="utf-8") as f:
+            manifest = json.load(f)
+        self.assertEqual((manifest["extensions"], TUNING["quan"]["burn_s"]), (["burn"], 20))
+        t = copy.deepcopy(TUNING)
+        validate_tuning(t, extensions=("burn",))
+        with self.assertRaises(BadInput):
+            validate_tuning(t)  # burn_s hữu hạn mà không bật burn
+        t["quan"]["burn_s"] = None
+        validate_tuning(t)  # lõi: null
+        for bad in (None, 0, -5, float("inf")):
+            t["quan"]["burn_s"] = bad
+            with self.assertRaises(BadInput, msg=bad):
+                validate_tuning(t, extensions=("burn",))
+        for bad in (["fire"], ["burn", "burn"], "burn"):
+            with self.assertRaises(BadInput, msg=bad):
+                validate_extensions(bad)
+
     def test_upgrades_ap_dung_oxygen_hp(self):
         sim = GatherSim(TUNING, {"random_fish": False}, Streams(1), IdAllocator(), upgrades={"oxygen": 2, "hp": 1})
         self.assertEqual((sim.oxygen_max, sim.oxygen_ticks, sim.hp, sim.hp_max), (3600, 3600, 4, 4))

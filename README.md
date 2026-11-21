@@ -33,9 +33,20 @@ python3 -m chonoi.live --mode gather --inventory-out kho.json    # chơi buổi 
   - Khách được boa thì +0.2.
   - Khách hết kiên nhẫn bỏ đi khi ca còn giờ thì −0.5.
 
+**Cả ngày (Test Contract v1.1):** `python3 -m chonoi.headless --mode day --days 5 --seed 1 --ticks 111000 --out day.jsonl` chạy 5 Ngày: sáng lặn → tối mở quán → Shop.
+
 **Tiến độ** (ghi trung thực):
-- Phase 1: gather (lát 1, 2) và quán lát 3 xong. Quán lát 4 (bếp, phục vụ, tiền) chưa xong.
-- Chi tiết: [`docs/verification/phase-1.md`](docs/verification/phase-1.md).
+- **Phase 1:** chi tiết trong [`docs/verification/phase-1.md`](docs/verification/phase-1.md).
+- **Phase 2:** đạt 11/12 AC, gồm v1.1, cá bơi/sinh, Cá Sấu, 2 bếp/4 bàn, 6 món, `day`, Shop, pause, `burn`.
+  - Chưa đạt: UI Phase 2 (menu, pause, màn chuyển Ngày) trên cửa sổ chơi.
+  - Chi tiết: [`docs/verification/phase-2.md`](docs/verification/phase-2.md).
+
+**Mở rộng đã làm** (khai trong `game.contract.json` → `"extensions"`):
+- **`burn` — Cháy món.** `quan.burn_s: 20`. Món chín để trên bếp quá 1.200 tick (`ready_ticks > 1200`) thì cháy: bỏ món, nguyên liệu mất, bếp rảnh ngay, và phát sự kiện `dish_burnt`.
+  - Nếu kho còn đủ nguyên liệu, đơn được giữ lại thành `reserved`; thiếu thì thành `unfulfillable`.
+  - Món để đúng 1.200 tick vẫn bưng được.
+  - Test: `tests/test_quan_lat4.py::test_burn_*`, `tests/test_lat0_v11.py::test_burn_chi_hop_le_khi_bat_extension`.
+  - Bằng chứng: [`docs/proof/phase-2/final-run.md`](docs/proof/phase-2/final-run.md).
 
 **Sáng tạo của nhóm:** chưa có (làm lõi đúng trước).
 

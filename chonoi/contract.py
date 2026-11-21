@@ -36,8 +36,18 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    validate_tuning(c.get("tuning"), extensions=validate_extensions(c.get("extensions", [])))
     return c
+
+
+# Mã mở rộng Ticket-02 mục 3 / 4.1. Khai ở gốc manifest: "extensions": [...].
+EXTENSION_CODES = ("weapon", "net", "snake", "burn", "vendor", "ca_ho")
+
+
+def validate_extensions(ext) -> tuple:
+    if not isinstance(ext, list) or any(e not in EXTENSION_CODES for e in ext) or len(set(ext)) != len(ext):
+        raise BadInput(f"extensions phải là danh sách mã không trùng trong {list(EXTENSION_CODES)}")
+    return tuple(ext)
 
 
 def _int_between(name, v, lo, hi):
@@ -263,7 +273,8 @@ def _validate_shop(shop, g):
                 _int_between(f"shop.upgrades.hp.{lv['level']}.hp_max", lv["hp_max"], 1, 99)
 
 
-def validate_tuning(t):
+def validate_tuning(t, extensions=()):
+    """`extensions`: mã mở rộng đang bật (gốc manifest). Hiện chỉ ảnh hưởng `quan.burn_s`."""
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
@@ -288,8 +299,12 @@ def validate_tuning(t):
         raise BadInput("quan.tip_min_patience_ratio phải thuộc (0, 1]")
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
-    if q.get("burn_s") is not None:
-        raise BadInput("burn_s phải là null trong lõi (mở rộng burn chưa bật)")
+    # Ticket-02 mục 3/4.1: lõi `burn_s: null`; bật mở rộng burn thì `quan.burn_s` hữu hạn (> 0), chuẩn là 20 s.
+    if "burn" in extensions:
+        if not (_num(q.get("burn_s")) and q["burn_s"] > 0):
+            raise BadInput("extensions có burn thì quan.burn_s phải là số hữu hạn > 0")
+    elif q.get("burn_s") is not None:
+        raise BadInput("burn_s phải là null khi chưa bật mở rộng burn (extensions)")
     for name in ("stoves", "tables"):
         arr = q.get(name)
         if not isinstance(arr, list) or not arr or len({e.get("id") for e in arr}) != len(arr):
