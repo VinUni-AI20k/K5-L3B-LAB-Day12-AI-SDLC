@@ -33,3 +33,6 @@
 - Kiểm: `pre-push-check` → unittest 187 OK, headless exit 0, 31 file JS OK; `ui_check.mjs` → không lỗi console, đủ trạng thái kỳ vọng (xem `docs/verification/phase-4.md` AC-P4-X01..X09).
 - AI sai: (1) bản đầu nhập tên ở màn tổng kết để phím H/T vẫn chạy như phím tắt → gõ "Tester" sẽ bật tương phản cao và mở điện thoại; phát hiện khi đọc lại vòng `frame()` trong `main.js`, thêm cờ `scene.typing` rồi kiểm lại bằng `ui_check.mjs` (`chonoi.hc` không đổi, `overlay:false`). (2) Lệnh `pkill -f "http.server 8099"` tự khớp với chính shell đang chạy nó nên giết luôn lệnh sau; chạy lại không dùng pkill. (3) Test đầu tiên để mở file không đóng (ResourceWarning) — sửa bằng helper `_text`.
 - Người thực hiện: `Sz3RO` (thêm vào `TEAM.md` ở commit `docs(team)` ngay sau).
+
+## Vũ Văn Trường (`Sz3RO`) — phản tư cá nhân
+- Nhờ Claude Code soạn nháp `docs/members/Sz3RO.md` từ `git log` và nhật ký mở rộng P4; mình đọc lại và chịu trách nhiệm nội dung, không sửa file của thành viên khác.
