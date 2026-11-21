@@ -8,9 +8,10 @@ from .inventory import KINDS
 
 DEFAULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json")
 
-# Ticket-03: chạy được 1.1 (kho đếm) và 1.2 (kho cá thể, độ tươi) trong lúc chuyển; 1.2 bắt buộc khối freshness.
-CONTRACT_VERSIONS = ("1.1", "1.2")
-CONTRACT_VERSION = "1.2"  # bản đích
+# Ticket-03/04: 1.1 (kho đếm), 1.2 và 1.3 (kho cá thể, độ tươi; bắt buộc khối freshness).
+CONTRACT_VERSIONS = ("1.1", "1.2", "1.3")
+CONTRACT_VERSION = "1.3"  # bản đích (Ticket-04: gameplay, tuning, kho, JSONL như 1.2)
+FRESH_VERSIONS = ("1.2", "1.3")  # có kho cá thể và độ tươi
 FRESHNESS_V12 = {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30}
 FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
@@ -47,16 +48,26 @@ def load_contract(path=DEFAULT_PATH) -> dict:
         raise BadInput(f"extensions phải là mảng mã không trùng trong {list(EXTENSION_CODES)}")
     validate_tuning(c.get("tuning"))
     validate_freshness(version, c["tuning"])
+    validate_commands(version, c)
     validate_extensions(ext, c["tuning"])
     return c
+
+
+def validate_commands(version, c):
+    """v1.3 (Ticket-04): khai bench_cmd và soak_cmd ở gốc manifest, là chuỗi lệnh khác rỗng."""
+    if version != "1.3":
+        return
+    for key in ("bench_cmd", "soak_cmd"):
+        if not isinstance(c.get(key), str) or not c[key].strip():
+            raise BadInput(f"contract 1.3 cần {key} là chuỗi lệnh khác rỗng ở gốc manifest")
 
 
 def validate_freshness(version, t):
     """v1.2 bắt buộc tuning.freshness đúng giá trị chuẩn (Ticket-03); v1.1 không được có (chonoi.fresh.enabled dựa vào
     sự có mặt của khối này để chọn kho cá thể)."""
-    if version == "1.2":
+    if version in FRESH_VERSIONS:
         if t.get("freshness") != FRESHNESS_V12:
-            raise BadInput(f"contract 1.2 cần tuning.freshness = {FRESHNESS_V12}")
+            raise BadInput(f"contract {version} cần tuning.freshness = {FRESHNESS_V12}")
     elif "freshness" in t:
         raise BadInput("tuning.freshness chỉ có từ contract 1.2")
 

@@ -24,7 +24,7 @@ ITEM_KEYS = {"id", "kind", "fresh"}
 
 
 def is_v12(version) -> bool:
-    return version == "1.2"
+    return version in ("1.2", "1.3")  # 1.3 giữ kho cá thể như 1.2 (Ticket-04)
 
 
 def validate_items(items, kinds=KINDS):
