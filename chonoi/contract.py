@@ -27,7 +27,10 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    ext = c.get("extensions", [])
+    if not isinstance(ext, list) or any(not isinstance(x, str) for x in ext):
+        raise BadInput("extensions phải là mảng chuỗi")
+    validate_tuning(c.get("tuning"), extensions=ext)
     return c
 
 
@@ -199,7 +202,7 @@ def _validate_day_plan_and_shop(t, menu):
         raise BadInput("tuning.shop.upgrades phải có oxygen và hp")
 
 
-def validate_tuning(t):
+def validate_tuning(t, extensions=()):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
@@ -223,8 +226,11 @@ def validate_tuning(t):
         raise BadInput("quan.tip_min_patience_ratio phải thuộc (0, 1]")
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
-    if q.get("burn_s") is not None:
-        raise BadInput("burn_s phải là null ở Phase 2")
+    if "burn" in extensions:
+        if q.get("burn_s") is not None:
+            _between("quan.burn_s", q.get("burn_s"), 1, 600)
+    elif q.get("burn_s") is not None:
+        raise BadInput("burn_s phải là null khi chưa bật mở rộng burn")
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:

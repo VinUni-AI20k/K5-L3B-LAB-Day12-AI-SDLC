@@ -257,7 +257,13 @@ function drawQuan(w, h) {
       const dishLabel = typeof st.dish === "string" ? st.dish : (st.dish.dish_id || "món");
       text(dishLabel, sx(st.pos[0]), sy(st.pos[1]) - 0.95 * s, { size: 10, align: "center", color: "#2a1a0a" });
     }
-    if (st.state === "cooking" && st.cook_ticks_left !== undefined) text(Math.ceil(st.cook_ticks_left / 60) + "s", sx(st.pos[0]), sy(st.pos[1]) + 1.25 * s, { size: 11, align: "center", color: "#2a1a0a" });
+    if (st.state === "cooking" && st.cook_ticks_left !== undefined) {
+      text(Math.ceil(st.cook_ticks_left / 60) + "s", sx(st.pos[0]), sy(st.pos[1]) + 1.25 * s, { size: 11, align: "center", color: "#2a1a0a" });
+    } else if (st.state === "ready" && meta.burn_s) {
+      const maxBurn = meta.burn_s * 60;
+      const left = Math.max(0, maxBurn - (st.ready_ticks || 0));
+      bar(sx(st.pos[0]) - 0.8 * s, sy(st.pos[1]) + 0.9 * s, 1.6 * s, 6, left / maxBurn, left < 300 ? "#ef5350" : "#ffd54f");
+    }
   });
   // bàn + khách
   const patMax = (meta.patience_s || 60) * 60;

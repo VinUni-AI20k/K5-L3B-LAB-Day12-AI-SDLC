@@ -83,6 +83,7 @@ class QuanSim:
         self.eat_ticks_full = round(self.t["eat_s"] * self.tick_hz)
         self.customer_interval_ticks = round(self.t["customer_interval_s"] * self.tick_hz)
         self.carry_limit = int(self.t["carry_limit"])
+        self.burn_ticks = round(float(self.t["burn_s"]) * self.tick_hz) if self.t.get("burn_s") is not None else None
         self.random_customers = bool(scenario.get("random_customers", True))
 
         self.money = int(initial_money)
@@ -215,46 +216,126 @@ class QuanSim:
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
 
-        # 1. Nấu, ăn, kiên nhẫn (chỉ tăng ready_ticks cho món đã ready từ đầu bước)
-        self._step_stoves(events)
-        self._step_customer_timers()
+        # 1. Đồng hồ & bộ đếm (tăng ready_ticks cho món đã ready từ đầu bước)
+        already_ready = self._tick_stoves_and_customers()
 
-        # 2. Di chuyển rồi xét tối đa một interact (theo đúng đối tượng gần nhất)
+        # 2. Hao tươi kho thô (-1 đv/tick), phát spoiled theo id rồi tái giữ chỗ 1 lần
+        self._step_raw_stock_freshness(events)
+
+        # 3. Xét món chín theo id bếp
+        self._resolve_stoves_after_timers(already_ready, events)
+
+        # 4. Di chuyển rồi xét tối đa một interact (theo đúng đối tượng gần nhất)
         self._move(inp)
         if inp.pressed("interact"):
             self._try_interact(events)
 
-        # 3. Khách ăn xong trả tiền; hết kiên nhẫn hoặc đóng ca rời bàn
+        # 5. Khách ăn xong trả tiền; hết kiên nhẫn hoặc đóng ca rời bàn
         self._settle_and_leave(events)
         if self.done:
             return events
 
-        # 4. Khách mới (nếu còn giờ)
+        # 6. Khách mới (nếu còn giờ)
         self._maybe_spawn_customer(events)
         return events
 
-    def _step_stoves(self, events: list):
-        for st in self.stoves:
-            if st["state"] == "ready":
+    def _tick_stoves_and_customers(self) -> set[str]:
+        already_ready = {st["id"] for st in self.stoves if st["state"] == "ready"}
+        for st in sort_by_id(self.stoves):
+            if st["id"] in already_ready:
                 st["ready_ticks"] += 1
             elif st["state"] == "cooking":
                 st["cook_ticks_left"] = max(0, int(st["cook_ticks_left"]) - 1)
-                if st["cook_ticks_left"] == 0:
-                    st["state"] = "ready"
-                    st["ready_ticks"] = 0
-                    d = st["dish"]
-                    events.append(("dish_ready", {
-                        "stove_id": st["id"],
-                        "order_id": d["order_id"],
-                        "dish_id": d["dish_id"],
-                    }))
-
-    def _step_customer_timers(self):
         for c in sort_by_id(self.customers):
             if c["state"] == "eating":
                 c["eat_ticks_left"] = max(0, int(c["eat_ticks_left"]) - 1)
             else:
                 c["patience_ticks_left"] = max(0, int(c["patience_ticks_left"]) - 1)
+        return already_ready
+
+    def _try_reserve_customer(self, c: dict) -> bool:
+        """Thử giữ lại đúng một lần từ kho thô khả dụng chưa ươn (tươi nhất trước, hòa theo id)."""
+        recipe = self.menu[c["dish_id"]]["recipe"]
+        reserved_ids = {iid for other in self.customers for iid in other["reserved"]}
+        avail_items = [
+            it for it in self.stock
+            if it["id"] not in reserved_ids and it["fresh_u"] >= self.spoil_u
+        ]
+        picked = []
+        for k, amt in sorted(recipe.items()):
+            cands = [it for it in avail_items if it["kind"] == k]
+            cands.sort(key=lambda it: (-it["fresh_u"], id_key(it["id"])))
+            if len(cands) < amt:
+                c["reserved"] = []
+                c["order_status"] = "unfulfillable"
+                return False
+            chosen = cands[:amt]
+            chosen_ids = {it["id"] for it in chosen}
+            avail_items = [it for it in avail_items if it["id"] not in chosen_ids]
+            picked.extend(chosen_ids)
+        c["reserved"] = sorted(picked, key=id_key)
+        c["order_status"] = "reserved"
+        return True
+
+    def _step_raw_stock_freshness(self, events: list):
+        newly_spoiled = set()
+        for it in sort_by_id(self.stock):
+            prev_u = it["fresh_u"]
+            it["fresh_u"] = max(0, prev_u - self.quan_decay_u)
+            if prev_u >= self.spoil_u and it["fresh_u"] < self.spoil_u:
+                newly_spoiled.add(it["id"])
+                events.append(("spoiled", {
+                    "item_id": it["id"],
+                    "kind": it["kind"],
+                    "location": "stock",
+                }))
+        if not newly_spoiled:
+            return
+        affected = [
+            c for c in self.customers
+            if c["state"] == "waiting"
+            and c["order_status"] == "reserved"
+            and any(iid in newly_spoiled for iid in c["reserved"])
+        ]
+        affected.sort(key=lambda c: (c["order_tick"], id_key(c["table_id"])))
+        for c in affected:
+            c["reserved"] = []
+            self._try_reserve_customer(c)
+
+    def _resolve_stoves_after_timers(self, already_ready: set[str], events: list):
+        by_cust = {c["id"]: c for c in self.customers}
+        for st in sort_by_id(self.stoves):
+            if st["id"] not in already_ready and st["state"] == "cooking" and st["cook_ticks_left"] == 0:
+                st["state"] = "ready"
+                st["ready_ticks"] = 0
+                d = st["dish"]
+                events.append(("dish_ready", {
+                    "stove_id": st["id"],
+                    "order_id": d["order_id"],
+                    "dish_id": d["dish_id"],
+                }))
+            elif (
+                self.burn_ticks is not None
+                and st["id"] in already_ready
+                and st["state"] == "ready"
+                and st["ready_ticks"] > self.burn_ticks
+            ):
+                d = st["dish"]
+                st["state"] = "idle"
+                st["dish"] = None
+                st["cook_ticks_left"] = 0
+                st["ready_ticks"] = 0
+                c = by_cust.get(d["order_id"])
+                status = "unfulfillable"
+                if c is not None and c["state"] == "waiting":
+                    self._try_reserve_customer(c)
+                    status = c["order_status"]
+                events.append(("dish_burnt", {
+                    "stove_id": st["id"],
+                    "order_id": d["order_id"],
+                    "dish_id": d["dish_id"],
+                    "order_status": status,
+                }))
 
     def _move(self, inp):
         speed = float(self.t["walk_speed"])
@@ -327,7 +408,9 @@ class QuanSim:
             consumed.sort(key=lambda it: (it["kind"], id_key(it["id"])))
             items = [serialize_item(it) for it in consumed]
 
-            base_price = int(self.menu[dish_id]["price"])
+            base_price = (int(self.menu[dish_id]["price"]) * sum(it["fresh_u"] for it in consumed)) // (
+                len(consumed) * 100 * FRESH_SCALE
+            )
             payload = {
                 "order_id": customer["id"],
                 "dish_id": dish_id,
