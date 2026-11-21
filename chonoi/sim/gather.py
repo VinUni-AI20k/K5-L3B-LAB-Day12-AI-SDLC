@@ -169,14 +169,85 @@ class GatherSim:
 
     # --- lát 2 (sở hữu: người làm gather lát 2) ---------------------------------
     def _try_gather(self, events):
-        """TODO(nhóm, lát 2): chỉ khi ở mặt nước: nút `ready` gần nhất trong interact_radius
+        """Chỉ khi ở mặt nước: nút `ready` gần nhất trong interact_radius
         (id nhỏ khi bằng nhau). Dùng self._add_to_hold([kind] * node_yield):
         thành công -> gather + regrow_ticks = regrow_s * TICK; thất bại -> hold_full."""
+        if not self._at_surface():
+            return
+
+        radius = self.t["interact_radius"]
+        px, pd = self.pos
+
+        best_node = None
+        best_dist = None
+        for n in sort_by_id(self.nodes):
+            if n["regrow_ticks"] != 0:
+                continue
+            dist = math.hypot(px - n["pos"][0], pd - n["pos"][1])
+            if dist <= radius and (best_dist is None or dist < best_dist):
+                best_dist = dist
+                best_node = n
+
+        if best_node is None:
+            return
+
+        kind = best_node["kind"]
+        amount = self.t["node_yield"]
+        if self._add_to_hold([kind] * amount):
+            best_node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+            events.append(("gather", {
+                "node_id": best_node["id"],
+                "kind": kind,
+                "amount": amount,
+            }))
+        else:
+            free = self.t["hold_capacity"] - len(self.hold)
+            events.append(("hold_full", {
+                "action": "gather",
+                "node_id": best_node["id"],
+                "required": amount,
+                "free": free,
+            }))
 
     def _try_catch(self, events):
-        """TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: đàn cá gần nhất trong catch_radius
+        """Chỉ khi catch_cd_ticks == 0 và dưới nước: đàn cá gần nhất trong catch_radius
         (id nhỏ khi bằng nhau). Dùng self._add_to_hold([kind] * fish_yield[kind]):
-        thành công -> fish_caught (xóa đàn cá) ; thất bại -> hold_full. Đặt catch_cd_ticks theo PRD."""
+        thành công -> fish_caught (xóa đàn cá); thất bại -> hold_full. Đặt catch_cd_ticks theo PRD."""
+        if self.catch_cd_ticks != 0 or self._at_surface():
+            return
+
+        radius = self.t["catch_radius"]
+        px, pd = self.pos
+
+        best_fish = None
+        best_dist = None
+        for f in sort_by_id(self.fish):
+            dist = math.hypot(px - f["pos"][0], pd - f["pos"][1])
+            if dist <= radius and (best_dist is None or dist < best_dist):
+                best_dist = dist
+                best_fish = f
+
+        if best_fish is None:
+            return
+
+        kind = best_fish["kind"]
+        yield_amt = self.t["fish_yield"][kind]
+        if self._add_to_hold([kind] * yield_amt):
+            self.fish.remove(best_fish)
+            self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
+            events.append(("fish_caught", {
+                "fish_id": best_fish["id"],
+                "kind": kind,
+                "yield": yield_amt,
+            }))
+        else:
+            free = self.t["hold_capacity"] - len(self.hold)
+            events.append(("hold_full", {
+                "action": "catch",
+                "fish_id": best_fish["id"],
+                "required": yield_amt,
+                "free": free,
+            }))
 
     # --- dùng chung (lát 1 + lát 2): mọi thao tác thêm vào giỏ đi qua đây ----------
     def _add_to_hold(self, kinds) -> bool:
