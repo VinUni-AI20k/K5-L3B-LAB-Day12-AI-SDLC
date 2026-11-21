@@ -41,7 +41,7 @@ Cột kết quả ghi trung thực: **đạt**, **đạt một phần** hoặc *
 | AC | Cách kiểm chứng | Bằng chứng | Kết quả |
 |---|---|---|---|
 | Mỗi người ≥ 3 commit bằng tài khoản của mình | Đếm commit trên `main` | D: 72 (`luongvh2510` 35 và `luongvh` 37, cùng email); A (`NguyenDucNhat3006`): 7; B (`HoAnhTu245`): 7; C (`Cuongngucuteee`): 7; còn 9 commit của `Hai Duong` chưa biết thuộc ai | Đạt một phần (mỗi người ≥ 3 commit): B vẫn dùng `HoAnhTu245` trong khi `TEAM.md` ghi `TuHoAnh`, cần xác nhận tài khoản |
-| Nhật ký AI, hồ sơ cá nhân, standup | Kiểm file | `docs/ai-usage-log.md` có dòng của B, C và D; `docs/members/` có hồ sơ của B (tên file chưa theo `<handle>.md`), C (`Cuongngucuteee.md`) và D; `docs/standup.md` có dòng Phase 2 của cả 4 người (C tổng hợp, P2-14) | **Chưa đạt** với A (C đã nộp ở P2-14) |
+| Nhật ký AI, hồ sơ cá nhân, standup | Kiểm file | `docs/ai-usage-log.md` có dòng của cả 4 người (A ở PR #37, C ở P2-14); `docs/members/` có hồ sơ của B (tên file chưa theo `<handle>.md`), C (`Cuongngucuteee.md`) và D; `docs/standup.md` có dòng Phase 2 của cả 4 người (C tổng hợp, P2-14) | **Chưa đạt** với A: còn thiếu hồ sơ cá nhân (C đã nộp ở P2-14) |
 | `docs/retro.md` mục Phase 2 | Đọc file | Đã điền: bản của D (PR #33), phần của TuHoAnh (PR #34) và của Cuongngucuteee (P2-14); chưa có phần của A | Đạt một phần |
 | Tag `phase-2` | `git tag`, chạy test tại tag | Chưa gắn (việc P2-13, cần người dùng đồng ý trước khi đẩy tag) | **Chưa đạt** |
 
@@ -49,6 +49,6 @@ Cột kết quả ghi trung thực: **đạt**, **đạt một phần** hoặc *
 
 - **Đạt:** luật gather v1.1 (cá, Cá Sấu), quán v1.1, Shop, chế độ `day` với pause và input mới, giao diện chơi có menu, pause, HUD, Shop, hợp đồng tài liệu khớp code, tất định, hồi quy Phase 1. 259 test xanh, smoke 27/27 và 15/15.
 - **Đạt một phần:** Cá Sấu (giả định chờ PO), giao diện chơi (chưa chơi tay trọn một Ngày), commit theo người (B dùng tài khoản khác `TEAM.md`), retro (thiếu phần của A).
-- **Chưa đạt:** nhật ký AI và hồ sơ cá nhân của A, tag `phase-2`. (C đã nộp nhật ký AI, hồ sơ, retro và điền `standup.md` ở P2-14.)
+- **Chưa đạt:** hồ sơ cá nhân của A, tag `phase-2`. (C đã nộp nhật ký AI, hồ sơ, retro và điền `standup.md` ở P2-14.)
 - **Hạn chế:** Ticket-02 không đọc được nên mức "đạt" là theo contract v1.1 và hiểu biết của nhóm, chưa có bộ test ẩn của giảng viên. Smoke hộp đen chưa phủ `buy` ở Shop (chỉ có unit test và lần bấm thử của D); câu hỏi `clarify` #6 đến #12 chờ PO.
 - **Trước khi gắn `phase-2`:** nếu A và C kịp nộp ghi chép thì cập nhật hai dòng "Chưa đạt" ở trên; chạy lại lệnh đầu file tại đúng commit gắn tag nếu có thay đổi code, rồi mới gắn tag (cần người dùng đồng ý).
