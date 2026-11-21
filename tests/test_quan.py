@@ -167,7 +167,7 @@ class Kitchen(unittest.TestCase):
                                   "state": "eating", "order_status": "served", "eat_ticks_left": 500,
                                   "base_price": 60, "tip": 12, "reserved": {}},
                                  {"id": "C2", "table_id": "T2", "dish_id": "goi_bong_sung"}],
-                      stock={})
+                      stock={"bong_sung": 2})
         s = make(sc, two_tables=True)
         ev = run(s, 2)
         self.assertEqual(names(ev), ["paid", "customer_left", "quan_end"])

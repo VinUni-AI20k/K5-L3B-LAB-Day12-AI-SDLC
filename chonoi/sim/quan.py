@@ -14,6 +14,7 @@ import math
 
 from ..errors import BadInput
 from ..ids import id_key, sort_by_id
+from ..scenario import check_reserved_within_stock
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -54,6 +55,7 @@ class QuanSim:
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
         self.customers = self._build_customers(scenario.get("customers", []))
+        check_reserved_within_stock(self.customers, self.stock)  # mã 2 nếu giữ quá tồn
         self.money = 0
         self.earned = 0
         self.shift_earned = 0
