@@ -4,11 +4,11 @@
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
-| (Thành viên 1) | member1 | `sim/gather` | Gameplay Dev (Lặn & Sinh tồn) | `client/ui` |
+| (Thành viên 1) | member1 | `sim/gather` | Gameplay Dev (Lặn & Sinh tồn) | `sim/gather` |
 | (Thành viên 2) | member2 | `sim/gather` | Gameplay Dev (Hái hoa & Bắt cá) | `sim/quan` |
-| (Thành viên 3) | member3 | `sim/quan` | Gameplay Dev (Khách & Menu) | `sim/gather` |
-| (Thành viên 4) | member4 | `sim/quan` | Gameplay Dev (Bếp nấu & Kinh tế) | `sim/quan` |
-| (Thành viên 5) | member5 | `client/ui` | Frontend Dev (Đồ họa & Hiệu ứng) | `client/ui` |
+| (Thành viên 3) | member3 | `sim/quan` | Gameplay Dev (Khách & Bàn ăn) | `sim/gather` |
+| (Thành viên 4) | member4 | `sim/quan` | Gameplay Dev (Kho & Giữ chỗ menu) | `sim/quan` |
+| (Thành viên 5) | member5 | `sim/quan` | Gameplay Dev (Bếp nấu & Kinh tế) | `client/ui` |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 

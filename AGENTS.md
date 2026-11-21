@@ -7,12 +7,13 @@
 ## Hướng dẫn điều hướng nhanh cho Agent
 Khi được phân công một nhiệm vụ, Agent hãy đọc ngay:
 1. Bản đồ phân công & tiến độ 5 Dev: [`docs/plan/tasks-summary.md`](docs/plan/tasks-summary.md)
-2. File đặc tả nhiệm vụ chi tiết:
+2. File đặc tả nhiệm vụ gameplay chi tiết:
    - DEV 1: [`docs/plan/task-1-gather-survival.md`](docs/plan/task-1-gather-survival.md) (Lặn, Oxy, Ngạt nước, Máu, Cập bến ghe)
    - DEV 2: [`docs/plan/task-2-gather-harvest.md`](docs/plan/task-2-gather-harvest.md) (Hái Bông Điên Điển, Bông Súng, Bắt Cá Linh, Cá Lóc, Giỏ LIFO)
-   - DEV 3: [`docs/plan/task-3-quan-customers.md`](docs/plan/task-3-quan-customers.md) (Khách ghe đến, Xếp bàn, Check kho, Giữ chỗ, Kiên nhẫn)
-   - DEV 4: [`docs/plan/task-4-quan-kitchen.md`](docs/plan/task-4-quan-kitchen.md) (Bếp nấu, Chín món, Bưng bê, Phục vụ, Tiền, Tip, Uy tín)
-   - DEV 5: [`docs/plan/task-5-game-visuals.md`](docs/plan/task-5-game-visuals.md) (Đồ họa sông nước miền Tây, Quán nổi đèn lồng đêm, Camera LERP, Âm thanh)
+   - DEV 3: [`docs/plan/task-3-quan-customers.md`](docs/plan/task-3-quan-customers.md) (Khách ghe đến, Xếp bàn ăn, Thanh kiên nhẫn, Bỏ về)
+   - DEV 4: [`docs/plan/task-4-quan-inventory-menu.md`](docs/plan/task-4-quan-inventory-menu.md) (Kho khả dụng, Kiểm tra menu, Khóa giữ chỗ nguyên liệu)
+   - DEV 5: [`docs/plan/task-5-quan-kitchen-serving.md`](docs/plan/task-5-quan-kitchen-serving.md) (Bếp nấu, Chín món, Bưng bê, Phục vụ, Tiền, Tip, Uy tín)
+   - VIỆC CHUNG (FE & Visuals): [`docs/plan/shared-fe-visuals.md`](docs/plan/shared-fe-visuals.md) (Đồ họa Web, Nước sông Tiền, Quán nổi đèn lồng đêm, Camera LERP, Âm thanh)
 
 ## Lệnh thực thi & Kiểm tra
 - Chạy smoke test:

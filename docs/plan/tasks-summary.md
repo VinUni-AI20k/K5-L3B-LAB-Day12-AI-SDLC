@@ -1,43 +1,23 @@
-# BẢNG TỔNG HỢP PHÂN CÔNG 5 ĐẦU VIỆC LÀM GAME (DEV 1 -> DEV 5)
+# BẢNG TỔNG HỢP 5 ĐẦU VIỆC GAMEPLAY (DEV 1 -> DEV 5)
 
-> **Cảm hứng thiết kế:** Game lấy cảm hứng từ **Dave the Diver** phiên bản Miền Tây Sông Nước:
-> - **Sáng:** Lặn sông Mekong (Blue Hole) bắt Cá Linh, Cá Lóc, hái Bông Súng, Bông Điên Điển, quản lý bình Oxy & Giỏ đồ, cập bến an toàn.
-> - **Tối:** Mở Quán Ăn Chợ Nổi (Bancho Sushi), đón khách ghe, nổi lửa nấu lẩu/cá nướng, bưng bê phục vụ trước khi khách hết kiên nhẫn, thu tiền & điểm uy tín.
->
-> **Quy tắc làm việc:** Cả 5 người trong team tự do chọn 1 trong 5 đầu việc bên dưới. Ai nhận việc nào thì điền Tên và GitHub Handle của mình vào bảng.
+> **Mô hình tổ chức:** 
+> - **5 phần GAMEPLAY chuyên biệt:** Mỗi thành viên sở hữu 1 cơ chế gameplay độc lập trong game (Dave the Diver phong cách Miền Tây).
+> - **FE / Đồ Họa Web (`client/ui`):** Là **CÔNG VIỆC CHUNG** của cả nhóm! Ai làm xong phần gameplay của mình thì cùng đóng góp giao diện/hiệu ứng cho tính năng đó (xem hướng dẫn tại [`shared-fe-visuals.md`](./shared-fe-visuals.md)).
 
 ---
 
-## BẢNG CHỌN TÍNH NĂNG GAME (MỞ CHO CẢ 5 THÀNH VIÊN)
+## BẢNG PHÂN CHIA 5 ĐẦU VIỆC GAMEPLAY (MỞ CHO CẢ 5 DEV)
 
-| STT | Tên Tính Năng Game | Module File | Thành viên nhận việc | GitHub Handle | Trạng thái | File hướng dẫn & Prompt AI |
+| STT | Tên Lát Gameplay | Module File | Thành viên nhận việc | GitHub Handle | Trạng thái | Hướng dẫn & Prompt AI |
 | :---: | :--- | :--- | :---: | :---: | :---: | :--- |
-| **DEV 1** | **Gameplay Lặn & Sinh Tồn** (Bơi, Oxy, Ngạt nước, Máu, Ngất xỉu, Cập bến ghe) | `chonoi/sim/gather.py` | *(Chưa nhận)* | `@...` | `Trống` | [`task-1-gather-survival.md`](./task-1-gather-survival.md) |
-| **DEV 2** | **Gameplay Săn Bắt & Sinh Thái Sông** (Hái Bông Súng/Điên Điển mọc lại, Săn Cá Linh/Cá Lóc, Giỏ LIFO) | `chonoi/sim/gather.py` | *(Chưa nhận)* | `@...` | `Trống` | [`task-2-gather-harvest.md`](./task-2-gather-harvest.md) |
-| **DEV 3** | **Gameplay Quán Ăn: Thực Khách & Menu** (Khách ghé ghe, Xếp bàn, Check món theo kho, Giữ chỗ, Kiên nhẫn) | `chonoi/sim/quan.py` | *(Chưa nhận)* | `@...` | `Trống` | [`task-3-quan-customers.md`](./task-3-quan-customers.md) |
-| **DEV 4** | **Gameplay Quán Ăn: Nấu Bếp & Kinh Tế** (Bếp nổi lửa, Bưng bê món, Phục vụ khách ăn, Tiền, Tip, Uy tín) | `chonoi/sim/quan.py` | *(Chưa nhận)* | `@...` | `Trống` | [`task-4-quan-kitchen.md`](./task-4-quan-kitchen.md) |
-| **DEV 5** | **Game Visuals & Âm Thanh Chợ Nổi** (Vẽ Út Sen, Sóng nước sông Tiền, Quán nổi đèn lồng đêm, Khói bếp, Camera LERP) | `chonoi/web/index.html` | *(Chưa nhận)* | `@...` | `Trống` | [`task-5-game-visuals.md`](./task-5-game-visuals.md) |
+| **DEV 1** | **Gameplay Lặn & Sinh Tồn**<br>*(Bơi, Oxy, Ngạt nước, Mất máu, Ngất xỉu, Cập bến ghe)* | `chonoi/sim/gather.py` | *(Chưa nhận)* | `@...` | `Trống` | [`task-1-gather-survival.md`](./task-1-gather-survival.md) |
+| **DEV 2** | **Gameplay Sinh Thái & Săn Bắt**<br>*(Hái Bông Súng/Điên Điển mọc lại, Săn Cá Linh/Cá Lóc, Giỏ LIFO)* | `chonoi/sim/gather.py` | *(Chưa nhận)* | `@...` | `Trống` | [`task-2-gather-harvest.md`](./task-2-gather-harvest.md) |
+| **DEV 3** | **Gameplay Thực Khách & Bàn Ăn**<br>*(Lịch đón khách ghé ghe, Xếp bàn ăn, Thanh kiên nhẫn, Khách giận bỏ về)* | `chonoi/sim/quan.py` | *(Chưa nhận)* | `@...` | `Trống` | [`task-3-quan-customers.md`](./task-3-quan-customers.md) |
+| **DEV 4** | **Gameplay Kho Nguyên Liệu & Menu**<br>*(Kho khả dụng, Kiểm tra công thức nấu, Khóa giữ chỗ nguyên liệu, Xử lý hết món)* | `chonoi/sim/quan.py` | *(Chưa nhận)* | `@...` | `Trống` | [`task-4-quan-inventory-menu.md`](./task-4-quan-inventory-menu.md) |
+| **DEV 5** | **Gameplay Bếp Nấu, Bưng Bê & Kinh Tế**<br>*(Nấu bếp than, Bưng bê món trên tay, Phục vụ khách ăn, Tiền, Tip & Uy tín)* | `chonoi/sim/quan.py` | *(Chưa nhận)* | `@...` | `Trống` | [`task-5-quan-kitchen-serving.md`](./task-5-quan-kitchen-serving.md) |
 
 ---
 
-## HƯỚNG DẪN DÀNH CHO AI AGENT KHI ĐỌC REPO NÀY
-1. **Xác định vai trò của bạn:** Đọc bảng trên để biết người dùng của bạn đang phụ trách vị trí DEV nào (DEV 1 $\rightarrow$ DEV 5).
-2. **Đọc tài liệu nhiệm vụ:** Mở ngay file hướng dẫn tương ứng (`task-1-*.md` đến `task-5-*.md`) để nắm rõ các hàm, biến và sự kiện cần code.
-3. **Quy tắc kiểm thử:** Trước khi báo hoàn thành, luôn chạy lệnh test:
-   - Windows: `py -3 -m unittest discover -s tests -v`
-   - Linux / Mac: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
-   Đảm bảo 100% test cases đều pass (xanh), không làm vỡ các trường dữ liệu trong snapshot.
-
----
-
-## NGUYÊN TẮC LÀM GAME SONG SONG (KHÔNG XUNG ĐỘT)
-1. **Tạo nhánh riêng theo việc:**
-   - Dev 1: `git checkout -b feat/gather-survival`
-   - Dev 2: `git checkout -b feat/gather-harvest`
-   - Dev 3: `git checkout -b feat/quan-customers`
-   - Dev 4: `git checkout -b feat/quan-kitchen`
-   - Dev 5: `git checkout -b feat/game-visuals`
-2. **Quy định commit:** Mỗi thành viên commit tối thiểu 3 lần từ tài khoản GitHub của mình.
-3. **Chạy test kiểm tra trước khi push:**
-   - Windows: `py -3 -m unittest discover -s tests -v`
-   - Linux / Mac: `python3 -m unittest discover -s tests -v`
+## PHẦN VIỆC CHUNG (SHARED TASKS)
+- **Giao diện Web & Đồ họa Canvas:** [`docs/plan/shared-fe-visuals.md`](./shared-fe-visuals.md) — Ai xong gameplay trước có thể vào vẽ thêm sprite, hiệu ứng nước, đèn lồng, khói bếp và âm thanh.
+- **Quy trình Git:** Mỗi dev làm trên nhánh riêng `feat/<ten-module>`, commit tối thiểu 3 lần, chạy test xanh 100% trước khi tạo PR gộp vào `main`.
