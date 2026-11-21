@@ -98,6 +98,5 @@ class QuanService(unittest.TestCase):
         self.assertEqual(session.sim.reputation, 3.2)
         self.assertTrue(session.done)
 
-
 if __name__ == "__main__":
     unittest.main()

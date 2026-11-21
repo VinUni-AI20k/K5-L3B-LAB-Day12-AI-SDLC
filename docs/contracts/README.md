@@ -185,3 +185,4 @@ Trong `day`, vỏ mọi event có thêm `day`; snapshot mọi pha có `day`, `da
 ### 5.5. Inputs mới
 
 Nút boolean `pause` (cả 3 mode), `shop_done` (Shop); `buy` là chuỗi (`oxygen`, `hp`, …) chỉ chạy ở frame khai báo. `chonoi/inputs.py` hiện chỉ nhận `interact`, `catch` (`BUTTONS_V10`) → lát 4 mở rộng danh sách nút và kiểu `buy`.
+

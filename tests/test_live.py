@@ -1,6 +1,7 @@
 """Test cửa sổ chơi trực tiếp (chonoi.live). Chỉ dành cho starter Python: nhóm đổi ngôn ngữ thì xóa file này."""
 
 import json
+import os
 import time
 import unittest
 import urllib.error
@@ -27,6 +28,14 @@ def _post(url, obj):
 
 
 class LiveServerTest(unittest.TestCase):
+    def test_quan_patience_bar_warns_below_25_percent(self):
+        html_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "chonoi", "web", "index.html")
+        with open(html_path, "r", encoding="utf-8") as f:
+            html = f.read()
+        self.assertIn("function patienceBarColor(frac)", html)
+        self.assertIn("frac < 0.25", html)
+        self.assertIn("patienceBarColor(patienceFrac)", html)
+
     def test_state_input_and_clean_stop(self):
         tuning = load_contract()["tuning"]
         server = LiveServer(LiveGame("gather", tuning, {}, 1), port=0)  # cổng ngẫu nhiên
