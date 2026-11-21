@@ -80,10 +80,7 @@ class GatherSim:
         if "monsters" in scenario:
             src_monsters = scenario["monsters"]
         else:
-            spawns = t.get("monsters", {}).get("spawns", [
-                {"id": "M1", "kind": "ca_sau", "pos": [60.0, 24.0], "waypoints": [[60.0, 24.0], [64.0, 24.0]], "from_day": 1},
-                {"id": "M2", "kind": "ca_sau", "pos": [85.0, 18.0], "waypoints": [[85.0, 18.0], [89.0, 18.0]], "from_day": 3}
-            ])
+            spawns = t["monsters"]["spawns"]
             src_monsters = [m for m in spawns if m.get("from_day", 1) <= self.day]
 
         self.monsters = []
@@ -295,90 +292,68 @@ class GatherSim:
         return events
 
     # --- di chuyển và va chạm quái ----------------------------------------------
+    def _monster_config(self, m):
+        return self.t["monsters"]["species"][m["kind"]]
+
+    def _clamp_monster(self, m):
+        lo, hi = self.t["bounds"]["x"]
+        dlo, dhi = self._monster_config(m)["depths"]
+        m["pos"][0] = max(lo, min(hi, m["pos"][0]))
+        m["pos"][1] = max(dlo, min(dhi, m["pos"][1]))
+
+    def _move_monster_to(self, m, target, speed):
+        dx, dd = target[0] - m["pos"][0], target[1] - m["pos"][1]
+        dist = math.hypot(dx, dd)
+        step = speed / TICK
+        arrived = dist <= step
+        if arrived:
+            m["pos"] = list(target)
+        elif dist:
+            m["pos"][0] += dx / dist * step
+            m["pos"][1] += dd / dist * step
+        self._clamp_monster(m)
+        return arrived
+
     def _update_monsters(self):
-        px, pd = self.pos
-        player_in_monster_depth = (pd >= 10.0)
-
+        # A monster finishing recoil cannot detect or hit until the next step.
+        self._recoiling_this_step = set()
         for m in sort_by_id(self.monsters):
-            state = m["state"]
-
-            if state == "recoil":
-                # Lùi theo hướng recoil_dir ở tốc độ 2.0 m/s (2/60 m/tick)
+            cfg = self._monster_config(m)
+            if m["state"] == "recoil":
+                self._recoiling_this_step.add(m["id"])
                 rd = m["recoil_dir"]
                 if rd:
-                    m["pos"][0] += rd[0] * (2.0 / TICK)
-                    m["pos"][1] += rd[1] * (2.0 / TICK)
-                    m["pos"][0] = max(0.0, min(100.0, m["pos"][0]))
-                    m["pos"][1] = max(10.0, min(30.0, m["pos"][1]))
+                    step = cfg["recoil_dist"] / cfg["recoil_ticks"]
+                    m["pos"][0] += rd[0] * step
+                    m["pos"][1] += rd[1] * step
+                    self._clamp_monster(m)
                 m["state_ticks_left"] -= 1
                 if m["state_ticks_left"] <= 0:
-                    m["state"] = "patrol"
-                    m["recoil_dir"] = None
-                    m["state_ticks_left"] = 0
-
-            elif state == "patrol":
-                dist_p = math.dist(m["pos"], self.pos)
-                if player_in_monster_depth and dist_p <= 10.0:
-                    m["state"] = "chase"
-                    self._monster_chase_step(m)
-                else:
-                    # Đi 1.0 m/s tới waypoint
-                    wp = m["waypoints"][m["target_idx"]]
-                    dx = wp[0] - m["pos"][0]
-                    dd = wp[1] - m["pos"][1]
-                    d_wp = math.hypot(dx, dd)
-                    step = 1.0 / TICK
-                    if d_wp <= step:
-                        m["pos"] = [float(wp[0]), float(wp[1])]
-                        m["target_idx"] = 1 - m["target_idx"]
-                    else:
-                        m["pos"][0] += (dx / d_wp) * step
-                        m["pos"][1] += (dd / d_wp) * step
-                    m["pos"][0] = max(0.0, min(100.0, m["pos"][0]))
-                    m["pos"][1] = max(10.0, min(30.0, m["pos"][1]))
-
-            elif state == "chase":
-                dist_p = math.dist(m["pos"], self.pos)
-                if dist_p > 16.0 or not player_in_monster_depth:
-                    m["state"] = "patrol"
-                    wp = m["waypoints"][m["target_idx"]]
-                    dx = wp[0] - m["pos"][0]
-                    dd = wp[1] - m["pos"][1]
-                    d_wp = math.hypot(dx, dd)
-                    step = 1.0 / TICK
-                    if d_wp <= step:
-                        m["pos"] = [float(wp[0]), float(wp[1])]
-                        m["target_idx"] = 1 - m["target_idx"]
-                    else:
-                        m["pos"][0] += (dx / d_wp) * step
-                        m["pos"][1] += (dd / d_wp) * step
-                    m["pos"][0] = max(0.0, min(100.0, m["pos"][0]))
-                    m["pos"][1] = max(10.0, min(30.0, m["pos"][1]))
-                else:
-                    self._monster_chase_step(m)
-
-    def _monster_chase_step(self, m):
-        dx = self.pos[0] - m["pos"][0]
-        dd = self.pos[1] - m["pos"][1]
-        dist = math.hypot(dx, dd)
-        step = 3.0 / TICK
-        if dist <= step:
-            m["pos"] = [self.pos[0], self.pos[1]]
-        else:
-            m["pos"][0] += (dx / dist) * step
-            m["pos"][1] += (dd / dist) * step
-        m["pos"][0] = max(0.0, min(100.0, m["pos"][0]))
-        m["pos"][1] = max(10.0, min(30.0, m["pos"][1]))
+                    m.update(state="patrol", recoil_dir=None, state_ticks_left=0)
+                continue
+            dist = math.dist(m["pos"], self.pos)
+            in_depth = self.pos[1] >= cfg["depths"][0]
+            if m["state"] == "chase" and (not in_depth or dist > cfg["exit_radius"]):
+                m["state"] = "patrol"
+            elif m["state"] == "patrol" and in_depth and dist <= cfg["detect_radius"]:
+                m["state"] = "chase"
+            if m["state"] == "chase":
+                self._move_monster_to(m, self.pos, cfg["chase_speed"])
+            elif m["state"] == "patrol":
+                if self._move_monster_to(m, m["waypoints"][m["target_idx"]], cfg["patrol_speed"]):
+                    m["target_idx"] = 1 - m["target_idx"]
 
     def _check_monster_hit(self, events) -> bool:
-        if self.invuln_ticks > 0 or self.pos[1] < 10.0:
+        if self.invuln_ticks > 0:
             return False
 
         candidates = []
         for m in self.monsters:
-            if m["state"] != "recoil":
+            cfg = self._monster_config(m)
+            if (m["state"] != "recoil" and m["id"] not in self._recoiling_this_step
+                    and self.pos[1] >= cfg["depths"][0]):
                 dist = math.dist(self.pos, m["pos"])
-                if dist <= 1.5:
+                if dist <= cfg["hit_radius"]:
                     candidates.append((dist, id_key(m["id"]), m))
 
         if not candidates:
@@ -391,13 +366,13 @@ class GatherSim:
         self.hp -= 1
 
         # 2. Rơi floor(len(hold) / 2) nguyên liệu theo LIFO
-        drop_count = len(self.hold) // 2
+        drop_count = math.floor(len(self.hold) * self.t["monsters"]["loss_ratio"])
         lost = []
         for _ in range(drop_count):
             lost.append(self.hold.pop())
 
         # 3. Đặt bất tử 90 tick
-        self.invuln_ticks = 90
+        self.invuln_ticks = self.t["monsters"]["invuln_ticks"]
 
         # 4. Quái gây hit vào recoil 60 bước, lùi xa người chơi (trùng tâm dùng +x)
         dx = attacker["pos"][0] - self.pos[0]
@@ -408,7 +383,7 @@ class GatherSim:
         else:
             recoil_dir = [dx / dist, dd / dist]
         attacker["state"] = "recoil"
-        attacker["state_ticks_left"] = 60
+        attacker["state_ticks_left"] = self._monster_config(attacker)["recoil_ticks"]
         attacker["recoil_dir"] = recoil_dir
 
         events.append(("monster_hit", {

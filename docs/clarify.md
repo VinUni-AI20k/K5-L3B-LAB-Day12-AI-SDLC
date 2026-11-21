@@ -18,3 +18,6 @@
 | 11 | 2026-11-21 0:20 | Uy tín kẹp thế nào, boa làm tròn ra sao? | Kẹp `[reputation_min, reputation_max]`. Boa = `floor(base_price × tip_rate)` nếu tỷ lệ kiên nhẫn còn lại sau bước 1 ≥ `tip_min_patience_ratio`, không thì 0; boa dương cộng `tip_reputation` khi thu tiền. | chốt — PRD-0 F | PO |
 | 12 | 2026-11-21 10:28 | Id khách (cũng là `order_id`) đặt theo mẫu nào? | Tiền tố `C` cộng số thứ tự cấp qua `IdAllocator`: `C1`, `C2`… Khách luôn dùng `order_id` trùng id khách. | chốt — PO quyết (PRD-0 không nói) | PO |
 | 13 | 2026-11-21 10:28 | Scenario không khai `reserved` mà kho không đủ nguyên liệu cho đơn có sẵn thì sao? | Coi là input lỗi: thoát mã 2, **không** tự chuyển đơn sang `unfulfillable`. | chốt — PO quyết (PRD-0 không nói) | PO |
+
+## Phase 2 — nguồn chốt
+TICKET-02 do người dùng cung cấp được lưu ở `docs/tickets/TICKET-02.md`. Không thêm luật Shop tự đoán: oxygen 200/400 (45/60s), hp 250/500 (4/5), tối đa 600 tick. Màn intro/result/menu là trình bày live, headless chỉ có gather/quan/shop theo mục 4.4–4.5. Không bật mở rộng trong lần triển khai này.

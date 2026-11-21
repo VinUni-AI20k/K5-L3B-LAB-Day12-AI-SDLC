@@ -10,3 +10,5 @@
 | 1 | ToanLee5433 | TODO(ToanLee5433) | TODO(ToanLee5433): ghi công cụ AI đã dùng cho phần mình | TODO | TODO |
 | 1 | Ishodayo | TODO(Ishodayo) | TODO(Ishodayo): ghi công cụ AI đã dùng cho phần mình | TODO | TODO |
 | 1 | itsbra1vo | TODO(itsbra1vo) | TODO(itsbra1vo): ghi công cụ AI đã dùng cho phần mình | TODO | TODO |
+
+| 2 | Người dùng yêu cầu / Codex triển khai | Codex | Triển khai day/Shop/pause/menu/HUD, thay hard-code cá sấu bằng tuning; viết test biên và smoke từ TICKET-02 do người dùng cung cấp | chưa đo | Đã đối chiếu thứ tự pause/buy/đổi pha và sửa bước cuối recoil; cần người trong nhóm review trước khi đẩy lên main/tag |
