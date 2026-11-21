@@ -8,16 +8,16 @@ phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 m
 import json
 
 from .errors import BadInput
-from .inventory import KINDS_P1, validate_items
+from .inventory import KINDS_P1, validate_items, validate_stock
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "invuln_ticks", "catch_cd_ticks"}
-NODE_KINDS = ("bong_dien_dien", "bong_sung")
-FISH_KINDS = ("ca_linh", "ca_loc")
+NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
+FISH_KINDS = ("ca_linh", "ca_loc", "ca_keo")
 QUAN_PLAYER_KEYS = {"pos", "vel"}
-QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "random_customers",
-             "reputation", "time_left_ticks"}
+QUAN_KEYS = {"player", "stock", "hand", "stoves", "tables", "customers", "reservations",
+             "random_customers", "reputation", "time_left_ticks"}
 
 
 def _check_ids(name, arr):
@@ -40,6 +40,17 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
             data = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
+    if mode == "day":
+        if not isinstance(data, dict) or not set(data) <= {"day", "gather", "quan"}:
+            raise BadInput("scenario cho mode day chỉ được có các khối 'day', 'gather', 'quan'")
+        if "gather" in data:
+            _validate_gather(data["gather"], tuning)
+        if "quan" in data:
+            if "stock" in data["quan"] or "reputation" in data["quan"]:
+                raise BadInput("cấm quan.stock và quan.reputation khi chạy day")
+            _validate_quan(data["quan"], tuning)
+        return data
+
     if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
         raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
     if set(data) - {mode}:
@@ -141,11 +152,11 @@ def _validate_gather(b, tuning):
 
 
 def _validate_quan(b, tuning):
-    for arr in ("stoves", "tables", "customers"):
+    for arr in ("stoves", "tables", "customers", "reservations"):
         if arr in b:
             _check_ids(arr, b[arr])
     if "stock" in b:
-        validate_items(b["stock"])
+        validate_stock(b["stock"])
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")

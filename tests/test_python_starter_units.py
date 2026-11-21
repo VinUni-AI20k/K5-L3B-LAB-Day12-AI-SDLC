@@ -9,7 +9,17 @@ from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer, LiveInputs, load_frames
 from chonoi.runner import Session
 
-from helpers import Workdir, frames, write_json
+import sys
+from pathlib import Path
+
+_tests_dir = str(Path(__file__).parent)
+if _tests_dir not in sys.path:
+    sys.path.insert(0, _tests_dir)
+
+try:
+    from helpers import Workdir, frames, write_json
+except ImportError:
+    from tests.helpers import Workdir, frames, write_json
 
 
 class Units(unittest.TestCase):
