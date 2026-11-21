@@ -8,4 +8,5 @@
 
 Nhật ký cá nhân của Gather và QA cần xác nhận công cụ và số liệu sử dụng AI. Các commit chỉ xác nhận phần đã đóng góp vào repo.
 | Phase 1 | Đặng Nguyễn Nhật Minh (`MN-HD`) | ChatGPT Work (Codex) | Hỗ trợ thiết kế hai ca kiểm thử hộp đen, phân tích lỗi ngất ở tick biên và soạn bằng chứng QA. | Không đo | Hướng dẫn ban đầu dự kiến đưa ma trận vào PR #3, nhưng PR đã merge trước khi commit ma trận được đẩy. Kiểm tra trên GitHub và mở PR #5 để bổ sung. |
+| Phase 2 | Nguyễn Văn Lâm (`lam2121`) | Antigravity (Gemini 3.8 Flash) | Cập nhật contract v1.1, triển khai QuanSim Phase 2 (2 bếp, 4 bàn, 6 món, day_plan, tip floor, closing, burn), viết suite 11 test | ~55k tokens | AI ban đầu dùng round() cho boa thay vì floor(); đã đọc lại TICKET-02 và chỉnh về math.floor(). Khi chạy live test trên Windows, cổng 8000 bị Docker chiếm dụng nên chuyển sang cổng 8080. |
 
