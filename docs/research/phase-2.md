@@ -203,7 +203,7 @@ Số khác giữ nguyên như v1.0 (đề §1 khớp từng số: bounds, bến,
 |---|---|---|---|
 | `monster_hit` | gather | `{monster_id, hp, lost, pos}` | `pos` = vị trí **người chơi**; `lost` = mảng kind theo LIFO (mất trước đứng trước) |
 | `fish_spawned` | gather | `{id, kind, pos}` | chỉ khi sinh theo lịch (không phát cho 8 đàn đầu ca) |
-| `faint` | gather | Do bị chạm: `{"cause":"monster","lost":[…phần giỏ còn lại…],"hp":0}` (bản mới `:416`) | Do ngạt: đề không nói → GIẢ ĐỊNH giữ `{}` như v1.0 (P2-Q3) |
+| `faint` | gather | Do bị chạm: `{"cause":"monster","lost":[…phần giỏ còn lại…],"hp":0}` (bản mới `:416`) | Do ngạt: GIẢ ĐỊNH `{"lost":[…],"hp":0}`, không `cause` (P2-Q3, clarify #30) |
 | `day_start` | day | `{}` (bản mới `:417-418`); số Ngày nằm ở trường `day` của vỏ event | |
 | `phase_start` | day | `{}` | pha mới nằm ở trường `phase` của vỏ event |
 | `day_plan` | day | `{dishes, ingredients}` của Ngày đó | |
@@ -237,7 +237,7 @@ Hệ quả: cùng tick có thể có `choke` rồi `monster_hit`; cập bến th
 - `patrol` 1.0 m/s tới waypoint; đến nơi thì đổi mục tiêu cho bước sau. `target_idx` mặc định 1 (waypoint 0 là chỗ xuất phát).
 - `patrol → chase` khi người chơi ở `d ≥ 10` và cách ≤ 10 m; `chase` 3.0 m/s về phía người chơi. `chase → patrol` khi cách > 16 m hoặc người chơi lên `d < 10` (bản mới `:62-68`).
 - Kẹp theo biên map và `depths` của loài.
-- Hit: sau khi cả hai di chuyển, cách ≤ 1.5 m, người chơi ở `[VẪN THIẾU trong đề, bản mới :70-71]` (GIẢ ĐỊNH: dưới nước, P2-Q7) và `invuln_ticks == 0` → −1 Máu, bỏ `floor(len(hold) × 0.5)` món từ cuối giỏ, `invuln = 90`. Không đổi sang recoil trong lúc người chơi bất tử.
+- Hit: sau khi cả hai di chuyển, cách ≤ 1.5 m, người chơi ở `d ≥ 10` (đề bản lần 3 `:49`) và `invuln_ticks == 0` → −1 Máu, bỏ `floor(len(hold) × 0.5)` món từ cuối giỏ, `invuln = 90`. Không đổi sang recoil trong lúc người chơi bất tử.
 - `recoil` 60 bước, **bắt đầu từ bước sau**: lùi theo hướng xa người chơi chốt lúc chạm (trùng tâm thì +x), mỗi bước 2/60 m trước khi chặn mép, không gây hit. Hết recoil về patrol, xét phát hiện/chạm từ bước kế.
 - M2 chỉ có từ Ngày 3. `gather` độc lập dùng bố trí Ngày 1 (chỉ M1).
 - Ngạt **xuyên bất tử** và không làm rơi hàng (`:43`).
@@ -355,23 +355,25 @@ Phím mới: Esc/P → `pause`; Shop: phím chọn nâng cấp → `{"buy":"oxyg
 ## 6. Rủi ro chính
 1. **P1 chưa xong** (lát 2–4 TODO, chưa có tag `phase-1`). Test ẩn P2 kiểm lại P1 → làm P1 trước.
 2. **File khung bắt buộc sửa** (mục 3). Nếu giữ luật "không sửa khung" thì không đạt v1.1. Cần quyết ngay ai sửa.
-3. **Đề còn thiếu** sau khi chép lại (mục 7): điều kiện vị trí người chơi khi bị Cá Sấu hit, dạng `extensions`, cá bị bắt có biến mất không, `faint.data` khi ngất do ngạt.
+3. **Đề còn thiếu** (mục 7, clarify #30, #32, #33): `faint.data` khi ngất do ngạt, dạng `extensions`, cá bị bắt có biến mất không.
 4. `hold_full` data không thống nhất: code gửi `{"kind"}` (`gather.py:138`, `docs/contracts/README.md`), còn `specs/001-phase-1-core/contracts/events.md` ghi `{source_id}`. Chốt một bên.
 5. Bắt cả đàn bằng `try_add_hold` từng món sẽ thêm thiếu (vd. còn 1 ô mà bắt cá linh).
 6. Tách `tick`/`sim_tick`/`phase_tick` đụng `runner.py`, dễ vỡ test cũ (`test_session_steps_gather_and_dock` kiểm `snapshot()["tick"]`).
 
 ## 7. Câu hỏi mở — trạng thái sau khi đọc đề bản đầy đủ
 
+> Đề đã chép lại lần 3 (361 dòng, có dòng lặp). Q3, Q7, Q8, Q9 dẫn theo **bản lần 3**; các câu khác dẫn theo bản lần 2 (535 dòng).
+
 | # | Câu hỏi | Trạng thái | Căn cứ (dòng trong `docs/prd/phase-2-ticket-02.md` bản mới) |
 |---|---|---|---|
 | P2-Q1 | `ca_keo_nuong.cook_s`? | **ĐÃ CÓ TRONG ĐỀ**: 6 s, giá 70 | `:133-137`. Đã điền vào JSON mục 1.4 |
 | P2-Q2 | Giá trị `state` trong snapshot | **ĐÃ CÓ TRONG ĐỀ** (phần thêm): `state:"paused"`; `playing`/`finished` giữ như v1.0. Pha Shop dùng `phase:"shop"`, không phải `state` | `:380`, `:394-397` |
-| P2-Q3 | `faint.data` | **ĐÃ CÓ một phần**: do bị chạm thì `{"cause":"monster","lost":[giỏ còn lại],"hp":0}`. **VẪN MỞ**: ngất do ngạt có thêm `lost`/`hp` không (GIẢ ĐỊNH giữ `{}` như v1.0) | `:416` |
+| P2-Q3 | `faint.data` | **ĐÃ CÓ một phần** (`:273`): "Thêm `cause:"monster"` nếu do bị chạm, `lost` liệt kê phần giỏ còn lại, `hp:0`". Đọc sát chữ: `lost` và `hp:0` thêm cho **mọi** lần ngất, `cause` chỉ có khi bị chạm. **VẪN MỞ** cho ngất do ngạt → clarify #30, GIẢ ĐỊNH theo PO: `{"lost":[…],"hp":0}`, không có `cause` (sửa GIẢ ĐỊNH `{}` cũ của research) | bản lần 3 `:273-274`; clarify #30 |
 | P2-Q4 | Chuỗi `buy` của nâng cấp lõi | **ĐÃ CÓ TRONG ĐỀ**: `"oxygen"`, `"hp"`; mở rộng: `"weapon"`, `"net"`, `"buy:<kind>"`/`"sell:<kind>"`; lệnh không hỗ trợ → `buy_failed` | `:294-306` |
 | P2-Q5 | Trường thêm vào vỏ event day; `end.reason` | **ĐÃ CÓ TRONG ĐỀ**: trường `day` (ví dụ `day_plan` ở tick 0); `end` thêm `days_completed`, đủ Ngày thì `reason:"days_complete"` | `:436`, `:440-442` |
 | P2-Q6 | `attack` khi không làm Lao | **ĐÃ CÓ TRONG ĐỀ**: "Nút đúng kiểu nhưng sai pha hoặc mở rộng chưa bật thì **bỏ qua**" → mã 0, không phải mã 2. Hệ quả: test `test_smoke_p1.py:65-67` và `test_python_starter_units.py:46-50` (đòi `attack` → mã 2) phải sửa, ghi lý do. `jump` vẫn là nút lạ → mã 2 | `:289-291`, `:306` |
-| P2-Q7 | Hit Cá Sấu cần người chơi ở đâu | **VẪN MỞ**: bản mới vẫn trống chỗ "người chơi ở … và hết bất tử" (GIẢ ĐỊNH: dưới nước; trên thực tế Cá Sấu bị kẹp `d ≥ 10`, bán kính 1.5 nên người chơi luôn ở `d ≥ 8.5`, kết quả gần như không đổi) | `:70-71` |
-| P2-Q8 | `extensions` là mảng hay object | **VẪN MỞ**: đề chỉ nói "khai mã ở `extensions` tại gốc manifest" (GIẢ ĐỊNH mảng chuỗi, vd. `["burn"]`) | `:223` |
-| P2-Q9 | Đàn cá bị bắt có biến mất không | **VẪN MỞ**: đề không nói thẳng (GIẢ ĐỊNH biến mất, vì có trần 12 đàn và luật sinh thêm; clarify #14) | — |
+| P2-Q7 | Hit Cá Sấu cần người chơi ở đâu | **ĐÃ CÓ TRONG ĐỀ**: sau khi cả hai di chuyển, khoảng cách ≤ 1.5 m, người chơi ở **`d ≥ 10`** và hết bất tử | bản lần 3 `:49`; clarify #31 |
+| P2-Q8 | `extensions` là mảng hay object | **VẪN MỞ**: đề chỉ nói "khai mã ở `extensions` tại gốc manifest" (GIẢ ĐỊNH mảng chuỗi, vd. `["burn"]`) | bản lần 3 `:182`; clarify #32 |
+| P2-Q9 | Đàn cá bị bắt có biến mất không | **VẪN MỞ** (lõi không nói thẳng). Gợi ý gián tiếp: mở rộng Vợt ghi "đàn thiếu chỗ phát `hold_full` và **giữ lại**" → đàn bắt thành công thì không còn; cùng với trần 12 đàn và luật sinh thêm. GIẢ ĐỊNH: biến mất | bản lần 3 `:41`, `:193`; clarify #33 |
 
 Ghi thêm từ bản đầy đủ: `day_start`/`phase_start` có data `{}` (`:417-418`); `phase` ∈ `gather`/`quan`/`shop` (`:394-397`); ví dụ scenario day có tiền: `{"day":{"money":200,"earned":200},"gather":{"hold":["ca_loc","bong_sung","bong_sung"],"random_fish":false}}` (`:377`). Dữ liệu `paused`/`resumed` vẫn không có ô riêng (`:421`) → GIẢ ĐỊNH `{}`.

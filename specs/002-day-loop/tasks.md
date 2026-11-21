@@ -44,7 +44,7 @@
 ## Lát (4) — TV6 (+TV5): mode day, Shop, pause, sự kiện đổi pha
 
 - [ ] T240 [US4] [sim/day] (TV6) `chonoi/headless.py`: nhận `--mode day`, `--days` 1–5 (mặc định 1), mã 2 khi sai / dùng với mode khác / kèm `--inventory*` — file khung
-- [ ] T241 [P] [US4] [sim/day] (TV6) `chonoi/inputs.py`: nút `pause`, `shop_done` (bool, cạnh lên), `buy` (chuỗi, chỉ tại frame khai báo, không kế thừa) — file khung
+- [ ] T241 [P] [US4] [sim/day] (TV6) `chonoi/inputs.py`: nút `pause`, `shop_done` (bool, cạnh lên), `attack`/`photo` (bool, bỏ qua khi chưa bật mở rộng), `buy` (chuỗi, chỉ tại frame khai báo, không kế thừa) — file khung
 - [ ] T242 [P] [US4] [sim/day] (TV6) `chonoi/scenario.py`: khối `day {money,earned,reputation,upgrades,day_plan}`, `gather.monsters[]`, `fish[].age_ticks`, `player.invuln_ticks`; cấm `quan.stock`/`quan.reputation` trong `day`; `0 ≤ money ≤ earned` — file khung
 - [ ] T243 [US4] [sim/day] (TV6) `chonoi/sim/day.py` + `runner.py`: `DaySession`, `day_start → day_plan → phase_start(gather)`, `gather_end → phase_start(quan)` cùng tick (kho bộ nhớ, ngất → rỗng), `quan_end → phase_start(shop)`, snapshot đổi pha `phase_tick:0`, snapshot có `day, day_plan, upgrades, active_upgrades`, vỏ event thêm `"day":N`, `end.days_completed`, `reason:"days_complete"`
 - [ ] T244 [US4] [sim/day] (TV6) `chonoi/sim/shop.py`: `buy` trước `shop_done`, `bought`/`buy_failed{funds,max_level,unknown}`, 600 tick hoạt động → `shop_end(time)`, `shop_done` → `shop_end(done)`; đóng → `days_completed+1`, dựng Ngày kế, chép `upgrades → active_upgrades`, hồi oxy/Máu theo cấp, giỏ mới, bỏ kho dư
@@ -56,10 +56,10 @@
 ## QA — TV5: contract v1.1, smoke tích hợp, regression P1
 
 - [ ] T250 [qa] (TV5) Smoke tích hợp ở phút 20: `gather --inventory-out` → `quan --inventory`, so snapshot kho tick 0; lưu `docs/proof/phase-2/integration.{jsonl,md}` (AC-P2-31)
-- [ ] T251 [qa] (TV5) Regression P1 với số chuẩn: chạy toàn bộ test (AC-P2-02). Sửa test cũ có lý do trong commit: `tests/test_smoke_p1.py:45` (6 → 8 đàn, đọc từ tuning), `:70-77` (bỏ `day` khỏi danh sách mã 2; thêm `--days 0/6` → 2); giữ `:65-67` (`attack` → 2, GIẢ ĐỊNH P2-Q6); `test_session_steps_gather_and_dock` nếu đổi bộ đếm tick
+- [ ] T251 [qa] (TV5) Regression P1 với số chuẩn: chạy toàn bộ test (AC-P2-02). Sửa test cũ có lý do trong commit: `tests/test_smoke_p1.py:45` (6 → 8 đàn, đọc từ tuning), `:70-77` (bỏ `day` khỏi danh sách mã 2; thêm `--days 0/6` → 2); sửa `:65-67` và `tests/test_python_starter_units.py:46-50` (`attack` chưa bật → bỏ qua, mã 0 — đề §4.2); `test_session_steps_gather_and_dock` nếu đổi bộ đếm tick
 - [ ] T252 [P] [qa] (TV5) Smoke `day --days 1` + đo thời gian ≤ 20 s; `day --days 2` mua oxy → Ngày 2 oxy max 2700; `cmp` tất định (AC-P2-23, 25, 29, 30) → `docs/proof/phase-2/`
 - [ ] T253 [qa] (TV5) `docs/verification/phase-2.md`: AC-P2-01…31 → test → kết quả trên commit bàn giao
-- [ ] T254 [P] [qa] (TV6) Cập nhật `docs/clarify.md` (P2-Q6 `attack`, P2-Q7 vị trí hit, P2-Q3 `faint` do ngạt, P2-Q9 cá bị loại), `docs/ai-usage-log.md`, `docs/retro.md` (phút 45–50)
+- [ ] T254 [P] [qa] (TV6) Cập nhật `docs/clarify.md` (theo dõi #30, #32, #33 còn GIẢ ĐỊNH), `docs/ai-usage-log.md`, `docs/retro.md` (phút 45–50)
 - [ ] T255 [qa] (TV1) Gắn tag `phase-2` sau khi TV5 báo xanh (trước 1:55)
 
 ## Client/UI — worker Cursor (chủ TV6), chỉ `chonoi/web/` (+ đọc `chonoi/live.py`)

@@ -6,7 +6,7 @@ Vỏ event giữ v1.0 (`type, tick, phase, name, data`); trong `day` thêm `"day
 |---|---|---|---|
 | `fish_spawned` | `{id, kind, pos}` | sinh theo lịch | 1 (TV1) |
 | `monster_hit` | `{monster_id, hp, lost, pos}` — `pos` người chơi, `lost` mảng kind theo LIFO | Cá Sấu chạm | 2 (TV2) |
-| `faint` | do chạm: `{cause:"monster", lost:[giỏ còn lại], hp:0}`; do ngạt: GIẢ ĐỊNH `{lost, hp:0}` không `cause` | Máu 0 | 2 (TV2) |
+| `faint` | do chạm: `{cause:"monster", lost:[giỏ còn lại], hp:0}`; do ngạt: GIẢ ĐỊNH (clarify #30) `{hp:0, lost}` không `cause` | Máu 0 | 2 (TV2) |
 | `day_start` | `{}` | đầu Ngày | 4 (TV6) |
 | `day_plan` | `{dishes, ingredients}` của Ngày | sau `day_start` | 4 |
 | `phase_start` | `{}` (pha mới ở vỏ `phase`) | đầu mỗi pha | 4 |

@@ -8,7 +8,7 @@ python3 -m chonoi.headless --mode gather|quan|day --seed N --ticks N --out F
 - `--days` khác `day` hoặc ngoài 1–5 → mã 2. `--inventory*` với `day` → mã 2 (GIẢ ĐỊNH).
 
 ## Inputs (frame)
-`tick, move, interact, catch` (v1.0) + `pause` (bool, mọi mode), `shop_done` (bool, Shop), `buy` (chuỗi khác rỗng: `"oxygen"`, `"hp"`; chỉ tại frame khai báo, không kế thừa; chuỗi không hỗ trợ → `buy_failed unknown`). `attack`/`photo` chưa bật → GIẢ ĐỊNH mã 2 (trường lạ). Cạnh lên cho bool; giữ nút qua đổi pha không tạo cạnh mới. Mở rộng: `attack`, `photo`, `buy:<kind>`/`sell:<kind>`.
+`tick, move, interact, catch` (v1.0) + `pause` (bool, mọi mode), `shop_done` (bool, Shop), `buy` (chuỗi khác rỗng: `"oxygen"`, `"hp"`; chỉ tại frame khai báo, không kế thừa; chuỗi không hỗ trợ → `buy_failed unknown`). `attack`/`photo` khi chưa bật mở rộng: nhận kiểu bool nhưng bỏ qua, mã 0 (đề §4.2). Cạnh lên cho bool; giữ nút qua đổi pha không tạo cạnh mới. Mở rộng: `attack`, `photo`, `buy:<kind>`/`sell:<kind>`.
 
 ## Scenario `day`
 ```json

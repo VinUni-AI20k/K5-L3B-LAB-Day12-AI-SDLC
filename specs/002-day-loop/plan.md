@@ -19,7 +19,7 @@
 | II. Deterministic | ĐẠT — luồng `fish_turn`, `fish_spawn`, `quan_order`; duyệt theo id |
 | III. Headless-First | ĐẠT — mọi AC qua headless; UI chỉ đọc snapshot; mở rộng hoãn |
 | IV. Test-First & Evidence | ĐẠT — TV5 viết test theo AC-P2, regression P1, `docs/proof/phase-2/` |
-| V. No Invented Requirements | ĐẠT phần lớn — bản đề đầy đủ đã chốt chuỗi bị cắt; còn GIẢ ĐỊNH: vị trí hit, `attack` khi chưa bật, `faint` do ngạt, tên luồng RNG |
+| V. No Invented Requirements | ĐẠT phần lớn — bản đề đầy đủ đã chốt chuỗi bị cắt; còn GIẢ ĐỊNH: `faint` do ngạt (#30), `extensions` (#32), cá bị loại (#33), tên luồng RNG |
 | VI. Small Slices | CÓ ĐIỀU KIỆN — lát 4 đụng nhiều file khung → tách task nhỏ, một chủ mỗi file |
 
 **Vi phạm cần chấp nhận** (Complexity Tracking): sửa file khung.

@@ -3,8 +3,8 @@
 | ID | Loại | Mức | Vị trí | Tóm tắt | Khuyến nghị |
 |---|---|---|---|---|---|
 | B1 | Phụ thuộc / tiến độ | HIGH | tasks P0 | Lõi P1 chưa code (hái, bắt cá, toàn bộ quán) mà mọi AC-P2 quán/day và regression dựa vào | P0 làm ngay phút 0–20; TV3/TV4 chưa sang lát 3 khi P0 quán chưa xanh |
-| B2 | Constitution VI / phạm vi | HIGH | plan Complexity | v1.1 buộc sửa 7 file khung (research phase-2 §3) và vỡ test cũ `test_smoke_p1.py:45, :70-77` | Chủ: TV1 (`contract`, `inventory` — T211), TV6 (`headless, inputs, scenario, runner, live` — T240–T245, T248); TV5 sửa test có lý do (T251) |
-| B3 | Ambiguity | LOW (đã giảm) | spec Clarifications | Bản đề đầy đủ đã chốt `"1.1"`, `"paused"`, `cause:"monster"`, `"days_complete"`, `{}`, 6 s. Còn: vị trí hit (P2-Q7), `attack` chưa bật (P2-Q6), `faint` do ngạt (P2-Q3) | GIẢ ĐỊNH trong spec; PO ghi clarify (T254) |
+| B2 | Constitution VI / phạm vi | HIGH | plan Complexity | v1.1 buộc sửa 7 file khung (research phase-2 §3) và vỡ test cũ `test_smoke_p1.py:45, :65-67, :70-77`, `test_python_starter_units.py:46-50` | Chủ: TV1 (`contract`, `inventory` — T211), TV6 (`headless, inputs, scenario, runner, live` — T240–T245, T248); TV5 sửa test có lý do (T251) |
+| B3 | Ambiguity | LOW (đã giảm) | spec Clarifications | Bản đề đầy đủ đã chốt `"1.1"`, `"paused"`, `cause:"monster"`, `"days_complete"`, `{}`, 6 s. Vị trí hit (d ≥ 10) và `attack` (bỏ qua, mã 0) đã chốt. Còn GIẢ ĐỊNH: `faint` do ngạt (#30), `extensions` mảng (#32), đàn bị bắt biến mất (#33) | Theo clarify |
 | B4 | Inconsistency | MEDIUM | T203 vs `GatherSim.try_add_hold` | `try_add_hold` thêm từng món; bắt cá cần "đủ chỗ cho cả đàn" | Thêm hàm thêm theo lô (kiểm chỗ trước) — ghi trong T203 |
 | B5 | Inconsistency (đã sửa) | LOW | specs/001 contracts/events.md | `hold_full` `{source_id}` lệch `docs/contracts` `{kind}` | Đã đổi specs/001 sang `{kind}` |
 | B6 | Coordination | HIGH | tasks lát 4 + UI | TV6 vừa PO, vừa chủ 5 file khung, vừa chủ UI Cursor | TV5 pair T245; Cursor làm UI theo task; lát (1) xong sớm thì TV1 đỡ T242 |

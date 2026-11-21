@@ -30,7 +30,7 @@ Cá Sấu tuần tra, đuổi khi người chơi ở sâu và gần, chạm làm
 **Acceptance**:
 1. Ngày 1 (và `gather` độc lập): M1 tuần tra [60,24]↔[64,24], 1.0 m/s; tới waypoint thì đổi mục tiêu cho bước sau. M2 [85,18]↔[89,18] có từ Ngày 3.
 2. Người chơi ở d ≥ 10 và cách ≤ 10 m → `chase` 3.0 m/s; cách > 16 m hoặc người chơi lên d < 10 → về `patrol`. Cá Sấu bị chặn trong biên và d ∈ [10,30].
-3. Sau khi cả hai di chuyển, khoảng cách ≤ 1.5 m, người chơi d ≥ 10, `invuln_ticks = 0` → `monster_hit {monster_id,hp,lost,pos}`: −1 Máu, bỏ `floor(n/2)` món theo LIFO (`lost` theo thứ tự rơi), `invuln_ticks = 90`. Tối đa một hit/bước, con gần nhất, hòa theo id.
+3. Sau khi cả hai di chuyển, khoảng cách ≤ 1.5 m, người chơi d ≥ 10 (đề :49), `invuln_ticks = 0` → `monster_hit {monster_id,hp,lost,pos}`: −1 Máu, bỏ `floor(n/2)` món theo LIFO (`lost` theo thứ tự rơi), `invuln_ticks = 90`. Tối đa một hit/bước, con gần nhất, hòa theo id.
 4. Con gây hit vào `recoil` 60 bước từ bước sau, lùi 2/60 m/bước theo hướng xa người chơi chốt lúc chạm (trùng tâm → +x), chặn mép, không gây hit; hết recoil về `patrol`.
 5. Trong bất tử: không hit, không recoil do chạm. Ngạt vẫn trừ Máu (xuyên bất tử), không rơi hàng.
 6. Máu 0 do chạm → `faint {cause:"monster", lost:[phần giỏ còn lại], hp:0}` ngay sau `monster_hit` → `gather_end(fainted)` kho rỗng, bỏ bước còn lại; trong `day` vẫn mở quán với kho rỗng.
@@ -126,7 +126,7 @@ Menu chính (Chơi/Thoát), DayIntro (tự chuyển 4 s hoặc phím), EveningIn
 | AC-P2-25 | Một Ngày không input ≤ 22 200 tick; dòng `end` có `days_completed` = N và `reason:"days_complete"` | FR-209 | day --days 1 --ticks 22200 |
 | AC-P2-26 | Giữ money/earned/uy tín qua Ngày; Máu/oxy hồi đầy; giỏ mới | FR-209 | day --days 2 |
 | AC-P2-27 | `pause`: `paused`, snapshot `state:"paused"`, `sim_tick`/`phase_tick`/timer đứng; `resumed` chạy ngay bước đó | FR-211 | gather/quan/day |
-| AC-P2-28 | `--days` ngoài 1–5 hoặc dùng với mode khác → mã 2; scenario `day` có `quan.stock` → mã 2; `--mode day` không còn mã 2 | FR-209/213 | CLI |
+| AC-P2-28 | `--days` ngoài 1–5 hoặc dùng với mode khác → mã 2; scenario `day` có `quan.stock` → mã 2; `--mode day` không còn mã 2; nút `attack`/`photo` khi chưa bật → bỏ qua, mã 0 | FR-209/213 | CLI |
 | AC-P2-29 | Tất định: `day --days 2` chạy 2 lần giống từng byte | FR-214 | day |
 | AC-P2-30 | Hiệu năng: `day --days 1` ≤ 20 s | FR-214 | đo thời gian |
 | AC-P2-31 | Smoke tích hợp `gather --inventory-out` → `quan --inventory`, snapshot kho tick 0 khớp; lưu `docs/proof/phase-2/integration.*` | FR-209 | gather + quan |
@@ -148,16 +148,16 @@ Menu chính (Chơi/Thoát), DayIntro (tự chuyển 4 s hoặc phím), EveningIn
 
 ### Session 2026-11-21 (theo bản đề đầy đủ; đề im lặng → GIẢ ĐỊNH)
 Đã xác nhận bởi đề (bản đầy đủ): `contract_version:"1.1"`; snapshot `state:"paused"` khi pause; `faint` do chạm `{cause:"monster", lost:[giỏ còn lại], hp:0}`; `end.reason:"days_complete"`; `day_start`, `phase_start` có `data:{}` (pha nằm ở vỏ `phase`); vỏ event trong `day` thêm `"day":N`; `day_plan` phát ở tick 0; `buy` nhận `"oxygen"`, `"hp"`; `ca_keo_nuong` nấu 6 s; đàn cá bơi/sinh, hồi đầy Máu/oxy mỗi Ngày.
-- Q: Hit cần người chơi ở đâu? (P2-Q7, ô bị gộp trong bản chép) → A: GIẢ ĐỊNH `d ≥ 10` (cùng ngưỡng phát hiện/chase).
-- Q: `faint` do ngạt có `cause`? (P2-Q3) → A: GIẢ ĐỊNH: không có `cause`; vẫn thêm `hp:0` và `lost` (giỏ còn lại) cho thống nhất.
-- Q: Không làm Lao thì nút `attack` trong inputs? (P2-Q6) → A: GIẢ ĐỊNH: vẫn là trường lạ → mã 2 (giữ `test_smoke_p1.py:65-67`) tới khi bật mở rộng.
-- Q: Đàn bị bắt có biến mất? (P2-Q9) → A: GIẢ ĐỊNH: có (clarify #14; trần 12 + luật sinh ngụ ý).
+- Q: Hit cần người chơi ở đâu? (P2-Q7) → A: đã xác nhận bởi đề (`docs/prd/phase-2-ticket-02.md:49`): khoảng cách ≤ 1.5 m, người chơi ở `d ≥ 10`, hết bất tử.
+- Q: `faint` do ngạt có `cause`? (P2-Q3) → A: GIẢ ĐỊNH (clarify #30): `{hp:0, lost}`, không `cause`.
+- Q: Không làm Lao thì nút `attack` trong inputs? (P2-Q6) → A: nút đúng kiểu nhưng mở rộng chưa bật → **bỏ qua, mã 0** (đề §4.2); phải sửa `test_smoke_p1.py:65-67` và `test_python_starter_units.py:46-50`.
+- Q: Đàn bị bắt có biến mất? (P2-Q9) → A: GIẢ ĐỊNH (clarify #33): có.
 - Q: `--inventory`/`--inventory-out` với `day`? → A: GIẢ ĐỊNH: mã 2 ("hai cờ file kho vẫn dành cho hai mode độc lập").
 - Q: Tên luồng RNG, reset theo Ngày? → A: GIẢ ĐỊNH: `fish_init`, `fish_turn`, `fish_spawn`, `quan_order`; một `Streams` cho cả lượt chạy, không reset theo Ngày.
-- Q: `extensions` trong manifest là mảng hay object? (P2-Q8) → A: GIẢ ĐỊNH mảng mã (`[]` khi chưa làm).
+- Q: `extensions` trong manifest là mảng hay object? (P2-Q8) → A: GIẢ ĐỊNH (clarify #32): mảng mã (`[]` khi chưa làm).
 - Q: Pause có làm đứng `time_left_ticks` và đồng hồ Shop? → A: có (đề §2, §4.2).
 
 ## Assumptions
-- Phase 2 **bắt buộc** sửa file khung (`headless`, `inputs`, `inventory`, `contract`, `scenario`, `runner`, `live`) — `docs/research/phase-2.md` mục 3; giao TV6 (lát 4) + TV1 (contract/inventory). Test cũ sẽ vỡ: `test_smoke_p1.py:45` (6 → 8 đàn), `:70-77` (`--mode day` không còn mã 2) → TV5 sửa, ghi lý do.
+- Phase 2 **bắt buộc** sửa file khung (`headless`, `inputs`, `inventory`, `contract`, `scenario`, `runner`, `live`) — `docs/research/phase-2.md` mục 3; giao TV6 (lát 4) + TV1 (contract/inventory). Test cũ sẽ vỡ: `test_smoke_p1.py:45` (6 → 8 đàn), `:65-67` (`attack` → mã 0), `:70-77` (`--mode day` không còn mã 2), `test_python_starter_units.py:46-50` (`attack`) → TV5 sửa, ghi lý do.
 - Không làm mở rộng trong lõi phase này; đề xuất `burn` và `snake` cho Phase 3 (rẻ, tái dùng luật bếp và luật quái).
 - `team_size = 6` → nhóm 6 phải làm ≥ 2 mở rộng trong cả buổi lab.
