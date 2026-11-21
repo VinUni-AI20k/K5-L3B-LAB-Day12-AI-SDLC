@@ -105,10 +105,26 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P2 for k in h):
-            raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
+        if not isinstance(h, list):
+            raise BadInput("hold phải là mảng")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
+        if tuning.get("freshness"):
+            seen_hold = set()
+            for idx, item in enumerate(h):
+                if not isinstance(item, dict) or set(item) != {"id", "kind", "fresh"}:
+                    raise BadInput(f"hold[{idx}] phải là object {{id, kind, fresh}}")
+                iid = item["id"]
+                if not isinstance(iid, str) or not iid or iid in seen_hold:
+                    raise BadInput(f"hold[{idx}]: id phải là chuỗi khác rỗng và duy nhất")
+                seen_hold.add(iid)
+                if item["kind"] not in KINDS_P2:
+                    raise BadInput(f"hold[{idx}]: kind không hợp lệ {item['kind']!r}")
+                fr = item["fresh"]
+                if not _num(fr) or not math.isfinite(fr) or not (0 <= fr <= 100):
+                    raise BadInput(f"hold[{idx}]: fresh phải hữu hạn trong [0, 100]")
+        elif any(k not in KINDS_P2 for k in h):
+            raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
     p = b.get("player", {})
     if not isinstance(p, dict):
         raise BadInput("player phải là object")
