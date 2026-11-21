@@ -1,0 +1,36 @@
+======================================================================
+BẰNG CHỨNG KIỂM CHỨNG LÁT 4 (Người 4 · Integrator: Bếp, bưng, phục vụ, tiền)
+======================================================================
+Thời gian: 2026-11-21
+Nhánh: p1/quan-service
+Module chính: chonoi/sim/quan.py
+File test: tests/test_p1_quan_service.py
+
+Lệnh thực hiện:
+python -m unittest tests/test_p1_quan_service.py -v
+
+Kết quả:
+test_01_cook_started_and_dish_ready (tests.test_p1_quan_service.TestQuanService.test_01_cook_started_and_dish_ready)
+Đứng ở bếp B1 [2, 8], kho có nguyên liệu, có khách đặt đơn -> bấm interact: ... ok
+test_02_dish_picked_up (tests.test_p1_quan_service.TestQuanService.test_02_dish_picked_up)
+Bếp B1 đang ready với món -> Người chơi đến gần bấm interact khi tay trống: ... ok
+test_03_served_with_tip (tests.test_p1_quan_service.TestQuanService.test_03_served_with_tip)
+Người chơi cầm món đến bàn T1 [9, 2], khách C1 đang đợi (kiên nhẫn còn >= 50%): ... ok
+test_04_served_without_tip_when_low_patience (tests.test_p1_quan_service.TestQuanService.test_04_served_without_tip_when_low_patience)
+Khách kiên nhẫn còn < 50% (ví dụ 1000/3600 ticks) -> boa = 0. ... ok
+test_05_paid_when_finished_eating (tests.test_p1_quan_service.TestQuanService.test_05_paid_when_finished_eating)
+Khách C1 đang ăn với eat_ticks_left = 2, base_price = 60, tip = 12: ... ok
+test_06_closing_pays_eating (tests.test_p1_quan_service.TestQuanService.test_06_closing_pays_eating)
+Khi hết ca time_left_ticks = 1: ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 3.456s
+
+OK
+
+Xác nhận:
+- Nấu -> Bưng -> Phục vụ -> Trả tiền thành công.
+- Tính boa đúng: >= 50% kiên nhẫn thì tip = floor(base_price * 0.2); < 50% thì tip = 0.
+- Điểm uy tín cộng +0.2 khi có tip.
+- Đóng ca giải quyết khách ăn ngay lập tức và dọn dẹp sạch sẽ.
+- Toàn bộ 38/38 tests của dự án đều pass.
