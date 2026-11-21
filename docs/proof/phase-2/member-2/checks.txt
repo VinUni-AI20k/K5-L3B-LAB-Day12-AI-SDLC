@@ -15,6 +15,7 @@ test_invalid_gather_tuning_is_rejected (test_gather_v11.GatherV11Tests.test_inva
 test_monster_faint_cli_is_deterministic_and_writes_empty_inventory (test_gather_v11.GatherV11Tests.test_monster_faint_cli_is_deterministic_and_writes_empty_inventory) ... ok
 test_monster_scenario_validation_through_cli (test_gather_v11.GatherV11Tests.test_monster_scenario_validation_through_cli) ... ok
 test_periodic_fish_spawn_at_360_and_cap_12 (test_gather_v11.GatherV11Tests.test_periodic_fish_spawn_at_360_and_cap_12) ... ok
+test_quan_reserves_new_v11_ingredients_through_cli (test_gather_v11.GatherV11Tests.test_quan_reserves_new_v11_ingredients_through_cli) ... ok
 test_random_fish_false_freezes_fish_and_disables_spawn (test_gather_v11.GatherV11Tests.test_random_fish_false_freezes_fish_and_disables_spawn) ... ok
 test_seeded_initial_fish_8_unique_positions_and_deterministic (test_gather_v11.GatherV11Tests.test_seeded_initial_fish_8_unique_positions_and_deterministic) ... ok
 test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
@@ -41,17 +42,20 @@ test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session
 test_arrival_tick_interval_and_full_tables (test_quan_customers.QuanCustomers.test_arrival_tick_interval_and_full_tables) ... ok
 test_expiry_releases_reservation_before_same_tick_arrival (test_quan_customers.QuanCustomers.test_expiry_releases_reservation_before_same_tick_arrival) ... ok
 test_fixture_can_disable_arrivals (test_quan_customers.QuanCustomers.test_fixture_can_disable_arrivals) ... ok
-test_invalid_fixture_types_are_rejected_before_first_tick (test_quan_customers.QuanCustomers.test_invalid_fixture_types_are_rejected_before_first_tick) ... ok
+test_invalid_fixture_types_and_links_are_rejected_before_first_tick (test_quan_customers.QuanCustomers.test_invalid_fixture_types_and_links_are_rejected_before_first_tick) ... ok
+test_legacy_customer_fixture_is_loaded_without_mutating_input (test_quan_customers.QuanCustomers.test_legacy_customer_fixture_is_loaded_without_mutating_input) ... ok
 test_multi_dish_choice_is_seeded_and_independent_of_menu_order (test_quan_customers.QuanCustomers.test_multi_dish_choice_is_seeded_and_independent_of_menu_order) ... ok
 test_new_customer_waits_full_patience_then_leaves (test_quan_customers.QuanCustomers.test_new_customer_waits_full_patience_then_leaves) ... ok
 test_new_id_continues_after_highest_fixture_id (test_quan_customers.QuanCustomers.test_new_id_continues_after_highest_fixture_id) ... ok
-test_preloaded_order_reserves_its_recipe (test_quan_customers.QuanCustomers.test_preloaded_order_reserves_its_recipe) ... ok
+test_preloaded_order_auto_reserves_missing_reserved (test_quan_customers.QuanCustomers.test_preloaded_order_auto_reserves_missing_reserved) ... ok
 test_reservation_blocks_other_tables_without_spending_stock (test_quan_customers.QuanCustomers.test_reservation_blocks_other_tables_without_spending_stock) ... ok
-test_simultaneous_timeouts_are_sorted_and_eating_customer_stays (test_quan_customers.QuanCustomers.test_simultaneous_timeouts_are_sorted_and_eating_customer_stays) ... ok
-test_cook_countdown_ready_and_pickup_at_stove (test_quan_service.QuanServiceTests.test_cook_countdown_ready_and_pickup_at_stove) ... ok
-test_interact_priority_distance_then_stove_before_table_then_id (test_quan_service.QuanServiceTests.test_interact_priority_distance_then_stove_before_table_then_id) ... ok
-test_serve_eat_paid_with_tip_and_reputation_cap (test_quan_service.QuanServiceTests.test_serve_eat_paid_with_tip_and_reputation_cap) ... ok
-test_serve_slow_customer_gives_no_tip (test_quan_service.QuanServiceTests.test_serve_slow_customer_gives_no_tip) ... ok
+test_simultaneous_timeouts_ordered_by_table_and_eating_stays (test_quan_customers.QuanCustomers.test_simultaneous_timeouts_ordered_by_table_and_eating_stays) ... ok
+test_closing_pays_newly_served_and_drops_waiting_without_rep_loss (test_quan_service.QuanServiceTests.test_closing_pays_newly_served_and_drops_waiting_without_rep_loss) ... ok
+test_cook_countdown_ready_ticks_and_pickup_at_stove (test_quan_service.QuanServiceTests.test_cook_countdown_ready_ticks_and_pickup_at_stove) ... ok
+test_nearest_interact_only_no_fallback_and_tie_stove_before_table (test_quan_service.QuanServiceTests.test_nearest_interact_only_no_fallback_and_tie_stove_before_table) ... ok
+test_oldest_order_by_order_tick_then_table_id (test_quan_service.QuanServiceTests.test_oldest_order_by_order_tick_then_table_id) ... ok
+test_serve_eat_paid_with_floor_tip_and_reputation_cap (test_quan_service.QuanServiceTests.test_serve_eat_paid_with_floor_tip_and_reputation_cap) ... ok
+test_serve_slow_customer_and_exact_patience_zero_still_valid (test_quan_service.QuanServiceTests.test_serve_slow_customer_and_exact_patience_zero_still_valid) ... ok
 test_shift_end_emits_quan_end_with_score_and_headless_deterministic (test_quan_service.QuanServiceTests.test_shift_end_emits_quan_end_with_score_and_headless_deterministic) ... ok
 test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
 test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
@@ -83,7 +87,7 @@ test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 78 tests in 9.462s
+Ran 82 tests in 10.248s
 
 OK
 
@@ -97,12 +101,11 @@ $ python -m chonoi.headless --mode quan --seed 1 --ticks 600 --out D:\Vinuni\K5-
 
 Exit code: 0
 
-$ python -m chonoi.headless --mode gather --seed 1 --ticks 600 --out C:\Users\Admin\AppData\Local\Temp\chonoi-tv2-v11-s8b2eby3\repeat.jsonl
+$ python -m chonoi.headless --mode gather --seed 1 --ticks 600 --out C:\Users\Admin\AppData\Local\Temp\chonoi-tv2-v11-_64fp3tw\repeat.jsonl
 
 Exit code: 0
 
 $ python tools/check_team.py
-KIỂM TRA DANH SÁCH THÀNH VIÊN KHÔNG ĐẠT:
-  - thành viên #6: GitHub handle chưa điền hoặc không hợp lệ ('<github-handle-6>')
+OK: 6 thành viên: hieunhangia, Ducbaynao, Besoi2004, hnib1908, letuandat131, Laurent2526
 
-Exit code: 1
+Exit code: 0

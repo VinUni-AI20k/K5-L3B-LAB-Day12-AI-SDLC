@@ -1,9 +1,9 @@
 {
-  "tests_run": 78,
+  "tests_run": 82,
   "deterministic_gather_bytes": true,
   "team_check": {
-    "exit_code": 1,
-    "output": "KIỂM TRA DANH SÁCH THÀNH VIÊN KHÔNG ĐẠT:\n  - thành viên #6: GitHub handle chưa điền hoặc không hợp lệ ('<github-handle-6>')"
+    "exit_code": 0,
+    "output": "OK: 6 thành viên: hieunhangia, Ducbaynao, Besoi2004, hnib1908, letuandat131, Laurent2526"
   },
   "runs": {
     "gather": {
@@ -22,7 +22,7 @@
       }
     },
     "quan": {
-      "sha256": "eb26adeb7d9feb2d222c2fb25339d8892fec1a24bab53fa02c6235dec3459052",
+      "sha256": "ecbce00c8dc04aeded8ec7e702fc71b89b1a7d3baf41cb5a343203a6ed32fa37",
       "end": {
         "type": "end",
         "ticks": 600,

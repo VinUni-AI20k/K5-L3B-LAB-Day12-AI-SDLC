@@ -1,5 +1,9 @@
 # Bàn giao TV2 — Gather v1.1
 
+## Cập nhật sau khi ghép main
+
+Đã ghép `origin/main` tại `a07fd5d` để giải quyết xung đột PR ở `scenario.py`: giữ validator Quán PRD-0 và `id_key` từ main, giữ validator Gather của TV2, dùng `KINDS_V11` cho cả giỏ và giữ chỗ nguyên liệu. Test CLI bổ sung xác nhận đặt món `ca_keo_nuong` và `lau_mam` với nguyên liệu mới. Kiểm chứng hiện hành: **82/82 test qua**, Gather/Quán 600 ticks thành công, Gather tất định; **TEAM đã đạt 6/6** nhờ cập nhật TV6 từ main. `checks.txt` và `summary.json` đã được tái tạo. Các kết quả 78 test/TEAM thiếu bên dưới mô tả lần tích hợp trước.
+
 Ngày: 2026-11-21. Nguồn: `C:/Users/Admin/Downloads/02_TV2_Ducbaynao`, ba manifest; dùng bản cuối `commit_3/files/chonoi/sim/gather.py`. Đã tích hợp trực tiếp vào repo, chưa commit/push. Không chạy script tạo commit của gói. Code và kiểm thử không đọc hay import từ folder Downloads hoặc `day12-goi-6-tv`.
 
 ## Phần được tích hợp

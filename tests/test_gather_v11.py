@@ -20,6 +20,20 @@ class GatherV11Tests(unittest.TestCase):
     def setUp(self):
         self.tuning = load_contract()["tuning"]
 
+    def test_quan_reserves_new_v11_ingredients_through_cli(self):
+        for dish_id in ("ca_keo_nuong", "lau_mam"):
+            with self.subTest(dish_id=dish_id), Workdir() as w:
+                recipe = self.tuning["menu"][dish_id]["recipe"]
+                scenario = write_json(w.path("scenario.json"), {"quan": {
+                    "random_customers": False, "stock": recipe,
+                    "customers": [{"id": "C1", "table_id": "T1", "dish_id": dish_id,
+                                   "reserved": recipe}]}})
+                code, err = run_headless("--mode", "quan", "--ticks", "0", "--seed", "1",
+                                         "--scenario", scenario, "--out", w.path("out.jsonl"))
+                self.assertEqual(code, 0, err)
+                snapshot = read_jsonl(w.path("out.jsonl"))[0]
+                self.assertEqual(snapshot["customers"][0]["reserved"], recipe)
+
     def test_invalid_gather_tuning_is_rejected(self):
         bad = [
             ("fish_spawn_x", [1000]),
