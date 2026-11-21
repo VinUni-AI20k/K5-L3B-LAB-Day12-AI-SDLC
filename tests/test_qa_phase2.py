@@ -55,3 +55,39 @@ class DayShopBoundaries(unittest.TestCase):
             self.assertEqual(next_day["active_upgrades"]["oxygen"], 1)
             self.assertEqual(next_day["player"]["oxygen_ticks"], 2700)
             self.assertEqual(rows[-1]["days_completed"], 1)
+
+class PauseBoundaries(unittest.TestCase):
+    def test_gather_pause_freezes_clock_and_resume_steps_immediately(self):
+        with Workdir() as work:
+            inputs = write_json(
+                work.path("pause-inputs.json"),
+                frames(
+                    {"tick": 0, "pause": True},
+                    {"tick": 1, "pause": False},
+                    {"tick": 2, "pause": True},
+                ),
+            )
+            output = work.path("pause.jsonl")
+            code, stderr = run_headless(
+                "--mode", "gather", "--seed", "42", "--ticks", "3",
+                "--snapshot-every", "1", "--inputs", inputs, "--out", output,
+            )
+            self.assertEqual(code, 0, stderr)
+            rows = read_jsonl(output)
+            by_tick = {row["tick"]: row for row in snapshots(rows)}
+            initial = by_tick[0]
+
+            for tick in (1, 2):
+                with self.subTest(tick=tick):
+                    snapshot = by_tick[tick]
+                    self.assertEqual(snapshot["state"], "paused")
+                    for field in ("sim_tick", "phase_tick", "time_left_ticks"):
+                        self.assertEqual(snapshot[field], initial[field], field)
+
+            resumed = by_tick[3]
+            self.assertEqual(resumed["state"], "playing")
+            self.assertEqual(resumed["sim_tick"], initial["sim_tick"] + 1)
+            self.assertEqual(resumed["phase_tick"], initial["phase_tick"] + 1)
+            self.assertEqual(resumed["time_left_ticks"], initial["time_left_ticks"] - 1)
+            self.assertEqual([row["tick"] for row in events(rows, "paused")], [1])
+            self.assertEqual([row["tick"] for row in events(rows, "resumed")], [3])
