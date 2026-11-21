@@ -1,0 +1,12 @@
+D1  gather_end docked  I1..I9 (9) | upgrades {}
+D2  gather_end docked  I10..I19 (10) | upgrades {'oxygen': 1}
+D3  gather_end docked  I20..I36 (12) | upgrades {'oxygen': 1, 'hp': 1}
+D4  gather_end docked  I37..I47 (11) | upgrades {'oxygen': 2, 'hp': 1}
+D5  gather_end docked  I48..I59 (12) | upgrades {'oxygen': 2, 'hp': 1}
+D6  gather_end docked  I60..I68 (9) | upgrades {'oxygen': 2, 'hp': 2}
+D7  gather_end docked  I69..I78 (10) | upgrades {'oxygen': 2, 'hp': 2}
+D8  gather_end docked  I79..I90 (12) | upgrades {'oxygen': 2, 'hp': 2}
+D9  gather_end docked  I91..I101 (11) | upgrades {'oxygen': 2, 'hp': 2}
+D10 gather_end docked  I102..I113 (12) | upgrades {'oxygen': 2, 'hp': 2}
+day_plan Ngày 1..10 khớp D((n-1)%5+1): True 10
+id cá thể không trùng xuyên 10 Ngày: True | tổng 108

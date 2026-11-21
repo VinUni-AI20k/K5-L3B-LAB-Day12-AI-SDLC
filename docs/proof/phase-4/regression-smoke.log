@@ -1,0 +1,11 @@
+# Regression smoke P2–P3 tại 75698f3 (inputs P3)
+   quan tick0 stock==gather_end: True phase_tick 0
+   quan tick0 stock==gather_end: True phase_tick 0
+   quan tick0 stock==gather_end: True phase_tick 0
+   quan tick0 stock==gather_end: True phase_tick 0
+   quan tick0 stock==gather_end: True phase_tick 0
+orders outside day_plan: []
+bad monster_hit: []
+integration kho == P3 proof (byte-identical)
+integration quan == P3 proof (byte-identical)
+day5 == P3 proof (byte-identical)

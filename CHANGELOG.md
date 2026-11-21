@@ -4,6 +4,22 @@
 
 ## [Unreleased]
 
+## [phase-4] Test Contract v1.3 · TICKET-04 "Phát hành v1.0.0" (đang làm)
+
+### Added
+- `soak_cmd` = `python3 -m chonoi.soak --seed <int> --days <N> --out <soak.json>`:
+  - Chạy N Ngày trong một tiến trình bằng bot tất định (`chonoi/bot.py`).
+  - Xuất `soak.json` gồm `{days, days_completed, crashes, results[{day, earned, reputation, score}], duration_s}`.
+  - Mã thoát: 0 đạt, 1 có crash hoặc chưa xong, 2 tham số sai.
+- `contract_version: "1.3"`. Gameplay, tuning, kho và JSONL giữ như v1.2 (output giống từng byte bằng chứng P3).
+- Kịch bản demo `docs/demo.md`.
+
+### Changed
+- `--mode day` cho phép Ngày 6+ dùng lại kế hoạch D1–D5 (Ngày n dùng D((n − 1) mod 5 + 1)), phục vụ soak. Headless vẫn giới hạn `--days 1..5`.
+
+### Chưa xong
+- `bench_cmd`, chế độ tương phản cao, README hướng dẫn chạy, `LICENSE`, Release v1.0.0.
+
 ## [phase-3] Test Contract v1.2 · Change Request "Mùa Nước Nổi"
 
 ### ⚠️ Breaking: schema kho đổi từ đếm theo loại sang **kho cá thể**

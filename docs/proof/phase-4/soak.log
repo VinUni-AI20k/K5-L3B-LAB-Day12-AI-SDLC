@@ -1,0 +1,10 @@
+# soak_cmd (game.contract.json) tại commit 75698f3
+$ python3 -m chonoi.soak --seed 7 --days 10 --out docs/proof/phase-4/soak.json
+soak seed=7 days=10 days_completed=10 crashes=0 duration_s=8.52
+exit=0
+$ (lần 2) python3 -m chonoi.soak --seed 7 --days 10 --out soak-run2.json
+soak seed=7 days=10 days_completed=10 crashes=0 duration_s=8.394
+exit=0
+duration_s: 8.52 8.394
+gameplay fields identical: True
+PASS: True
