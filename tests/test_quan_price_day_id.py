@@ -7,6 +7,8 @@ from chonoi.contract import load_contract
 from chonoi.inputs import BUTTONS_V11, InputPlayer
 from chonoi.runner import Session
 
+from helpers import locked_price
+
 
 def _tuning():
     return copy.deepcopy(load_contract()["tuning"])
@@ -38,7 +40,10 @@ class QuanPriceDayIdTests(unittest.TestCase):
             evs.extend(sess.step(ip.advance(k)))
 
         cs = next(e for e in evs if e["name"] == "cook_started")
-        self.assertEqual(cs["data"]["base_price"], 90)
+        # Kho quán hao ĐẦU bước (kế hoạch Phase 3, clarify #6) nên lúc nấu ở bước 0 avg = 75 − 0.25/60
+        # → floor(120 × 74.9958 / 100) = 89, không phải 90. Phần phục vụ bên dưới dựng món giá 90 nên tip 18.
+        self.assertEqual(cs["data"]["base_price"], locked_price(120, [80, 70, 75, 75]))
+        self.assertEqual(cs["data"]["base_price"], 89)
         # Sắp theo kind rồi id: bong_dien_dien (I1) trước ca_linh (I2, I3, I10)
         self.assertEqual([x["id"] for x in cs["data"]["items"]], ["I1", "I2", "I3", "I10"])
         self.assertEqual(sess.snapshot()["stock"], [])

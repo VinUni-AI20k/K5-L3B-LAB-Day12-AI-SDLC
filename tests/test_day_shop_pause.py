@@ -13,6 +13,8 @@ from chonoi.inputs import BUTTONS_V11, InputPlayer, load_frames
 from chonoi.runner import Session
 from chonoi.scenario import load_scenario
 
+from helpers import items, kind_counts, stock_of
+
 
 def _tuning():
     return copy.deepcopy(load_contract()["tuning"])
@@ -33,7 +35,7 @@ class DayShopPauseTests(unittest.TestCase):
         t = _tuning()
         sc = {
             "day": {"money": 250, "earned": 250},
-            "gather": {"fish": [], "random_fish": False, "hold": ["ca_loc", "bong_sung", "bong_sung"], "time_left_ticks": 1},
+            "gather": {"fish": [], "random_fish": False, "hold": items("ca_loc", "bong_sung", "bong_sung"), "time_left_ticks": 1},
             "quan": {"time_left_ticks": 1, "random_customers": False},
         }
         sess = Session("day", t, sc, seed=1, days=2)
@@ -52,7 +54,7 @@ class DayShopPauseTests(unittest.TestCase):
         self.assertEqual([(e["name"], e["phase"]) for e in ev1], [("quan_end", "quan"), ("phase_start", "shop")])
         snap_shop = sess.snapshot()
         self.assertEqual(snap_shop["phase"], "shop")
-        self.assertEqual(snap_shop["stock"], {"bong_sung": 2, "ca_loc": 1})
+        self.assertEqual(kind_counts(snap_shop["stock"]), {"bong_sung": 2, "ca_loc": 1})
 
         # Tick 2: mua oxygen cấp 1 (giá 200) + bấm shop_done cùng bước -> sang Ngày 2 với active_upgrades["oxygen"] == 1
         ip = InputPlayer([{"tick": 0, "buy": "oxygen", "shop_done": True}], buttons=BUTTONS_V11)
@@ -129,7 +131,7 @@ class DayShopPauseTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             p = os.path.join(tmp, "bad.json")
             with open(p, "w", encoding="utf-8") as f:
-                json.dump({"quan": {"stock": {"ca_loc": 1}}}, f)
+                json.dump({"quan": {"stock": stock_of({"ca_loc": 1})}}, f)
             with self.assertRaises(BadInput):
                 load_scenario(p, "day", t)
 

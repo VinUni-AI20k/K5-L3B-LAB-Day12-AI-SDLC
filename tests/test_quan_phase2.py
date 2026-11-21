@@ -8,6 +8,8 @@ from chonoi.inputs import InputState
 from chonoi.rng import Streams
 from chonoi.sim.quan import QuanSim
 
+from helpers import stock_of
+
 
 with open("game.contract.json", encoding="utf-8") as f:
     TUNING = json.load(f)["tuning"]
@@ -29,7 +31,7 @@ class QuanPhase2(unittest.TestCase):
 
     def test_day_filters_menu_before_checking_available_ingredients(self):
         # Ngày 1 có ca_loc_nuong_trui, không có ca_keo_nuong.
-        stock = {"ca_keo": 2}
+        stock = stock_of({"ca_keo": 2})
         day = QuanSim(TUNING, {"stock": stock}, Streams(1), IdAllocator(), day=1)
         events = arrive(day)
         self.assertEqual(events, [("no_dish", {})])
@@ -41,7 +43,7 @@ class QuanPhase2(unittest.TestCase):
         self.assertEqual(events[0][1]["dish_id"], "ca_keo_nuong")
 
     def test_day_can_choose_only_planned_dishes_and_uses_multiple_tables(self):
-        stock = {"ca_loc": 5, "bong_sung": 10, "ca_keo": 10}
+        stock = stock_of({"ca_loc": 5, "bong_sung": 10, "ca_keo": 10})
         sim = QuanSim(TUNING, {"stock": stock}, Streams(2), IdAllocator(), day=1)
         for i in range(4):
             sim.phase_tick = sim.t["first_customer_tick"] - 1 + i * round(sim.t["customer_interval_s"] * 60)

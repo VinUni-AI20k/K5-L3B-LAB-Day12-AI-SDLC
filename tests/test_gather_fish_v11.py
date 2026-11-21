@@ -9,6 +9,8 @@ from chonoi.inputs import InputPlayer
 from chonoi.rng import Streams
 from chonoi.sim.gather import GatherSim
 
+from helpers import kind_counts
+
 
 class GatherFishV11(unittest.TestCase):
     def setUp(self):
@@ -98,7 +100,7 @@ class GatherFishV11(unittest.TestCase):
         self.assertEqual(sim.step(inputs.advance(0)), [
             ("fish_caught", {"fish_id": "F1", "kind": "ca_keo", "yield": 2}),
         ])
-        self.assertEqual(sim.inventory_items(), {"ca_keo": 2})
+        self.assertEqual(kind_counts(sim.inventory_items()), {"ca_keo": 2})
 
         node = next(node for node in self.g["nodes"] if node["id"] == "N5")
         sim = self.build({"player": {"pos": node["pos"]}})
@@ -106,4 +108,4 @@ class GatherFishV11(unittest.TestCase):
         self.assertEqual(sim.step(inputs.advance(0)), [
             ("gather", {"node_id": "N5", "kind": "keo_neo", "amount": 1}),
         ])
-        self.assertEqual(sim.inventory_items(), {"keo_neo": 1})
+        self.assertEqual(kind_counts(sim.inventory_items()), {"keo_neo": 1})

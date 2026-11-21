@@ -7,6 +7,8 @@ from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer
 from chonoi.runner import Session
 
+from helpers import kind_counts, kinds, locked_price, stock_of
+
 
 def _base_tuning():
     return copy.deepcopy(load_contract()["tuning"])
@@ -29,7 +31,7 @@ class QuanSlice4Tests(unittest.TestCase):
         # Đứng ngay tại bếp B1 [2, 8], nấu gỏi bông súng (cook_s=4 -> 240 tick, price=40, tip=8)
         sc = {
             "player": {"pos": [2, 8]},
-            "stock": {"bong_sung": 2},
+            "stock": stock_of({"bong_sung": 2}),
             "customers": [{"id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung"}],
             "random_customers": False,
         }
@@ -39,9 +41,11 @@ class QuanSlice4Tests(unittest.TestCase):
         self.assertIn("cook_started", names)
         self.assertIn("dish_ready", names)
         cs = next(e for e in evs if e["name"] == "cook_started")
-        self.assertEqual(cs["data"]["items"], ["bong_sung", "bong_sung"])
-        self.assertEqual(cs["data"]["base_price"], 40)
-        self.assertEqual(sess.sim.stock["bong_sung"], 0)
+        self.assertEqual(kinds(cs["data"]["items"]), ["bong_sung", "bong_sung"])
+        # v1.2: giá chốt theo độ tươi lúc nấu. Kho hao đầu bước nên ở bước 0 bông súng còn 100 − 0.25/60
+        # → floor(40 × 99.9958 / 100) = 39 (trước v1.2 là 40). Phần phục vụ bên dưới dựng lại món giá 40.
+        self.assertEqual(cs["data"]["base_price"], locked_price(40, [100, 100]))
+        self.assertEqual(kind_counts(sess.snapshot()["stock"]).get("bong_sung", 0), 0)
 
         # Kiểm tra ready_ticks: cook_started ở bước 0 (sau _tick_timers) -> dish_ready ở bước 240 (tick 241, ready_ticks=0),
         # thêm 4 bước (241..244) đến tick 245 -> ready_ticks == 4
@@ -166,7 +170,7 @@ class QuanSlice4Tests(unittest.TestCase):
         t["quan"]["tables"] = [{"id": "T1", "pos": [9, 2]}, {"id": "T2", "pos": [11, 2]}, {"id": "T10", "pos": [13, 2]}]
         sc = {
             "player": {"pos": [2, 8]},
-            "stock": {"bong_sung": 4, "ca_loc": 1},
+            "stock": stock_of({"bong_sung": 4, "ca_loc": 1}),
             "customers": [
                 {"id": "C10", "table_id": "T10", "dish_id": "goi_bong_sung", "order_tick": 5},
                 {"id": "C2", "table_id": "T2", "dish_id": "goi_bong_sung", "order_tick": 5},
@@ -181,7 +185,7 @@ class QuanSlice4Tests(unittest.TestCase):
     def test_patience_leave_cleans_hand_and_reduces_reputation_without_refund(self):
         sc = {
             "player": {"pos": [8, 5]},
-            "stock": {"bong_sung": 0},
+            "stock": [],
             "hand": {"order_id": "C1", "dish_id": "goi_bong_sung", "base_price": 40},
             "customers": [{
                 "id": "C1", "table_id": "T1", "dish_id": "goi_bong_sung",
@@ -195,7 +199,7 @@ class QuanSlice4Tests(unittest.TestCase):
         self.assertAlmostEqual(sess.sim.reputation, 2.5)
         self.assertIsNone(sess.sim.hand)
         self.assertEqual(sess.sim.customers, [])
-        self.assertEqual(sess.sim.stock["bong_sung"], 0)
+        self.assertEqual(kind_counts(sess.snapshot()["stock"]).get("bong_sung", 0), 0)
 
 
 if __name__ == "__main__":
