@@ -2,3 +2,4 @@
 
 | Phase | Người | Đã xong | Sắp làm | Vướng gì |
 |---|---|---|---|---|
+| 1 | 7 thành viên | Chốt contract 7 người, hoàn thiện logic 4 lát, HUD khung và QA | Gộp, chạy smoke headless, gắn tag | Cần xác nhận giả định team_size 7 theo clarify #1 |

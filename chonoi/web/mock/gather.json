@@ -1,0 +1,35 @@
+{
+  "_ghi_chu": "Snapshot GIẢ để vẽ UI khi luật chưa xong. Trường snapshot lấy theo GatherSim.snapshot(); data của sự kiện là giả định, sửa theo docs/contracts/ khi chốt.",
+  "type": "snapshot", "tick": 1800, "sim_tick": 1800, "mode": "gather", "phase": "gather", "phase_tick": 1800,
+  "state": "running", "time_left_ticks": 9000, "money": 0, "earned": 0, "reputation": 3.0, "score": 300,
+  "player": {
+    "pos": [30.0, 8.0], "vel": [2.0, 0.0], "heading_deg": 0, "oxygen_ticks": 380, "oxygen_max_ticks": 1800,
+    "hp": 2, "hp_max": 3, "zero_oxy_ticks": 0, "invuln_ticks": 0, "catch_cd_ticks": 12, "at_surface": false
+  },
+  "hold": ["bong_dien_dien", "ca_linh", "ca_linh", "ca_linh"],
+  "hold_count": 4,
+  "hold_capacity": 12,
+  "nodes": [
+    {"id": "N1", "pos": [12, 0], "kind": "bong_dien_dien", "ready": false, "regrow_ticks": 600},
+    {"id": "N2", "pos": [28, 0], "kind": "bong_dien_dien", "ready": true, "regrow_ticks": 0},
+    {"id": "N3", "pos": [44, 0], "kind": "bong_sung", "ready": true, "regrow_ticks": 0},
+    {"id": "N4", "pos": [60, 0], "kind": "bong_sung", "ready": true, "regrow_ticks": 0}
+  ],
+  "fish": [
+    {"id": "F2", "pos": [30, 10], "kind": "ca_loc", "heading_deg": 0},
+    {"id": "F3", "pos": [45, 10], "kind": "ca_linh", "heading_deg": 0},
+    {"id": "F4", "pos": [60, 16], "kind": "ca_loc", "heading_deg": 0},
+    {"id": "F5", "pos": [75, 5], "kind": "ca_linh", "heading_deg": 0},
+    {"id": "F6", "pos": [90, 16], "kind": "ca_loc", "heading_deg": 0}
+  ],
+  "meta": {
+    "bounds": {"x": [0, 100], "d": [0, 30]}, "dock_pos": [2, 0], "dock_radius": 3, "surface_depth": 0.5,
+    "interact_radius": 2.0, "catch_radius": 2.0
+  },
+  "events": [
+    {"type": "event", "tick": 1500, "phase": "gather", "name": "gather", "data": {"node_id": "N1", "kind": "bong_dien_dien"}},
+    {"type": "event", "tick": 1620, "phase": "gather", "name": "dive", "data": {"pos": [14.0, 0.6]}},
+    {"type": "event", "tick": 1790, "phase": "gather", "name": "fish_caught", "data": {"fish_id": "F1", "kind": "ca_linh", "count": 3}}
+  ],
+  "finished": false, "reason": null, "error": null
+}
