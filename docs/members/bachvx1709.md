@@ -11,3 +11,10 @@
   - AI viết test giữ phím `interact=True` liên tục làm mất cạnh lên (rising edge), khiến lệnh phục vụ bàn không nhận. Tôi phát hiện qua assertion failure của unittest và sửa nhả phím `interact=False`.
 - **Điều tôi học được:**
   - Hiểu sâu về kiến trúc tick-based deterministic simulation và quy trình cộng tác phân tách rõ ràng giữa mô phỏng headless và tầng giao diện người dùng.
+
+## Phase 2
+
+- **Tôi đã làm:** thiết kế lại `chonoi/web/index.html` (menu, DayIntro, HUD hai ca, EveningIntro, DayResult, Shop, Summary, pause, Cài đặt âm thanh); `chonoi/live_day.py` bọc DaySim thật của TV4 thành các màn UI; thêm Chợ Chú Sáu, thời tiết, chuyện Má Tư, khách quen; `tools/qa_p2.py` (7 checkpoint), `tests/test_live_day.py`, ma trận `docs/verification/phase-2.md`, đo FPS.
+- **Tôi đã review:** đọc DaySim/runner của TV4 (PR #11) để gộp `chonoi/live.py` và đối chiếu event chuyển pha; chạy lại fixture day/pause/ngất của TV1, TV4 bằng CLI.
+- **AI sai ở đâu và tôi phát hiện thế nào:** AI để tick của pha con đè tick tổng trong snapshot, client tưởng chơi lại nên nhảy màn — phát hiện khi chơi thử trên trình duyệt. AI cũng viết file inputs có hai frame cùng tick khiến CLI trả mã 2 — phát hiện nhờ QA script báo FAIL rồi đọc stderr.
+- **Điều tôi học được:** làm UI theo hợp đồng snapshot giúp làm song song; nhưng phải chuyển sang đúng sim của headless sớm để không kiểm chứng trên một bản “gần giống”.
