@@ -197,7 +197,7 @@ class QuanSim:
             dish = self.menu[order["dish_id"]]
             items = sorted(k for k, n in order["reserved"].items() for _ in range(n))
             for k, n in order["reserved"].items():  # tiêu đúng phần đã giữ
-                self.stock[k] -= n
+                self.stock[k] = self.stock.get(k, 0) - n
             order["reserved"] = {}
             order["order_status"] = "assigned"
             order["base_price"] = dish["price"]  # chốt giá khi bắt đầu nấu
