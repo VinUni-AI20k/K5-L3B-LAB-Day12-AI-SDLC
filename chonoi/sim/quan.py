@@ -12,12 +12,13 @@ import math
 from ..freshness import calc_fresh_base_price, calc_tip, from_units, is_spoiled_units, to_units
 from ..ids import id_key, sort_by_id
 from .quan_customers import CustomerMixin
+from .quan_fresh import FreshStockMixin
 from .ramp import ramp_velocity
 
 TICK = 60.0
 
 
-class QuanSim(CustomerMixin):
+class QuanSim(CustomerMixin, FreshStockMixin):
     mode = "quan"
     phase = "quan"
 
@@ -50,6 +51,9 @@ class QuanSim(CustomerMixin):
                 ids.reserve(it["id"])
         else:
             self.stock = dict(raw_stock)
+        # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
+        # v1.2: kho là mảng cá thể {id, kind, fresh}; v1.0/v1.1: object đếm (M3: quan_fresh.py)
+        self._init_stock(inventory if inventory is not None else scenario.get("stock", {}), tuning)
         hand = scenario.get("hand")
         self.hand = dict(hand) if hand is not None else None
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
@@ -147,6 +151,7 @@ class QuanSim(CustomerMixin):
         return {
             "player": {"pos": self.pos},
             "stock": stock_snap,
+            "stock": self._stock_snapshot(),
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
@@ -161,6 +166,7 @@ class QuanSim(CustomerMixin):
         self.phase_tick += 1
         self._tick_stove_timers()
         self._tick_customer_timers()  # M3
+        self._decay_stock(events)  # M3 (v1.2): hao tươi kho thô, spoiled theo id, giữ lại 1 lần
         # Bước 2: xét bếp theo id — món nấu xong chuyển ready với ready_ticks = 0.
         self._tick_stoves(events)
         # Bước 3: di chuyển rồi xét tối đa một interact theo (khoảng cách, bếp trước bàn, id).
