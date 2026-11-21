@@ -1,0 +1,21 @@
+# commit nền: 753db8a (+ thay đổi lát 3 chưa commit) · 2026-11-21 10:48
+# lệnh: PYTHONPATH=tests:. python -m unittest tests.test_quan_lat3 -v
+test_chi_chon_mon_du_nguyen_lieu (tests.test_quan_lat3.Arrival.test_chi_chon_mon_du_nguyen_lieu) ... ok
+test_giu_cho_lam_mon_khong_con_kha_dung (tests.test_quan_lat3.Arrival.test_giu_cho_lam_mon_khong_con_kha_dung)
+Kho chỉ đủ 1 suất: khách đầu giữ hết, lượt sau (nếu có bàn trống) phải no_dish. ... skipped 'cần >= 2 bàn'
+test_het_ban_thi_bo_luot (tests.test_quan_lat3.Arrival.test_het_ban_thi_bo_luot) ... ok
+test_khach_dau_den_dung_first_customer_tick (tests.test_quan_lat3.Arrival.test_khach_dau_den_dung_first_customer_tick) ... ok
+test_khong_du_mon_phat_no_dish (tests.test_quan_lat3.Arrival.test_khong_du_mon_phat_no_dish) ... ok
+test_kien_nhan_giam_tu_buoc_sau (tests.test_quan_lat3.Arrival.test_kien_nhan_giam_tu_buoc_sau) ... ok
+test_random_customers_false_tat_khach_tu_sinh (tests.test_quan_lat3.Arrival.test_random_customers_false_tat_khach_tu_sinh) ... ok
+test_dong_ca_khach_cho_roi_closing_khong_tru_uy_tin (tests.test_quan_lat3.Leaving.test_dong_ca_khach_cho_roi_closing_khong_tru_uy_tin) ... ok
+test_het_kien_nhan_roi_ban_tru_uy_tin_roi_khach_moi_vao (tests.test_quan_lat3.Leaving.test_het_kien_nhan_roi_ban_tru_uy_tin_roi_khach_moi_vao) ... ok
+test_uy_tin_kep_duoi (tests.test_quan_lat3.Leaving.test_uy_tin_kep_duoi) ... ok
+test_fixture_mau_thuan_exit_2 (tests.test_quan_lat3.ScenarioCustomers.test_fixture_mau_thuan_exit_2) ... ok
+test_id_khach_moi_noi_sau_id_fixture (tests.test_quan_lat3.ScenarioCustomers.test_id_khach_moi_noi_sau_id_fixture) ... skipped 'cần >= 2 bàn'
+test_khach_fixture_mac_dinh_va_suy_ra_giu_cho (tests.test_quan_lat3.ScenarioCustomers.test_khach_fixture_mac_dinh_va_suy_ra_giu_cho) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 5.396s
+
+OK (skipped=2)

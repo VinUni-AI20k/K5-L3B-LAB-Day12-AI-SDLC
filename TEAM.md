@@ -1,16 +1,16 @@
 # TEAM
 
-**Tên nhóm:** ChoNoiCaMau  **Số người:** …  (khớp `team_size` trong `game.contract.json`)
+**Tên nhóm:** ChoNoiCaMau **Số người:** 5
 
-| Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
-|---|---|---|---|---|
-| | | `sim/gather` (lát 1: oxy, ngạt, Máu, giỏ) | Integrator | `sim/gather` lát 2 |
-| | | `sim/gather` (lát 2: hái, bắt cá) | | `sim/gather` lát 1 |
-| | | `sim/quan` (lát 3: khách, giữ chỗ, kiên nhẫn) | PO | `sim/quan` lát 4 |
-| | | `sim/quan` (lát 4: bếp, phục vụ, tiền, uy tín) | | `sim/quan` lát 3 |
-| | | `qa` + `client/ui` + skills | QA lead, Scrum/Release | mọi lát (test) |
+| Thành viên          | GitHub handle | Module chính                                   | Vai quy trình          | Người dự phòng cho |
+| ------------------- | ------------- | ---------------------------------------------- | ---------------------- | ------------------ |
+| Nguyễn Lê Đăng Khoa | s0ra1n0       | `sim/gather` (lát 1: oxy, ngạt, Máu, giỏ)      | Integrator             | `sim/gather` lát 2 |
+| Nguyễn Long Vũ | mhoo40    | `sim/gather` (lát 2: hái, bắt cá)              |                        | `sim/gather` lát 1 |
+| Nguyễn Trọng Nghĩa  | trongnghia2304  | `sim/quan` (lát 3: khách, giữ chỗ, kiên nhẫn)  | PO                     | `sim/quan` lát 4   |
+| Nguyễn Văn Hùng  | nguyenhung1901  | `sim/quan` (lát 4: bếp, phục vụ, tiền, uy tín) |                        | `sim/quan` lát 3   |
+| Nguyễn Nghiêm Khánh Tiệp | tiepnnk01-10  | `qa` + `client/ui` + skills                    | QA lead, Scrum/Release | mọi lát (test)     |
 
-> Nhóm 4 người: xóa dòng cuối, người lát 4 hoặc lát 2 kiêm `qa`. Điền đủ tên + handle thật rồi chạy `python3 tools/check_team.py`.
+> Điền đủ tên + handle thật rồi chạy `python3 tools/check_team.py`.
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 

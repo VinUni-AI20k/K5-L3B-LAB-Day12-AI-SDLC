@@ -1,40 +1,56 @@
 ---
 name: implement-slice
-description: Hướng dẫn agent cài đặt MỘT lát (1–4) của sim gather/quan đúng PRD-0, chỉ sửa hàm thuộc lát, chạy test hộp đen của lát rồi ghi kết quả. Dùng khi được giao "làm lát N", "viết _update_oxygen / _try_gather / _tick_customers / _interact..." hoặc sửa test pending của một lát.
+description: Quy trình cho agent khi viết một lát luật chơi (gather lát 1/2, quán lát 3/4 hoặc lát của phase sau) — đọc PRD đúng phase và hợp đồng, viết test hộp đen trước, chỉ sửa hàm mình sở hữu, chạy test, ghi nhật ký AI. Dùng khi được giao "làm lát N", "implement oxy/hái/bắt cá/khách/bếp", hoặc bất kỳ TODO(nhóm) nào trong chonoi/sim/.
 ---
 
-# implement-slice — làm một lát luật chơi
+# implement-slice — làm một lát luật
 
-## Đầu vào bắt buộc
-Hỏi lại nếu thiếu: **số lát (1–4)**. Bảng sở hữu ở `docs/contracts/README.md`:
+## 0. Đầu vào bắt buộc (hỏi người giao nếu thiếu)
+- Số lát + phase, đoạn PRD tương ứng (dán nguyên văn AC), tên người sở hữu.
+- Không có PRD thì **dừng**, không đoán luật. Chỗ mơ hồ ghi vào `docs/clarify.md` (câu hỏi, giả định tạm, ai quyết) và báo PO.
 
-| Lát | File | Hàm được sửa | Test hộp đen (tìm `@pending("lát N")`) |
-|---|---|---|---|
-| 1 | `chonoi/sim/gather.py` | `_update_oxygen` | `tests/test_gather_p1.py` lớp `Oxygen` |
-| 2 | `chonoi/sim/gather.py` | `_try_gather`, `_try_catch` | `tests/test_gather_p1.py` lớp `Gathering`, `Catching`, `DockAndInventory` |
-| 3 | `chonoi/sim/quan.py` | `_tick_customers`, `_spawn_customers` | `tests/test_quan_p1.py` lớp `Customers`, `Closing` |
-| 4 | `chonoi/sim/quan.py`, `chonoi/scenario.py` | `_tick_stoves_and_eating`, `_interact`, `_validate_quan` | `tests/test_quan_p1.py` lớp `Kitchen`, `ServeAndPay`, `Closing`, `FixtureValidation` |
+## 1. Đọc trước khi viết
+- `AGENTS.md` (quy ước), `docs/contracts/README.md` (bảng chia hàm theo lát, cấu trúc khách, danh sách sự kiện).
+- `game.contract.json` → khóa số liệu lát này cần.
+- File sim của lát và các hàm dùng chung đã có:
+  - gather: `_add_to_hold`, `_at_surface`, `_in_dock`, `_finish` (`chonoi/sim/gather.py`)
+  - quán: `_change_reputation`, `_available`, `_reserve`, `_release` (`chonoi/sim/quan.py`)
+  - `ids.sort_by_id`, `IdAllocator`, `Streams` (`chonoi/ids.py`, `chonoi/rng.py`)
 
-## Các bước
-1. **Đọc trước khi code** (không bỏ qua):
-   - `docs/prd/phase-1.md` (PRD-0): mục F đúng pha (Gather / Quán), mục E (tên + `data` sự kiện), mục D (fixture).
-   - `docs/contracts/README.md`: hàm sở hữu, hàm dùng chung, cấu trúc khách.
-   - Các test `@pending` của lát → đó là đặc tả chạy được.
-2. **Chạy test lát ở chế độ nghiêm để thấy đỏ** (RED):
-   ```bash
-   QA_STRICT=1 PYTHONPATH=tests:. python3 -m unittest test_gather_p1.Oxygen -v   # đổi lớp theo bảng
-   ```
-3. **Chỉ sửa hàm của lát mình.** Hàm dùng chung (`_add_to_hold`, `_change_reputation`, `_available`, `_reserve`, `_release`) và thứ tự gọi trong `step()` → báo cả nhóm / Integrator trước.
-4. **Luật bắt buộc khi viết:**
-   - Số chỉ đọc từ `self.t` / `self.menu` (game.contract.json), không hard-code 60, 1800, 0.5...
-   - Ngẫu nhiên chỉ qua `self.rng` (Streams), không `random`, không đồng hồ.
-   - Duyệt thực thể bằng `sort_by_id`, id mới qua `self.ids`.
-   - Sự kiện: `events.append((name, data))` đúng tên và khóa `data` ở mục E.
-5. **Chạy lại tới khi xanh** (GREEN), rồi chạy toàn bộ: `python3 tools/run_checks.py`.
-6. **Chỗ PRD mơ hồ** → không tự bịa: ghi câu hỏi + giả định vào `docs/clarify.md`, báo PO.
-7. **Commit** trên nhánh `feat/<lát>`: `feat(lat-N): <việc>` + dòng "QA_STRICT test lớp X: n/n xanh". Báo QA để bỏ `@pending`.
-8. Ghi một dòng vào `docs/ai-usage-log.md` (người, phase, agent đã làm gì).
+## 2. Viết test trước (hộp đen)
+- Thêm vào `tests/test_gather_p<n>.py` hoặc `tests/test_quan_p<n>.py`, mỗi AC ít nhất một test.
+- Dùng `tests/helpers.py`: `Workdir`, `write_json`, `frames`, `run_headless`, `read_jsonl`, `events`, `snapshots`, `close`.
+- Dựng tình huống bằng `--scenario` (đặt sẵn vị trí, oxy, giỏ, khách...) để test ngắn và rõ; số liệu đọc từ `game.contract.json`, không hard-code.
+- Chạy và xác nhận test **đỏ** đúng lý do trước khi sửa luật.
+- QA đã viết sẵn test hộp đen theo AC (ma trận `docs/verification/phase-1.md`). Test của lát chưa xong mang `@pending("lát N")`: skip mặc định, chạy thật bằng `QA_STRICT=1`:
 
-## Không làm
-- Không sửa test hộp đen cho xanh; nếu nghĩ test sai so với PRD thì báo QA kèm trích dẫn PRD.
-- Không đụng hàm của lát khác, không sửa khung giảng viên (`chonoi/{headless,inputs,runner,...}.py`).
+  | Lát | Lớp test có sẵn |
+  |---|---|
+  | 1 | `test_gather_p1.Oxygen` |
+  | 2 | `test_gather_p1.Gathering`, `Catching`, `DockAndInventory` |
+  | 3 | `test_quan_p1.Customers`, `Closing` |
+  | 4 | `test_quan_p1.Kitchen`, `ServeAndPay`, `Closing`, `FixtureValidation` |
+
+  ```
+  QA_STRICT=1 PYTHONPATH=tests:. python3 -m unittest test_gather_p1.Oxygen -v
+  ```
+  Lát xanh hết thì báo QA bỏ `@pending`. Thấy test lệch PRD thì báo QA kèm trích dẫn, không sửa assert.
+
+## 3. Sửa luật
+- Chỉ sửa **hàm mình sở hữu** trong bảng chia hàm. Cần đổi hàm dùng chung, thứ tự trong `step()`, schema kho, `game.contract.json` hay khung giảng viên → dừng, báo nhóm, ghi lý do (ADR `docs/adr/` hoặc `clarify.md`).
+- Số liệu chỉ từ `self.t` / `self.menu`; ngẫu nhiên chỉ qua `self.rng`; duyệt thực thể bằng `sort_by_id`; không dùng `random`, `time`, duyệt `set`/dict không sắp.
+- Sự kiện: `events.append((tên, data))` đúng tên và `data` như hợp đồng.
+- Sáng tạo thêm phải tắt ở headless.
+
+## 4. Kiểm tra
+```
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+```
+(PowerShell: `$env:PYTHONPATH = "tests;."; py -m unittest discover -s tests -v`)
+- Toàn bộ test phải xanh, kể cả smoke test và test của phase trước.
+- Chơi thử nhanh: `python3 -m chonoi.live --mode gather|quan`.
+
+## 5. Bàn giao
+- Commit nhỏ trên nhánh `feat/<lát>`; mô tả commit ghi AC đã làm + kết quả test (số test, OK).
+- Thêm một dòng `docs/ai-usage-log.md`: phase, người, công cụ/model, việc, AI sai ở đâu.
+- Người sở hữu đọc lại diff trước khi mở PR; người dự phòng review.
