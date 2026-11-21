@@ -19,20 +19,20 @@ Bản nháp của D (Integrator); TuHoAnh và Cuongngucuteee đã thêm phần c
   - **TuHoAnh:** Luôn `git fetch` + `merge origin/main` và chạy đủ `unittest` + `check_no_hardcode.py` trước mọi lần mở PR.
 
 ## Phase 3 (nhanh)
-A gom và nộp (P3-10). C và D tự viết phần của mình; **dòng của NguyenDucNhat3006 (A) và TuHoAnh (B) do D soạn từ lịch sử PR và review, nhờ hai bạn đọc và sửa thẳng trên file này nếu chưa đúng.**
+A gom và nộp (P3-10). Phần của A đã được đối chiếu và cập nhật theo PR #45, #46 và kết quả phá thử. Phần của B do D soạn từ lịch sử PR và review, chờ B đọc lại.
 - Điều tốt:
   - **Cuongngucuteee:** HUD độ tươi (P3-06) làm song song với gather và quán nhờ D gộp schema kho cá thể (P3-02) trước và ghi dạng snapshot trong hợp đồng; test dùng thẳng adapter của P3-02 nên không tự bịa dữ liệu.
-  - **NguyenDucNhat3006 (A, D soạn từ PR):** P3-03 (#45) và P3-05 (#46) vào `main` đúng thứ tự phụ thuộc; id cá thể cấp từ một allocator chung nên không bị cấp lại qua pha và Ngày; test kiểm đúng tick biên của ngưỡng ươn.
+  - **NguyenDucNhat3006 (A):** P3-03 đưa giỏ cá thể và kiểm tick cá vừa xuống dưới ngưỡng ươn. P3-05 nối kho Lặn → Quán cùng tick, giữ ID và độ tươi khi bàn giao. Shop giữ độ tươi, Ngày mới cấp ID mới. [PR #45](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/45), [PR #46](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/46)
   - **TuHoAnh (B, D soạn từ PR):** P3-04 có đủ luật quán v1.2 (hao kể cả hàng đang giữ, giữ chỗ theo id, nhả và giữ lại đúng một lần, `unfulfillable`, giá theo độ tươi); đã đổi tên hồ sơ thành `TuHoAnh.md` đúng yêu cầu.
   - **luongvh2510 (D):** Gộp schema, adapter và `freshness` vào `main` trước (P3-02) nên A, B, C làm song song mà ít xung đột; phá thử mỗi PR bắt được các chỗ test chưa chặt; bật 1.2 giữ hồi quy Phase 1-2 xanh (27/27, 15/15) nhờ chạy chúng với bản 1.1.
 - Điều tệ:
   - **Cuongngucuteee:** Mã việc trên Sheet lệch 1 so với kế hoạch nên tôi đặt nhầm tên hai PR (#39, #42); chưa thử HUD với sim v1.2 thật vì quán chưa xong.
-  - **NguyenDucNhat3006 (A, D soạn từ PR):** Phá thử còn lọt hai cách ở #45 và #46 (kiểm sức chứa `hold` lúc dựng sim, Shop sao chép kho); chưa có hồ sơ cá nhân và dòng nhật ký AI Phase 3.
+  - **NguyenDucNhat3006 (A):** Lúc mở #46, tôi mới kiểm bàn giao với Quán giả lập vì P3-04 chưa gộp. Lương phá thử và tìm được hai chỗ test còn lọt là sức chứa giỏ lúc dựng sim và việc sao chép kho khi mở Shop. Tôi cũng để dồn hồ sơ và nhật ký AI sang Phase 4. [Ma trận Phase 3](verification/phase-3.md)
   - **TuHoAnh (B, D soạn từ PR):** Đẩy nhánh P3-04 nhưng chưa mở PR nên Sheet ghi Xong sớm hơn thực tế; test lọt ba cách phá thử (`spoiled` phát lại mỗi tick, giữ chỗ chọn cũ nhất, nấu cả hàng ươn); báo lệch tên khóa `freshness` với đề muộn; chưa có nhật ký AI Phase 3.
   - **luongvh2510 (D):** Tôi đặt tên khóa `freshness` sai so với đề (P3-02) vì không đọc được Ticket-03; B phát hiện muộn nên phải sửa lại ở #48 và đổi code của B và C. Sheet và PR cũng lệch nhau (P3-04 ghi Xong khi chưa có PR); test của A và B còn lọt vài cách phá thử; payload `spoiled` của gather và quán khác nhau.
 - 1 hành động cho Phase 4:
   - **Cuongngucuteee:** Trước khi làm, đối chiếu mã việc trên Sheet với commit đã gộp; khi A, B gộp v1.2 thì mở cửa sổ chơi chụp lại HUD độ tươi.
-  - **NguyenDucNhat3006 (A, D soạn từ PR):** Đối chiếu từng tham số lệnh (ví dụ `--duration`, thời lượng đo) với Ticket-04 trước khi mở PR bench, và ghi hồ sơ, nhật ký AI trong chính PR của task.
+  - **NguyenDucNhat3006 (A):** Chạy đúng lệnh và tham số trong Ticket-04 trước khi mở PR benchmark. Ghi nhật ký AI ngay khi kết thúc từng việc để lưu được nhận xét từ review.
   - **TuHoAnh (B, D soạn từ PR):** Mở PR (kể cả bản nháp) ngay khi đẩy nhánh, và báo D ngay khi thấy đề khác với contract hay hợp đồng.
   - **luongvh2510 (D):** Trước khi khóa contract (v1.3, bench và soak), nhờ người đọc được Ticket-04 đối chiếu tên khóa và trường từng chữ; mỗi PR ghi rõ chỗ nào là giả định.
 
@@ -47,3 +47,9 @@ A gom và nộp (P3-10). C và D tự viết phần của mình; **dòng của N
   - **luongvh2510 (D):** AI đặt tên khóa `freshness` theo trí nhớ (`fresh_max`, `units_per_point`, ...) vì không đọc được Ticket-03; B đọc đề và báo đúng 4 khóa khác tên, nên phải đổi ở #48 và sửa code của B và C. Phá thử không phát hiện được lỗi này vì test viết theo tên AI đã chọn; chỉ người có đề mới thấy.
 - Nếu làm lại, đổi gì:
   - **luongvh2510 (D):** Xin hoặc dán đề của từng ticket vào repo ngay từ đầu để đối chiếu từng chữ; mỗi người ghi nhật ký AI và hồ sơ trong PR của mình; chia việc tích hợp đều cho cả nhóm thay vì dồn vào Integrator.
+
+### Nguyễn Đức Nhật (A)
+
+- **Rà hành động Phase 2:** Khi đổi kho ở Phase 3, phần Lặn và bàn giao được tách PR và có bằng chứng kiểm thử. Phần ghi chép cá nhân được bổ sung muộn hơn các PR tính năng.
+- **Điều tốt:** Hai PR giỏ cá thể và bàn giao gộp đúng thứ tự. Lần chạy thử P4-10 gửi phím qua Chrome, kiểm được cá bắt ở Lặn sang Quán, nấu và bán món rồi mua oxy và đóng Shop. [PR #45](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/45), [PR #46](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/46)
+- **Điều cần sửa:** Codex thử benchmark với `--seconds` theo kế hoạch nội bộ. Lương chạy lệnh đề, thấy `--duration` bị từ chối, rồi bổ sung cờ, 3 giây làm nóng và đo lại trước khi gộp. Lần sau tôi sẽ chạy đúng lệnh chấm như hộp đen trước khi mở PR. [Bản sửa P4-03](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/commit/e2a3b64)
