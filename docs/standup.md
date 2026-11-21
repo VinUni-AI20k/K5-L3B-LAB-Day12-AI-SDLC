@@ -21,3 +21,11 @@ Ghi chú Phase 2 (C, Scrum): tổng hợp từ PR đã gộp, `docs/verification
 | 3 | D (luongvh2510) | P3-02 kho cá thể, adapter, khối `freshness` (#43, đã gộp) | Smoke bàn giao kho phút 20, bật `contract_version` 1.2, hồi quy, `docs/verification/phase-3.md`, tag `phase-3` | Bật 1.2 còn chờ quán (B); gather (A) đã gộp |
 
 Ghi chú Phase 3 (C, Scrum): tổng hợp từ PR #43 đến #47, nhánh `p3-04-quan-freshness` và `docs/plan/phase-3.md` lúc 2026-11-21 (sau khi #45, #46 gộp); mã việc theo tab Phân công (lệch 1 so với mã AC). Mỗi người đọc lại và sửa dòng của mình nếu sai.
+
+## Phase 4
+
+| Phase | Người | Đã xong | Sắp làm | Vướng gì |
+|---|---|---|---|---|
+| 4 | D (luongvh2510) | P4-02 contract 1.3 (#55); P4-04 soak 10 Ngày (#54); P4-07 clone sạch và CI Ubuntu (#57); sửa bench theo Ticket-04 (#56); khung ma trận Phase 4 và release notes (#58) | Điền các ô CHỜ, chạy lại kiểm tại commit gắn tag, file đóng gói, tag `phase-4` và Release `v1.0.0` | Chờ A, B, C nộp hồ sơ, nhật ký AI, retro Phase 4; tag và Release cần người dùng đồng ý |
+
+Ghi chú Phase 4: dòng của D do D viết; dòng của A, B, C do C (Scrum) tổng hợp khi đủ ghi chép.
