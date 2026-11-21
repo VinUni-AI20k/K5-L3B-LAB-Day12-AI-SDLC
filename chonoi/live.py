@@ -5,7 +5,9 @@
 Máy chủ HTTP nhỏ (ThreadingHTTPServer) phục vụ `chonoi/web/index.html` và hai API:
     GET  /state  -> snapshot JSON hiện tại (cùng trường như dòng snapshot của headless) + `meta` + `events`
     POST /input  -> {"move": [a, b], "interact": bool, "catch": bool}   (trạng thái phím đang giữ)
+                    v1.1 (nhóm F7): thêm "pause", "shop_done", "attack", "photo" (bool) và "buy" (chuỗi, một tick)
     POST /restart -> chơi lại từ đầu (cùng seed, cùng scenario)
+    GET  /<file>  -> file tĩnh trong chonoi/web/ (js/, mock/, assets/; thêm bởi nhóm F7, xem docs/adr/0001)
 
 Mô phỏng chạy 60 tick/s trong một luồng nền, dùng CÙNG lớp sim như headless (qua `runner.Session`).
 Client chỉ ĐỌC snapshot và tự bỏ qua trường chưa có, nên luật do nhóm viết thêm trường nào cũng không vỡ.
@@ -20,6 +22,7 @@ import threading
 import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from urllib.parse import unquote
 
 from .contract import load_contract
 from .errors import BadInput
@@ -32,6 +35,34 @@ WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 TICK_S = 1.0 / 60.0
 MAX_BODY = 4096
 RECENT_EVENTS = 40
+# Nhóm F7: client tách thành nhiều file (js/, mock/, assets/) nên máy chủ phục vụ file tĩnh theo đuôi này.
+STATIC_TYPES = {
+    ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8",
+    ".css": "text/css; charset=utf-8", ".json": "application/json; charset=utf-8",
+    ".png": "image/png", ".jpg": "image/jpeg", ".svg": "image/svg+xml", ".webp": "image/webp",
+    ".wav": "audio/wav", ".mp3": "audio/mpeg", ".ogg": "audio/ogg",
+}
+# Nhóm F7 (Test Contract v1.1): nút boolean mới + lệnh `buy` (chuỗi, chỉ có tác dụng ở một tick).
+LIVE_BUTTONS = ("interact", "catch", "pause", "shop_done", "attack", "photo")
+MAX_BUY_LEN = 64
+
+
+class _LiveInputsV11(LiveInputs):
+    """LiveInputs + nút v1.1 + `buy`. Sim chưa dùng nút nào thì bỏ qua (chỉ đọc `pressed(...)`)."""
+
+    def __init__(self):
+        super().__init__(LIVE_BUTTONS)
+        self._buy = None
+
+    def set(self, move=None, buy=None, **buttons):
+        super().set(move, **buttons)
+        if buy is not None:
+            self._buy = buy
+
+    def advance(self):
+        state = super().advance()
+        state.buy, self._buy = self._buy, None
+        return state
 
 
 class LiveGame:
@@ -49,7 +80,7 @@ class LiveGame:
 
     def _reset(self):
         self.session = Session(*self._args)
-        self.inputs = LiveInputs()
+        self.inputs = _LiveInputsV11()
         self.events = []
         self._saved = False
         self.error = None
@@ -101,7 +132,9 @@ class LiveGame:
     def state_json(self) -> bytes:
         with self._lock:
             snap = self.session.snapshot()
-            snap["meta"] = self.tuning[self.mode]
+            # meta theo pha hiện tại (day đổi gather -> quan -> shop); menu để client hiện tên món / tiến độ nấu
+            snap["meta"] = self.tuning.get(snap.get("phase") or self.mode, self.tuning.get(self.mode, {}))
+            snap["menu"] = self.tuning.get("menu", {})
             snap["events"] = list(self.events)
             snap["finished"] = self.session.done
             snap["reason"] = self.session.sim.reason if self.session.done else None
@@ -116,13 +149,16 @@ class LiveGame:
             if not ok:
                 raise ValueError("move phải là [a, b] trong [-1, 1]")
         buttons = {}
-        for b in ("interact", "catch"):
+        for b in LIVE_BUTTONS:
             if b in body:
                 if not isinstance(body[b], bool):
                     raise ValueError(f"{b} phải là boolean")
                 buttons[b] = body[b]
+        buy = body.get("buy")
+        if buy is not None and (not isinstance(buy, str) or not buy or len(buy) > MAX_BUY_LEN):
+            raise ValueError("buy phải là chuỗi khác rỗng")
         with self._lock:
-            self.inputs.set(move, **buttons)
+            self.inputs.set(move, buy=buy, **buttons)
 
     def restart(self):
         with self._lock:
@@ -155,6 +191,20 @@ class _Handler(BaseHTTPRequestHandler):
             except OSError:
                 self._send(404, b'{"error":"thieu index.html"}')
         else:
+            self._send_static(path)
+
+    def _send_static(self, path):
+        """File tĩnh của client (js/, mock/, assets/...) trong WEB_DIR; chặn thoát ra ngoài thư mục."""
+        root = os.path.realpath(WEB_DIR)
+        full = os.path.realpath(os.path.join(root, unquote(path).lstrip("/")))
+        ctype = STATIC_TYPES.get(os.path.splitext(full)[1].lower())
+        if ctype is None or os.path.commonpath([root, full]) != root or not os.path.isfile(full):
+            self._send(404, b'{"error":"khong co"}')
+            return
+        try:
+            with open(full, "rb") as f:
+                self._send(200, f.read(), ctype)
+        except OSError:
             self._send(404, b'{"error":"khong co"}')
 
     def do_POST(self):
