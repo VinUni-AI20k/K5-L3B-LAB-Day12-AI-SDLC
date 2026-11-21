@@ -47,6 +47,25 @@ class GatherFreshness(unittest.TestCase):
         self.assertEqual([item["id"] for item in faint["lost"]], ["I2", "I1"])
         self.assertEqual(result[-1][1]["inventory"], {"items": []})
 
+    def test_simultaneous_spoil_events_sorted_by_id_and_emitted_once(self):
+        sim = self.make_sim({"hold": [{"id": "I10", "kind": "ca_loc", "fresh": 30},
+                                      {"id": "I2", "kind": "ca_linh", "fresh": 30}]})
+        first = self.step(sim)
+        self.assertEqual([data["item_id"] for name, data in first if name == "spoiled"], ["I2", "I10"])
+        self.assertFalse(any(name == "spoiled" for name, _ in self.step(sim)))
+
+    def test_last_tick_pickup_is_exported_fresh(self):
+        sim = self.make_sim({"player": {"pos": [12, 0]}, "time_left_ticks": 1})
+        result = self.step(sim, "interact")
+        self.assertEqual([name for name, _ in result], ["gather", "gather_end"])
+        self.assertEqual(result[-1][1]["inventory"], {"items": [{"id": "I1", "kind": "bong_dien_dien", "fresh": 100}]})
+
+    def test_existing_id_allocator_is_not_reset(self):
+        sim = self.make_sim({"player": {"pos": [12, 0]}})
+        sim.ids.reserve("I20")
+        self.step(sim, "interact")
+        self.assertEqual(sim.hold[0]["id"], "I21")
+
 
 if __name__ == "__main__":
     unittest.main()
