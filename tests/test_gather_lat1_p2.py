@@ -7,7 +7,7 @@ import json
 import unittest
 
 from helpers import Workdir, close, events, frames, read_jsonl, run_headless, snapshots, write_json
-from legacy_v11 import setUpModule, tearDownModule  # noqa: F401  v1.2: fixture kho đếm chạy trên manifest v1.1 tạm, xem tests/legacy_v11.py
+from qa_helpers import mk_hold
 
 with open("game.contract.json", encoding="utf-8") as _f:
     G = json.load(_f)["tuning"]["gather"]
@@ -31,6 +31,11 @@ def run(w, block, ticks, inputs=None, every=1, inv=None, out="o.jsonl"):
     code, err = run_headless(*args)
     assert code == 0, err
     return read_jsonl(w.path(out))
+
+
+def item(n, kind, ticks):
+    """v1.2: cá thể I<n> fresh 100 sau `ticks` bước hao giỏ (2/240 điểm mỗi tick), làm tròn 3 chữ số như JSONL."""
+    return {"id": f"I{n}", "kind": kind, "fresh": round((24000 - 2 * ticks) / 240, 3)}
 
 
 def snaps(rows):
@@ -84,16 +89,17 @@ class Chase(unittest.TestCase):
 
 class Hit(unittest.TestCase):
     def test_cham_mat_mau_rot_nua_gio_lifo_bat_tu_va_recoil(self):
-        hold = ["ca_loc", "bong_sung", "ca_linh", "keo_neo", "ca_keo"]
+        kinds = ["ca_loc", "bong_sung", "ca_linh", "keo_neo", "ca_keo"]
+        hold = mk_hold(kinds)
         with Workdir() as w:
             rows = run(w, {"player": {"pos": [50, 20]}, "hold": hold,
                            "monsters": [croc(pos=(51, 20), wps=((51, 20), (55, 20)))]}, 61)
         hits = events(rows, "monster_hit")
         self.assertEqual([h["tick"] for h in hits], [1])
         self.assertEqual(hits[0]["data"], {"monster_id": "M1", "hp": G["hp_max"] - 1,
-                                           "lost": ["ca_keo", "keo_neo"], "pos": [50, 20]})
+                                           "lost": [item(5, "ca_keo", 1), item(4, "keo_neo", 1)], "pos": [50, 20]})
         s = snaps(rows)
-        self.assertEqual(s[1]["hold"], ["ca_loc", "bong_sung", "ca_linh"])
+        self.assertEqual(s[1]["hold"], [item(n, k, 1) for n, k in enumerate(kinds[:3], 1)])
         self.assertEqual(s[1]["player"]["invuln_ticks"], G["monsters"]["invuln_ticks"])
         m1 = s[1]["monsters"][0]
         self.assertEqual((m1["state"], m1["state_ticks_left"], m1["recoil_dir"]), ("recoil", SP["recoil_ticks"], [1, 0]))
@@ -136,24 +142,25 @@ class Hit(unittest.TestCase):
     def test_ngat_xuyen_bat_tu_va_khong_rot_hang(self):
         with Workdir() as w:
             rows = run(w, {"player": {"pos": [50, 20], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "invuln_ticks": 50},
-                           "hold": ["ca_loc", "ca_linh"]}, 1)
+                           "hold": mk_hold(["ca_loc", "ca_linh"])}, 1)
         self.assertEqual(events(rows, "choke")[0]["data"], {"hp": G["hp_max"] - 1})
-        self.assertEqual(snaps(rows)[1]["hold"], ["ca_loc", "ca_linh"])
+        self.assertEqual(snaps(rows)[1]["hold"], [item(1, "ca_loc", 1), item(2, "ca_linh", 1)])
 
 
 class Faint(unittest.TestCase):
     def test_het_mau_do_ca_sau_faint_monster_kho_rong(self):
         with Workdir() as w:
             inv = w.path("kho.json")
-            rows = run(w, {"player": {"pos": [50, 20], "hp": 1}, "hold": ["ca_loc", "bong_sung", "ca_linh"],
+            rows = run(w, {"player": {"pos": [50, 20], "hp": 1}, "hold": mk_hold(["ca_loc", "bong_sung", "ca_linh"]),
                            "monsters": [croc(pos=(51, 20), wps=((51, 20), (55, 20)))]}, 50, inv=inv)
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
         names = [(e["tick"], e["name"]) for e in events(rows) if e["name"] in ("monster_hit", "faint", "gather_end")]
         self.assertEqual(names, [(1, "monster_hit"), (1, "faint"), (1, "gather_end")])
-        self.assertEqual(events(rows, "monster_hit")[0]["data"]["lost"], ["ca_linh"])
-        self.assertEqual(events(rows, "faint")[0]["data"], {"cause": "monster", "lost": ["bong_sung", "ca_loc"], "hp": 0})
-        self.assertEqual(events(rows, "gather_end")[0]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+        self.assertEqual(events(rows, "monster_hit")[0]["data"]["lost"], [item(3, "ca_linh", 1)])
+        self.assertEqual(events(rows, "faint")[0]["data"],
+                         {"cause": "monster", "lost": [item(2, "bong_sung", 1), item(1, "ca_loc", 1)], "hp": 0})
+        self.assertEqual(events(rows, "gather_end")[0]["data"], {"reason": "fainted", "inventory": {"items": []}})
         self.assertEqual(rows[-1]["reason"], "fainted")
 
     def test_ngat_cung_tick_di_truoc_hit(self):
@@ -166,7 +173,7 @@ class Faint(unittest.TestCase):
         self.assertEqual(events(rows, "faint")[0]["data"]["cause"], "monster")
 
     def test_tat_dinh(self):
-        block = {"player": {"pos": [40, 20]}, "hold": ["ca_loc", "ca_linh", "bong_sung"],
+        block = {"player": {"pos": [40, 20]}, "hold": mk_hold(["ca_loc", "ca_linh", "bong_sung"]),
                  "monsters": [croc(pos=(46, 22), wps=((46, 22), (50, 22)))]}
         with Workdir() as w:
             run(w, block, 900, inputs=[{"tick": 0, "move": [0.3, 0.2]}, {"tick": 300, "move": [-1, 0]}], every=7,

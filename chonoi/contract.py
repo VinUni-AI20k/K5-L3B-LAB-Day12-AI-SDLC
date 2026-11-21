@@ -1,8 +1,10 @@
-"""Đọc game.contract.json và kiểm dải hợp lệ của tuning (Test Contract v1.1).
+"""Đọc game.contract.json và kiểm dải hợp lệ của tuning (Test Contract v1.0–v1.3).
 
 v1.0: PRD-0 mục A (docs/prd/phase-1.md). v1.1: Ticket-02 mục 1, 2, 4.1 (docs/prd/phase-2.md).
 Lát 0 (Phase 2) đổi: fish_initial là SỐ đàn (không còn danh sách), thêm fish_* (cá bơi/sinh), 3 loài cá,
 3 loại cây (thêm keo_neo), gather.monsters (Cá Sấu), 2 bếp/4 bàn, 6 món, day_plan, shop.
+v1.2: Ticket-03 (tuning.freshness, kho cá thể). v1.3: Ticket-04 — gameplay/tuning/kho/JSONL GIỮ NGUYÊN v1.2,
+chỉ thêm `bench_cmd` và `soak_cmd` (chuỗi lệnh) ở gốc manifest.
 """
 
 import json
@@ -43,13 +45,18 @@ def load_contract(path=None) -> dict:
     if version not in SUPPORTED_VERSIONS:
         raise BadInput(f"contract_version phải thuộc {list(SUPPORTED_VERSIONS)}, đang là {version!r}")
     t = c.get("tuning")
-    if isinstance(t, dict) and (version == "1.2") != ("freshness" in t):
-        raise BadInput("contract_version 1.2 cần tuning.freshness; bản trước 1.2 không có khóa này")
+    if isinstance(t, dict) and (version in FRESHNESS_VERSIONS) != ("freshness" in t):
+        raise BadInput("contract_version 1.2/1.3 cần tuning.freshness; bản trước 1.2 không có khóa này")
+    if version == "1.3":
+        for key in ("bench_cmd", "soak_cmd"):
+            if not isinstance(c.get(key), str) or not c[key].strip():
+                raise BadInput(f"contract_version 1.3 cần {key} là chuỗi lệnh khác rỗng ở gốc manifest")
     validate_tuning(t, extensions=validate_extensions(c.get("extensions", [])))
     return c
 
 
-SUPPORTED_VERSIONS = ("1.0", "1.1", "1.2")
+SUPPORTED_VERSIONS = ("1.0", "1.1", "1.2", "1.3")
+FRESHNESS_VERSIONS = ("1.2", "1.3")  # v1.3 giữ nguyên luật v1.2
 
 
 def _validate_freshness(f):

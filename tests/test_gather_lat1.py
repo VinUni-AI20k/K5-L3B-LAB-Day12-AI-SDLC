@@ -8,7 +8,14 @@ import json
 import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
-from legacy_v11 import setUpModule, tearDownModule  # noqa: F401  v1.2: fixture kho đếm chạy trên manifest v1.1 tạm, xem tests/legacy_v11.py
+from qa_helpers import mk_hold
+
+# v1.2 (Ticket-03): giỏ là mảng cá thể {id, kind, fresh}; giỏ hao 0.5/s = 2/240 điểm mỗi tick từ bước 1.
+
+
+def item(n, kind, ticks):
+    """Cá thể I<n> fresh 100 sau `ticks` bước hao giỏ, làm tròn 3 chữ số như JSONL."""
+    return {"id": f"I{n}", "kind": kind, "fresh": round((24000 - 2 * ticks) / 240, 3)}
 
 
 def tuning_gather():
@@ -113,17 +120,18 @@ class Faint(unittest.TestCase):
         with Workdir() as w:
             inv = w.path("kho.json")
             rows = run_gather(w, {"player": {"pos": [50, 10], "oxygen_ticks": 1, "hp": 1},
-                                  "hold": ["ca_loc", "bong_sung", "ca_linh"]}, 200, inventory_out=inv)
+                                  "hold": mk_hold(["ca_loc", "bong_sung", "ca_linh"])}, 200, inventory_out=inv)
             self.assertEqual(oxygen_events(rows), [(1, "oxygen_empty"), (60, "choke"), (60, "faint"), (60, "gather_end")])
             self.assertEqual(events(rows, "choke")[0]["data"], {"hp": 0})
             self.assertEqual(events(rows, "faint")[0]["data"],
-                             {"cause": "choke", "lost": ["ca_linh", "bong_sung", "ca_loc"], "hp": 0})
-            self.assertEqual(events(rows, "gather_end")[0]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+                             {"cause": "choke", "lost": [item(3, "ca_linh", 60), item(2, "bong_sung", 60),
+                                                         item(1, "ca_loc", 60)], "hp": 0})
+            self.assertEqual(events(rows, "gather_end")[0]["data"], {"reason": "fainted", "inventory": {"items": []}})
             last = snapshots(rows)[-1]
             self.assertEqual((last["tick"], last["state"], last["hold"], last["player"]["hp"]), (60, "finished", [], 0))
             self.assertEqual((rows[-1]["type"], rows[-1]["reason"], rows[-1]["ticks"]), ("end", "fainted", 60))
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
     def test_ba_lan_ngat_moi_ngat_xiu(self):
         g = tuning_gather()
@@ -138,14 +146,14 @@ class Faint(unittest.TestCase):
     def test_ngat_xiu_thang_het_gio_cung_tick(self):
         with Workdir() as w:
             rows = run_gather(w, {"player": {"pos": [50, 10], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
-                                  "hold": ["ca_loc"], "time_left_ticks": 1}, 10)
+                                  "hold": mk_hold(["ca_loc"]), "time_left_ticks": 1}, 10)
             ends = events(rows, "gather_end")
             self.assertEqual(len(ends), 1)
             self.assertEqual(ends[0]["data"]["reason"], "fainted")
             self.assertEqual(rows[-1]["reason"], "fainted")
 
     def test_tat_dinh_tung_byte(self):
-        block = {"player": {"pos": [50, 10], "oxygen_ticks": 1, "hp": 2}, "hold": ["ca_loc", "bong_sung"]}
+        block = {"player": {"pos": [50, 10], "oxygen_ticks": 1, "hp": 2}, "hold": mk_hold(["ca_loc", "bong_sung"])}
         with Workdir() as w:
             run_gather(w, block, 200, every=7, out="a.jsonl")
             run_gather(w, block, 200, every=7, out="b.jsonl")

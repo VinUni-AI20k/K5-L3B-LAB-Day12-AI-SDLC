@@ -305,3 +305,7 @@ Khi đổi hợp đồng sau này: báo cả nhóm và ghi lại lý do (ADR ho�
 - `lost` của `monster_hit`/`faint` là mảng cá thể theo LIFO.
 - Chưa hao tươi, chưa có `spoiled` (lát 2).
 
+## 6. Test Contract v1.3 (Phase 4, s0ra1n0)
+- `game.contract.json`: `contract_version: "1.3"`, thêm ở **gốc** `bench_cmd: "python3 -m chonoi.bench"` (Hùng, `chonoi/bench.py`) và `soak_cmd: "python3 -m chonoi.soak"` (Vũ, `chonoi/soak.py`).
+- Gameplay, tuning, kho cá thể, JSONL **giữ nguyên v1.2**: `contract.py` coi 1.3 như 1.2 (cần `tuning.freshness`), thêm kiểm `bench_cmd`/`soak_cmd` là chuỗi khác rỗng; vẫn nhận 1.0–1.2.
+- Test: `tests/test_contract_v13.py` (manifest, mã 2 khi thiếu/sai lệnh, smoke bàn giao kho như v1.2).
