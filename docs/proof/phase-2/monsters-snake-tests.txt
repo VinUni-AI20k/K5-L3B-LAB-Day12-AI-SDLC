@@ -1,0 +1,55 @@
+# Bằng chứng lát Cá Sấu + mở rộng Rắn Hổ Mây (LeBao403)
+# Lệnh: PYTHONPATH=tests:. python3 -m unittest discover -s tests -p "test_p2_monsters.py" -v (và test_p2_snake.py)
+
+test_phat_hien_duoi_roi_can (test_p2_monsters.Chase.test_phat_hien_duoi_roi_can)
+Người chơi đứng yên ở [55,20], cách M1 khoảng 6.4 m: chase ngay bước 1, đuổi 3 m/s rồi chạm. ... ok
+test_thoi_duoi_khi_nguoi_choi_len_nong (test_p2_monsters.Chase.test_thoi_duoi_khi_nguoi_choi_len_nong) ... ok
+test_thoi_duoi_khi_xa_hon_exit_radius (test_p2_monsters.Chase.test_thoi_duoi_khi_xa_hon_exit_radius) ... ok
+test_tat_dinh_tung_byte_voi_quai (test_p2_monsters.Determinism.test_tat_dinh_tung_byte_voi_quai) ... ok
+test_ngat_do_quai (test_p2_monsters.Faint.test_ngat_do_quai) ... ok
+test_ngat_xet_truoc_hit_cung_tick (test_p2_monsters.Faint.test_ngat_xet_truoc_hit_cung_tick)
+Cùng tick: ngạt trừ Máu trước, rồi hit làm Máu về 0 -> faint do quái. ... ok
+test_ngat_xuyen_bat_tu_va_khong_rot_hang (test_p2_monsters.Faint.test_ngat_xuyen_bat_tu_va_khong_rot_hang) ... ok
+test_bat_tu_90_tick_moi_bi_cham_lai (test_p2_monsters.Hit.test_bat_tu_90_tick_moi_bi_cham_lai)
+Hai con cạnh người chơi: một hit mỗi bước (con gần nhất); con kia đuổi theo nhưng chỉ chạm lại khi hết ... ok
+test_cham_mat_mau_rot_nua_gio_lifo_bat_tu_recoil (test_p2_monsters.Hit.test_cham_mat_mau_rot_nua_gio_lifo_bat_tu_recoil) ... ok
+test_mot_buoc_toi_da_mot_hit_chon_gan_nhat_hoa_id (test_p2_monsters.Hit.test_mot_buoc_toi_da_mot_hit_chon_gan_nhat_hoa_id) ... ok
+test_nguoi_choi_nong_khong_bi_cham (test_p2_monsters.Hit.test_nguoi_choi_nong_khong_bi_cham) ... ok
+test_recoil_60_buoc_lui_2m_roi_ve_patrol (test_p2_monsters.Hit.test_recoil_60_buoc_lui_2m_roi_ve_patrol) ... ok
+test_recoil_bi_chan_theo_dai_do_sau_loai (test_p2_monsters.Hit.test_recoil_bi_chan_theo_dai_do_sau_loai)
+Quái nằm trên người chơi, lùi thẳng lên: bị chặn ở d = depths[0]. ... ok
+test_nguoi_choi_nong_khong_bi_phat_hien (test_p2_monsters.Patrol.test_nguoi_choi_nong_khong_bi_phat_hien) ... ok
+test_tuan_tra_qua_lai_hai_waypoint (test_p2_monsters.Patrol.test_tuan_tra_qua_lai_hai_waypoint)
+M1 mặc định [60,24] -> [64,24] ở 1 m/s: tới nơi ở tick 240, đổi đích, quay về. ... ok
+
+----------------------------------------------------------------------
+Ran 15 tests in 1.758s
+
+OK
+
+test_khai_lech_bi_tu_choi (test_p2_snake.Manifest.test_khai_lech_bi_tu_choi) ... ok
+test_khai_snake_va_du_lieu_khop (test_p2_snake.Manifest.test_khai_snake_va_du_lieu_khop) ... ok
+test_cham_va_recoil_dung_luat_chung (test_p2_snake.Snake.test_cham_va_recoil_dung_luat_chung) ... ok
+test_m3_co_tu_ngay_1_trong_gather_doc_lap (test_p2_snake.Snake.test_m3_co_tu_ngay_1_trong_gather_doc_lap) ... ok
+test_nguong_do_sau_8_va_ban_kinh_phat_hien_8 (test_p2_snake.Snake.test_nguong_do_sau_8_va_ban_kinh_phat_hien_8) ... ok
+test_tuan_tra_72_76 (test_p2_snake.Snake.test_tuan_tra_72_76) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.760s
+
+OK
+
+# Regression toàn bộ: PYTHONPATH=tests:. python3 -m unittest discover -s tests
+FAIL: test_contract_v10_required_fields_and_ranges (test_e_qa_p1.ContractTuningRangesTest.test_contract_v10_required_fields_and_ranges)
+Ran 144 tests in 16.271s
+FAILED (failures=1)
+# Test đỏ duy nhất là test P1 của E (test_e_qa_p1) kiểm số liệu v1.0, chờ E cập nhật theo v1.1.
+
+# Lượt thật: seed 1, bơi chéo về phía M1 rồi đứng yên (inputs move [1,0.4] từ tick 0, [0,0] từ tick 900)
+{"type":"event","tick":23,"phase":"gather","name":"dive","data":{"pos":[3.269,0.508]}}
+{"type":"event","tick":899,"phase":"gather","name":"monster_hit","data":{"monster_id":"M1","hp":2,"lost":[],"pos":[57.492,22.197]}}
+{"type":"event","tick":993,"phase":"gather","name":"monster_hit","data":{"monster_id":"M1","hp":1,"lost":[],"pos":[57.709,22.283]}}
+{"type":"event","tick":1093,"phase":"gather","name":"monster_hit","data":{"monster_id":"M1","hp":0,"lost":[],"pos":[57.709,22.283]}}
+{"type":"event","tick":1093,"phase":"gather","name":"faint","data":{"cause":"monster","lost":[],"hp":0}}
+{"type":"event","tick":1093,"phase":"gather","name":"gather_end","data":{"reason":"fainted","inventory":{"items":{}}}}
+{"type":"end","ticks":1093,"sim_tick":1093,"mode":"gather","state":"finished","reason":"fainted","money":0,"earned":0,"reputation":3.0,"score":300}

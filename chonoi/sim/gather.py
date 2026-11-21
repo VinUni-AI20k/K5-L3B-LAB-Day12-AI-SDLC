@@ -23,7 +23,7 @@ v1.1 (Ticket-02, thứ tự một bước theo mục 4.5):
   (bến trước hái) -> bắt cá theo vị trí cá TRƯỚC khi bơi -> hết giờ -> nếu còn giờ: cá bơi, sinh cá.
   KHUNG (Integrator): `day`, `active_upgrades` (oxy/Máu tối đa theo cấp), quái theo Ngày (`from_day`),
   snapshot `monsters[]`, thứ tự step().
-  TODO(A): `_update_monsters` (Cá Sấu: patrol/chase/recoil, hit, bất tử, ngất do quái).
+  ĐÃ LÀM (A): `_update_monsters` (Cá Sấu: patrol/chase/recoil, hit, bất tử, ngất do quái).
   8 đàn đầu ca (`_pick_spawn`, `_initial_fish`): A viết để main xanh, B sở hữu (review, test, chỉnh theo clarify).
   TODO(B): `_fish_swim`, `_spawn_fish` (cá bơi, phản xạ mép, đổi hướng theo seed, nối lịch sinh).
 """
@@ -31,7 +31,7 @@ v1.1 (Ticket-02, thứ tự một bước theo mục 4.5):
 import math
 
 from ..contract import upgrade_value
-from ..ids import sort_by_id
+from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
@@ -198,11 +198,97 @@ class GatherSim:
 
     # --- v1.1: quái (A viết thân hàm) -------------------------------------------------
     def _update_monsters(self, events) -> bool:
-        """TODO(A, Ticket-02 mục 1.2): duyệt quái theo id: patrol/chase/recoil, chặn theo biên và dải độ sâu loài;
-        sau khi cả hai di chuyển xét tối đa một hit (con gần nhất, hòa id): -1 Máu, bỏ floor(n*loss_ratio) theo
-        LIFO, invuln_ticks, monster_hit, con đó vào recoil. Máu 0: faint(cause monster) + gather_end(fainted),
-        trả True."""
+        """Quái (Ticket-02 mục 1.2), gọi sau bơi, oxy và ngạt. Trả True nếu người chơi ngất do quái.
+
+        1. Duyệt quái theo id, mỗi con đi một bước theo trạng thái:
+           - recoil: lùi recoil_dist / recoil_ticks mét theo hướng đã chốt lúc chạm, rồi chặn; hết đếm thì về
+             patrol nhưng chỉ xét phát hiện và chạm từ bước kế.
+           - patrol / chase: đổi trạng thái theo vị trí người chơi (phát hiện khi d >= ngưỡng loài và cách
+             <= detect_radius; thôi đuổi khi cách > exit_radius hoặc người chơi lên d < ngưỡng), rồi đi:
+             patrol về waypoint đích với patrol_speed (tới nơi thì đổi đích cho bước sau), chase về phía người
+             chơi với chase_speed.
+           - Chặn theo biên map và dải độ sâu `depths` của loài.
+        2. Sau khi cả hai đã di chuyển, xét tối đa MỘT hit: con gần nhất (hòa id) trong hit_radius, không ở
+           recoil, người chơi ở d >= ngưỡng loài và hết bất tử. Hit: -1 Máu, bỏ floor(số đang mang × loss_ratio)
+           nguyên liệu theo LIFO, bất tử invuln_ticks, phát monster_hit, con đó vào recoil từ bước sau.
+        3. Máu 0: faint{cause: "monster", lost: phần giỏ còn lại theo LIFO, hp: 0} rồi gather_end(fainted).
+
+        Ngưỡng độ sâu của loài là depths[0] (giả định, docs/contracts/README.md mục 5.6).
+        """
+        if not self.monsters:
+            return False
+        cfg = self.t["monsters"]
+        species = cfg["species"]
+        can_engage = []  # quái được xét chạm ở bước này
+        for m in sort_by_id(self.monsters):
+            sp = species[m["kind"]]
+            if m["state"] == "recoil":
+                step = sp["recoil_dist"] / sp["recoil_ticks"]
+                m["pos"] = [m["pos"][0] + m["recoil_dir"][0] * step, m["pos"][1] + m["recoil_dir"][1] * step]
+                self._clamp_monster(m, sp)
+                m["state_ticks_left"] -= 1
+                if m["state_ticks_left"] <= 0:
+                    m["state"], m["state_ticks_left"], m["recoil_dir"] = "patrol", 0, None
+                continue
+            deep_enough = self.pos[1] >= sp["depths"][0]
+            dist = math.dist(m["pos"], self.pos)
+            if m["state"] == "patrol" and deep_enough and dist <= sp["detect_radius"]:
+                m["state"] = "chase"
+            elif m["state"] == "chase" and (not deep_enough or dist > sp["exit_radius"]):
+                m["state"] = "patrol"
+            if m["state"] == "chase":
+                self._move_monster_toward(m, self.pos, sp["chase_speed"] / TICK)
+            else:
+                target = m["waypoints"][m["target_idx"]]
+                if self._move_monster_toward(m, target, sp["patrol_speed"] / TICK):
+                    m["target_idx"] = 1 - m["target_idx"]
+            self._clamp_monster(m, sp)
+            can_engage.append(m)
+        # 2. tối đa một hit
+        if self.invuln_ticks > 0:
+            return False
+        hits = [m for m in can_engage
+                if self.pos[1] >= species[m["kind"]]["depths"][0]
+                and math.dist(m["pos"], self.pos) <= species[m["kind"]]["hit_radius"]]
+        if not hits:
+            return False
+        m = min(hits, key=lambda e: (math.dist(e["pos"], self.pos), id_key(e["id"])))
+        sp = species[m["kind"]]
+        self.hp = max(0, self.hp - 1)
+        n_lost = math.floor(len(self.hold) * cfg["loss_ratio"])
+        lost = list(reversed(self.hold[len(self.hold) - n_lost:])) if n_lost else []
+        if n_lost:
+            self.hold = self.hold[:len(self.hold) - n_lost]
+        self.invuln_ticks = int(cfg["invuln_ticks"])
+        events.append(("monster_hit", {"monster_id": m["id"], "hp": self.hp, "lost": lost, "pos": list(self.pos)}))
+        dx, dd = m["pos"][0] - self.pos[0], m["pos"][1] - self.pos[1]
+        norm = math.hypot(dx, dd)
+        m["state"], m["state_ticks_left"] = "recoil", int(sp["recoil_ticks"])
+        m["recoil_dir"] = [dx / norm, dd / norm] if norm > 0 else [1.0, 0.0]  # trùng tâm dùng +x
+        if self.hp > 0:
+            return False
+        rest = list(reversed(self.hold))
+        self.hold = []
+        events.append(("faint", {"cause": "monster", "lost": rest, "hp": 0}))
+        self._finish("fainted", events)
+        return True
+
+    @staticmethod
+    def _move_monster_toward(m, target, step) -> bool:
+        """Đi tối đa `step` mét về `target`. Trả True nếu tới đúng đích ở bước này."""
+        dx, dd = target[0] - m["pos"][0], target[1] - m["pos"][1]
+        dist = math.hypot(dx, dd)
+        if dist <= step + 1e-9:  # dung sai cộng dồn dấu phẩy động (240 bước × 1/60 m)
+            m["pos"] = [float(target[0]), float(target[1])]
+            return True
+        m["pos"] = [m["pos"][0] + dx / dist * step, m["pos"][1] + dd / dist * step]
         return False
+
+    def _clamp_monster(self, m, sp):
+        """Chặn quái theo biên map và dải độ sâu của loài."""
+        bx, bd = self.t["bounds"]["x"], self.t["bounds"]["d"]
+        lo, hi = max(bd[0], sp["depths"][0]), min(bd[1], sp["depths"][1])
+        m["pos"] = [min(max(m["pos"][0], bx[0]), bx[1]), min(max(m["pos"][1], lo), hi)]
 
     # --- v1.1: đàn cá đầu ca (khung) và cá bơi/sinh (B viết thân hàm) -------------------
     # Ghi chú sở hữu: `_pick_spawn` và `_initial_fish` do A (LeBao403, Integrator) viết trong nền v1.1 để main

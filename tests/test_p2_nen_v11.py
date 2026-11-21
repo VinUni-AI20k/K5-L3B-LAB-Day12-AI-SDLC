@@ -127,8 +127,10 @@ class GatherV11(unittest.TestCase):
         self.assertEqual([(f["id"], f["age_ticks"]) for f in s.fish], [("F9", 5)])
 
     def test_quai_theo_ngay(self):
-        self.assertEqual([m["id"] for m in self.sim(day=1).monsters], ["M1"])
-        self.assertEqual([m["id"] for m in self.sim(day=3).monsters], ["M1", "M2"])
+        # Cá Sấu: M1 từ Ngày 1, M2 từ Ngày 3. M3 (Rắn Hổ Mây) chỉ có khi bật mở rộng snake.
+        snake = ["M3"] if "snake" in CONTRACT.get("extensions", []) else []
+        self.assertEqual([m["id"] for m in self.sim(day=1).monsters], ["M1"] + snake)
+        self.assertEqual([m["id"] for m in self.sim(day=3).monsters], ["M1", "M2"] + snake)
         m1 = self.sim().monsters[0]
         self.assertEqual((m1["state"], m1["target_idx"], m1["pos"], m1["recoil_dir"]), ("patrol", 1, [60.0, 24.0], None))
 
@@ -146,7 +148,8 @@ class GatherV11(unittest.TestCase):
                                  scenario={"gather": {"fish": [{"id": "F1", "kind": "ca_keo", "pos": [30, 24]}]}})
             self.assertEqual(code, 0, err)
             s = snapshots(read_jsonl(w.path("o.jsonl")))[0]
-            self.assertEqual([m["id"] for m in s["monsters"]], ["M1"])
+            snake = ["M3"] if "snake" in CONTRACT.get("extensions", []) else []
+            self.assertEqual([m["id"] for m in s["monsters"]], ["M1"] + snake)
             self.assertEqual(s["player"]["hp_max"], 3)
             self.assertEqual(s["fish"][0]["age_ticks"], 0)
 
