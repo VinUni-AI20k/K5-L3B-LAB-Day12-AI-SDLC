@@ -3,7 +3,7 @@
 import json
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, items, kinds, read_jsonl, run_headless, snapshots, write_json
 
 
 def tuning_gather():
@@ -33,7 +33,7 @@ class GatherMonstersTests(unittest.TestCase):
         with Workdir() as w:
             # M1 khởi đầu ở [60, 24]. Đặt người chơi ở [61, 24] với 5 món trong giỏ -> trong hit_radius (1.5)
             sc = write_json(w.path("sc.json"), {"gather": {
-                "hold": ["ca_loc", "ca_linh", "bong_sung", "keo_neo", "ca_keo"],
+                "hold": items("ca_loc", "ca_linh", "bong_sung", "keo_neo", "ca_keo"),
                 "player": {"pos": [61, 24], "hp": 3},
                 "random_fish": False,
             }})
@@ -47,12 +47,14 @@ class GatherMonstersTests(unittest.TestCase):
             self.assertEqual(hits[0]["data"]["monster_id"], "M1")
             self.assertEqual(hits[0]["data"]["hp"], 2)
             # floor(5 * 0.5) = 2 món cuối (LIFO): ca_keo, keo_neo
-            self.assertEqual(hits[0]["data"]["lost"], ["ca_keo", "keo_neo"])
+            self.assertEqual(kinds(hits[0]["data"]["lost"]), ["ca_keo", "keo_neo"])
+            # v1.2: lost là cá thể, LIFO theo id (I5 nhặt sau cùng rơi trước)
+            self.assertEqual([x["id"] for x in hits[0]["data"]["lost"]], ["I5", "I4"])
             # Payload đúng Test Contract v1.1 mục 4.4: monster_id, hp, lost, pos (vị trí người chơi)
             self.assertEqual(set(hits[0]["data"]), {"monster_id", "hp", "lost", "pos"})
             self.assertEqual(hits[0]["data"]["pos"], [61.0, 24.0])
             snaps = {s["tick"]: s for s in snapshots(rows)}
-            self.assertEqual(snaps[1]["hold"], ["ca_loc", "ca_linh", "bong_sung"])
+            self.assertEqual(kinds(snaps[1]["hold"]), ["ca_loc", "ca_linh", "bong_sung"])
             self.assertEqual(snaps[1]["player"]["invuln_ticks"], m_cfg["invuln_ticks"])
             m1_t1 = snaps[1]["monsters"][0]
             self.assertEqual(m1_t1["state"], "recoil")
@@ -63,7 +65,7 @@ class GatherMonstersTests(unittest.TestCase):
     def test_faint_by_monster_clears_hold_and_ends_gather(self):
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {
-                "hold": ["ca_loc", "bong_sung", "keo_neo"],
+                "hold": items("ca_loc", "bong_sung", "keo_neo"),
                 "player": {"pos": [60.5, 24], "hp": 1},
                 "random_fish": False,
             }})
@@ -77,7 +79,7 @@ class GatherMonstersTests(unittest.TestCase):
             self.assertEqual(faints[0]["data"]["cause"], "monster")
             self.assertEqual(rows[-1]["reason"], "fainted")
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {}})
+                self.assertEqual(json.load(f), {"items": []})
 
     def test_chase_and_stop_when_surfacing(self):
         with Workdir() as w:

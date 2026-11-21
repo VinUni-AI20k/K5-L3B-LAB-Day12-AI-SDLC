@@ -50,17 +50,19 @@ while not s.done:
             d = e["data"]
             hold = before["hold"]
             n_drop = int(len(hold) * mcfg["loss_ratio"])
-            exp_lost = list(reversed(hold[len(hold) - n_drop:]))
+            # so theo id (v1.2) hoặc kind (v1.1): độ tươi trong lost đã hao thêm 1 bước so với "trước bước"
+            key = lambda x: x["id"] if isinstance(x, dict) else x
+            exp_lost = [key(x) for x in reversed(hold[len(hold) - n_drop:])]
             after = s.snapshot()
             ok = (set(d) == {"monster_id", "hp", "lost", "pos"}
-                  and d["lost"] == exp_lost
+                  and [key(x) for x in d["lost"]] == exp_lost
                   and d["hp"] == before["player"]["hp"] - 1
                   # mục 4.5: giảm bất tử ở đầu bước, nên trước bước = 1 vẫn bị hit hợp lệ
                   and before["player"]["invuln_ticks"] <= 1
                   and after["player"]["invuln_ticks"] == mcfg["invuln_ticks"]
                   and d["pos"][1] >= t["gather"]["monsters"]["species"]["ca_sau"]["depths"][0])
             print("   monster_hit tick %d %s hp %d->%d hold %d lost %s ok=%s"
-                  % (e["tick"], d["monster_id"], before["player"]["hp"], d["hp"], len(hold), d["lost"], ok))
+                  % (e["tick"], d["monster_id"], before["player"]["hp"], d["hp"], len(hold), [key(x) for x in d["lost"]], ok))
             if not ok:
                 bad_hits.append(e)
 print("orders outside day_plan:", bad_orders)

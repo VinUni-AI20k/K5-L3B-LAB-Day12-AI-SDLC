@@ -5,6 +5,7 @@
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
+- Smoke QA (sinh inputs bằng bot rồi chạy headless): `PYTHONPATH=. python3 tools/qa_autoplay.py --mode day --days 5 --seed 1 --out-inputs in.json`; kiểm: `PYTHONPATH=. python3 tools/qa_check_day.py in.json`, `python3 tools/qa_check_quan_prices.py out.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 
 ## Cấu trúc & quy ước

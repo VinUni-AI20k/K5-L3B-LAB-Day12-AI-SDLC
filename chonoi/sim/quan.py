@@ -66,7 +66,15 @@ class QuanSim:
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        self.customers = [self._init_customer(c) for c in scenario.get("customers", [])]
+        raw_customers = scenario.get("customers", [])
+        self.customers = [self._init_customer(c) for c in raw_customers]
+        # v1.2: đơn chưa khai giữ chỗ được cấp SAU khi đã có đủ danh sách khách (reserve_items đọc
+        # self.customers để biết id nào đã bị giữ), theo (order_tick, table_id) như docs/clarify.md #3.
+        if self.individual_stock:
+            pending = [c for c, raw in zip(self.customers, raw_customers)
+                       if c["order_status"] == "reserved" and "reserved" not in raw]
+            for c in sorted(pending, key=lambda c: (c["order_tick"], id_key(c["table_id"]))):
+                c["reserved"] = self.reserve_items(self.menu[c["dish_id"]]["recipe"])
         for e in self.customers:
             ids.reserve(e["id"])
         self.money = 0
@@ -100,8 +108,6 @@ class QuanSim:
                 c["reserved"] = [] if self.individual_stock else {}
         else:
             c["reserved"] = list(c["reserved"]) if self.individual_stock else dict(c["reserved"])
-        if self.individual_stock and c["order_status"] == "reserved" and "reserved" not in raw:
-            c["reserved"] = self.reserve_items(self.menu[c["dish_id"]]["recipe"])
         c.setdefault("base_price", self.menu[c["dish_id"]]["price"] if c["state"] == "eating" else 0)
         c.setdefault("tip", 0)
         return c

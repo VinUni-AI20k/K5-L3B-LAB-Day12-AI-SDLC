@@ -13,6 +13,8 @@ from chonoi.errors import BadInput
 from chonoi.live import LiveGame, LiveServer
 from chonoi.scenario import load_scenario
 
+from helpers import stock_of
+
 
 def _get(url):
     with urllib.request.urlopen(url, timeout=5) as r:
@@ -33,7 +35,7 @@ def _post(url, obj):
 class LiveServerTest(unittest.TestCase):
     def test_quan_shows_cook_hint_and_persistent_shortage(self):
         tuning = load_contract()["tuning"]
-        game = LiveGame("quan", tuning, {"player": {"pos": [2, 8]}}, 1, {"ca_loc": 1})
+        game = LiveGame("quan", tuning, {"player": {"pos": [2, 8]}}, 1, stock_of({"ca_loc": 1}))
         self.assertNotIn("missing_ingredients", json.loads(game.state_json()))
         for _ in range(tuning["quan"]["first_customer_tick"]):
             game._tick_once()

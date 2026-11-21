@@ -1,0 +1,9 @@
+tick 182 cook ca_loc_nuong_trui avg_fresh 84.817 price 60 -> base 50 (expect 50) items_sorted=True ok=True
+tick 647 served C1 base 50 tip 10 ok=True
+tick 1124 cook ca_keo_nuong avg_fresh 77.100 price 70 -> base 53 (expect 53) items_sorted=True ok=True
+tick 1631 served C2 base 53 tip 10 ok=True
+tick 2065 cook canh_chua_ca_loc avg_fresh 70.871 price 90 -> base 63 (expect 63) items_sorted=True ok=True
+tick 2649 served C3 base 63 tip 12 ok=True
+tick 2923 cook goi_bong_sung avg_fresh 76.062 price 40 -> base 30 (expect 30) items_sorted=True ok=True
+tick 3309 served C4 base 30 tip 6 ok=True
+cook_started checked: 4; bad: []

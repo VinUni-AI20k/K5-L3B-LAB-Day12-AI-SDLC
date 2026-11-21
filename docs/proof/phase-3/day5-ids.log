@@ -1,0 +1,7 @@
+D1 gather_end docked: I1 ... I9 (9 cá thể)
+D2 gather_end docked: I10 ... I19 (10 cá thể)
+D3 gather_end docked: I20 ... I35 (12 cá thể)
+D4 gather_end docked: I36 ... I56 (12 cá thể)
+D5 gather_end docked: I57 ... I68 (12 cá thể)
+id duy nhất xuyên 5 Ngày: True
+spoiled: [(60223, 4, {'item_id': 'I40', 'kind': 'ca_linh', 'location': 'stock'})]

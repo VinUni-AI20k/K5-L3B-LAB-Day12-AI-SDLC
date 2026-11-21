@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 import unittest
 
-from helpers import ROOT, Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import ROOT, Workdir, events, frames, items, kinds, read_jsonl, run_headless, snapshots, write_json
 
 
 class GatherOxygen(unittest.TestCase):
@@ -68,9 +68,9 @@ class GatherOxygen(unittest.TestCase):
 
     def test_faint_precedes_docking_and_timeout_and_empties_inventory(self):
         # Ở dưới nước nhưng trong bán kính bến của preset, đồng thời hết giờ.
-        hold = ["ca_loc", "bong_sung", "ca_linh"]
+        hold = items("ca_loc", "bong_sung", "ca_linh")
         with Workdir() as w:
-            inventory = write_json(w.path("inventory.json"), {"items": {"ca_loc": 1}})
+            inventory = write_json(w.path("inventory.json"), {"items": items("ca_loc", start=50)})
             rows = self.run_gather(w, {
                 "player": {
                     "pos": [2, 1], "oxygen_ticks": 0,
@@ -82,18 +82,22 @@ class GatherOxygen(unittest.TestCase):
             saved = json.loads(Path(inventory).read_text(encoding="utf-8"))
 
         self.assertEqual(snapshots(rows)[0]["hold"], hold)
-        self.assertEqual(
-            [(e["tick"], e["name"], e["data"]) for e in events(rows)],
-            [(1, "choke", {"hp": 0}),
-             (1, "faint", {"cause": "choke", "lost": hold[::-1], "hp": 0}),
-             (1, "gather_end", {"reason": "fainted", "inventory": {"items": {}}})],
-        )
+        evs = events(rows)
+        self.assertEqual([(e["tick"], e["name"]) for e in evs],
+                         [(1, "choke"), (1, "faint"), (1, "gather_end")])
+        self.assertEqual(evs[0]["data"], {"hp": 0})
+        # v1.2: lost là cá thể (độ tươi đã hao 1 bước), thứ tự LIFO
+        self.assertEqual(set(evs[1]["data"]), {"cause", "lost", "hp"})
+        self.assertEqual((evs[1]["data"]["cause"], evs[1]["data"]["hp"]), ("choke", 0))
+        self.assertEqual([x["id"] for x in evs[1]["data"]["lost"]], ["I3", "I2", "I1"])
+        self.assertEqual(kinds(evs[1]["data"]["lost"]), kinds(hold[::-1]))
+        self.assertEqual(evs[2]["data"], {"reason": "fainted", "inventory": {"items": []}})
         final = snapshots(rows)[-1]
         self.assertEqual(
             (final["hold"], final["hold_count"], final["player"]["hp"]), ([], 0, 0)
         )
         self.assertEqual((rows[-1]["reason"], rows[-1]["ticks"]), ("fainted", 1))
-        self.assertEqual(saved, {"items": {}})
+        self.assertEqual(saved, {"items": []})
 
     def test_invulnerability_is_not_a_v10_fixture_field(self):
         # Validate trước khi runner mở đầu ra; từ v1.1 invuln_ticks hợp lệ (>= 0) và < 0 bị từ chối.

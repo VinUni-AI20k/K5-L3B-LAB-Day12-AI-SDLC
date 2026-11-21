@@ -1,0 +1,25 @@
+D1 gather: monsters ['M1']
+   quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock []
+D2 gather: monsters ['M1']
+   quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock []
+   after bought: {'upgrade': 'oxygen', 'level': 1, 'price': 200, 'money': 324} upgrades {'oxygen': 1} active {}
+D3 gather: monsters ['M1', 'M2']
+   monster_hit tick 31555 M1 hp 3->2 hold 5 lost ['I24', 'I23'] ok=True
+   monster_hit tick 31645 M1 hp 2->1 hold 5 lost ['I26', 'I25'] ok=True
+   quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock []
+   after bought: {'upgrade': 'hp', 'level': 1, 'price': 250, 'money': 391} upgrades {'oxygen': 1, 'hp': 1} active {'oxygen': 1}
+D4 gather: monsters ['M1', 'M2']
+   monster_hit tick 47194 M2 hp 4->3 hold 9 lost ['I44', 'I43', 'I42', 'I41'] ok=True
+   monster_hit tick 48029 M1 hp 3->2 hold 10 lost ['I49', 'I48', 'I47', 'I46', 'I45'] ok=True
+   quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock [{'id': 'I40', 'kind': 'ca_linh', 'fresh': 28.783333333333335}, {'id': 'I51', 'kind': 'ca_keo', 'fresh': 41.19166666666667}, {'id': 'I55', 'kind': 'ca_linh', 'fresh': 43.28333333333333}]
+   after bought: {'upgrade': 'oxygen', 'level': 2, 'price': 400, 'money': 319} upgrades {'oxygen': 2, 'hp': 1} active {'oxygen': 1, 'hp': 1}
+D5 gather: monsters ['M1', 'M2']
+   quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock [{'id': 'I60', 'kind': 'ca_linh', 'fresh': 34.31666666666667}, {'id': 'I67', 'kind': 'ca_keo', 'fresh': 41.541666666666664}]
+   after bought: {'upgrade': 'hp', 'level': 2, 'price': 500, 'money': 180} upgrades {'oxygen': 2, 'hp': 2} active {'oxygen': 2, 'hp': 1}
+orders outside day_plan: []
+bad monster_hit: []

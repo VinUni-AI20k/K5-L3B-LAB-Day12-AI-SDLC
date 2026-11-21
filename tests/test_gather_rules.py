@@ -3,7 +3,7 @@
 import json
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, items, kind_counts, kinds, read_jsonl, run_headless, snapshots, write_json
 
 
 def tuning_gather():
@@ -17,7 +17,7 @@ class GatherHarvestAndCatchTests(unittest.TestCase):
         regrow_ticks = int(round(g["regrow_s"] * 60))
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {
-                "hold": ["ca_loc"],
+                "hold": items("ca_loc"),
                 "player": {"pos": [20, 0]},
                 "nodes": [
                     {"id": "N10", "kind": "bong_sung", "pos": [21, 0]},
@@ -41,7 +41,7 @@ class GatherHarvestAndCatchTests(unittest.TestCase):
             self.assertEqual(regrown[0]["data"]["node_id"], "N2")
             self.assertEqual(regrown[0]["tick"], 1 + regrow_ticks)
             last_snap = snapshots(rows)[-1]
-            self.assertEqual(last_snap["hold"], ["ca_loc", "bong_dien_dien"])
+            self.assertEqual(kinds(last_snap["hold"]), ["ca_loc", "bong_dien_dien"])
 
     def test_harvest_blocked_underwater_and_dock_priority(self):
         with Workdir() as w:
@@ -78,7 +78,7 @@ class GatherHarvestAndCatchTests(unittest.TestCase):
         cd = int(round(g["catch_cooldown_s"] * 60))
         with Workdir() as w:
             sc = write_json(w.path("sc.json"), {"gather": {
-                "hold": ["bong_sung"] * (cap - 2),
+                "hold": items(*["bong_sung"] * (cap - 2)),
                 "player": {"pos": [20, 10]},
                 "random_fish": False,
                 "fish": [
@@ -136,7 +136,7 @@ class GatherHarvestAndCatchTests(unittest.TestCase):
             sc_inv = write_json(w.path("sc_i.json"), {"gather": {
                 "player": {"pos": [2, 0]},
                 "nodes": [{"id": "N1", "kind": "bong_dien_dien", "pos": [2, 0]}],
-                "hold": ["ca_loc", "ca_linh"],
+                "hold": items("ca_loc", "ca_linh"),
                 "random_fish": False,
             }})
             inp_inv = write_json(w.path("in_i.json"), frames({"tick": 0, "interact": True}))
@@ -145,7 +145,7 @@ class GatherHarvestAndCatchTests(unittest.TestCase):
                                      "--inventory-out", inv, "--out", w.path("o_i.jsonl"))
             self.assertEqual(code, 0, err)
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"ca_linh": 1, "ca_loc": 1}})
+                self.assertEqual(kind_counts(json.load(f)["items"]), {"ca_linh": 1, "ca_loc": 1})
 
 
 if __name__ == "__main__":

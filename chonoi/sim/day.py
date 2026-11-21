@@ -126,7 +126,9 @@ class DaySim:
             "active_upgrades": dict(self.active_upgrades),
         }
         if self.phase == "shop":
-            base.update({"stock": dict(self._shop_stock), "time_left_ticks": self._shop_time_left})
+            stock = ([dict(x) for x in self._shop_stock] if isinstance(self._shop_stock, list)
+                     else dict(self._shop_stock))  # v1.2: kho dư là mảng cá thể
+            base.update({"stock": stock, "time_left_ticks": self._shop_time_left})
         else:
             base.update(self._sub.snapshot())
         return base
