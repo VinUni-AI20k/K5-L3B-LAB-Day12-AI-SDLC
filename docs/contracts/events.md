@@ -24,9 +24,9 @@
 |---|---|---|---|
 | `customer_left` | … | Lát 3 | |
 | `no_dish` | … | Lát 3 | |
-| `cook_started` | … | Lát 4 | |
-| `dish_ready` | … | Lát 4 | |
-| `dish_picked` | … | Lát 4 | |
-| `served` | … | Lát 4 | |
-| `paid` | … | Lát 4 | |
+| `cook_started` | `{stove_id, dish, customer_id}` | Lát 4 | xong |
+| `dish_ready` | `{stove_id, dish}` | Lát 4 | xong |
+| `dish_picked` | `{stove_id, dish}` | Lát 4 | xong |
+| `served` | `{customer_id, table_id, dish}` | Lát 4 | xong |
+| `paid` | `{customer_id, table_id, dish, price, tip, total}` | Lát 4 | xong |
 | `quan_end` | `{reason, money, earned, shift_earned, reputation}` | khung | có sẵn |
