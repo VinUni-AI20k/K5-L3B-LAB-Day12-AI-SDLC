@@ -34,25 +34,26 @@ class CustomerKitchenIntegration(unittest.TestCase):
         with Workdir() as w:
             rows = run_cycle(w, {"ca_loc": 1}, 1930)
             names = [(e["tick"], e["name"]) for e in events(rows)]
-            self.assertEqual([n for _, n in names][:6],
+            self.assertEqual([n for _, n in names if n != "no_dish"],  # no_dish xen vào giữa vòng nấu (v1.1: 4 bàn)
                              ["customer_arrived", "cook_started", "dish_ready", "dish_picked", "served", "paid"])
             cook = events(rows, "cook_started")[0]
             self.assertEqual(cook["data"]["items"], ["ca_loc"])
-            # nguyên liệu đã dùng không hoàn lại -> kho rỗng, lượt 1920 không còn món để gọi
+            # nguyên liệu đã dùng không hoàn lại -> kho rỗng; v1.1 có 4 bàn nên mọi lượt sau đều có bàn mà hết món
             self.assertEqual(snapshots(rows)[-1]["stock"], {})
-            self.assertEqual([e["tick"] for e in events(rows, "no_dish")], [1920])
+            self.assertEqual([e["tick"] for e in events(rows, "no_dish")], [1020, 1920])
             self.assertEqual(len(events(rows, "customer_arrived")), 1)
 
-    def test_table_is_freed_after_paid_and_second_customer_arrives(self):
+    def test_second_customer_takes_next_free_table_and_holds_leftover_stock(self):  # v1.1: 4 bàn
         with Workdir() as w:
             rows = run_cycle(w, {"ca_loc": 2}, 1930)
             arr = events(rows, "customer_arrived")
-            self.assertEqual([(e["tick"], e["data"]["order_id"]) for e in arr], [(120, "K1"), (1920, "K2")])
-            paid = events(rows, "paid")[0]
-            self.assertLess(paid["tick"], 1920)  # bàn T1 đã trống trước lượt 2
+            self.assertEqual([(e["tick"], e["data"]["order_id"], e["data"]["table_id"]) for e in arr],
+                             [(120, "K1", "T1"), (1020, "K2", "T2")])
+            self.assertEqual(events(rows, "paid")[0]["data"]["order_id"], "K1")
             k2 = next(c for c in snapshots(rows)[-1]["customers"] if c["id"] == "K2")
             self.assertEqual((k2["state"], k2["order_status"], k2["reserved"]), ("waiting", "reserved", {"ca_loc": 1}))
             self.assertEqual(snapshots(rows)[-1]["stock"], {"ca_loc": 1})  # tồn còn 1 và đang được K2 giữ
+            self.assertEqual([e["tick"] for e in events(rows, "no_dish")], [1920])  # K2 giữ hết, lượt 1920 không còn món
 
     def test_served_customer_never_penalised_and_score_matches_formula(self):
         with Workdir() as w:
