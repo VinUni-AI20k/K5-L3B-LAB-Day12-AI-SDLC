@@ -17,7 +17,25 @@ def close_live_page(page, url):
     page.close()
 
 
+def observe_motion(page, filename):
+    page.add_init_script("""(filename => {
+        window.motionFrames = new Set();
+        const drawImage = CanvasRenderingContext2D.prototype.drawImage;
+        CanvasRenderingContext2D.prototype.drawImage = function (image, ...args) {
+            if (image.src?.endsWith("/" + filename) && args.length === 8) {
+                const [x, y, width, height] = args;
+                const facing = Math.sign(this.getTransform().a);
+                const [row, column] = [y / height, x / width];
+                window.motionPose = {row, column, facing};
+                window.motionFrames.add([row, column, facing].join(":"));
+            }
+            return drawImage.call(this, image, ...args);
+        };
+    })(""" + json.dumps(filename) + ")")
+
+
 def verify_controls(page, url, itemized):
+    observe_motion(page, "ba-ut-nhip-boi.webp")
     page.goto(url)
     expect(page.locator("#hint")).to_contain_text("Cập bến")
     if itemized:
@@ -35,6 +53,18 @@ def verify_controls(page, url, itemized):
         page.keyboard.press("r")
     expect(page.locator("#overlay")).to_be_hidden()
     print("Gather localhost: di chuyển, Space, E cập bến và R chơi lại PASS")
+    page.wait_for_function("canPlay()")
+    page.keyboard.down("s")
+    page.wait_for_function("window.motionFrames.size >= 3", timeout=4000)
+    assert page.request.get(url + "state").json()["player"]["at_surface"] is False
+    page.keyboard.up("s")
+    page.wait_for_function("window.motionPose.row === 0 && window.motionPose.column === 0")
+    for key, facing in (("d", -1), ("a", 1)):
+        page.keyboard.down(key)
+        page.wait_for_function("""facing => window.motionPose.facing === facing
+            && (window.motionPose.row > 0 || window.motionPose.column > 0)""", arg=facing)
+        page.keyboard.up(key)
+    print("Gather localhost: lặn, đổi khung bơi, về dáng lướt và quay trái/phải PASS")
 
 
 def verify_live_quan(browser, tuning):
@@ -43,15 +73,42 @@ def verify_live_quan(browser, tuning):
     server.start()
     try:
         page = browser.new_page()
+        observe_motion(page, "ba-ut-di-bo.webp")
         page.goto(server.url)
         stock = page.locator("#stock")
         expect(stock.get_by_role("listitem")).to_have_count(2)
         expect(stock.get_by_role("listitem").filter(has_text="Ươn")).to_contain_text("I8")
         expect(stock.get_by_role("listitem").filter(has_text="Đã giữ")).to_contain_text("I7")
+        verify_walking(page, server.url, tuning["quan"]["bounds"]["x"][1])
         close_live_page(page, server.url)
         print("Quán localhost: đọc kho cá thể và hàng ươn từ /state PASS")
     finally:
         server.stop()
+
+
+def verify_walking(page, url, right_edge):
+    page.wait_for_function("window.motionPose?.row === 0 && window.motionPose.column === 0", timeout=4000)
+    page.keyboard.down("d")
+    page.wait_for_function("""[...window.motionFrames].filter(key =>
+        key.startsWith("2:") && key.endsWith(":1") && key !== "2:0:1").length >= 2""")
+    page.wait_for_function("window.motionPose.row === 2 && window.motionPose.column === 0")
+    assert page.request.get(url + "state").json()["player"]["pos"][0] == right_edge
+    page.keyboard.up("d")
+    for key, row, facing in (("a", 2, -1), ("w", 1, 1), ("s", 0, 1)):
+        page.keyboard.down(key)
+        page.wait_for_function("""([row, facing]) => window.motionPose.row === row
+            && window.motionPose.facing === facing && window.motionPose.column > 0""", arg=[row, facing])
+        page.keyboard.up(key)
+        page.wait_for_function("""([row, facing]) => window.motionPose.row === row
+            && window.motionPose.facing === facing && window.motionPose.column === 0""", arg=[row, facing])
+    page.emulate_media(reduced_motion="reduce")
+    page.evaluate("window.motionFrames.clear()")
+    page.keyboard.down("a")
+    page.wait_for_function("""window.motionPose.row === 2 && window.motionPose.facing === -1
+        && window.motionPose.column === 0""")
+    page.keyboard.up("a")
+    assert page.evaluate("""[...window.motionFrames].every(key => key.split(":")[1] === "0")""")
+    print("Quán localhost: bốn hướng, nhiều khung bước, dừng khi thả phím hoặc chạm mép PASS")
 
 
 def verify(page, url, tuning, evidence):
