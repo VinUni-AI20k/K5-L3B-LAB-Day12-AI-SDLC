@@ -6,8 +6,11 @@
   "build_cmd": "true",
   "run_cmd": "python3 -m chonoi.live --mode gather",
   "headless_cmd": "python3 -m chonoi.headless",
+  "bench_cmd": "python3 -m chonoi.bench",
+  "soak_cmd": "python3 -m chonoi.soak",
   "tuning": {
     "tick_hz": 60,
+    "freshness": {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30},
     "gather": {
       "duration_s": 180,
       "bounds": {"x": [0, 100], "d": [0, 30]},

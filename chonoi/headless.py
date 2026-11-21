@@ -79,7 +79,7 @@ def main(argv=None) -> int:
         buttons, strings = buttons_for(contract)
         scenario = load_scenario(a.scenario, a.mode, tuning)
         frames = load_frames(a.inputs, buttons, strings)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        inventory = read_inventory(a.inventory, version=contract["contract_version"]) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
     except BadInput as e:
@@ -87,7 +87,8 @@ def main(argv=None) -> int:
         return 2
     try:
         run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out, days=days, buttons=buttons, strings=strings)
+            inventory=inventory, inventory_out=a.inventory_out, days=days, buttons=buttons, strings=strings,
+            contract_version=contract["contract_version"])
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

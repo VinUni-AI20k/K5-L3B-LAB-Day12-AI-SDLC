@@ -42,9 +42,10 @@ def _score(sim, tuning):
 class Session:
     """Một lượt chơi: dựng sim, bước từng tick, lấy snapshot / dòng end."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, days=1):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, days=1, contract_version="1.0"):
         self.mode = mode
         self.tuning = tuning
+        self.contract_version = contract_version
         self.sim = build_sim(mode, tuning, scenario, seed, inventory, days)
         self.tick = 0
         self.sim_tick = 0
@@ -121,12 +122,12 @@ class Session:
     def write_inventory_if_done(self, inventory_out):
         """File kho: ghi MỘT lần khi có gather_end; chưa kết thúc thì giữ nguyên file đích."""
         if self.mode == "gather" and self.sim.done and inventory_out:
-            write_inventory(inventory_out, self.sim.inventory_items())
+            write_inventory(inventory_out, self.sim.inventory_items(), version=self.contract_version)
 
 
 def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None,
-        days=1, buttons=BUTTONS_V10, strings=()):
-    sess = Session(mode, tuning, scenario, seed, inventory, days)
+        days=1, buttons=BUTTONS_V10, strings=(), contract_version="1.0"):
+    sess = Session(mode, tuning, scenario, seed, inventory, days, contract_version)
     player = InputPlayer(frames, buttons, strings)
     w = JsonlWriter(out_path)
     try:

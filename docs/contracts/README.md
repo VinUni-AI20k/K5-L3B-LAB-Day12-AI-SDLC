@@ -71,3 +71,17 @@ Sự kiện quán (khách, bếp, tiền) do TV3/TV4 điền khi viết `quan.py
 | `faint` (ngạt) | `{"hp": 0, "lost": [giỏ còn lại]}` | Máu về 0 vì ngạt. Ngạt không rơi từng món và không nhìn bất tử |
 
 Cá bơi 1.5 m/s trong `fish_x` × `fish_depths[loài]`. Đổi hướng khi `age_ticks` đã là bội của 120, trước khi nhích. Chạm mép thì phản xạ phần dư và đảo thành phần vuông góc; chạm góc đảo cả hai. Cá mới có `age_ticks` 0 và bơi từ bước sau.
+
+## 5. Kho cá thể v1.2 (Phase 3, TV1) — đã có hàm, chưa bật trên file đang chạy
+
+`chonoi/inventory.py` chọn schema theo `contract_version`:
+
+```json
+{"items":[{"id":"I1","kind":"ca_linh","fresh":100},{"id":"I2","kind":"ca_loc","fresh":97.5}]}
+```
+
+Từ `"1.2"` (và `"1.3"`, gameplay vẫn theo v1.2): `items` phải là mảng. Kho đếm, id trùng hoặc rỗng, kind lạ, `fresh` không hữu hạn hoặc ngoài [0, 100] → mã 2. Kho rỗng là `{"items":[]}`. Ghi sắp theo id, `fresh` không làm tròn 3 chữ số, qua file tạm rồi `os.replace`.
+
+Độ tươi nội bộ: 240 đơn vị mỗi điểm. Giỏ trừ 2 đơn vị/tick, quán trừ 1. Ươn khi đơn vị xuống dưới `30 × 240`. `tuning.freshness` trên contract hiện tại là `{initial:100, gather_decay_per_s:0.5, quan_decay_per_s:0.25, spoiled_below:30}`.
+
+`game.contract.json` vẫn `"1.1"` cho đến khi giỏ (TV2) và quán (TV3/TV4) bàn giao cá thể. Bật sớm thì mọi file kho đếm đang dùng trong test P1–P2 thành mã 2.
