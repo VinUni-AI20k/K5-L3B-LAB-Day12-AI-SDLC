@@ -19,14 +19,35 @@
 - Hành động bổ sung: **mỗi PR phải có 1 review của người dự phòng trước khi gộp** (Integrator không tự gộp PR chưa review). Người nhận: **invzble-z**, PO kiểm ở retro P4.
 - 1 hành động cho Phase 3: **trả nợ Phase 2 trước khi bật v1.2.** Số chuẩn v1.1 đã có (`b85711d`). Bào đẩy adapter kho cá thể trước phút 12. Kiên (đã xong 3b) pair với Bào làm `day.py`. Người nhận: **invzble-z**. Minh kiểm lại ở standup phút 20.
 
+## Phase 3 (nhanh, về lần đổi kho đếm → kho cá thể)
+> Nháp do PO (nganhduong123) dựng lúc `main` @ `48c96b3`. Thứ tự vào `main` lấy từ `git log`.
+
+- Diễn biến:
+  1. Gather làm giỏ cá thể **trước** khi có kiểu dùng chung (`1ae5ba7`, Dũng, kiểu tạm `_HoldItem`).
+  2. Quán làm giá theo độ tươi (PR #12, Kiên).
+  3. Sau đó mới có adapter `Item` + khối `freshness` (`0748ff3`, Bào) và bàn giao `day` giữ id xuyên Ngày (`48c96b3`).
+  4. HUD độ tươi làm trên mock, kiểm với giỏ thật (PR #15, Dương).
+- Điều tốt:
+  - Chốt `Fraction` từ đầu (ADR 0002) nên ngưỡng 30 và `floor` giá có test chính xác (`tests/test_p3_gather.py`, `test_p3_quan_price.py`), không gặp lỗi lệch 1 tick.
+  - Gather đổi từ kiểu tạm sang `Item` chỉ bằng một dòng `_HoldItem = Item`, không vỡ test.
+  - Adapter đọc 2 schema theo version nên `main` vẫn xanh suốt phase.
+- Điều tệ:
+  - Adapter là đường găng nhưng vào **sau** các lát dùng nó, nên mỗi lát tự dựng kiểu tạm, và chỗ nối các lát lại không có ai kiểm. Ví dụ: `GatherSim` đọc `tuning.contract_version`, trong khi manifest để `contract_version` ở gốc và không chỗ nào chép vào `tuning`; lật `"1.2"` thì gather vẫn chạy giỏ đếm (clarify #9).
+  - Chưa lật `"1.2"`, kho cá thể + hao tươi ở quán và scenario v1.2 chưa xong.
+  - Chưa có tag `phase-3`.
+  - 5 test `expectedFailure` trong `test_p2_q3_day_integration.py` đánh dấu chỗ hở đã biết nhưng chưa có người nhận sửa.
+  - Retro nhanh và standup P3 không làm đúng giờ: nháp này viết bù cuối buổi.
+- 1 hành động cho Phase 4: **trước khi lật `"1.2"`, chạy một smoke đầu-cuối với manifest thật** (gather `--inventory-out` → quán `--inventory`, so id/kind/fresh), không chỉ test từng lát với tuning tự dựng. Người nhận: **WorkOfMinh** (QA), invzble-z sửa chỗ chép `contract_version`.
+
 ## Phase 4 (cuối)
 > Nháp do PO (nganhduong123) dựng từ bằng chứng trong repo lúc `main` @ `48c96b3` (+ nhánh `p4/bench-tuong-phan` của PO). Cả nhóm sửa/bổ sung trong buổi retro. Số liệu lấy bằng lệnh ghi ở từng dòng.
 
-### 1. Rà hành động đã chốt ở retro P2
+### 1. Rà hành động đã chốt ở retro P2 (và P3)
 | Hành động | Người nhận | Đã làm chưa | Bằng chứng / vì sao |
 |---|---|---|---|
 | Trả nợ Phase 2 trước khi bật v1.2 | invzble-z | 🟡 phần lớn | `sim/day.py` (`721088a`), `sim/monsters.py` đã vào `main`; adapter `Item` + `freshness` (`0748ff3`); `day` giữ id xuyên Ngày (`48c96b3`). Chưa lật `"1.2"`, kho cá thể ở quán chưa xong, chưa có tag `phase-3` |
 | Kiên pair với Bào làm `day.py` | ttkien0710, invzble-z | ❌ | `git log -- chonoi/sim/day.py`: Bào viết chính (`721088a`, `0748ff3`), Tú nối pha ngày đêm (`6e5cd3c`) và Cá Sấu (`8251ef0`); không có commit của Kiên. Kiên chuyển sang giá theo độ tươi (PR #12) |
+| (P3) Smoke đầu-cuối với manifest thật trước khi lật `"1.2"` | WorkOfMinh, invzble-z | ❌ | Chưa lật `"1.2"`; lỗi chép `contract_version` vào `tuning` (clarify #9) chưa sửa |
 | Mỗi PR có 1 review của người dự phòng trước khi gộp | invzble-z | ❌ | `gh pr list --json reviews`: 14/14 PR đã gộp đều có 0 review, kể cả #13 và #14 sau retro P2. Một số commit lớn (`721088a`, `0748ff3`, `48c96b3`) đẩy thẳng lên `main` |
 
 ### 2. Điều tốt
