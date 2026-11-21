@@ -156,8 +156,34 @@ def _validate_quan(b, tuning):
         raise BadInput("player.vel phải là [x, z]")
     table_ids = [c.get("table_id") for c in b.get("customers", [])]
     known = {t["id"] for t in tuning["quan"]["tables"]} | {t.get("id") for t in b.get("tables", [])}
+    menu = tuning["menu"]
     for c in b.get("customers", []):
         if not isinstance(c.get("table_id"), str) or c["table_id"] not in known:
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
+        if "dish_id" in c and c["dish_id"] not in menu:
+            raise BadInput(f"customers.{c['id']}: dish_id '{c['dish_id']}' không có trong menu")
+        if "state" in c and c["state"] not in ("waiting", "eating"):
+            raise BadInput(f"customers.{c['id']}: state phải là 'waiting' hoặc 'eating'")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
+    if "hand" in b and b["hand"]:
+        h_dish = b["hand"]["dish_id"] if isinstance(b["hand"], dict) else b["hand"]
+        if h_dish not in menu:
+            raise BadInput(f"hand: món '{h_dish}' không có trong menu")
+    for s in b.get("stoves", []):
+        if s.get("dish"):
+            s_dish = s["dish"]["dish_id"] if isinstance(s["dish"], dict) else s["dish"]
+            if s_dish not in menu:
+                raise BadInput(f"stoves.{s['id']}: món '{s_dish}' không có trong menu")
+    if "stock" in b:
+        reserved_totals = {}
+        for c in b.get("customers", []):
+            res = c.get("reserved")
+            if res is None and c.get("state", "waiting") != "eating" and c.get("dish_id") in menu:
+                res = menu[c["dish_id"]]["recipe"]
+            if res:
+                for k, amt in res.items():
+                    reserved_totals[k] = reserved_totals.get(k, 0) + amt
+        for k, amt in reserved_totals.items():
+            if amt > b["stock"].get(k, 0):
+                raise BadInput(f"khách giữ chỗ '{k}' ({amt}) vượt tồn kho ({b['stock'].get(k, 0)})")
