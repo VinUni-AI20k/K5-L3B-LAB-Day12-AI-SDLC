@@ -4,6 +4,8 @@
 
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
+- Test trên Windows PowerShell:
+  `$env:PYTHONPATH = "tests;."; python -m unittest discover -s tests -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 
@@ -26,4 +28,61 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+
+### 1. check-contract
+- Mục đích: Kiểm tra Test Contract và tính tất định (determinism) của headless.
+- Khi dùng: Sau khi sửa logic mô phỏng, trước khi merge và gắn tag Phase.
+- Hướng dẫn: `.agents/skills/check-contract/SKILL.md`.
+- Lệnh: `python .agents/skills/check-contract/check_contract.py`.
+- Kiểm chứng: Đã chạy PASS với gather và quan ở chế độ Contract command và Local Python.
+
+### 2. prepare-proof
+- Mục đích: Chạy kiểm thử và thu thập bằng chứng Phase 1.
+- Khi dùng: Trước khi tích hợp code hoặc bàn giao cho QA.
+- Hướng dẫn: `.agents/skills/prepare-proof/SKILL.md`.
+- Lệnh: `python .agents/skills/prepare-proof/prepare_proof.py`.
+- Kiểm chứng: Unit tests PASS, gather PASS, quan PASS, determinism PASS.
+- Bằng chứng: `docs/proof/phase-1/harness/20261121-104445-689582/`.
+
+### Quy tắc chung
+- Không thay đổi Test Contract khi chưa thống nhất với nhóm.
+- Không sửa test chỉ để tạo kết quả PASS.
+- Không tạo bằng chứng giả.
+- Không tự động commit hoặc push.
+- Người phụ trách phải kiểm tra kết quả trước khi bàn giao.
+
+## Phase 1 — Quy trình phối hợp AI
+
+### 1. Trước khi AI viết code
+- Đọc PRD-0, hợp đồng tích hợp và yêu cầu của task.
+- Xác định file được phép sửa theo docs/plan/phase-1.md.
+- Không tự ý thay đổi game.contract.json hoặc docs/contracts/.
+- Nếu yêu cầu chưa rõ, báo PO và ghi nhận vào docs/clarify.md.
+
+### 2. Khi AI viết code
+- Chỉ giải quyết một nhiệm vụ rõ ràng mỗi lần.
+- Giữ nguyên Test Contract và khả năng chạy headless.
+- Không tự ý thay đổi logic thuộc phạm vi người khác.
+- Không sửa test chỉ để làm kết quả PASS.
+- Không hard-code kết quả mô phỏng.
+
+### 3. Sau khi AI viết code
+- Kiểm tra git diff để biết AI đã thay đổi những gì.
+- Chạy các bài test phù hợp với nhiệm vụ.
+- Nếu sửa logic mô phỏng, kiểm tra determinism.
+- Ghi lại kết quả PASS/FAIL thực tế.
+- Nếu test thất bại, phải ghi rõ lỗi chưa khắc phục.
+
+### 4. Trước khi bàn giao
+- Chỉ commit file thuộc phạm vi được giao.
+- Không commit API key, token hoặc .env.
+- Ghi cách sử dụng AI vào docs/ai-usage-log.md.
+- Đảm bảo người phụ trách đã kiểm tra thay đổi của AI.
+- Thông báo cho Integrator trước khi tích hợp vào main.
+
+### 5. Trách nhiệm Harness/Ops
+- Người phụ trách: VThanh-Huy.
+- Duy trì AGENTS.md và các skill của nhóm.
+- Hỗ trợ QA kiểm tra Test Contract và determinism.
+- Thu thập tiến độ qua docs/standup.md.
+- Không tự đánh dấu công việc của người khác là hoàn thành.
