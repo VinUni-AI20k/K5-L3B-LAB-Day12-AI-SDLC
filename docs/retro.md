@@ -5,6 +5,11 @@
 - Điều tệ: luồng `day` chưa có trong runner tại thời điểm làm lát quán, nên chưa thể kiểm chứng tích hợp qua CLI. Toàn bộ test repo hiện lỗi ở gather vì contract v1.1 đổi `fish_initial` thành số nhưng `GatherSim` còn duyệt như danh sách; lát quán có 13 test liên quan đạt.
 - 1 hành động cho Phase 3: thêm kiểm thử tích hợp `day` để xác nhận mỗi ngày chỉ nhận các món trong `day_plan` sau khi luồng ngày được ghép.
 
+## Phase 3 (nhanh)
+- Điều tốt: lát quán có test riêng cho hao tươi, biên 30, thứ tự `spoiled` và giữ lại nguyên liệu theo id; luật v1.1 vẫn chạy khi chưa bật schema mới.
+- Điều vướng: contract và file kho vẫn ở v1.1 khi làm lát quán; phần tiêu nguyên liệu/tính giá của Cương và bàn giao `day` cần ghép với schema v1.2 trước khi chạy smoke toàn tuyến.
+- Hành động tiếp: ghép các nhánh schema, quán và `day`, rồi chạy smoke file kho cá thể và kiểm thử đơn vừa ươn tại commit bàn giao.
+
 ## Phase 4 (cuối)
 - Rà lại hành động Phase 2: đã làm chưa? vì sao?
 - Điều tốt / điều tệ:
