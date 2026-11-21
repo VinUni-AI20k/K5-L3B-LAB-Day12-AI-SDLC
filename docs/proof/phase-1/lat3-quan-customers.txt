@@ -1,0 +1,44 @@
+# Lát 3 — PYTHONPATH=tests:. python3 -m unittest tests.test_quan_customers -v
+# 2026-11-21T03:15Z
+test_available_excludes_reserved (tests.test_quan_customers.DishChoice.test_available_excludes_reserved) ... ok
+test_no_dish_when_stock_empty (tests.test_quan_customers.DishChoice.test_no_dish_when_stock_empty) ... ok
+test_only_cookable_dish_is_chosen (tests.test_quan_customers.DishChoice.test_only_cookable_dish_is_chosen) ... ok
+test_same_seed_same_choice_and_uniform_spread (tests.test_quan_customers.DishChoice.test_same_seed_same_choice_and_uniform_spread) ... ok
+test_contradictions_exit_2 (tests.test_quan_customers.Fixture.test_contradictions_exit_2) ... ok
+test_reserved_over_inventory_file_exit_2 (tests.test_quan_customers.Fixture.test_reserved_over_inventory_file_exit_2) ... ok
+test_reserved_over_inventory_raises_in_sim (tests.test_quan_customers.Fixture.test_reserved_over_inventory_raises_in_sim) ... ok
+test_valid_fixture_exit_0 (tests.test_quan_customers.Fixture.test_valid_fixture_exit_0) ... ok
+test_valid_fixture_snapshot (tests.test_quan_customers.Fixture.test_valid_fixture_snapshot) ... ok
+test_eating_customer_does_not_lose_patience (tests.test_quan_customers.Patience.test_eating_customer_does_not_lose_patience) ... ok
+test_patience_runs_out_after_full_patience (tests.test_quan_customers.Patience.test_patience_runs_out_after_full_patience) ... ok
+test_patience_snapshot_countdown (tests.test_quan_customers.Patience.test_patience_snapshot_countdown) ... ok
+test_reputation_clamped_at_min (tests.test_quan_customers.Patience.test_reputation_clamped_at_min) ... ok
+test_leave_releases_reservation_and_drops_dish (tests.test_quan_customers.Reservation.test_leave_releases_reservation_and_drops_dish) ... ok
+test_reserve_recipe_on_order (tests.test_quan_customers.Reservation.test_reserve_recipe_on_order) ... ok
+test_reserved_released_on_patience_leave (tests.test_quan_customers.Reservation.test_reserved_released_on_patience_leave) ... ok
+test_first_customer_at_first_customer_tick (tests.test_quan_customers.Schedule.test_first_customer_at_first_customer_tick) ... ok
+test_next_arrival_after_interval_and_smallest_free_table (tests.test_quan_customers.Schedule.test_next_arrival_after_interval_and_smallest_free_table) ... ok
+test_no_free_table_skips_turn (tests.test_quan_customers.Schedule.test_no_free_table_skips_turn) ... ok
+test_random_customers_false_disables_schedule (tests.test_quan_customers.Schedule.test_random_customers_false_disables_schedule) ... ok
+test_runs_through_headless_jsonl (tests.test_quan_customers.Schedule.test_runs_through_headless_jsonl) ... ok
+
+----------------------------------------------------------------------
+Ran 21 tests in 1.445s
+
+OK
+
+# Toàn bộ: PYTHONPATH=tests:. python3 -m unittest discover -s tests
+Ran 53 tests in 6.326s
+
+OK
+
+# Tất định: quan seed 7, 10800 tick, kho {bong_sung:2, ca_loc:1}, chạy 2 lần -> cmp
+IDENTICAL
+
+# Sự kiện (trích q_a.jsonl)
+{"type":"event","tick":120,"phase":"quan","name":"customer_arrived","data":{"customer_id":"C1","table_id":"T1","order_id":"O1","dish_id":"ca_loc_nuong_trui","base_price":60,"reserved":{"ca_loc":1}}}
+{"type":"event","tick":3720,"phase":"quan","name":"customer_left","data":{"customer_id":"C1","table_id":"T1","order_id":"O1","reason":"patience","reputation":2.5}}
+{"type":"event","tick":3720,"phase":"quan","name":"customer_arrived","data":{"customer_id":"C2","table_id":"T1","order_id":"O2","dish_id":"goi_bong_sung","base_price":40,"reserved":{"bong_sung":2}}}
+{"type":"event","tick":7320,"phase":"quan","name":"customer_left","data":{"customer_id":"C2","table_id":"T1","order_id":"O2","reason":"patience","reputation":2.0}}
+{"type":"event","tick":7320,"phase":"quan","name":"customer_arrived","data":{"customer_id":"C3","table_id":"T1","order_id":"O3","dish_id":"goi_bong_sung","base_price":40,"reserved":{"bong_sung":2}}}
+{"type":"event","tick":10800,"phase":"quan","name":"quan_end","data":{"reason":"time","money":0,"earned":0,"shift_earned":0,"reputation":2.0}}
