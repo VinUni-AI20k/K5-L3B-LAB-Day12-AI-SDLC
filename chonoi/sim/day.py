@@ -48,6 +48,23 @@ class DaySim:
     def _init_gather(self):
         g_scen = dict(self.scenario.get("gather", {}))
         g_tuning = dict(self.tuning)
+
+        # Cấp id mới xuyên ngày theo thứ tự mảng (Contract v1.2)
+        if self.day > 1 and "hold" in g_scen:
+            new_hold = []
+            for it in g_scen["hold"]:
+                if isinstance(it, dict):
+                    new_it = dict(it)
+                    new_it["id"] = self.ids.new("I")
+                    new_hold.append(new_it)
+                else:
+                    new_hold.append(it)
+            g_scen["hold"] = new_hold
+        elif self.day == 1 and "hold" in g_scen:
+            for it in g_scen["hold"]:
+                if isinstance(it, dict) and "id" in it:
+                    self.ids.reserve(it["id"])
+
         # Áp dụng active_upgrades
         oxy_lvl = self.active_upgrades.get("oxygen", 0)
         if oxy_lvl > 0:
@@ -157,8 +174,8 @@ class DaySim:
             self.phase_tick += 1
 
             if self.sim_gather.done:
-                self.stock = self.sim_gather.inventory_items()
-                # Chuyển sang quan
+                self.stock = list(self.sim_gather.inventory_items())
+                # Chuyển sang quan: bàn giao trong cùng tick chuyển pha, hàng không hao thêm
                 self.phase = "quan"
                 self.phase_tick = 0
                 self._init_quan(self.stock)
