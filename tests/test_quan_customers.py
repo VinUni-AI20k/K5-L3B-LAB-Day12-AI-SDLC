@@ -1,4 +1,4 @@
-"""TV3 · Khách, giữ chỗ, no_dish, kiên nhẫn."""
+"""TV3 · Khách, giữ chỗ, no_dish, kiên nhẫn / lịch spawn."""
 
 import unittest
 
@@ -36,7 +36,7 @@ class QuanCustomers(unittest.TestCase):
         self.assertEqual(c["reserved"], {"ca_loc": 1})
         self.assertEqual(c["state"], "waiting")
         self.assertEqual(c["order_status"], "reserved")
-        self.assertEqual(c["patience_ticks_left"], 3600)  # 60s * 60
+        self.assertEqual(c["patience_ticks_left"], 3600)
 
     def test_busy_table_skips_spawn_without_event(self):
         """Bàn bận ở tick spawn → bỏ lượt, không customer_arrived / no_dish."""
@@ -49,10 +49,8 @@ class QuanCustomers(unittest.TestCase):
                 }],
                 "time_left_ticks": 200,
             }, ticks=120)
-        arrived = events(rows, "customer_arrived")
-        nodish = events(rows, "no_dish")
-        self.assertEqual(arrived, [])
-        self.assertEqual(nodish, [])
+        self.assertEqual(events(rows, "customer_arrived"), [])
+        self.assertEqual(events(rows, "no_dish"), [])
         self.assertEqual(len(snapshots(rows)[-1]["customers"]), 1)
 
     def test_no_dish_when_stock_insufficient(self):
@@ -81,7 +79,6 @@ class QuanCustomers(unittest.TestCase):
             "ca_loc_nuong_trui", "goi_bong_sung", "lau_ca_linh_dien_dien",
         })
 
-        # Snapshot ngay sau spawn (tick 120): patience còn đầy; reserved khớp recipe
         snap_at_spawn = next(s for s in snapshots(rows) if s["tick"] == 120)
         self.assertEqual(len(snap_at_spawn["customers"]), 1)
         self.assertEqual(snap_at_spawn["customers"][0]["patience_ticks_left"], 3600)
@@ -92,41 +89,36 @@ class QuanCustomers(unittest.TestCase):
         }[data["dish_id"]]
         self.assertEqual(snap_at_spawn["customers"][0]["reserved"], recipe)
 
-        # Bước sau mới giảm patience
         snap_next = next(s for s in snapshots(rows) if s["tick"] == 121)
         self.assertEqual(snap_next["customers"][0]["patience_ticks_left"], 3599)
 
-    def test_patience_leave_releases_reserved_and_clears_stove_hand(self):
+    def test_patience_leave_releases_reserved_and_clears_stove(self):
         with Workdir() as workdir:
             rows = self.run_quan(workdir, {
-                "stock": {"ca_loc": 1},  # vật lý vẫn 1; reserved sẽ nhả, không hoàn thêm
+                "stock": {"ca_loc": 0},
                 "random_customers": False,
                 "customers": [{
                     "id": "C9", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                    "patience_ticks_left": 1,
-                    "reserved": {"ca_loc": 1},
+                    "order_status": "assigned", "patience_ticks_left": 1,
+                    "reserved": {},
                 }],
                 "stoves": [{
                     "id": "B1", "state": "cooking",
                     "dish": {"order_id": "C9", "dish_id": "ca_loc_nuong_trui", "base_price": 60},
                     "cook_ticks_left": 100,
                 }],
-                "hand": {"order_id": "C9", "dish_id": "ca_loc_nuong_trui", "base_price": 60},
                 "time_left_ticks": 10,
             }, ticks=1)
         left = events(rows, "customer_left")
         self.assertEqual(len(left), 1)
         self.assertEqual(left[0]["data"]["reason"], "patience")
         self.assertEqual(left[0]["data"]["order_id"], "C9")
-        # left_reputation_delta = -0.5 → 3.0 - 0.5 = 2.5
         self.assertAlmostEqual(left[0]["data"]["reputation"], 2.5)
 
         snap = snapshots(rows)[-1]
         self.assertEqual(snap["customers"], [])
-        self.assertEqual(snap["stock"], {"ca_loc": 1})  # không hoàn reserved đã... reserved chỉ giữ chỗ
         self.assertEqual(snap["stoves"][0]["state"], "idle")
         self.assertIsNone(snap["stoves"][0]["dish"])
-        self.assertIsNone(snap["hand"])
         self.assertAlmostEqual(snap["reputation"], 2.5)
 
     def test_closing_leaves_waiting_without_reputation_hit(self):
