@@ -1,6 +1,6 @@
 # Day/Q3 integration findings — 2026-11-21
 
-Verified runtime source: `origin/main` `813b0b7`.
+Verified branch HEAD: `5b79199`, merge of `origin/main` `ba17f4d`.
 Integration test commits: `84f9546`, `053867b`; proof files are a documentation-only follow-up.
 
 ## T07 — DaySim and QuanSim
@@ -44,7 +44,7 @@ Use `self.sim_tick` for snapshot/end `sim_tick`, leaving outer `tick` monotonic.
 
 - Q3/Q4 Phase 2 tests: 19/19 passed, including two independent stoves, six dishes, order ordering, reservation consumption, payment and the Q4-F1 reproduction.
 - Phase 3 price/freshness tests: 4/4 passed; no Phase 3 implementation changed.
-- **Q4-F1 remains reproducible** on `813b0b7`: a customer can leave during cooking and the dish can still finish and be picked up. This is a reproduction, not a fix. Policy (cancel, retain or reuse) needs PO `nganhduong123` and module owner `ttkien0710` before a code change.
+- **Q4-F1 remains reproducible** on `5b79199`: a customer can leave during cooking and the dish can still finish and be picked up. This is a reproduction, not a fix. Policy (cancel, retain or reuse) needs PO `nganhduong123` and module owner `ttkien0710` before a code change.
 - `no_dish` and customer/order event payload remain unresolved contract questions.
 
 ## T09 — contract/source limitations

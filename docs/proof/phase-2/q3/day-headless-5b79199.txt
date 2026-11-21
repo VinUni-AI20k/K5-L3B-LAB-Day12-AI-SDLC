@@ -1,5 +1,5 @@
 Headless Day smoke and deterministic replay
-Verified runtime source: origin/main 813b0b7; integration tests: 84f9546, 053867b
+Verified branch HEAD: 5b79199 (origin/main ba17f4d merged); integration tests: 84f9546, 053867b
 Branch: p2/q3-day-integration
 Runtime: Python 3.11.9, Windows
 

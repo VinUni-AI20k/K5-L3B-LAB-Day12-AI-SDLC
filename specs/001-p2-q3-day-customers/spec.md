@@ -1,4 +1,4 @@
-> Trạng thái kiểm chứng trên main `813b0b7`: Q3/Q4 và DaySim đã có; integration test mới phát hiện ba lỗi DaySim/Runner cần Bào xử lý. Contract và QA vẫn mở. Xem [research](research.md), [handoff](handoff.md). Nội dung dưới mô tả yêu cầu Q3.
+> Trạng thái kiểm chứng trên main `ba17f4d` (verification branch HEAD `5b79199`): Q3/Q4 và DaySim đã có; integration test mới phát hiện ba lỗi DaySim/Runner cần Bào xử lý. Contract và QA vẫn mở. Xem [research](research.md), [handoff](handoff.md). Nội dung dưới mô tả yêu cầu Q3.
 
 # Phase 2 Q3 — khách và kế hoạch ngày
 

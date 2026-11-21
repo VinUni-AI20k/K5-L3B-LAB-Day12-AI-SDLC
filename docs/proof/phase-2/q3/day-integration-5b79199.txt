@@ -1,5 +1,5 @@
 Q3 ↔ DaySim integration tests
-Verified runtime source: origin/main 813b0b7; integration tests: 84f9546, 053867b
+Verified branch HEAD: 5b79199 (origin/main ba17f4d merged); integration tests: 84f9546, 053867b
 Branch: p2/q3-day-integration
 Runtime: Python 3.11.9, Windows
 
@@ -26,5 +26,5 @@ Expected failures (5; known owner boundary, not counted as acceptance):
 - Reputation earned during one day is not passed into the next QuanSim.
 - Session snapshot sim_tick advances while DaySim is paused.
 
-No runtime implementation was changed in these test commits. DaySim/Runner findings are assigned to
+No DaySim/Runner implementation was changed in these test commits. DaySim/Runner findings are assigned to
 their owner, invzble-z; details and observed values are in day-findings.md.

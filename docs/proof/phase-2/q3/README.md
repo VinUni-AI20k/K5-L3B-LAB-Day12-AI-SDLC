@@ -2,11 +2,11 @@
 
 ## Tích hợp Day mới nhất
 
-Main `813b0b7`, branch kiểm tra `p2/q3-day-integration`, latest test commit `053867b`:
+Main mới nhất `ba17f4d`; verification HEAD `5b79199` trên branch `p2/q3-day-integration`:
 
-- [Day integration](day-integration-053867b.txt): 15 test, 10 đạt, 5 expected failures cho filter rỗng, reputation qua ngày và `sim_tick` khi pause.
-- [Headless Day](day-headless-053867b.txt): Day 1 và Day 3 kết thúc đúng; Day 3 replay cùng seed/input cho cùng SHA-256.
-- [Regression](day-regression-053867b.txt): Day 6/6, Q3/Q4 19/19, Phase 3 4/4, tổng 138 test (5 expected failures), Phase 1 verification 9/9.
+- [Day integration](day-integration-5b79199.txt): 15 test, 10 đạt, 5 expected failures cho filter rỗng, reputation qua ngày và `sim_tick` khi pause.
+- [Headless Day](day-headless-5b79199.txt): Day 1 và Day 3 kết thúc đúng; Day 3 replay cùng seed/input cho cùng SHA-256.
+- [Regression](day-regression-5b79199.txt): Day 6/6, Q3/Q4 19/19, Phase 2 fish + Phase 3 14/14, tổng 143 test (5 expected failures), Phase 1 verification 9/9.
 - [Findings và bàn giao](day-findings.md): T07 PARTIAL; T08–T10 còn phụ thuộc policy, Integrator, QA và xác nhận cá nhân.
 
 Không có sửa logic runtime trong commit này; test ghi lại hai lỗi DaySim và một lỗi Runner thuộc chủ module Bào. Q4-F1 tiếp tục tái hiện, chưa có quyết định xử lý.

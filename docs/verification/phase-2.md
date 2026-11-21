@@ -1,8 +1,8 @@
 # Kiểm chứng Phase 2 — phần Q3
 
-## Tích hợp mới nhất — main `813b0b7`
+## Tích hợp mới nhất — main `ba17f4d`, verification HEAD `5b79199`
 
-DaySim đã được kiểm thử thật với QuanSim sau PR #12. Xem [day integration](../proof/phase-2/q3/day-integration-053867b.txt), [headless Day 1/3](../proof/phase-2/q3/day-headless-053867b.txt), [regression](../proof/phase-2/q3/day-regression-053867b.txt) và [findings/handoff](../proof/phase-2/q3/day-findings.md).
+DaySim đã được kiểm thử thật với QuanSim sau PR #12 và các cập nhật Gather/Phase 3 mới nhất. Xem [day integration](../proof/phase-2/q3/day-integration-5b79199.txt), [headless Day 1/3](../proof/phase-2/q3/day-headless-5b79199.txt), [regression](../proof/phase-2/q3/day-regression-5b79199.txt) và [findings/handoff](../proof/phase-2/q3/day-findings.md).
 
 | Phạm vi | Bằng chứng | Kết quả |
 |---|---|---|
@@ -12,7 +12,7 @@ DaySim đã được kiểm thử thật với QuanSim sau PR #12. Xem [day inte
 | Pause | `test_sim_tick_stays_still_while_paused` | chưa đạt: `sim_tick` tăng cùng tick ngoài; `phase_tick`/timer gameplay đứng |
 | Headless Day 1/3 + replay | `tests.test_p2_q3_day_integration.Q3DayHeadlessIntegrationTests` | đạt; mã 0, 1/1 và 3/3 ngày, replay byte-identical |
 | Q4-F1 sau PR #12 | `tests.test_p2_q3.CustomersPhase2.test_q4_f1_orphan_dish_reproduced` | lỗi tái hiện; chính sách chưa được PO/Kiên duyệt |
-| Test suite | `day-regression-053867b.txt` | 138 test, 5 expected failures, exit 0; Phase 1 verification 9/9 |
+| Test suite | `day-regression-5b79199.txt` | 143 test, 5 expected failures, exit 0; Phase 1 verification 9/9 |
 
 Do ba defect ở DaySim/Runner và Q4-F1/contract/QA còn mở, T07–T10 chưa thể đánh DONE. Bộ test sử dụng schema inventory v1.1; test Phase 3 hiện có vẫn chạy riêng để bảo vệ logic kho cá thể/giá tươi.
 

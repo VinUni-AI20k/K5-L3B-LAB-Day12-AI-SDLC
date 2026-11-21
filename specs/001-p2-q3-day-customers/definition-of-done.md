@@ -7,4 +7,4 @@
 - [ ] PO/Integrator xác nhận AC, no_dish và schema; QA nghiệm thu.
 - [ ] Quốc xác nhận phản tư cá nhân và reviewer chấp nhận bàn giao.
 
-[Proof lịch sử sau merge](../../docs/proof/phase-2/q3/postmerge-baseline-63f850e.txt); kiểm chứng tích hợp mới: [day-integration-053867b.txt](../../docs/proof/phase-2/q3/day-integration-053867b.txt), [day-regression-053867b.txt](../../docs/proof/phase-2/q3/day-regression-053867b.txt), [findings](../../docs/proof/phase-2/q3/day-findings.md). Có 5 expected failures có chủ đích cho lỗi thuộc DaySim/Runner; do đó không hàm ý Day hoặc QA đã nghiệm thu.
+[Proof lịch sử sau merge](../../docs/proof/phase-2/q3/postmerge-baseline-63f850e.txt); kiểm chứng tích hợp mới: [day-integration-5b79199.txt](../../docs/proof/phase-2/q3/day-integration-5b79199.txt), [day-regression-5b79199.txt](../../docs/proof/phase-2/q3/day-regression-5b79199.txt), [findings](../../docs/proof/phase-2/q3/day-findings.md). Có 5 expected failures có chủ đích cho lỗi thuộc DaySim/Runner; do đó không hàm ý Day hoặc QA đã nghiệm thu.
