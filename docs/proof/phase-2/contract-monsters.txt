@@ -1,0 +1,19 @@
+Phase 2 - Contract v1.1 + Cá Sấu
+Date: 2026-11-21
+Owner: Võ Thị Phương Nhung (nhungvo631-stack)
+
+Validation command:
+  python -m unittest tests.test_monsters -v
+
+Expected evidence:
+  - contract_version 1.1
+  - 2 stoves, 4 tables, 6 menu
+  - ca_keo + keo_neo inventory accepted
+  - M1/M2 contract and scenario validation
+  - M1 hit LIFO removal, invuln, recoil
+  - M1 faint returns gather_end(fainted)
+
+Actual result:
+  6 tests passed, 0 failed.
+  Full unittest suite: 39 tests passed, 0 failed.
+  tools/check_team.py: OK - 6 members.

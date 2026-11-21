@@ -6,6 +6,7 @@ import unittest
 
 from chonoi.contract import load_contract
 from chonoi.inputs import InputState
+from chonoi.inventory import read_inventory
 from chonoi.runner import Session
 from chonoi.sim.gather import GatherSim
 from chonoi.ids import IdAllocator
@@ -18,6 +19,21 @@ def _idle():
 
 
 class GatherMonstersTest(unittest.TestCase):
+    def test_contract_v11_has_core_phase2_values(self):
+        contract = load_contract()
+        self.assertEqual(contract["contract_version"], "1.1")
+        tuning = contract["tuning"]
+        self.assertEqual(len(tuning["quan"]["stoves"]), 2)
+        self.assertEqual(len(tuning["quan"]["tables"]), 4)
+        self.assertEqual(len(tuning["menu"]), 6)
+        self.assertEqual(len(tuning["day_plan"]), 5)
+        self.assertIn("shop", tuning)
+
+    def test_inventory_accepts_new_v11_ingredients(self):
+        with Workdir() as w:
+            p = write_json(w.path("inv.json"), {"items": {"ca_keo": 2, "keo_neo": 1}})
+            self.assertEqual(read_inventory(p), {"ca_keo": 2, "keo_neo": 1})
+
     def test_day_spawns_m1_on_day1_and_m1_m2_on_day3(self):
         tuning = load_contract()["tuning"]
         g1 = GatherSim(tuning, {}, Streams(1), IdAllocator(), day=1)
