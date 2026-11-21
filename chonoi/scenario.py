@@ -11,6 +11,7 @@ import math
 from .contract import FISH_KINDS, NODE_KINDS, validate_day_plan
 from .errors import BadInput
 from .inventory import KINDS, validate_items
+from .items import is_spoiled, is_v12, validate_items as validate_item_list
 
 KINDS_P1 = KINDS  # tên cũ; v1.1 thêm ca_keo, keo_neo
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "monsters", "time_left_ticks"}
@@ -143,7 +144,11 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
+        if is_v12(tuning):  # v1.2 (Ticket-03): mảng cá thể {id, kind, fresh}; mảng kind cũ -> mã 2
+            if isinstance(h, list) and any(isinstance(k, str) for k in h):
+                raise BadInput("gather.hold v1.2 là mảng cá thể {id, kind, fresh}, không nhận mảng kind cũ")
+            validate_item_list(h, KINDS, "gather.hold")
+        elif not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
@@ -244,8 +249,13 @@ def _validate_quan(b, tuning):
     for name in ("stoves", "tables", "customers"):
         if name in b:
             _check_ids(name, b[name])
+    v12 = is_v12(tuning)
+    stock_items = None
     if "stock" in b:
-        validate_items(b["stock"])
+        if v12:  # v1.2: mảng cá thể; kho đếm cũ -> mã 2
+            stock_items = {i["id"]: i for i in validate_item_list(b["stock"], KINDS, "quan.stock")}
+        else:
+            validate_items(b["stock"])
     if "random_customers" in b and not isinstance(b["random_customers"], bool):
         raise BadInput("random_customers phải là boolean")
     if "reputation" in b:
@@ -282,8 +292,7 @@ def _validate_quan(b, tuning):
             raise BadInput(f"{name}.order_id không hợp lệ")
         if dish["dish_id"] not in menu:
             raise BadInput(f"{name}.dish_id không có trong menu")
-        if (isinstance(dish["base_price"], bool) or not isinstance(dish["base_price"], int)
-                or dish["base_price"] != menu[dish["dish_id"]]["price"]):
+        if not _price_ok(dish["base_price"], menu[dish["dish_id"]]["price"], v12):
             raise BadInput(f"{name}.base_price không khớp giá món")
         return dish["order_id"]
 
@@ -314,6 +323,7 @@ def _validate_quan(b, tuning):
     customers = b.get("customers", [])
     occupied = set()
     held = {}
+    used_ids = set()  # v1.2: id cá thể đã có đơn giữ (không dùng chung)
     customer_ids = set()
     for c in customers:
         name = f"customers.{c['id']}"
@@ -343,11 +353,16 @@ def _validate_quan(b, tuning):
             raise BadInput(f"{name}: trạng thái khách và timer ăn mâu thuẫn")
         recipe = menu[dish_id]["recipe"]
         reserved = c.get("reserved")
-        if reserved is not None and (not isinstance(reserved, dict) or any(
+        if v12:
+            _check_reserved_ids(name, status, reserved, recipe, stock_items, used_ids, tuning)
+            reserved = None  # phần dưới chỉ dành cho kho đếm v1.1
+        elif reserved is not None and (not isinstance(reserved, dict) or any(
                 not isinstance(k, str) or isinstance(v, bool) or not isinstance(v, int) or v < 0
                 for k, v in reserved.items())):
             raise BadInput(f"{name}.reserved không hợp lệ")
-        if status == "reserved":
+        if v12:
+            pass
+        elif status == "reserved":
             if reserved is not None and reserved != recipe:
                 raise BadInput(f"{name}: giữ chỗ khác công thức")
             for k, count in recipe.items():
@@ -360,7 +375,7 @@ def _validate_quan(b, tuning):
             if base_price is not None or tip is not None:
                 raise BadInput(f"{name}: đơn chưa nấu không có giá/boa")
         else:
-            if isinstance(base_price, bool) or not isinstance(base_price, int) or base_price != menu[dish_id]["price"]:
+            if not _price_ok(base_price, menu[dish_id]["price"], v12):
                 raise BadInput(f"{name}: base_price không khớp giá món")
             if status == "assigned" and tip is not None:
                 raise BadInput(f"{name}: chưa giao món không có boa")
@@ -377,5 +392,44 @@ def _validate_quan(b, tuning):
 
     if set(dishes) - customer_ids:
         raise BadInput("bếp/tay tham chiếu đến order_id không tồn tại")
-    if "stock" in b and any(b["stock"].get(k, 0) < count for k, count in held.items()):
+    if "stock" in b and not v12 and any(b["stock"].get(k, 0) < count for k, count in held.items()):
         raise BadInput("customers: tổng giữ chỗ vượt tồn kho")
+
+
+def _price_ok(price, list_price, v12) -> bool:
+    """v1.1: giá chốt = giá niêm yết. v1.2: giá chốt theo độ tươi, nguyên trong [0, giá niêm yết]."""
+    if isinstance(price, bool) or not isinstance(price, int):
+        return False
+    return 0 <= price <= list_price if v12 else price == list_price
+
+
+def _check_reserved_ids(name, status, reserved, recipe, stock_items, used_ids, tuning):
+    """v1.2 (Ticket-03 Scenario): customers[].reserved là mảng id cá thể.
+
+    Đơn reserved: id phải có trong quan.stock (nếu fixture khai stock; kho từ --inventory thì sim kiểm khi dựng),
+    chưa ươn, không trùng / không dùng chung với đơn khác, đủ đúng công thức. Bỏ reserved -> sim tự cấp.
+    Đơn khác reserved: không giữ gì. Kiểu cũ (map đếm) -> mã 2.
+    """
+    if reserved is None:
+        return
+    if not isinstance(reserved, list) or any(not isinstance(i, str) or not i for i in reserved):
+        raise BadInput(f"{name}.reserved v1.2 phải là mảng id cá thể")
+    if status != "reserved":
+        if reserved:
+            raise BadInput(f"{name}: đơn không reserved phải có giữ chỗ rỗng")
+        return
+    if len(set(reserved)) != len(reserved) or used_ids & set(reserved):
+        raise BadInput(f"{name}.reserved: id trùng hoặc dùng chung với đơn khác")
+    used_ids.update(reserved)
+    if stock_items is None:
+        return
+    kinds = {}
+    for ident in reserved:
+        item = stock_items.get(ident)
+        if item is None:
+            raise BadInput(f"{name}.reserved: id {ident} không có trong quan.stock")
+        if is_spoiled(item, tuning):
+            raise BadInput(f"{name}.reserved: id {ident} đã ươn")
+        kinds[item["kind"]] = kinds.get(item["kind"], 0) + 1
+    if kinds != recipe:
+        raise BadInput(f"{name}.reserved: không khớp công thức món")

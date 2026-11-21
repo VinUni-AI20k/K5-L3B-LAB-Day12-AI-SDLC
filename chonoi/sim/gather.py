@@ -24,6 +24,7 @@ import math
 
 from ..ids import sort_by_id
 from ..inventory import hold_to_items
+from ..items import is_v12, new_item
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -101,7 +102,15 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
-        self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        # Giỏ theo thứ tự nhặt (cuối mảng = mới nhất). v1.1: mảng kind; v1.2 (Ticket-03): mảng cá thể {id, kind, fresh}.
+        self.v12 = is_v12(tuning)
+        self.freshness = tuning.get("freshness")
+        if self.v12:
+            self.hold = [{"id": i["id"], "kind": i["kind"], "fresh": float(i["fresh"])} for i in scenario.get("hold", [])]
+            for i in self.hold:
+                ids.reserve(i["id"])
+        else:
+            self.hold = list(scenario.get("hold", []))
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
@@ -146,7 +155,10 @@ class GatherSim:
         self.reason = None
 
     # --- giao diện cho runner -------------------------------------------------
-    def inventory_items(self) -> dict:
+    def inventory_items(self):
+        """Kho bàn giao: v1.1 object đếm; v1.2 mảng cá thể (bản sao) sắp theo id, khớp file kho."""
+        if self.v12:
+            return [dict(i) for i in sort_by_id(self.hold)]
         return hold_to_items(self.hold)
 
     def snapshot(self) -> dict:
@@ -156,7 +168,7 @@ class GatherSim:
                        "hp": self.hp, "hp_max": self.hp_max, "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": self.hold, "hold_count": len(self.hold),
+            "hold": [dict(i) for i in self.hold] if self.v12 else self.hold, "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
@@ -479,7 +491,10 @@ class GatherSim:
         Kiểm lại với PRD-0: nếu cho phép nhặt một phần thì sửa ở đây (một chỗ duy nhất)."""
         if len(self.hold) + len(kinds) > self.t["hold_capacity"]:
             return False
-        self.hold.extend(kinds)
+        if self.v12:  # lát 0 chuyển dạng: mỗi nguyên liệu là một cá thể mới, id I… theo thứ tự vào giỏ
+            self.hold.extend(new_item(self.ids, k, self.freshness["initial"]) for k in kinds)
+        else:
+            self.hold.extend(kinds)
         return True
 
     # --- dùng chung (lát 0 tạo; lát 2 gọi lại cho lịch sinh cá mỗi fish_spawn_ticks) ---------

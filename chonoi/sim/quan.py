@@ -438,7 +438,15 @@ class QuanSim:
         self.reputation = min(hi, max(lo, self.reputation + delta))
 
     def _available(self) -> dict:
-        """Kho còn dùng được = stock - tổng reserved của mọi khách."""
+        """Kho còn dùng được = stock - tổng reserved của mọi khách.
+
+        v1.2 (lát 0, plan mục 2A): đếm theo loại các cá thể chưa ươn và chưa bị giữ (items.usable_by_kind).
+        """
+        if self.freshness is not None:
+            from ..items import usable_by_kind
+            held = {i for c in self.customers for i in (c.get("reserved") or [])
+                    if isinstance(c.get("reserved"), list)}
+            return usable_by_kind(self.stock, held, self.tuning)
         free = dict(self.stock)
         for c in self.customers:
             for k, n in c.get("reserved", {}).items():

@@ -262,3 +262,46 @@ Giao diện các pha phải giữ (day.py dựa vào):
 - Giả định lát 5: `docs/clarify.md` #4–#8.
 
 Khi đổi hợp đồng sau này: báo cả nhóm và ghi lại lý do (ADR hoặc ghi chú, tùy chọn).
+
+## 5. Lát 0 v1.2 (Phase 3, s0ra1n0) — kho cá thể, đã có trong code
+
+**Trạng thái:**
+- Hạ tầng v1.2 xong và rẽ theo phiên bản: tuning có `freshness` (tức `contract_version: "1.2"`) thì chạy kho cá thể, không có thì chạy v1.1 như cũ.
+- `game.contract.json` **vẫn là 1.1**, theo Ticket-03 "bật v1.2 khi cả hai đầu bàn giao đã sẵn sàng". Quán v1.2 còn chờ lát 3 (`_retry_spoiled`); giỏ chưa hao tươi, chờ lát 2.
+- **Khi lát 2, 3, 4 xanh**, Integrator bật trong cùng một PR:
+  - đặt `"contract_version": "1.2"`;
+  - thêm `tuning.freshness = {"initial": 100, "gather_decay_per_s": 0.5, "quan_decay_per_s": 0.25, "spoiled_below": 30}`;
+  - sửa các test cũ dùng kho đếm (AC-P3-19).
+- **Chạy thử v1.2 trên máy mình:** đặt `CHONOI_CONTRACT=<đường dẫn manifest v1.2>`; `load_contract` sẽ đọc file đó. Bộ chấm và CI không đặt biến này. Mẫu dựng manifest: `tests/test_lat0_v12.py::manifest_v12`.
+
+**`chonoi/items.py`** (s0ra1n0 sở hữu; các lát chỉ gọi, không tự nhân/chia đơn vị):
+
+| Hàm | Việc |
+|---|---|
+| `new_item(ids, kind, fresh)` | `{"id": ids.new("I"), kind, fresh}`; id nối tiếp, không tái dùng |
+| `is_spoiled(item, tuning)` | `fresh < spoiled_below`, so trên đơn vị nguyên (trước làm tròn) |
+| `decay(items, per_tick, tuning)` | trừ `per_tick` **điểm** (ví dụ `0.5/60`), kẹp 0, sửa tại chỗ; trả các cá thể **vừa** ươn, sắp theo id |
+| `usable_by_kind(items, exclude_ids, tuning)` | đếm theo loại, bỏ hàng ươn và id đang giữ (quán: `_available()` v1.2 đã dùng hàm này) |
+| `pick_freshest(items, kind, n, exclude_ids, tuning)` | `n` id tươi nhất chưa ươn, hòa thì `id_key`; thiếu thì `None` |
+| `price_by_fresh(price, used_items)` | `floor(price × TB fresh / 100)`, tính nguyên tuyệt đối (lát 4 nên dùng thay phép số thực) |
+| `counts(items)` | `{kind: n}` cho HUD / kế hoạch |
+| `validate_items(arr, kinds, where)` / `to_file` / `from_file` | schema cá thể, kho đếm cũ → mã 2 |
+
+**Đơn vị:**
+- `fresh` trong sim là **điểm** (số thực, 0..100), xuất thẳng ra JSONL và file kho.
+- Mọi phép hao, so ngưỡng và floor quy về 240 đơn vị/điểm (clarify #16): gather −2/tick, quán −1/tick, ngưỡng 7200.
+- `contract.py` từ chối tốc độ hao không chia hết thành đơn vị.
+
+**File kho:** `inventory.read_inventory(path, v12=...)` chọn schema theo phiên bản (headless và live truyền `v12="freshness" in tuning`). `write_inventory` nhận dict đếm (v1.1) hoặc mảng cá thể (v1.2, sắp theo id).
+
+**Scenario v1.2** (`scenario.py`):
+- `gather.hold` và `quan.stock` là mảng cá thể; mảng kind cũ hoặc kho đếm cũ → mã 2.
+- `customers[].reserved` là mảng id. Đơn `reserved` phải trỏ id có trong `quan.stock`, chưa ươn, đúng công thức, không dùng chung; đơn khác phải để rỗng; map đếm cũ → mã 2.
+- Giá chốt trong fixture v1.2 là số nguyên trong `[0, giá niêm yết]`.
+
+**Gather v1.2:**
+- Giỏ là mảng cá thể theo thứ tự vào; `_add_to_hold` tạo cá thể mới qua `new_item`.
+- `inventory_items()` và `gather_end.inventory.items` là mảng cá thể sắp theo id.
+- `lost` của `monster_hit`/`faint` là mảng cá thể theo LIFO.
+- Chưa hao tươi, chưa có `spoiled` (lát 2).
+

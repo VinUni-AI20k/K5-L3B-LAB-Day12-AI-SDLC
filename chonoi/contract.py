@@ -30,14 +30,40 @@ def _between(name, v, lo, hi):
         raise BadInput(f"tuning.{name} phải trong [{lo}, {hi}], đang là {v!r}")
 
 
-def load_contract(path=DEFAULT_PATH) -> dict:
+def load_contract(path=None) -> dict:
+    """Đọc manifest. `CHONOI_CONTRACT` (biến môi trường, chỉ dùng khi phát triển) trỏ tới manifest khác,
+    ví dụ bản v1.2 trong lúc chuyển đổi; bộ chấm và CI không đặt biến này."""
+    path = path or os.environ.get("CHONOI_CONTRACT") or DEFAULT_PATH
     try:
         with open(path, encoding="utf-8") as f:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"), extensions=validate_extensions(c.get("extensions", [])))
+    version = c.get("contract_version")
+    if version not in SUPPORTED_VERSIONS:
+        raise BadInput(f"contract_version phải thuộc {list(SUPPORTED_VERSIONS)}, đang là {version!r}")
+    t = c.get("tuning")
+    if isinstance(t, dict) and (version == "1.2") != ("freshness" in t):
+        raise BadInput("contract_version 1.2 cần tuning.freshness; bản trước 1.2 không có khóa này")
+    validate_tuning(t, extensions=validate_extensions(c.get("extensions", [])))
     return c
+
+
+SUPPORTED_VERSIONS = ("1.0", "1.1", "1.2")
+
+
+def _validate_freshness(f):
+    """Ticket-03: freshness {initial, gather_decay_per_s, quan_decay_per_s, spoiled_below} = 100, 0.5, 0.25, 30."""
+    if not isinstance(f, dict) or set(f) != {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}:
+        raise BadInput("tuning.freshness phải có đúng initial, gather_decay_per_s, quan_decay_per_s, spoiled_below")
+    _between("freshness.initial", f["initial"], 0, 100)
+    _between("freshness.spoiled_below", f["spoiled_below"], 0, f["initial"])
+    for key in ("gather_decay_per_s", "quan_decay_per_s"):
+        _between(f"freshness.{key}", f[key], 0, 100)
+        # Hao mỗi tick phải là số nguyên đơn vị 1/240 điểm (chonoi/items.py) để so ngưỡng chính xác.
+        per_tick_units = f[key] / 60 * 240
+        if abs(per_tick_units - round(per_tick_units)) > 1e-9:
+            raise BadInput(f"tuning.freshness.{key}: hao mỗi tick phải là bội của 1/240 điểm")
 
 
 # Mã mở rộng Ticket-02 mục 3 / 4.1. Khai ở gốc manifest: "extensions": [...].
@@ -317,6 +343,8 @@ def validate_tuning(t, extensions=()):
         _validate_day_plan(t["day_plan"], menu)
     if "shop" in t:
         _validate_shop(t["shop"], g)
+    if "freshness" in t:  # v1.2 (Ticket-03): kho cá thể
+        _validate_freshness(t["freshness"])
 
 
 def _pos_int_map(name, m, allowed=None):
