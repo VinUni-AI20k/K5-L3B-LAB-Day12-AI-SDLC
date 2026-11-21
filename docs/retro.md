@@ -10,4 +10,5 @@
 - Điều tốt / điều tệ:
 - Số liệu: số commit theo người, cách đọc code của nhau, token theo người:
 - Một lần AI sai và cách nhóm phát hiện:
+  - TV3: AI báo soak 10 Ngày đỏ vì kỳ vọng "5 khách/Ngày" — đối chiếu JSONL thấy kho nhỏ + `plan_dishes` khiến `no_dish` từ lượt 3 là đúng luật; bài học: sửa kỳ vọng test theo luật, không sửa luật theo kỳ vọng, và dùng `git stash` xác nhận lỗi không có sẵn trên HEAD trước khi đụng test người khác.
 - Nếu làm lại, đổi gì:
