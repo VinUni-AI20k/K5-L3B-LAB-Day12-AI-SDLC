@@ -1,0 +1,7 @@
+# Lát 3 (C) phase 3: bàn giao kho cá thể qua file, quán giữ chỗ theo id (contract 1.2)
+# fixture: {"gather":{"hold":[{"id":"I1","kind":"ca_loc","fresh":60},{"id":"I2","kind":"ca_loc","fresh":95},{"id":"I3","kind":"bong_sung","fresh":100}],"random_fish":false,"monsters":[]}}
+# kho.json (gather --inventory-out): {"items":[{"id":"I1","kind":"ca_loc","fresh":60.0},{"id":"I2","kind":"ca_loc","fresh":95.0},{"id":"I3","kind":"bong_sung","fresh":100.0}]}
+# quán tick 0 stock: [{"id": "I1", "kind": "ca_loc", "fresh": 60.0}, {"id": "I2", "kind": "ca_loc", "fresh": 95.0}, {"id": "I3", "kind": "bong_sung", "fresh": 100.0}]
+# event: 120 customer_arrived {"order_id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}
+# khách tick 121 : {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_status": "reserved", "reserved": ["I2"]}
+# kỳ vọng: món ca_loc_nuong_trui giữ I2 (tươi 95) chứ không phải I1 (tươi 60)
