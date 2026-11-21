@@ -1,5 +1,13 @@
 # Đối chiếu Q3–Q4–Day sau merge
 
+## Kiểm chứng mới nhất
+
+HEAD `5b79199` (branch kiểm tra `p2/q3-day-integration`, dựa trên main `ba17f4d`): DaySim gọi QuanSim thật và test tích hợp đã xác nhận bàn giao kho, menu filter khác rỗng, reservation một lần, nhả kho khi khách rời, thanh toán một lần, reset lịch/khách/bàn, event và headless 1/3 ngày. Xem [integration proof](../../../docs/proof/phase-2/q3/day-integration-5b79199.txt), [regression](../../../docs/proof/phase-2/q3/day-regression-5b79199.txt), [findings](../../../docs/proof/phase-2/q3/day-findings.md).
+
+Ba lỗi giao diện Day/Runner còn mở và được giữ bằng expected-failure test: (1) `dishes={}` được đổi thành filter `None`, làm mở toàn menu; (2) `_init_quan()` không đưa reputation tích lũy vào ca mới; (3) `Session.snapshot().sim_tick` vẫn bằng tick ngoài khi pause. Chủ module là Bào; không sửa code Day/Runner trong nhánh Q3 này.
+
+Q4-F1 vẫn tái hiện trên HEAD mới; không có chính sách PO/Kiên nên không tự thay đổi vòng đời món. Ticket-02 gốc chưa có trong checkout; nguồn chính thức và việc duyệt hợp đồng vẫn cần Integrator/PO.
+
 `docs/contracts/README.md` là đề xuất PO, chờ Integrator duyệt. Ticket-02 trong bảng được dẫn theo tài liệu đó, chưa được xác nhận độc lập. Main kiểm chứng `63f850e`.
 
 | Yêu cầu/tài liệu | Code hoặc manifest hiện tại | Ảnh hưởng Q3 | Người sở hữu | Hành động đề xuất |
