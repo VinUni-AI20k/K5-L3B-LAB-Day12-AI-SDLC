@@ -24,7 +24,7 @@ Dự kiến phát hành thành **1.0.0** cùng tag `phase-4` (D gắn tag và t�
 
 ### Đổi
 - `game.contract.json` lên `contract_version` 1.1 với số chuẩn mới; thêm nguyên liệu `ca_keo`, `keo_neo` (#23).
-- Kế hoạch Phase 2, 3, 4 (#22, #24); retro Phase 2 (#33).
+- Kế hoạch Phase 2, 3, 4 (#22, #24); retro Phase 2 (#33, #34); ma trận Phase 2 cập nhật sau khi gộp giao diện (#36); nhật ký AI của A (#37).
 
 ## Phase 1 — contract 1.0 (PRD-0), tag `phase-1`
 
