@@ -189,20 +189,38 @@ class Hold(unittest.TestCase):
             self.assertEqual(s[e["tick"]]["hold_count"], cap)
 
     def test_bat_ca_khong_vuot_suc_chua(self):
-        """Giỏ gần đầy, bắt đàn cá (ca_linh cho nhiều con): giỏ không vượt hold_capacity."""
+        """Giỏ thiếu chỗ cho cả đàn thì không bắt (hold_full), giỏ giữ nguyên; đủ chỗ thì bắt và không vượt hold_capacity.
+
+        Luật: TICKET-02 §1.1 / docs/clarify.md #5 — cần đủ chỗ cho CẢ đàn, thiếu thì không bắt.
+        """
         cap = G["hold_capacity"]
-        fish = [{"id": "F1", "kind": "ca_linh", "pos": [MID_X, DEEP]},
-                {"id": "F2", "kind": "ca_loc", "pos": [MID_X + 0.5, DEEP]}]
-        cd = int(math.ceil(G["catch_cooldown_s"] * HZ))
-        presses = []
-        for i in range(4):
-            presses += [{"tick": i * (cd + 2), "catch": True}, {"tick": i * (cd + 2) + 1, "catch": False}]
-        rows = run(self, "gather", 3, 4 * (cd + 2) + 5, inputs=frames(*presses),
-                   scenario={"player": {"pos": [MID_X, DEEP]}, "fish": fish, "hold": ["bong_sung"] * (cap - 2)})
-        self._check_bound(rows)
+        yields = G["fish_yield"]
+        big = max(yields, key=lambda k: (yields[k], k))
+        small = min(yields, key=lambda k: (yields[k], k))
+        if yields[big] < 2:
+            self.skipTest("contract không có loài cá cho >= 2 con")
+        free = yields[big] - 1  # thiếu đúng 1 chỗ cho đàn lớn
+        start = ["bong_sung"] * (cap - free)
+        press = frames({"tick": 0, "catch": True}, {"tick": 1, "catch": False})
+
+        def catch_one(kind):
+            rows = run(self, "gather", 3, 5, inputs=press, scenario={
+                "player": {"pos": [MID_X, DEEP]}, "hold": list(start),
+                "fish": [{"id": "F1", "kind": kind, "pos": [MID_X, DEEP]}]})
+            self._check_bound(rows)
+            return rows
+
+        rows = catch_one(big)
         if not events(rows, "fish_caught") and not events(rows, "hold_full"):
             self.skipTest("chưa có luật: bắt cá (fish_caught / hold_full)")
-        self.assertEqual(snapshots(rows)[-1]["hold_count"], cap)
+        self.assertFalse(events(rows, "fish_caught"), "thiếu chỗ cho cả đàn thì không được bắt")
+        self.assertTrue(events(rows, "hold_full"))
+        self.assertEqual(snapshots(rows)[-1]["hold_count"], len(start))
+
+        if yields[small] <= free:
+            rows = catch_one(small)
+            self.assertTrue(events(rows, "fish_caught"), "đủ chỗ thì phải bắt được")
+            self.assertEqual(snapshots(rows)[-1]["hold_count"], len(start) + yields[small])
 
 
 INTERVAL = int(round(Q["customer_interval_s"] * HZ))
