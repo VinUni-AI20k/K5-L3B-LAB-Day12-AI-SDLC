@@ -21,6 +21,9 @@ from .sim.day import DaySim
 
 def build_sim(mode, tuning, scenario, seed, inventory=None, days=None):
     streams, ids = Streams(seed), IdAllocator()
+    if isinstance(inventory, list):
+        for item in inventory:
+            ids.reserve(item.id if hasattr(item, "id") else item["id"])
     if mode == "gather":
         return GatherSim(tuning, scenario, streams, ids)
     if mode == "quan":
@@ -58,7 +61,8 @@ class Session:
             state = "paused" if getattr(self.sim, "state", None) == "paused" else ("finished" if self.sim.done else "running")
         else:
             state = "finished" if self.sim.done else "playing"
-        s = _common(self.sim, self.tick, self.tick, getattr(self.sim, "phase_tick", self.tick), self.tuning, state)
+        s = _common(self.sim, self.tick, getattr(self.sim, "sim_tick", self.tick),
+                    getattr(self.sim, "phase_tick", self.tick), self.tuning, state)
         s.update(self.sim.snapshot())
         return s
 
@@ -86,8 +90,10 @@ class Session:
 
     def end_row(self) -> dict:
         sim = self.sim
-        score = _common(sim, self.tick, self.tick, self.tick, self.tuning, "")["score"]
-        row = {"type": "end", "ticks": self.tick, "sim_tick": self.tick, "mode": sim.mode,
+        sim_tick = getattr(sim, "sim_tick", self.tick)
+        score = _common(sim, self.tick, sim_tick, getattr(sim, "phase_tick", self.tick),
+                        self.tuning, "")["score"]
+        row = {"type": "end", "ticks": self.tick, "sim_tick": sim_tick, "mode": sim.mode,
                "state": "finished" if sim.done else ("running" if self.mode == "day" else "playing"),
                "reason": sim.reason if sim.done else "tick_limit",
                "money": sim.money, "earned": sim.earned, "reputation": sim.reputation, "score": score}
@@ -104,8 +110,9 @@ class Session:
 
 
 def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None, days=None):
-    sess = Session(mode, tuning, scenario, seed, inventory, days=days)
     inventory_base = read_inventory_or_empty(inventory_out) if mode in ("gather", "day") and inventory_out else {}
+    id_seed_inventory = inventory_base if mode == "gather" and inventory_out else inventory
+    sess = Session(mode, tuning, scenario, seed, id_seed_inventory, days=days)
     player = InputPlayer(frames, buttons=BUTTONS_V11 if mode == "day" else BUTTONS_V10)
     w = JsonlWriter(out_path)
     try:

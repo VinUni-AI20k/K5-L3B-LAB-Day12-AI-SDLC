@@ -65,7 +65,7 @@ class LiveServerTest(unittest.TestCase):
 
 class LiveInventoryPersistenceTest(unittest.TestCase):
     def test_day_does_not_double_existing_inventory_on_handoff(self):
-        tuning = load_contract()["tuning"]
+        tuning = dict(load_contract()["tuning"], contract_version="1.1")
         with tempfile.TemporaryDirectory() as d:
             inventory_path = os.path.join(d, "inventory.json")
             with open(inventory_path, "w", encoding="utf-8") as f:
@@ -100,18 +100,18 @@ class LiveInventoryPersistenceTest(unittest.TestCase):
                 with open("inventory.json", "w", encoding="utf-8") as f:
                     json.dump({"items": {"ca_linh": 12, "ca_loc": 2}}, f)
                 self.assertEqual(
-                    read_inventory_for_mode("quan", None),
+                    read_inventory_for_mode("quan", None, version="1.1"),
                     {"ca_linh": 12, "ca_loc": 2},
                 )
                 self.assertEqual(
-                    read_inventory_for_mode("day", None),
+                    read_inventory_for_mode("day", None, version="1.1"),
                     {"ca_linh": 12, "ca_loc": 2},
                 )
             finally:
                 os.chdir(old_cwd)
 
     def test_gather_writes_inventory_immediately(self):
-        tuning = load_contract()["tuning"]
+        tuning = dict(load_contract()["tuning"], contract_version="1.1")
         with tempfile.TemporaryDirectory() as d:
             inventory_path = os.path.join(d, "inventory.json")
             with open(inventory_path, "w", encoding="utf-8") as f:
@@ -134,7 +134,7 @@ class LiveInventoryPersistenceTest(unittest.TestCase):
                 self.assertEqual(json.load(f), {"items": {"bong_sung": 2, "ca_loc": 2}})
 
     def test_quan_live_snapshot_uses_inventory(self):
-        tuning = load_contract()["tuning"]
+        tuning = dict(load_contract()["tuning"], contract_version="1.1")
         game = LiveGame(
             "quan",
             tuning,
@@ -167,7 +167,7 @@ class DayFlowTest(unittest.TestCase):
                         "dish_id": "ca_loc_nuong_trui",
                         "state": "waiting",
                         "patience_ticks_left": 3600,
-                        "reserved": {"ca_loc": 1},
+                        "reserved": ["I1"],
                     }],
                 },
             },
@@ -182,8 +182,8 @@ class DayFlowTest(unittest.TestCase):
         snapshot = session.snapshot()
         self.assertEqual(snapshot["mode"], "day")
         self.assertEqual(snapshot["phase"], "quan")
-        self.assertEqual(session.sim.inventory, {"ca_loc": 1})
-        self.assertEqual(snapshot["stock"], {})
+        self.assertEqual([item.kind for item in session.sim.inventory], ["ca_loc"])
+        self.assertEqual(snapshot["stock"], [])
 
         session.sim.quan.pos = [2, 8]
         cook_events = session.step(InputState((0, 0), {"interact": True}, {"interact"}))
@@ -208,7 +208,12 @@ class DayFlowTest(unittest.TestCase):
         day.step(InputState((0, 0), {}, set()))
         snapshot = day.snapshot()
         self.assertEqual(snapshot["phase"], "quan")
-        self.assertEqual(snapshot["stock"], {"ca_linh": 12, "ca_loc": 2})
+        self.assertEqual([(item["kind"], item["id"]) for item in snapshot["stock"]],
+                         [("ca_linh", "I1"), ("ca_linh", "I2"), ("ca_linh", "I3"),
+                          ("ca_linh", "I4"), ("ca_linh", "I5"), ("ca_linh", "I6"),
+                          ("ca_linh", "I7"), ("ca_linh", "I8"), ("ca_linh", "I9"),
+                          ("ca_linh", "I10"), ("ca_linh", "I11"), ("ca_linh", "I12"),
+                          ("ca_loc", "I13"), ("ca_loc", "I14")])
 
 
 if __name__ == "__main__":

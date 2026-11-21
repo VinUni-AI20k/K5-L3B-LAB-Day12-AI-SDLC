@@ -86,7 +86,8 @@ class LiveGame:
         self._reset()
 
     def _reset(self):
-        self.inventory_base = (read_inventory_or_empty(self.inventory_out)
+        self.inventory_base = (read_inventory_or_empty(
+            self.inventory_out, version=self.tuning.get("contract_version"))
                                if self.mode in ("gather", "day") and self.inventory_out else {})
         self.session = Session(*self._args)
         self.inputs = _LiveInputsV11()

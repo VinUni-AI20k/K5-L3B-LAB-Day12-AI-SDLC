@@ -64,10 +64,10 @@ class MonsterBehaviorTest(unittest.TestCase):
         hit = next(data for name, data in events if name == "monster_hit")
 
         self.assertEqual(hit["monster_id"], "M1")
-        self.assertEqual(hit["lost"], ["bong_sung", "ca_linh"])
+        self.assertEqual([item["kind"] for item in hit["lost"]], ["bong_sung", "ca_linh"])
         self.assertEqual(sim.hp, 2)
         self.assertEqual(sim.invuln_ticks, 90)
-        self.assertEqual(sim.hold, ["ca_loc", "ca_keo", "bong_sung"])
+        self.assertEqual([item.kind for item in sim.hold], ["ca_loc", "ca_keo", "bong_sung"])
         self.assertEqual(sim.snapshot()["monsters"][0]["state"], "recoil")
         self.assertEqual(sim.snapshot()["monsters"][0]["recoil_ticks"], 60)
 
@@ -190,9 +190,9 @@ class MonsterBehaviorTest(unittest.TestCase):
         faint = next(data for name, data, *_ in events if name == "faint")
         gather_end = next(data for name, data, *_ in events if name == "gather_end")
         self.assertEqual(faint["cause"], "monster")
-        self.assertEqual(gather_end["inventory"], {"items": {}})
+        self.assertEqual(gather_end["inventory"], {"items": []})
         self.assertEqual(sim.phase, "quan")
-        self.assertEqual(sim.stock, {})
+        self.assertEqual(sim.stock, [])
 
 
 if __name__ == "__main__":

@@ -87,11 +87,9 @@ class LiveV12Test(unittest.TestCase):
             server.stop()
 
     def test_live_counted_hold_stays_kind_list(self):
-        # Manifest có thể đã khai `freshness` trước khi lật "1.2": khối này chỉ được chuyển tiếp,
-        # giỏ vẫn là mảng tên loài nên HUD dùng cách vẽ kho đếm (CN.inv.hasFresh = false).
-        tuning = load_contract()["tuning"]
-        if tuning.get("contract_version") == "1.2":
-            self.skipTest("manifest đã lật 1.2")
+        # Explicit v1.1 keeps the legacy counted-hold contract after root manifest v1.3.
+        tuning = copy.deepcopy(load_contract()["tuning"])
+        tuning["contract_version"] = "1.1"
         server = LiveServer(LiveGame("gather", tuning, {"hold": ["ca_linh", "bong_sung"]}, 1), port=0)
         server.start()
         try:

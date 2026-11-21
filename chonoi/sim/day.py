@@ -12,7 +12,7 @@
 - Tạm dừng / Tiếp tục: nhận nút pause (cạnh lên), tạm dừng đồng hồ và phát paused / resumed.
 """
 
-from ..inventory import merge_items
+from ..inventory import hold_to_items, merge_items
 from .gather import GatherSim
 from .quan import QuanSim
 
@@ -48,11 +48,15 @@ class DaySim:
 
         self.phase = "gather"
         self.phase_tick = 0
+        self.sim_tick = 0
         if inventory is not None:
             self.stock = list(inventory) if isinstance(inventory, list) else dict(inventory)
         else:
             sc_stock = self.scenario.get("stock", {})
             self.stock = list(sc_stock) if isinstance(sc_stock, list) else dict(sc_stock)
+        if isinstance(self.stock, list):
+            for item in self.stock:
+                ids.reserve(item.id if hasattr(item, "id") else item["id"])
         self.shop_max_ticks = int(self.tuning.get("shop", {}).get("max_ticks", 600))
         self.shop_time_left_ticks = self.shop_max_ticks
 
@@ -79,12 +83,15 @@ class DaySim:
                 if p.get("day") == self.day:
                     plan = p
                     break
-            if not plan and plans:
-                plan = plans[0]
+            if plan is None and plans:
+                plan = next((p for p in plans if p.get("day") == 1), plans[0])
         elif isinstance(plans, dict):
-            plan = plans.get(str(self.day)) or plans.get(self.day)
-            if not plan and plans:
-                plan = plans.get("1") or plans.get(1)
+            if str(self.day) in plans:
+                plan = plans[str(self.day)]
+            elif self.day in plans:
+                plan = plans[self.day]
+            elif plans:
+                plan = plans.get("1", plans.get(1))
         return dict(plan or {})
 
     def _start_day(self):
@@ -118,15 +125,31 @@ class DaySim:
 
         gather_tuning["gather"] = g
         gather_sc = self.scenario.get("gather", {}) if isinstance(self.scenario, dict) else {}
+        if self.tuning.get("contract_version") in ("1.2", "1.3"):
+            gather_sc = dict(gather_sc)
+            fixture_hold = list(gather_sc.get("hold", [])) if self.day == 1 else []
+            if isinstance(self.stock, list):
+                carried_items = list(self.stock)
+            else:
+                carried_items = hold_to_items(
+                    [kind for kind, amount in self.stock.items() for _ in range(amount)],
+                    ids=self.ids, version=self.tuning.get("contract_version"),
+                )
+            gather_sc["hold"] = carried_items + fixture_hold
+            # Transfer ownership to the active GatherSim so the handoff cannot double-count items.
+            self.stock = []
         self.sub_sim = GatherSim(gather_tuning, gather_sc, self.streams, self.ids, day=self.day)
         self.phase = "gather"
         self.phase_tick = 0
 
     def _init_quan(self):
         plan = self._get_current_plan()
-        menu_filter = set(plan.get("dishes", {}).keys()) if plan.get("dishes") else None
+        dishes = plan.get("dishes")
+        menu_filter = set(dishes) if isinstance(dishes, dict) else None
 
         quan_sc = dict(self.scenario.get("quan", {}) if isinstance(self.scenario, dict) else {})
+        # Carry Day-level reputation forward unless a fixture explicitly overrides Quan.
+        quan_sc.setdefault("reputation", self.reputation)
         # Bàn giao kho trong bộ nhớ từ gather
         quan_sc["stock"] = list(self.stock) if isinstance(self.stock, list) else dict(self.stock)
 
@@ -180,7 +203,8 @@ class DaySim:
             snap.update(sub_snap)
         elif self.phase == "shop":
             snap.update({
-                "stock": dict(self.stock),
+                "stock": ([item.snapshot() if hasattr(item, "snapshot") else dict(item)
+                           for item in self.stock] if isinstance(self.stock, list) else dict(self.stock)),
                 "time_left_ticks": self.shop_time_left_ticks,
                 "meta": {
                     "max_ticks": self.shop_max_ticks,
@@ -210,6 +234,8 @@ class DaySim:
         if self.state == "paused":
             return evs
 
+        self.sim_tick += 1
+
         if self.phase == "gather":
             sub_evs = self.sub_sim.step(inp)
             self.phase_tick += 1
@@ -218,7 +244,7 @@ class DaySim:
 
             if self.sub_sim.done or self.sub_sim.time_left_ticks <= 0:
                 if self.sub_sim.reason == "fainted":
-                    self.stock = {}
+                    self.stock = [] if self.tuning.get("contract_version") in ("1.2", "1.3") else {}
                 else:
                     self.stock = merge_items(self.stock, self.sub_sim.inventory_items())
                 self._init_quan()
@@ -234,7 +260,7 @@ class DaySim:
                 self.money += self.sub_sim.earned
                 self.earned += self.sub_sim.earned
                 self.reputation = self.sub_sim.reputation
-                if getattr(self.sub_sim, "items", None):
+                if self.tuning.get("contract_version") in ("1.2", "1.3"):
                     self.stock = list(self.sub_sim.items)
                 else:
                     self.stock = dict(self.sub_sim.stock)
@@ -280,7 +306,8 @@ class DaySim:
                     self.day += 1
                     # Nâng cấp mua ở shop có hiệu lực từ Ngày tiếp theo
                     self.active_upgrades = dict(self.upgrades)
-                    self.stock = {}
+                    if self.tuning.get("contract_version") not in ("1.2", "1.3"):
+                        self.stock = {}
                     self._start_day()
                     evs.extend(self.pending_events)
                     self.pending_events = []

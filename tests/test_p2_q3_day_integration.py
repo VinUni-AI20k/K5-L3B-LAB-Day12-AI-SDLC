@@ -1,9 +1,4 @@
-"""Behavioral integration checks for Q3 inside the Phase 2 DaySim cycle.
-
-The expected failures document integration defects in DaySim/Runner, owned by
-the integrator. They keep the acceptance contract executable without hiding
-the current behavior or making the entire regression suite red.
-"""
+"""Behavioral integration checks for Q3 inside the Phase 2 DaySim cycle."""
 
 import copy
 import os
@@ -50,7 +45,8 @@ class Q3DayIntegrationTests(unittest.TestCase):
         self.assertEqual([row["name"] for row in transition],
                          ["day_start", "day_plan", "phase_start", "gather_end", "phase_start"])
         self.assertEqual(session.sim.phase, "quan")
-        self.assertEqual(session.sim.stock, {"ca_loc": 1})
+        self.assertEqual([(item["kind"], item["fresh"]) for item in session.sim.stock],
+                         [("ca_loc", 99.99166666666666)])
         self.assertEqual(session.sim.quan.stock, {"ca_loc": 1})
         self.assertEqual(session.sim.quan.planned_dishes, frozenset({"ca_loc_nuong_trui"}))
 
@@ -60,7 +56,7 @@ class Q3DayIntegrationTests(unittest.TestCase):
         self.assertEqual(customers[0]["dish_id"], "ca_loc_nuong_trui")
         self.assertEqual(customers[0]["table_id"], "T1")
         self.assertEqual(session.sim.quan.stock, {"ca_loc": 1}, "reservation must not debit physical stock")
-        self.assertEqual(session.snapshot()["stock"], {}, "snapshot stock is available stock after reservation")
+        self.assertEqual(session.snapshot()["stock"], [], "snapshot stock is available stock after reservation")
 
     def test_gather_to_day_order_consumes_recipe_exactly_once(self):
         self.one_dish_plan()
@@ -117,17 +113,22 @@ class Q3DayIntegrationTests(unittest.TestCase):
         })
         session.step(state())
         self.assertEqual(session.sim.quan.stock, {"ca_loc": 1})
-        self.assertEqual(session.snapshot()["stock"], {})
+        self.assertEqual(session.snapshot()["stock"], [])
 
         events = session.step(state())
         self.assertEqual([row["name"] for row in events], ["customer_left"])
         self.assertEqual(session.sim.quan.stock, {"ca_loc": 1})
-        self.assertEqual(session.snapshot()["stock"], {"ca_loc": 1})
+        self.assertEqual([(item["kind"], item["id"]) for item in session.snapshot()["stock"]],
+                         [("ca_loc", "I1")])
+        freshness_after_departure = session.snapshot()["stock"][0]["fresh"]
+        self.assertLess(freshness_after_departure, 99.99166666666666)
         self.assertIsNone(next(t for t in session.snapshot()["tables"] if t["id"] == "T1")["customer_id"])
         for _ in range(9):
             session.step(state())
         self.assertEqual(session.sim.phase, "shop")
-        self.assertEqual(session.snapshot()["stock"], {"ca_loc": 1})
+        self.assertEqual([(item["kind"], item["id"]) for item in session.snapshot()["stock"]],
+                         [("ca_loc", "I1")])
+        self.assertLess(session.snapshot()["stock"][0]["fresh"], freshness_after_departure)
 
     def test_day_plan_payload_and_filter_do_not_mutate_contract_tuning(self):
         self.tuning["day_plan"] = {
@@ -147,7 +148,6 @@ class Q3DayIntegrationTests(unittest.TestCase):
                          frozenset({"ca_loc_nuong_trui", "goi_bong_sung"}))
         self.assertEqual(self.tuning["day_plan"], original_plan)
 
-    @unittest.expectedFailure
     def test_empty_day_plan_is_an_empty_quan_filter(self):
         self.tuning["day_plan"] = {"1": {"dishes": {}, "ingredients": {}}}
         session = self.make_session(scenario={
@@ -158,7 +158,6 @@ class Q3DayIntegrationTests(unittest.TestCase):
         session.step(state())
         self.assertEqual(session.sim.quan.planned_dishes, frozenset())
 
-    @unittest.expectedFailure
     def test_empty_day_plan_does_not_spawn_customer_for_unplanned_dish(self):
         self.tuning["day_plan"] = {"1": {"dishes": {}, "ingredients": {}}}
         self.tuning["quan"]["first_customer_tick"] = 1
@@ -218,7 +217,6 @@ class Q3DayIntegrationTests(unittest.TestCase):
         self.assertEqual(session.snapshot()["day_plan"]["dishes"], {"ca_loc_nuong_trui": 1})
         self.assertEqual(self.tuning["day_plan"], list_tuning_before)
 
-    @unittest.expectedFailure
     def test_day_level_reputation_is_passed_into_first_quan_shift(self):
         session = self.make_session(scenario={
             "reputation": 4.25,
@@ -249,7 +247,6 @@ class Q3DayIntegrationTests(unittest.TestCase):
         self.assertEqual(session.sim.money, 82)
         self.assertEqual(session.sim.earned, 72)
 
-    @unittest.expectedFailure
     def test_reputation_earned_in_quan_survives_into_next_day(self):
         session = self.make_session(scenario={
             "day": {"days": 2},
@@ -266,10 +263,9 @@ class Q3DayIntegrationTests(unittest.TestCase):
         self.assertAlmostEqual(session.sim.reputation, 3.2)
         session.step(state({"shop_done": True}, {"shop_done"}))
         session.step(state())
-        session.step(state())
+        self.assertEqual(session.sim.phase, "quan")
         self.assertAlmostEqual(session.sim.quan.reputation, 3.2)
 
-    @unittest.expectedFailure
     def test_sim_tick_stays_still_while_paused(self):
         session = self.make_session(scenario={
             "gather": {"time_left_ticks": 10, "nodes": [], "random_fish": False}
@@ -281,6 +277,7 @@ class Q3DayIntegrationTests(unittest.TestCase):
         time_left = session.sim.time_left_ticks
         paused_sim_tick = session.snapshot()["sim_tick"]
         self.assertEqual(session.step(state()), [])
+        self.assertEqual(session.tick, 2)
         self.assertEqual(session.sim.phase_tick, phase_tick)
         self.assertEqual(session.sim.time_left_ticks, time_left)
         self.assertEqual(session.snapshot()["sim_tick"], paused_sim_tick)

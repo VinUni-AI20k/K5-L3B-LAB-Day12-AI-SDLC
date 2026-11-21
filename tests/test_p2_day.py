@@ -59,7 +59,7 @@ class DaySimTests(unittest.TestCase):
         self.assertIn("gather_end", names2)
         self.assertIn("phase_start", names2)
         self.assertEqual(sess.sim.phase, "quan")
-        self.assertEqual(sess.sim.inventory, {"ca_loc": 1})
+        self.assertEqual([item.kind for item in sess.sim.inventory], ["ca_loc"])
 
         # Tick 3: Quán chạy (còn 1 tick)
         sess.step(InputState((0, 0), {}, set()))

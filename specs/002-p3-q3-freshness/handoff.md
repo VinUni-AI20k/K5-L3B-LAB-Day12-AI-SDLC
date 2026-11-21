@@ -1,5 +1,7 @@
 # Handoff — Q3 Phase 3
 
-Quoosc implements the restaurant-side behavior in `chonoi/sim/quan.py`. Focused evidence is in [`q3-freshness.txt`](../../docs/proof/phase-3/q3-freshness.txt), and regression is recorded in the branch verification proof.
+Quoosc implements restaurant freshness/reservations in `chonoi/sim/quan.py` and the integrated inventory path through contract v1.3. Proof includes [focused Q3/v1.3 tests](../../docs/proof/phase-4/q3-focused-tests.txt), [Day headless/replay](../../docs/proof/phase-4/day-headless-run.txt), and [full suite](../../docs/proof/phase-4/q3-full-regression.txt).
 
-Integrator/PO: approve the proposed `unfulfillable` event payload in clarify #16 before declaring that event contract complete. Integrator: coordinate contract version 1.2 activation and scenario/headless validation. QA: run the Phase 3 matrix after the shared version and all teammate modules are integrated. Do not report isolated QuanSim tests as full Phase 3 acceptance.
+The shared root manifest is v1.3. The tests verify physical inventory parsing and scenario reservation validation, gather → inventory file → Quan ID/freshness continuity, and Day handoff. Legacy count inventory remains covered only with explicit v1.1 tuning.
+
+Integrator/PO: approve the proposed `unfulfillable` payload in clarify #16 before declaring the event contract complete. QA/Integrator: review v1.3 UI/client compatibility and the integrated branch evidence. No reviewer approval is claimed here.
