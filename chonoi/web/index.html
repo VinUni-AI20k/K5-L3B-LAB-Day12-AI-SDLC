@@ -20,7 +20,7 @@
  * Shop: 1 = bình oxy · 2 = áo phao · Enter = xong. Thêm ?debug vào địa chỉ để hiện nhãn id và nhật ký sự kiện.
  *
  * Phase 2 (Phase2.md mục 2): menu chính, tạm dừng, HUD sáng/tối đủ mục, màn Ngày/Tối/Kết quả/Shop/Tổng kết.
- * Các lệnh pause / buy / shop_done gửi qua /input; backend chưa hỗ trợ thì bị bỏ qua và UI báo rõ.
+ * Các lệnh pause / buy / shop_done được xử lý bởi backend qua /input.
  */
 const cv = document.getElementById("c");
 const ctx = cv.getContext("2d");
@@ -189,8 +189,14 @@ const SHOP_FALLBACK = { oxygen: [{ level: 1, price: 200, oxygen_max_s: 45 }, { l
 const dishName = (id) => DISH_NAME[id] || id || "?";
 const fmtItems = (m) => Object.keys(m).map((k) => (KIND_NAME[k] || k) + "×" + m[k]).join(", ");
 const shopCfg = () => (snap.meta && snap.meta.shop && snap.meta.shop.upgrades) || SHOP_FALLBACK;
+function stockCounts(stock) {
+  if (!Array.isArray(stock)) return Object.assign({}, stock || {});
+  const counts = {};
+  stock.forEach((item) => { counts[item.kind] = (counts[item.kind] || 0) + 1; });
+  return counts;
+}
 function availableStock() {
-  const avail = Object.assign({}, snap.stock || {});
+  const avail = stockCounts(snap.stock);
   (snap.customers || []).forEach((c) => Object.keys(c.reserved || {}).forEach((k) => { avail[k] = (avail[k] || 0) - c.reserved[k]; }));
   Object.keys(avail).forEach((k) => { if (avail[k] <= 0) delete avail[k]; });
   return avail;
@@ -433,7 +439,7 @@ function drawQuan(w, h) {
   text("⏱ " + fmtTime(snap.time_left_ticks), 14, 30, { size: 24, color: timeColor() });
   text(`Tiền ca ${shiftEarned()}k · Tiền ${snap.money ?? 0}k · Uy tín ${(snap.reputation ?? 0).toFixed(1)}`, 130, 30, { size: 20 });
   if (snap.day !== undefined) text("Ngày " + snap.day, w - 14, 30, { size: 22, align: "right" });
-  const avail = fmtItems(availableStock()), phys = snap.stock ? fmtItems(snap.stock) : "";
+  const avail = fmtItems(availableStock()), stock = stockCounts(snap.stock), phys = fmtItems(stock);
   text("Kho khả dụng: " + (avail || "(trống)"), 14, 60, { size: 18, color: "#cfd8dc" });
   if (phys && phys !== avail) text("Tồn kho (gồm phần đã giữ): " + phys, 14, 86, { size: 18, color: "#9fb3c0" });
   const handTxt = snap.hand ? (typeof snap.hand === "string" ? snap.hand : dishName(snap.hand.dish_id)) : "tay trống";
@@ -470,7 +476,8 @@ function drawShop(w, h) {
       button(w / 2 + 130, y + 24, 190, 44, `Mua · ${next.price}k`, () => buy(id), { disabled: !can });
     } else text("Đã tối đa", w / 2 + 225, y + 52, { size: 22, align: "center", color: "#ffcc80" });
   });
-  if (snap.stock && Object.keys(snap.stock).length) text("Kho dư từ ca (bỏ sau Shop): " + fmtItems(snap.stock), w / 2, 400, { size: 18, align: "center", color: "#9fb3c0" });
+  const stock = stockCounts(snap.stock);
+  if (Object.keys(stock).length) text("Kho dư từ ca (bỏ sau Shop): " + fmtItems(stock), w / 2, 400, { size: 18, align: "center", color: "#9fb3c0" });
   button(w / 2 - 110, 440, 220, 52, "Xong (Enter)", shopDone);
   if (ui.toast && ui.toast.until > now()) text(ui.toast.text, w / 2, 530, { size: 24, align: "center", color: ui.toast.ok ? "#a5d6a7" : "#ff8a80" });
 }
@@ -501,7 +508,8 @@ function drawIntro(w, h) {
     if (plan && plan.ingredients) text("Cần lấy: " + fmtItems(plan.ingredients), w / 2, y + 140 + Math.max(1, Object.keys(dishes).length) * 28 + 24, { size: 18, align: "center", color: "#ffe082" });
   } else {
     text("Buổi tối", w / 2, y + 56, { size: 36, align: "center", color: "#ffe0a3" });
-    text("Nhập kho: " + (Object.keys(snap.stock || {}).length ? fmtItems(snap.stock) : "(trống)"), w / 2, y + 110, { size: 22, align: "center" });
+    const stock = stockCounts(snap.stock);
+    text("Nhập kho: " + (Object.keys(stock).length ? fmtItems(stock) : "(trống)"), w / 2, y + 110, { size: 22, align: "center" });
     const stock = availableStock();
     const pool = plan && plan.dishes ? Object.keys(plan.dishes) : Object.keys(DISH_RECIPE);
     const ok = pool.filter((d) => DISH_RECIPE[d] && recipeOk(DISH_RECIPE[d], stock));

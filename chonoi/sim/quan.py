@@ -13,10 +13,11 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, day_plan=None):
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
+        self.allowed_dishes = set(day_plan["dishes"]) if day_plan is not None else None
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -305,7 +306,8 @@ class QuanSim:
         available = self._available_stock()
         dish_ids = sorted(
             dish_id for dish_id, dish in self.menu.items()
-            if all(available.get(kind, 0) >= amount for kind, amount in dish["recipe"].items())
+            if (self.allowed_dishes is None or dish_id in self.allowed_dishes)
+            and all(available.get(kind, 0) >= amount for kind, amount in dish["recipe"].items())
         )
         if not dish_ids:
             events.append(("no_dish", {}))
