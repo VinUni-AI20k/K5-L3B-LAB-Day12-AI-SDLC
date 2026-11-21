@@ -3,7 +3,7 @@
 | Yêu cầu | Cách kiểm chứng | Bằng chứng | Kết quả hiện tại |
 |---|---|---|---|
 | Ngưỡng ươn trong giỏ | Cá thể ở fresh 30 lúc dựng fixture. Chạy hai tick, kiểm spoiled chỉ phát ở tick 1 và hàng vẫn chiếm ô | [Test QA Phase 3](../../tests/test_qa_phase3.py) | Baseline `8739a9f` trả mã 2 khi đọc `gather.hold` dạng cá thể. Chưa chạy tới bước hao tươi. |
-| Bàn giao kho cá thể qua file | So id, kind và fresh giữa gather_end, file xuất và snapshot quán tick 0 | — | Chờ kiểm trên v1.2. |
+| Bàn giao kho cá thể qua file | So id, kind và fresh giữa gather_end, file xuất và snapshot quán tick 0 | [Test QA Phase 3](../../tests/test_qa_phase3.py) | Baseline `8739a9f` trả mã 2 khi đọc `gather.hold` dạng cá thể. Luồng dừng trước khi xuất kho. |
 | Từ chối kho đếm | Đọc file kho đếm hợp lệ của v1.1 bằng CLI v1.2, kiểm mã thoát 2 | — | Chờ kiểm trên v1.2. |
 | Giữ lại nguyên liệu và chốt giá | Kiểm đơn có hàng vừa ươn, chọn lại cá thể và tính giá theo fresh lúc nấu | — | Chờ kiểm trên v1.2. |
 

@@ -1,6 +1,7 @@
+import json
 import unittest
 
-from helpers import Workdir, events, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, read_jsonl, run_headless, snapshots, write_json, frames
 
 
 class FreshnessBoundaries(unittest.TestCase):
@@ -42,3 +43,54 @@ class FreshnessBoundaries(unittest.TestCase):
                     self.assertAlmostEqual(
                         hold[0]["fresh"], 30 - tick * 0.5 / 60, delta=0.01,
                     )
+
+class InventoryHandoff(unittest.TestCase):
+    def test_quan_imports_gather_item_with_same_id_and_freshness(self):
+        with Workdir() as work:
+            scenario = write_json(
+                work.path("gather.json"),
+                {
+                    "gather": {
+                        "hold": [{"id": "I1", "kind": "ca_linh", "fresh": 100}],
+                        "random_fish": False,
+                        "monsters": [],
+                    }
+                },
+            )
+            inputs = write_json(
+                work.path("inputs.json"),
+                frames({"tick": 0, "interact": True}),
+            )
+            inventory = work.path("inventory.json")
+            gather_out = work.path("gather.jsonl")
+            code, stderr = run_headless(
+                "--mode", "gather", "--seed", "42", "--ticks", "1",
+                "--scenario", scenario, "--inputs", inputs,
+                "--inventory-out", inventory, "--out", gather_out,
+            )
+            self.assertEqual(code, 0, stderr)
+
+            ending = events(read_jsonl(gather_out), "gather_end")
+            self.assertEqual(len(ending), 1)
+            self.assertEqual(ending[0]["tick"], 1)
+            self.assertEqual(ending[0]["data"]["reason"], "docked")
+            with open(inventory, encoding="utf-8") as exported:
+                payload = json.load(exported)
+            self.assertEqual(payload, ending[0]["data"]["inventory"])
+            self.assertEqual(len(payload["items"]), 1)
+            item = payload["items"][0]
+            self.assertEqual((item["id"], item["kind"]), ("I1", "ca_linh"))
+            self.assertAlmostEqual(item["fresh"], 100 - 0.5 / 60, delta=0.01)
+
+            quan_out = work.path("quan.jsonl")
+            code, stderr = run_headless(
+                "--mode", "quan", "--seed", "42", "--ticks", "0",
+                "--inventory", inventory, "--out", quan_out,
+            )
+            self.assertEqual(code, 0, stderr)
+            initial = snapshots(read_jsonl(quan_out))[0]
+            self.assertEqual((initial["tick"], initial["phase"]), (0, "quan"))
+            self.assertEqual(len(initial["stock"]), 1)
+            imported = initial["stock"][0]
+            self.assertEqual((imported["id"], imported["kind"]), ("I1", "ca_linh"))
+            self.assertAlmostEqual(imported["fresh"], item["fresh"], delta=0.01)
