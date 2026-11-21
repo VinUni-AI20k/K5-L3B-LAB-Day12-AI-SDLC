@@ -71,7 +71,11 @@ class QuanSim:
     # Vòng tick chọn bếp/bàn và đơn hợp lệ trước khi gọi các hàm này.
     # Mỗi thao tác trả (tên sự kiện, dữ liệu) hoặc None nếu không thực hiện được.
     def start_cooking(self, stove, customer):
-        """Bắt đầu nấu đơn đã chọn. Bên gọi quản lý việc giữ chỗ nguyên liệu."""
+        """Nấu đơn reserved do vòng tick chọn theo order_tick rồi ID bàn.
+
+        Bên gọi cập nhật trạng thái đơn và giải phóng phần giữ chỗ sau
+        cook_started. Hàm này trừ kho thực đúng lúc món bắt đầu nấu.
+        """
         dish_id = customer["dish_id"]
         recipe = self.menu.get(dish_id)
         if stove["state"] != "idle" or recipe is None:
@@ -80,6 +84,8 @@ class QuanSim:
         if any(self.stock.get(kind, 0) < quantity for kind, quantity in ingredients.items()):
             return None
         dish = {"dish_id": dish_id, "customer_id": customer["id"]}
+        if customer.get("order_id") is not None:
+            dish["order_id"] = customer["order_id"]
         cook_ticks = max(1, round(recipe["cook_s"] * TICK))
         for kind, quantity in ingredients.items():
             self.stock[kind] -= quantity
@@ -107,6 +113,8 @@ class QuanSim:
         if not isinstance(dish, dict) or customer["table_id"] != table["id"]:
             return None
         if dish.get("customer_id") != customer["id"] or dish.get("dish_id") != customer["dish_id"]:
+            return None
+        if dish.get("order_id") != customer.get("order_id"):
             return None
         self.hand = None
         return "served", {"table_id": table["id"], **dish}
