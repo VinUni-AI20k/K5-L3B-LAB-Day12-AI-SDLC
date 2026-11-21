@@ -89,6 +89,17 @@ class Movement(unittest.TestCase):
         run(sess, 1)
         self.assertEqual(sess.snapshot()["monsters"][0]["state"], "patrol")
 
+    def test_player_at_surface_is_not_detected(self):
+        # review của D: Cá Sấu nằm ngay dưới, trong detect_radius, nhưng người chơi ở mặt nước -> không đuổi
+        depth = max(LO, min(HI, SP["detect_radius"]))
+        self.assertLessEqual(depth, SP["detect_radius"])
+        sess = Session("gather", TUNING, scenario([croc([50, depth], waypoints=[[50, depth]])], pos=[50, 0]), 1)
+        for tick in range(1, 31):  # xét từng tick: chase rồi bỏ ngay ở tick sau cũng phải bị bắt
+            run(sess, 1)
+            snap = sess.snapshot()
+            self.assertTrue(snap["player"]["at_surface"])
+            self.assertEqual(snap["monsters"][0]["state"], "patrol", f"tick {tick}")
+
     def test_chase_ends_past_exit_radius_or_at_surface(self):
         gap = (SP["detect_radius"] + SP["exit_radius"]) / 2  # trong vùng trễ: vẫn đuổi
         sess = Session("gather", TUNING, scenario([croc([50 + gap, MID], state="chase")]), 1)
