@@ -30,6 +30,7 @@
 
 | Phase | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|
+| 1 | Codex | Đối chiếu PRD-0 mục E–G, viết test hộp đen, chạy test trên `origin/main` và nhánh luật, điền ma trận và lưu log | Chưa đo | Bản đầu điền handle thay cho họ tên trong `TEAM.md`. Đã sửa theo thông tin thành viên cung cấp và giữ các biểu mẫu báo cáo. |
 
 ## linkiewinkie
 
