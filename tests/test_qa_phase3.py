@@ -113,6 +113,7 @@ class InventorySchema(unittest.TestCase):
                 with open(output, encoding="utf-8"):
                     pass
 
+
 class QuanFreshness(unittest.TestCase):
     def test_spoiled_reservation_is_replaced_before_cooking_and_pricing(self):
         with Workdir() as work:
@@ -172,3 +173,7 @@ class QuanFreshness(unittest.TestCase):
                 {item["id"] for item in snapshots(rows)[-1]["stock"]},
                 {"I1", "I2"},
             )
+
+
+if __name__ == "__main__":
+    unittest.main()

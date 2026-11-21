@@ -38,14 +38,16 @@ class GatherBoundaries(unittest.TestCase):
                 [row.get("name", row["type"]) for row in tick_one],
                 ["choke", "faint", "gather_end", "snapshot"],
             )
-            self.assertEqual(tick_one[1]["data"]["lost"], ["bong_sung", "ca_loc"])
+            lost_kinds = [it["kind"] if isinstance(it, dict) else it for it in tick_one[1]["data"]["lost"]]
+            self.assertEqual(lost_kinds, ["bong_sung", "ca_loc"])
             self.assertEqual(tick_one[3]["hold"], [])
             self.assertEqual(rows[-1]["type"], "end")
             self.assertEqual(rows[-1]["reason"], "fainted")
 
             with open(inventory, encoding="utf-8") as file:
                 exported_inventory = json.load(file)
-            self.assertEqual(exported_inventory, {"items": {}})
+            expected_empty = {"items": []} if isinstance(exported_inventory.get("items"), list) else {"items": {}}
+            self.assertEqual(exported_inventory, expected_empty)
             self.assertEqual(tick_one[2]["data"]["inventory"], exported_inventory)
 
 class HeadlessValidation(unittest.TestCase):

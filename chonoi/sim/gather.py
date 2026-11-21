@@ -53,7 +53,16 @@ class GatherSim:
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
         self.freshness = tuning.get("freshness")
-        self.hold = [dict(item) for item in scenario.get("hold", [])] if self.freshness else list(scenario.get("hold", []))
+        self.hold = []
+        raw_hold = scenario.get("hold", [])
+        if self.freshness:
+            for item in raw_hold:
+                if isinstance(item, dict):
+                    self.hold.append(dict(item))
+                elif isinstance(item, str):
+                    self.hold.append({"id": ids.new("I"), "kind": item, "fresh": float(self.freshness["initial"])})
+        else:
+            self.hold = list(raw_hold)
         self._fresh_values = {}
         if self.freshness:
             for item in self.hold:
@@ -98,7 +107,7 @@ class GatherSim:
     # --- giao diện cho runner -------------------------------------------------
     def inventory_items(self):
         if self.freshness:
-            return [dict(item) for item in sort_by_id(self.hold)]
+            return [{"id": it["id"], "kind": it["kind"], "fresh": round(float(it["fresh"]), 3)} for it in sort_by_id(self.hold)]
         return hold_to_items(self.hold)
 
     def snapshot(self) -> dict:
