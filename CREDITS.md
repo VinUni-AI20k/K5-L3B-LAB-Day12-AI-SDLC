@@ -29,10 +29,12 @@ Liệt kê asset ngoài (nguồn, giấy phép) và công cụ hỗ trợ đã d
   - `kelp_forest.glb`, `kelp_cluster.glb`, `seaweed_rock.glb`, `cliff_basalt.glb`, `cliff_block.glb`, `boulder_large.glb`, `boulder_mossy.glb`, `driftwood_rootball.glb`, `driftwood_log.glb`
 
 ### 4. Nhân vật 3D (`godot/assets/external/characters/`) — CC0 1.0 Universal
-- Nguồn: [3DAssets.dev](https://3dassets.dev/) (Low Poly Character Figures, Tidal Navigator)
+- Nguồn: [Quaternius Animated Women Pack](https://quaternius.com/packs/animatedwoman.html) (via `codepawl/quaternius-glb`) & [3DAssets.dev](https://3dassets.dev/)
 - Giấy phép: **CC0 1.0 Universal**
-- Danh sách file (đã dequantize cho Godot 4.5.1):
-  - `villager_woman.glb` (base nhân vật Út Sen, ghép cùng `conical_hats.glb`), `villager_man.glb`, `tidal_navigator.glb`
+- Danh sách file:
+  - `ut_sen_girl.glb` (`Smooth_Female_Casual`, rigged + 12 animations — nhân vật bé gái Út Sen)
+  - `customer_girl.glb` (`Smooth_Female_Dress`, rigged + 12 animations — khách nữ quán ăn)
+  - `tidal_navigator.glb`, `villager_woman.glb`, `villager_man.glb`
 
 ### 5. Đèn lồng (`godot/assets/external/props/`) — CC0 1.0 Universal
 - Nguồn: [3DAssets.dev](https://3dassets.dev/) (Imperial China Palace and Garden, Izakaya Alley)

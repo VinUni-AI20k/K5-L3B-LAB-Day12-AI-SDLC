@@ -7,10 +7,7 @@ var cam: Camera3D
 var env: Environment
 var diver_root: Node3D
 var diver_visual: Node3D
-var left_leg_pivot: Node3D
-var right_leg_pivot: Node3D
-var left_arm_pivot: Node3D
-var right_arm_pivot: Node3D
+var diver_anim: AnimationPlayer
 var hud_label: Label
 
 var diver_pos := Vector2(18.0, 6.0) # [x, d]
@@ -325,138 +322,46 @@ func _build_diver() -> void:
 	diver_root.position = Vector3(diver_pos.x, -diver_pos.y, 0.0)
 	add_child(diver_root)
 
-	# Stylized 3D Ut Sen diver facing +X (ao ba ba, khan ran, diving goggles, bamboo basket, animated limbs & yellow fins)
+	# Real 3D rigged & animated Quaternius girl character (ut_sen_girl.glb) in swimming posture
 	diver_visual = Node3D.new()
 	diver_root.add_child(diver_visual)
 
-	var skin_mat := _make_mat("#f2c29b", 0.65)
-	var hair_mat := _make_mat("#1e1a18", 0.60)
-	var ao_mat := _make_mat("#6b3f26", 0.80)      # Ao ba ba nau dat mien Tay
-	var pants_mat := _make_mat("#24242b", 0.82)   # Quan den ba ba
-	var scarf_mat := _make_mat("#e8e4d8", 0.75)   # Khan ran quai co
-	var goggle_mat := _make_mat("#52dcff", 0.18)  # Kinh lan tu che
-	var basket_mat := _make_mat("#c9994a", 0.85)  # Gio luoi tre deo lung
-	var fin_mat := _make_mat("#ffd233", 0.45)     # Chan vit vang
+	var pose_pivot := Node3D.new()
+	pose_pivot.rotation_degrees = Vector3(0.0, 90.0, 0.0)
+	diver_visual.add_child(pose_pivot)
 
-	# Torso (horizontal swimming posture along +X)
-	var torso := MeshInstance3D.new()
-	var tm := CapsuleMesh.new()
-	tm.radius = 0.28
-	tm.height = 0.92
-	tm.material = ao_mat
-	torso.mesh = tm
-	torso.rotation_degrees = Vector3(0.0, 0.0, 90.0)
-	diver_visual.add_child(torso)
+	var girl := _asset("characters", "ut_sen_girl", Vector3(0.0, -0.25, -0.85), Vector3.ONE * 0.42, Vector3(76.0, 0.0, 0.0), pose_pivot)
+	if girl != null:
+		var ap := girl.find_child("AnimationPlayer", true, false)
+		if ap is AnimationPlayer:
+			diver_anim = ap
+			for anim_name in diver_anim.get_animation_list():
+				var anim := diver_anim.get_animation(anim_name)
+				if anim != null:
+					anim.loop_mode = Animation.LOOP_LINEAR
+			if diver_anim.has_animation("Female_Walk"):
+				diver_anim.play("Female_Walk")
+			elif diver_anim.get_animation_list().size() > 0:
+				diver_anim.play(diver_anim.get_animation_list()[0])
 
-	# Khan ran neck scarf
-	var scarf := MeshInstance3D.new()
-	var scm := TorusMesh.new()
-	scm.inner_radius = 0.14
-	scm.outer_radius = 0.25
-	scm.material = scarf_mat
-	scarf.mesh = scm
-	scarf.position = Vector3(0.42, 0.02, 0.0)
-	scarf.rotation_degrees = Vector3(0.0, 0.0, 90.0)
-	diver_visual.add_child(scarf)
-
-	# Head + black hair bun + diving goggles
-	var head := MeshInstance3D.new()
-	var hm := SphereMesh.new()
-	hm.radius = 0.27
-	hm.height = 0.54
-	hm.material = skin_mat
-	head.mesh = hm
-	head.position = Vector3(0.68, 0.08, 0.0)
-	diver_visual.add_child(head)
-
-	var hair := MeshInstance3D.new()
-	var hrm := SphereMesh.new()
-	hrm.radius = 0.26
-	hrm.height = 0.48
-	hrm.material = hair_mat
-	hair.mesh = hrm
-	hair.position = Vector3(0.60, 0.14, 0.0)
-	diver_visual.add_child(hair)
-
-	var bun := MeshInstance3D.new()
-	var bnm := SphereMesh.new()
-	bnm.radius = 0.12
-	bnm.height = 0.24
-	bnm.material = hair_mat
-	bun.mesh = bnm
-	bun.position = Vector3(0.42, 0.25, 0.0)
-	diver_visual.add_child(bun)
-
-	var goggles := MeshInstance3D.new()
-	var gm := BoxMesh.new()
-	gm.size = Vector3(0.14, 0.16, 0.34)
-	gm.material = goggle_mat
-	goggles.mesh = gm
-	goggles.position = Vector3(0.90, 0.10, 0.0)
-	diver_visual.add_child(goggles)
-
-	# Woven fish basket on her back
+	# Woven bamboo basket strapped lightly on her back
 	var basket := MeshInstance3D.new()
 	var bkm := CylinderMesh.new()
-	bkm.top_radius = 0.18
-	bkm.bottom_radius = 0.22
-	bkm.height = 0.44
-	bkm.material = basket_mat
+	bkm.top_radius = 0.16
+	bkm.bottom_radius = 0.20
+	bkm.height = 0.38
+	bkm.material = _make_mat("#c9994a", 0.82)
 	basket.mesh = bkm
-	basket.position = Vector3(-0.04, 0.34, 0.0)
+	basket.position = Vector3(-0.08, 0.32, 0.0)
 	basket.rotation_degrees = Vector3(0.0, 0.0, 82.0)
 	diver_visual.add_child(basket)
-
-	# Animated arms
-	left_arm_pivot = Node3D.new()
-	left_arm_pivot.position = Vector3(0.28, -0.05, 0.28)
-	diver_visual.add_child(left_arm_pivot)
-	right_arm_pivot = Node3D.new()
-	right_arm_pivot.position = Vector3(0.28, -0.05, -0.28)
-	diver_visual.add_child(right_arm_pivot)
-	for pivot in [left_arm_pivot, right_arm_pivot]:
-		var arm := MeshInstance3D.new()
-		var am := CapsuleMesh.new()
-		am.radius = 0.085
-		am.height = 0.56
-		am.material = ao_mat
-		arm.mesh = am
-		arm.position = Vector3(0.18, -0.14, 0.0)
-		arm.rotation_degrees = Vector3(0.0, 0.0, 58.0)
-		pivot.add_child(arm)
-
-	# Animated legs + yellow swim flippers
-	left_leg_pivot = Node3D.new()
-	left_leg_pivot.position = Vector3(-0.44, -0.02, 0.13)
-	diver_visual.add_child(left_leg_pivot)
-	right_leg_pivot = Node3D.new()
-	right_leg_pivot.position = Vector3(-0.44, -0.02, -0.13)
-	diver_visual.add_child(right_leg_pivot)
-	for pivot in [left_leg_pivot, right_leg_pivot]:
-		var leg := MeshInstance3D.new()
-		var lm := CapsuleMesh.new()
-		lm.radius = 0.10
-		lm.height = 0.62
-		lm.material = pants_mat
-		leg.mesh = lm
-		leg.position = Vector3(-0.28, 0.0, 0.0)
-		leg.rotation_degrees = Vector3(0.0, 0.0, 90.0)
-		pivot.add_child(leg)
-
-		var fin := MeshInstance3D.new()
-		var fbox := BoxMesh.new()
-		fbox.size = Vector3(0.42, 0.06, 0.18)
-		fbox.material = fin_mat
-		fin.mesh = fbox
-		fin.position = Vector3(-0.70, 0.0, 0.0)
-		pivot.add_child(fin)
 
 	# Gentle warm dive-lamp light on diver
 	var lamp := OmniLight3D.new()
 	lamp.light_color = Color("#ffe8b3")
 	lamp.light_energy = 0.75
 	lamp.omni_range = 8.0
-	lamp.position = Vector3(0.8, 0.2, 1.0)
+	lamp.position = Vector3(0.8, 0.2, 1.2)
 	diver_visual.add_child(lamp)
 
 
@@ -538,13 +443,13 @@ func _physics_process(delta: float) -> void:
 	diver_visual.rotation_degrees.y = lerpf(diver_visual.rotation_degrees.y, target_yaw, delta * 10.0)
 	diver_visual.rotation_degrees.z = lerpf(diver_visual.rotation_degrees.z, target_tilt if facing_right else -target_tilt, delta * 8.0)
 
-	# Animate swimming kick & arm stroke (faster when actively swimming)
-	var swim_speed_factor := 9.5 if diver_vel.length() > 0.5 else 3.2
-	var kick := sin(time_acc * swim_speed_factor) * (24.0 if diver_vel.length() > 0.5 else 9.0)
-	left_leg_pivot.rotation_degrees.z = kick
-	right_leg_pivot.rotation_degrees.z = -kick
-	left_arm_pivot.rotation_degrees.z = -kick * 0.65
-	right_arm_pivot.rotation_degrees.z = kick * 0.65
+	# Drive skeletal swimming animation smoothly based on movement speed
+	if is_instance_valid(diver_anim):
+		var moving := diver_vel.length() > 0.5
+		var target_anim := "Female_Run" if moving else "Female_Walk"
+		if diver_anim.has_animation(target_anim) and diver_anim.current_animation != target_anim:
+			diver_anim.play(target_anim, 0.2)
+		diver_anim.speed_scale = 1.15 if moving else 0.55
 
 	# Smooth Dave-the-Diver depth fog color shift from sunlit shallow to deep abyss
 	var depth_t := clampf(diver_pos.y / 28.0, 0.0, 1.0)

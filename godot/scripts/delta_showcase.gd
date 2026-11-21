@@ -260,9 +260,9 @@ func _gather_scene() -> void:
         var fz := -45.0 + i * 8.0
         var fish_id := "fish_carp" if i % 2 == 0 else "fish_perch"
         _asset("aquatic", fish_id, Vector3(fx, WATER_LEVEL - 0.18, fz), rng.randf_range(0.7, 1.05), rng.randf_range(-3.14, 3.14))
-    # Characters on docks (Ut Sen + fisherman).
-    _asset("characters", "villager_woman", Vector3(-13.2, 0.55, -2.0), 1.15, 1.57)
-    _asset("river_delta", "conical_hats", Vector3(-13.2, 2.35, -2.0), 0.55, 0.0)
+    # Characters on docks (Ut Sen 3D girl + fisherman).
+    _asset("characters", "ut_sen_girl", Vector3(-13.2, 0.55, -2.0), 0.42, 1.57)
+    _asset("river_delta", "conical_hats", Vector3(-13.2, 2.55, -2.0), 0.55, 0.0)
     _asset("characters", "tidal_navigator", Vector3(13.2, 0.55, 6.0), 1.15, -1.57)
 
 func _restaurant_scene() -> void:
@@ -294,10 +294,10 @@ func _restaurant_scene() -> void:
     _asset("kitchen", "plate", Vector3(2.0, 2.08, -1.15), 1.1, 0.0)
     for p in [Vector2(0.85, -1.6), Vector2(3.15, -1.6), Vector2(2.0, -2.75)]:
         _asset("kitchen", "chair_stool", Vector3(p.x, 1.18, p.y), 1.1, 0.0)
-    # Ut Sen at kitchen B1 and customers at table T1 / raft.
-    _asset("characters", "villager_woman", Vector3(-4.8, 1.18, 1.5), 1.15, 0.2)
-    _asset("river_delta", "conical_hats", Vector3(-4.8, 2.98, 1.5), 0.55, 0.0)
-    _asset("characters", "villager_man", Vector3(0.75, 1.18, -1.6), 1.15, 1.57)
+    # Ut Sen 3D girl at kitchen B1 and customers at table T1 / raft.
+    _asset("characters", "ut_sen_girl", Vector3(-4.8, 1.18, 1.5), 0.42, 0.2)
+    _asset("river_delta", "conical_hats", Vector3(-4.8, 3.18, 1.5), 0.55, 0.0)
+    _asset("characters", "customer_girl", Vector3(0.75, 1.18, -1.6), 0.42, 1.57)
     _asset("characters", "tidal_navigator", Vector3(3.25, 1.18, -1.6), 1.15, -1.57)
     # Wooden lantern beam with 3D hanging silk/paper lanterns.
     _box(Vector3(0.0,5.5,-3.85),Vector3(15.3,.10,.10),WOOD)
