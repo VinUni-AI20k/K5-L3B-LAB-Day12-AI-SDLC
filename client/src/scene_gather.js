@@ -9,13 +9,17 @@
 // be killed in the contract; in the GUI they have HP too (croc 24, snake 6): every spear hit stuns (croc 2 s + 3 m
 // push, numbers of the contract "Lao xua" extension) AND deals damage; at 0 HP they are defeated for this dive.
 // Inventory (I or the bag icon): freezes the dive; throw items out of the basket to free space.
+// Terrain (terrain.js, creative, GUI only): rock / mountains / pillars / ledge / cave with collision ONLY below 30 m;
+// the contract zone keeps edge decoration only. Dòng nước lũ (current.js, v1.2 §2) + 2 permanent deep channels.
 import { W, H, screen, input, clamp, lerp, fx, Particles, txt, panel, measure, reduceMotion } from "./engine.js";
-import { sfx, music } from "./audio.js";
+import { sfx, music, voiceLine } from "./audio.js";
 import { P, R, bands, sky, sun, cloud, bank, hyacinth, godRays, kelp, rock, WATER, diver, fish, nodeArt, dock, KIND_NAME, icon } from "./art.js";
 import { speedLines } from "./cutscene.js";
-import { DEEP, preloadDeep, makeDeepFish, updateDeepFish, drawDeepFish, drawDeepScenery, hurtDeepFish, deepBox } from "./deep.js";
+import { DEEP, preloadDeep, makeDeepFish, updateDeepFish, drawDeepFish, drawDeepScenery, hurtDeepFish, deepBox, placeDeep, leanKelp } from "./deep.js";
+import { Terrain, preloadTerrain } from "./terrain.js";           // creative: deep-zone rock with collision + parallax ridges
+import { Flood, ChannelFx, updateFloodFx, drawFloodFx } from "./current.js"; // v1.2 §2 Dòng nước lũ + deep current channels
 import { SNAKE, makeSnakes, updateSnakes, drawSnake, snakeInReach, stunSnake, damageSnake } from "./creatures.js";
-import { stats, recordCatch, recordHunt, recordDefeat, save } from "./progress.js";
+import { stats, recordCatch, recordHunt, recordDefeat, save, persist } from "./progress.js";
 import { makeCrocs, updateCrocs, crocHit, startRecoil, crocNear, drawCroc, stunCroc, crocAt, damageCroc, CROC_HUNT } from "./croc.js";
 import * as meta from "./meta.js";
 import { freshCfg, newItem, decay, plain, freshBar } from "./fresh.js"; // chores tracker (sibling module); every call is optional-chained
@@ -36,7 +40,7 @@ export class GatherScene {
     this._onMove = (e) => { const r = screen.pc.getBoundingClientRect(); this.mouse.x = (e.clientX - r.left) / r.width * W; this.mouse.y = (e.clientY - r.top) / r.height * H; this.mouseT = performance.now(); if (e.type === "pointerdown") this.onClick(this.mouse.x, this.mouse.y); };
     addEventListener("pointermove", this._onMove); addEventListener("pointerdown", this._onMove);
     // inventory keys not in the engine map: I (open/close), X (throw out); consumed in update()
-    this._onKey = (e) => { const k = (e.key || "").toLowerCase(); if (k === "i") this.keyI = true; else if (k === "x") this.keyX = true; };
+    this._onKey = (e) => { const k = (e.key || "").toLowerCase(); this.keyAny = true; if (k === "i") this.keyI = true; else if (k === "x") this.keyX = true; };
     addEventListener("keydown", this._onKey);
     this.inv = null; this.holdFrom = []; this.sinks = []; this.tossed = []; this.bagRect = [W - 108 - 6 - 19, 6, 15, 15];
     // effective tuning = contract base + shop upgrades (progress.js); a fresh save gives exactly the contract values
@@ -62,9 +66,21 @@ export class GatherScene {
     this.yield = t.fish_yield || {};
     // creative extension: the client river goes deeper than the contract (see deep.js)
     this.maxD = Math.max(t.bounds.d[1], DEEP.depth); preloadDeep(); this.deep = makeDeepFish(); this.camY = 0; this.deepSeen = false;
-    this.deepEnv = { px: 0, pd: 0, contact: (f, nx, nd) => this.bossRam(f, nx, nd) };
+    this.deepEnv = { px: 0, pd: 0, contact: (f, nx, nd) => this.bossRam(f, nx, nd), blocked: (x, d, r) => this.ter.fishBlocked(x, d, r) };
+    // terrain (deterministic per day): every deep spawn / patrol in open water; GUI only, d > 30 m
+    this.ter = new Terrain(this.day * 7919 + 17); preloadTerrain(); placeDeep(this.deep, this.ter, this.maxD);
+    this.chFx = new ChannelFx(this.ter.channels); this.clamTold = false;
+    // Dòng nước lũ (Test Contract v1.2 §2): gather.current or the defaults; direction seeded per dive
+    this.flood = new Flood(t.current, (Math.random() * 2147483647) | 0, this.hz, {
+      warning: (n, dir) => { this.floodWarn = 2; sfx("riser", 1.2); sfx("bubble"); },
+      start: (dir) => { sfx("whoosh"); sfx("swish", 1); fx.shake(2, 0.3); this.toast("Dòng lũ! " + (dir > 0 ? "⇢" : "⇠"), "#9fd8ff"); },
+      end: (dir, reason) => { if (reason === "elapsed") { sfx("swish", 0.6); this.toast("Dòng lũ đã qua", "#9fd8ff"); } } });
+    if (t.current?.enabled === false || t.random_current === false) this.flood.next = Infinity;
+    this._leanAt = (x, d) => (d >= this.flood.c.min_depth ? this.flood.lean * this.flood.vis : 0) + (d > DEEP.zone && this.ter.chanAt(x, d)?.vx ? 0.6 * Math.sign(this.ter.chanAt(x, d).vx) : 0);
+    this._rays = () => godRays(screen.px, this.cam * this._scale(), this._surfaceY(), this._sy(this.maxD) - this._surfaceY(), this.t_now || 0, 0.08);
     // aggressive creature (creatures.js); env is reused every frame (no per-frame allocation)
     this.snakes = makeSnakes(DEEP.zone); this.snakeSeen = !!save.catalog[SNAKE.id];
+    for (const s of this.snakes) if (s.d > DEEP.zone) { const [x, d] = this.ter.openSpot(s.x, s.d, 1.2); const dx = x - s.x, dd = d - s.d; s.x = x; s.d = d; if (s.hx != null) { s.hx += dx; s.hd += dd; } if (s.seg) for (let k = 0; k < s.seg.length; k += 2) { s.seg[k] += dx; s.seg[k + 1] += dd; } }
     this.snakeEnv = { px: 0, pd: 0, underwater: false, swim: this.swim, deepZone: DEEP.zone, maxD: this.maxD, maxX: t.bounds.x[1], sx: W / 26, sy: VS,
       bite: (s, nx, nd) => this.snakeBite(s, nx, nd), seen: () => this.onSnakeSeen() };
     this.cam = t.start_pos[0]; this.ps = new Particles(); this.psUI = new Particles();
@@ -157,7 +173,7 @@ export class GatherScene {
   atDock() { return Math.hypot(this.p.x - this.t.dock_pos[0], this.p.d - this.t.dock_pos[1]) <= this.t.dock_radius; }
 
   endRun(reason) {
-    if (this.ended) return; this.ended = true;
+    if (this.ended) return; this.ended = true; this.flood?.stop("phase_end");
     removeEventListener("pointermove", this._onMove); removeEventListener("pointerdown", this._onMove); removeEventListener("keydown", this._onKey); this.inv = null;
     if (this.harp?.hit) this.harp.hit.hooked = false; this.harp = null;
     if (reason === "fainted") this.hold = [];
@@ -184,7 +200,7 @@ export class GatherScene {
     this.hurt(); fx.shake(4, 0.3); sfx("slam");
     this.toast(SNAKE.name + " cắn!", "#ff9a5a");
     p.x = clamp(p.x + nx * SNAKE.push, 0, this.t.bounds.x[1]); p.d = clamp(p.d + nd * SNAKE.push, this.t.surface_depth + 0.1, this.maxD);
-    p.vx = nx * this.swim * 2; p.vd = nd * this.swim * 2;
+    p.vx = nx * this.swim * 2; p.vd = nd * this.swim * 2; this.unstick();
     const sx = this._sx(p.x), sy = this._sy(p.d);
     for (let i = 0; i < 6; i++) this.ps.add({ x: sx, y: sy, vx: (Math.random() - .5) * 50, vy: (Math.random() - .5) * 50, size: 1, life: 0.35, color: "#ff8a8a" });
   }
@@ -192,7 +208,29 @@ export class GatherScene {
   shove(nx, nd, dist) {
     const p = this.p;
     p.x = clamp(p.x + nx * dist, 0, this.t.bounds.x[1]); p.d = clamp(p.d + nd * dist, this.t.surface_depth + 0.1, this.maxD);
-    p.vx = nx * this.swim * 2; p.vd = nd * this.swim * 2;
+    p.vx = nx * this.swim * 2; p.vd = nd * this.swim * 2; this.unstick();
+  }
+  // diver body vs terrain: axis-separated so the diver slides along rock (contract zone d < 30: never blocked,
+  // so movement there is exactly clamp(p + v·dt) as before)
+  moveDiver(dx, dd) {
+    const p = this.p, ter = this.ter, R = 0.45;
+    const nx = clamp(p.x + dx, 0, this.t.bounds.x[1]);
+    if (p.d + R < DEEP.zone || !ter.hits(nx, p.d, R)) p.x = nx; else p.vx *= 0.2;
+    const nd = clamp(p.d + dd, 0, this.maxD);
+    if (nd + R < DEEP.zone || !ter.hits(p.x, nd, R)) p.d = nd; else p.vd *= 0.2;
+  }
+  // pushed into rock (knockback): pop out to the nearest open spot, upward first
+  unstick() {
+    const p = this.p, ter = this.ter, R = 0.45; if (!ter || p.d + R < DEEP.zone || !ter.hits(p.x, p.d, R)) return;
+    for (let k = 1; k <= 80; k++) for (const [ax, ad] of [[0, -1], [1, 0], [-1, 0], [0, 1]]) { const x = p.x + ax * k * 0.25, d = p.d + ad * k * 0.25; if (d <= this.maxD && x >= 0 && x <= this.t.bounds.x[1] && !ter.hits(x, d, R)) { p.x = x; p.d = d; return; } }
+  }
+  openClam(k) {
+    k.open = true; k.t = 0; const bonus = 30;
+    recordHunt(bonus); this.huntK = (this.huntK || 0) + bonus; meta.trackChore?.("cave_clam");
+    this.toast("Sò ngọc trong hang! +" + bonus + "k", "#ffe14d"); sfx("coin"); sfx("ding"); fx.flash("rgba(255,240,180,.3)", 0.15);
+    const sx = this._sx(k.x), sy = this._sy(k.d);
+    this.ps.add({ x: sx, y: sy, ring: true, size: 4, life: 0.5, color: "#fff2b0", fade: false });
+    for (let i = 0; i < 12; i++) this.ps.add({ x: sx, y: sy, vx: (Math.random() - .5) * 60, vy: -20 - Math.random() * 40, g: 40, size: 1 + (i % 2), life: 0.8, color: i % 2 ? "#ffe14d" : "#bffff0" });
   }
   // boss contact while charging: −1 Máu (1.2 s invulnerability) + knockback
   bossRam(f, nx, nd) {
@@ -211,11 +249,13 @@ export class GatherScene {
   update(dt) {
     { const kI = this.keyI || this.bagClick, kX = this.keyX, eat = this.clickEat; this.keyI = this.keyX = this.bagClick = this.clickEat = false;
       if (!this.result && !this.ended) { // inventory freezes the whole dive (timers, O₂, fish, monsters, particles)
+        if (this.tutTip) return this.updateTutTip(dt, kI, eat); // inventory coach tip: small modal, any key closes
         if (this.inv) return this.updateInv(dt, kI, kX, eat);
         if (kI) return this.openInv();
       } }
     for (const a of [this.ps, this.psUI]) a.update(dt);
-    if (this.sinks.length) { for (const q of this.sinks) { q.life -= dt; q.vd += 1.4 * dt; q.x += q.vx * dt; q.d += q.vd * dt; q.rot += q.vr * dt; } this.sinks = this.sinks.filter((q) => q.life > 0); }
+    if (this.sinks.length) { for (const q of this.sinks) { q.life -= dt; q.vd += 1.4 * dt; q.x += q.vx * dt; q.d += q.vd * dt; q.rot += q.vr * dt; const ch = q.d > DEEP.zone && this.ter.chanAt(q.x, q.d); if (ch) { q.x += ch.vx * dt; q.d += ch.vd * dt; } } this.sinks = this.sinks.filter((q) => q.life > 0); }
+    if (!this.result) { updateFloodFx(this.flood, dt, W); this.chFx.update(dt); if (this.floodWarn > 0) this.floodWarn -= dt; if (this.ter.clam.open) this.ter.clam.t += dt; }
     this.toasts.forEach((t) => { t.life -= dt; t.y -= dt * 18; }); this.toasts = this.toasts.filter((t) => t.life > 0);
     if (this.result) { this.result.t += dt; if (input.hit("restart")) this.onEnd({ restart: true }); else if (this.result.t > 0.6 && input.any()) this.onEnd(this.result); return; }
 
@@ -227,8 +267,11 @@ export class GatherScene {
     this.sprint = input.down("sprint") && (mx || md) ? 1 : 0;
     const sp = this.swim * (this.sprint ? 1.8 : 1);
     p.vx = lerp(p.vx, mx * sp, 0.18); p.vd = lerp(p.vd, md * sp, 0.18);
-    p.x = clamp(p.x + p.vx * dt, 0, t.bounds.x[1]);
-    p.d = clamp(p.d + p.vd * dt, 0, this.maxD);
+    // flood current (before movement, on the depth at the start of the step) + deep channels: displacement only,
+    // never accumulated into p.vx / p.vd
+    const push = this.flood.step(dt, p.d), ch = p.d > DEEP.zone ? this.ter.chanAt(p.x, p.d) : null;
+    this.chanNow = ch;
+    this.moveDiver((p.vx + push + (ch ? ch.vx : 0)) * dt, (p.vd + (ch ? ch.vd : 0)) * dt);
     if (mx || md) { p.heading = Math.atan2(md, mx); if (Math.abs(mx) > 0.01) p.face = mx > 0 ? 1 : -1; }
     // aim (world metres): mouse if it moved in the last 2.5 s, else the swim heading, else straight ahead
     const mouseAim = this.mouseT > 0 && performance.now() - this.mouseT < 2500;
@@ -280,6 +323,8 @@ export class GatherScene {
     }
     if ((input.hit("catch") || (input.hit("confirm") && this.mouseT > 0)) && underwater && !this.harp && this.catchCd <= 0) this.fire();
     this.updateHarpoon(dt);
+    this.basketCoach(dt);
+    { const k = this.ter.clam; if (!k.open && underwater && Math.hypot(p.x - k.x, p.d - k.d) < 1.8) this.openClam(k); }
     if (input.hit("restart")) this.onEnd({ restart: true });
 
     // --- timer ---
@@ -314,8 +359,16 @@ export class GatherScene {
     if (h.state === "out") {
       const step = 24 * dt; h.x += h.ax * step; h.d += h.ad * step; h.dist += step;
       if (h.d < 0) { h.d = 0; h.state = "back"; }
-      const sn = this.snakeAt(h.x, h.d), cr = sn ? null : crocAt(this.crocs, h.x, h.d);
-      if (sn) { if (!this.hitMonster(sn, "snake")) this.stun(sn); h.state = "back"; }
+      const rockHit = h.d > DEEP.zone && (this.ter.solid(h.x, h.d) || this.ter.solid(h.x - h.ax * step * 0.5, h.d - h.ad * step * 0.5));
+      const sn = rockHit ? null : this.snakeAt(h.x, h.d), cr = sn || rockHit ? null : crocAt(this.crocs, h.x, h.d);
+      if (rockHit) { // spear bounces off rock: back off to open water, "tink" spark, rope reels in
+        for (let i = 0; i < 6 && this.ter.solid(h.x, h.d); i++) { h.x -= h.ax * step * 0.25; h.d -= h.ad * step * 0.25; }
+        h.state = "back"; h.rock = true; sfx("click"); sfx("blip"); fx.shake(1, 0.06);
+        const sx = this._sx(h.x), sy = this._sy(h.d);
+        this.ps.add({ x: sx, y: sy, ring: true, size: 2, life: 0.2, color: "#fff6c0", fade: false });
+        for (let i = 0; i < 7; i++) this.ps.add({ x: sx, y: sy, vx: -h.ax * 40 + (Math.random() - .5) * 60, vy: -h.ad * 40 + (Math.random() - .5) * 60, g: 40, size: 1, life: 0.25, color: i % 2 ? "#ffe9a0" : "#ffffff" });
+      }
+      else if (sn) { if (!this.hitMonster(sn, "snake")) this.stun(sn); h.state = "back"; }
       else if (cr) { if (!this.hitMonster(cr, "croc")) this.stunCroc(cr); h.state = "back"; }
       else for (const f of [...this.fish, ...this.deep]) {
         if (f.caught || f.hooked || Math.hypot(f.x - h.x, f.d - h.d) > this.hitRadius(f)) continue;
@@ -438,16 +491,23 @@ export class GatherScene {
     }
     // water body
     bands(c, 0, surY, W, botY - surY + 30, WATER, 16);
-    godRays(c, cam * sc, surY, botY - surY, time, 0.08);
     // deep zone: darker, colder water below DEEP.zone
-    { const zy = this._sy(DEEP.zone); const g = c.createLinearGradient(0, zy - 40, 0, botY); g.addColorStop(0, "rgba(4,10,30,0)"); g.addColorStop(0.25, "rgba(4,10,30,.45)"); g.addColorStop(1, "rgba(2,4,16,.8)"); c.fillStyle = g; c.fillRect(0, zy - 40, W, botY - zy + 40);
-      R(c, 0, zy, W, 1, "rgba(140,200,255,.18)"); txt("— VÙNG SÂU · cá to —", W - 6, zy - 2, { size: 7, align: "right", color: "rgba(160,215,255,.55)", weight: 800 }); }
-    if (botY > this._sy(DEEP.zone) && this._sy(DEEP.zone) < H) drawDeepScenery(c, W / 2 - cam * sc, surY, sc, VS, time, W, H, kelp, rock);
+    { const zy = this._sy(DEEP.zone); const g = c.createLinearGradient(0, zy - 40, 0, botY); g.addColorStop(0, "rgba(4,10,30,0)"); g.addColorStop(0.25, "rgba(4,10,30,.45)"); g.addColorStop(1, "rgba(2,4,16,.8)"); c.fillStyle = g; c.fillRect(0, zy - 40, W, botY - zy + 40); }
+    // parallax underwater mountains (far uw_far + ridgeline, god rays, mid uw_mid arches, near ridges); clearer with depth
+    { const camD = (this.camY + H / 2 - 58) / VS; this.ter.drawBackdrop(c, cam * sc, this.camY, W, H, clamp((camD - 8) / 32, 0, 1), time, this._rays); }
+    { const zy = this._sy(DEEP.zone); R(c, 0, zy, W, 1, "rgba(140,200,255,.18)"); txt("— VÙNG SÂU · cá to —", W - 6, zy - 2, { size: 7, align: "right", color: "rgba(160,215,255,.55)", weight: 800 }); }
     // parallax weeds + hyacinth mats
     for (let i = 0; i < 8; i++) { const wx = ((i * 190 + 40) - cam * sc) ; if (wx > -40 && wx < W + 40) hyacinth(c, wx, surY, 24 + (i % 3) * 10, time, i); }
-    for (let i = 0; i < 24; i++) { const kx = (i * 46 - cam * sc * 1.1); const mx = ((kx % (W + 60)) + W + 60) % (W + 60) - 30; kelp(c, mx, botY, 24 + (i % 5) * 14, time); }
+    { const ln = this.flood.lean * this.flood.vis; for (let i = 0; i < 24; i++) { const kx = (i * 46 - cam * sc * 1.1); const mx = ((kx % (W + 60)) + W + 60) % (W + 60) - 30; leanKelp(c, kelp, mx, botY, 24 + (i % 5) * 14, time, ln); } }
     c.fillStyle = "#2c2419"; c.fillRect(0, botY - 4, W, H - botY + 8);
     for (let i = 0; i < 10; i++) { const rx = (i * 70 - cam * sc); const mx = ((rx % (W + 80)) + W + 80) % (W + 80) - 40; rock(c, mx, botY - 3, 10 + (i % 3) * 5, 6); }
+    // terrain (cached): contract-zone edge decoration + solid deep-zone rock, cave, channels, props on top
+    { const ox = W / 2 - cam * sc; this.ter.draw(c, ox, surY, sc, VS, W, H);
+      if (botY > this._sy(DEEP.zone) && this._sy(DEEP.zone) < H) {
+        this.chFx.draw(c, ox, surY, sc, VS, W, H, time);
+        this.ter.drawCave(c, ox, surY, sc, VS, time, W, H);
+        drawDeepScenery(c, ox, surY, sc, VS, time, W, H, kelp, rock, this.ter, this._leanAt);
+      } }
     // depth guides
     for (let d = 5; d <= this.maxD; d += 5) { const y = this._sy(d); R(c, 0, y, W, 1, "rgba(255,255,255,.05)"); txt(d + "m", 3, y - 1, { size: 7, color: "rgba(255,255,255,.3)", weight: 700 }); }
     // surface shimmer
@@ -479,7 +539,7 @@ export class GatherScene {
     const tgt = under0 && !this.harp ? this.aimTarget() : null;
     if (under0 && !this.harp) { // dotted aim guide
       const RR = this.harpRange(), ax = Math.cos(this.aim), ad = Math.sin(this.aim);
-      for (let k = 1.2; k <= RR; k += 0.6) R(c, Math.round(this._sx(p.x + ax * k)), Math.round(this._sy(p.d + ad * k)), 1, 1, `rgba(255,240,180,${0.5 - k / RR * 0.35})`);
+      for (let k = 1.2; k <= RR; k += 0.6) { if (this.ter.solid(p.x + ax * k, p.d + ad * k)) break; R(c, Math.round(this._sx(p.x + ax * k)), Math.round(this._sy(p.d + ad * k)), 1, 1, `rgba(255,240,180,${0.5 - k / RR * 0.35})`); }
       const ex = this._sx(p.x + ax * RR), ey = this._sy(p.d + ad * RR); c.strokeStyle = "rgba(255,240,180,.4)"; c.strokeRect(Math.round(ex) - 2, Math.round(ey) - 2, 4, 4);
     }
     if (tgt) { // aim label: name + HP (+ yield or bounty); "(N phát)" = hits still needed with the current spear
@@ -507,6 +567,7 @@ export class GatherScene {
       c.save(); c.globalAlpha = clamp(q.life, 0, 1); c.translate(Math.round(this._sx(q.x)), Math.round(this._sy(q.d))); c.rotate(q.rot); c.drawImage(icon(q.kind), -5, -5, 10, 10); c.restore();
     }
 
+    drawFloodFx(c, this.flood, W, H, this._sy(this.flood.c.min_depth), time); // flood streaks below 10 m
     // danger vignette
     if (this.danger > 0.01) {
       const g = c.createRadialGradient(W / 2, H / 2, H * 0.25, W / 2, H / 2, H * 0.75);
@@ -517,6 +578,7 @@ export class GatherScene {
 
     this.drawHUD(c, time);
     if (this.inv) this.drawInv(time);
+    else if (this.tutTip) this.drawTutTip(time);
     if (this.result) this.drawResult(c, time);
     else if (this.hintT > 0 && !this.started) this.drawHint(c);
   }
@@ -587,11 +649,29 @@ export class GatherScene {
     }
 
     this.drawRadar(u, time);
+    this.drawFloodHUD(u, time);
     // toasts near player
     const px = this._sx(p.x), py = this._sy(p.d);
     this.toasts.forEach((t, i) => txt(t.txt, px, py - 14 + t.y - (this.toasts.length - 1 - i) * 11, { size: 9, align: "center", color: t.col, weight: 900, stroke: "#1a1220", sw: 2.5, alpha: clamp(t.life, 0, 1) }));
     // controls hint (bottom)
     txt("WASD bơi · E hái/cập bến · Space/chuột: bắn lao · Shift bơi nhanh · I: túi đồ · Esc/P tạm dừng", W / 2, H - 5, { size: 7, align: "center", color: "rgba(255,255,255,.55)", weight: 700 });
+  }
+  // Dòng lũ: warning banner (text + arrow icon, 2 s before) and the active pill "Dòng lũ ⇢ 6s"
+  drawFloodHUD(u, time) {
+    const fl = this.flood, warn = fl.warning();
+    const arrow = (x, y, dir, col) => { u.save(); u.translate(x, y); u.scale(dir, 1); u.fillStyle = col; u.fillRect(-7, -2, 8, 4); u.beginPath(); u.moveTo(1, -6); u.lineTo(8, 0); u.lineTo(1, 6); u.closePath(); u.fill(); u.restore(); };
+    if (warn) {
+      const a = 0.7 + 0.3 * Math.sin(time * 10), y = 52;
+      panel(W / 2 - 78, y - 13, 156, 20, { fill: "rgba(6,24,44,.88)", border: "#7fd8ff", r: 7, alpha: a });
+      txt("Dòng lũ sắp tới! " + (warn > 0 ? "⇢" : "⇠"), W / 2 + 8, y + 1, { size: 10, align: "center", color: "#bff0ff", weight: 900, stroke: "#06101e", sw: 2, alpha: a });
+      arrow(W / 2 - 64, y - 3, warn, "#7fd8ff");
+    }
+    if (fl.active) {
+      const s = Math.ceil(fl.secondsLeft()), y = 22, under = this.p.d >= fl.c.min_depth;
+      panel(W / 2 - 34, y, 68, 13, { fill: "rgba(6,24,44,.85)", border: under ? "#7fd8ff" : "#4a6a80", r: 6 });
+      txt("Dòng lũ " + (fl.dir > 0 ? "⇢" : "⇠") + " " + s + "s", W / 2, y + 10, { size: 8, align: "center", color: under ? "#bff0ff" : "#8fb0c4", weight: 900 });
+    }
+    if (this.chanNow && this.p.d > DEEP.zone) txt(this.chanNow.vx ? "Dòng ngầm ⇢ đi nhanh!" : "Dòng trồi ↑", W / 2, H - 16, { size: 8, align: "center", color: "#9fe8ff", weight: 900, stroke: "#06101e", sw: 2, alpha: 0.8 });
   }
   // edge-of-screen arrow + fish icon + distance to the nearest school of each needed kind that is off-screen
   drawRadar(u, time) {
@@ -628,7 +708,38 @@ export class GatherScene {
     for (const it of decay(this.items, this.fresh.gather_decay_per_s, dt, this.fresh.spoiled_below)) this.toast("Ươn! " + (KIND_NAME[it.kind] || it.kind) + " " + it.id + " đã ươn", "#b0b0b0");
   }
   itemName(i) { const id = this.holdFrom[i], sp = id && DEEP.species.find((s) => s.id === id); return sp ? sp.name : KIND_NAME[this.hold[i]] || this.hold[i]; }
-  openInv() { this.syncFrom(); this.inv = { sel: Math.max(0, this.hold.length - 1), confirm: null, t: 0, msg: null }; this.tossed = []; sfx("click"); }
+  openInv() { this.syncFrom(); this.inv = { sel: Math.max(0, this.hold.length - 1), confirm: null, t: 0, msg: null, tutor: !this.tutDone() }; this.tossed = []; sfx("click"); }
+  // ---- inventory tutorial (until the player has thrown an item out once; flag in save.tutorial.inventory) ----
+  tutDone() { return !!save.tutorial?.inventory; }
+  needMet() { if (!this.need) return true; const have = {}; for (const k of this.hold) have[k] = (have[k] || 0) + 1; for (const [k, n] of Object.entries(this.need)) if ((have[k] || 0) < n) return false; return true; }
+  basketCoach(dt) {
+    if (this.fullTipT > 0) this.fullTipT -= dt;
+    if (this.ended || this.hold.length < this.cap - 2 || this.needMet()) return;
+    if (!this.tutDone() && !this.tutShown) {
+      this.tutShown = true; this.tutTip = { t: 0 }; sfx("ding");
+      try { voiceLine("Út Sen", "Giỏ sắp đầy rồi! Mở túi đồ vứt bớt món không cần nghen!"); } catch (e) {}
+    } else if (this.hold.length >= this.cap && !(this.fullTipT > 0)) { this.fullTipT = 20; this.toast("Giỏ đầy! I: mở túi → X vứt món không cần", "#ffd23a"); }
+  }
+  updateTutTip(dt, kI, eat) {
+    const tp = this.tutTip; tp.t += dt;
+    if (kI) { this.tutTip = null; return this.openInv(); }
+    const anyK = this.keyAny || input.anyKey() || eat; this.keyAny = false;
+    if (tp.t > 0.35 && anyK) { this.tutTip = null; sfx("click"); }
+    else if (tp.t > 8) this.tutTip = null;
+  }
+  drawTutTip(time) {
+    const u = screen.ui, [gx, gy, gw, gh] = this.bagRect, cx = gx + gw / 2, cy = gy + gh / 2, a = Math.min(1, this.tutTip.t * 4), pr = 14 + Math.sin(time * 6) * 2;
+    u.save(); u.globalAlpha = a; u.fillStyle = "rgba(4,8,16,.62)"; u.beginPath(); u.rect(0, 0, W, H); u.arc(cx, cy, pr + 3, 0, TAU, true); u.fill("evenodd");
+    u.strokeStyle = "#ffe14d"; u.lineWidth = 2; u.beginPath(); u.arc(cx, cy, pr, 0, TAU); u.stroke();
+    u.globalAlpha = a * 0.4; u.beginPath(); u.arc(cx, cy, pr + 5 + Math.sin(time * 6) * 2, 0, TAU); u.stroke(); u.restore();
+    const bx = W - 250, by = 52, bw = 228, bh = 46, bob = Math.sin(time * 5) * 2;
+    u.save(); u.globalAlpha = a; u.strokeStyle = "#ffe14d"; u.lineWidth = 2; u.beginPath(); u.moveTo(bx + bw - 20, by); u.lineTo(cx - 4, cy + pr + 4 + bob); u.stroke();
+    u.fillStyle = "#ffe14d"; u.beginPath(); u.moveTo(cx - 4, cy + pr + 2 + bob); u.lineTo(cx - 9, cy + pr + 10 + bob); u.lineTo(cx + 2, cy + pr + 9 + bob); u.closePath(); u.fill(); u.restore();
+    panel(bx, by, bw, bh, { fill: "rgba(62,38,20,.96)", border: "#f3d27a", r: 7, alpha: a });
+    txt("Út Sen: Giỏ sắp đầy!", bx + 8, by + 12, { size: 9, color: "#ffe14d", weight: 900, alpha: a });
+    txt("Nhấn I để mở túi đồ → chọn món không cần → X để vứt", bx + 8, by + 25, { size: 7, color: "#fff", weight: 800, alpha: a });
+    txt("(phím bất kỳ để đóng · I mở túi ngay)", bx + 8, by + 38, { size: 7, color: "rgba(255,240,200,.7)", weight: 700, alpha: a });
+  }
   closeInv() {
     this.inv = null; sfx("click");
     if (!this.tossed.length) return;
@@ -644,6 +755,7 @@ export class GatherScene {
     const [bx, by, bw, bh] = this.bagRect;
     if (this.result || this.ended) return;
     if (mx >= bx - 2 && mx <= bx + bw + 2 && my >= by - 2 && my <= by + bh + 10) { this.bagClick = true; this.clickEat = true; return; }
+    if (this.tutTip) { this.clickEat = true; return; }
     if (!this.inv) return;
     this.clickEat = true; const g = this.invGeo();
     const col = Math.floor((mx - g.gx) / g.sw), row = Math.floor((my - g.gy) / (g.sh + 1)), i = row * g.cols + col;
@@ -676,6 +788,7 @@ export class GatherScene {
     const v = this.inv;
     for (const i of [...idx].sort((a, b) => b - a)) { this.tossed.push(this.hold[i]); this.hold.splice(i, 1); this.holdFrom.splice(i, 1); this.items.splice(i, 1); }
     sfx("bubble"); sfx("pick");
+    if (!this.tutDone()) { save.tutorial = { ...(save.tutorial || {}), inventory: true }; persist(); }
     if (v) { v.sel = clamp(v.sel, 0, Math.max(0, this.hold.length - 1)); v.msg = { text: "Đã vứt " + (idx.length > 1 ? idx.length + " món" : "1 món") + " — giỏ còn " + this.hold.length + "/" + this.cap, life: 1.4 }; }
   }
   drawInv(time) {
@@ -716,6 +829,11 @@ export class GatherScene {
       if (sel?.spoiled) txt("Chọn: " + sel.id + " " + this.itemName(v.sel) + " — đã ươn, không nấu được: nên vứt bỏ (E/X)", W / 2, my, { size: 8, align: "center", color: "#ff9a9a", weight: 900 });
       else txt("Chọn: " + (sel ? sel.id + " " : "") + this.itemName(v.sel) + (sel ? " · tươi " + Math.floor(sel.fresh) + "%" : "") + (nSp ? ` · ${nSp} món ươn — nên vứt bỏ` : ""), W / 2, my, { size: 8, align: "center", color: nSp ? "#ffb0a0" : "#ffe9b0", weight: 800 }); }
     txt("←↑↓→ chọn · E/Enter/X: Vứt bỏ · Shift+E: vứt cả loại · I/Esc: đóng", W / 2, g.py + g.ph - 7, { size: 7, align: "center", color: "rgba(255,240,200,.75)", weight: 700 });
+    if (v.tutor) { // first-time inline coach strip (until an item has been thrown out once)
+      const ty = g.py + g.ph + 4, pz = 0.75 + 0.25 * Math.sin(time * 6);
+      panel(W / 2 - 130, ty, 260, 16, { fill: "rgba(255,225,80,.95)", border: "#1a1220", r: 6, alpha: pz });
+      txt("Hướng dẫn: ←↑↓→ chọn · X vứt · Shift+E vứt cả loại · I đóng", W / 2, ty + 11, { size: 8, align: "center", color: "#1a1220", weight: 900 });
+    }
   }
 
   heart(u, x, y, full, time) {

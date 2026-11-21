@@ -36,7 +36,21 @@ export function preloadDeep() {
 }
 
 // start already on the patrol curve (x = home + sin(phase)·range), so the first update does not teleport it
-function mk(id, sp, x, d, phase) { return { id, sp, kind: sp.kind, x: Math.max(1, Math.min(99, x + Math.sin(phase) * sp.range)), d, hx: x, hd: d, face: 1, caught: false, phase, hp: sp.hp || 1, hpMax: sp.hp || 1, state: "patrol", st: 0, vx: 0, vd: 0, flash: 0, hpShow: 0 }; }
+function mk(id, sp, x, d, phase) { return { id, sp, kind: sp.kind, x: Math.max(1, Math.min(99, x + Math.sin(phase) * sp.range)), d, hx: x, hd: d, range: sp.range, face: 1, caught: false, phase, hp: sp.hp || 1, hpMax: sp.hp || 1, state: "patrol", st: 0, vx: 0, vd: 0, flash: 0, hpShow: 0 }; }
+// collision radius of a deep fish against terrain (m)
+export const bodyR = (f) => f.sp.boss ? 2.2 : f.sp.school ? 1.4 : Math.max(0.9, (f.sp.hitR ?? f.sp.radius * 0.7) * 0.6);
+// terrain (terrain.js): move every spawn into open water (away from rock, current channels and the cave) and
+// shrink / recentre each patrol so the whole sway path stays clear of rock
+export function placeDeep(list, ter, maxD = DEEP.depth) {
+  for (const f of list) {
+    const [d0, d1] = band(f, maxD), r = bodyR(f);
+    const [x, d] = ter.openSpot(f.hx, Math.max(d0 + 0.7, Math.min(d1 - 0.7, f.hd)), r, d0 + 0.7, d1 - 0.7);
+    const [L, R] = ter.freeSpan(x, d, r, 0.7, f.sp.range + 8);
+    const c = Math.max(1, Math.min(99, x + (R - L) / 2)), half = (L + R) / 2;
+    f.hx = c; f.hd = d; f.range = Math.max(0.5, Math.min(f.sp.range, half - 0.3));
+    f.x = Math.max(1, Math.min(99, f.hx + Math.sin(f.phase) * f.range)); f.d = d;
+  }
+}
 export function makeDeepFish(rand = Math.random) {
   const out = []; let n = 0;
   for (const sp of DEEP.species) for (const [x, d] of sp.spawns) { n++; out.push(mk("D" + n, sp, x, d, n * 1.3)); }
@@ -61,7 +75,7 @@ export function updateDeepFish(list, dt, maxD, env) {
     const sp = f.sp, [d0, d1] = band(f, maxD);
     if (f.flash > 0) f.flash -= dt;
     if (f.hpShow > 0) f.hpShow -= dt;
-    const tx = f.hx + Math.sin(f.phase) * sp.range, td = Math.max(d0, Math.min(d1, f.hd + Math.sin(f.phase * 2.3) * 0.6));
+    const ox = f.x, od = f.d, rng = f.range ?? sp.range, tx = f.hx + Math.sin(f.phase) * rng, td = Math.max(d0, Math.min(d1, f.hd + Math.sin(f.phase * 2.3) * 0.6));
     if ((f.state === "flee" || f.state === "charge") && env) {
       f.st -= dt;
       const dx = env.px - f.x, dd = env.pd - f.d, r = Math.hypot(dx, dd) || 1e-6;
@@ -75,12 +89,20 @@ export function updateDeepFish(list, dt, maxD, env) {
       const dx = tx - f.x, dd = td - f.d, r = Math.hypot(dx, dd), step = sp.speed * 2.5 * dt;
       f.vx = 0; f.vd = 0;
       if (r <= step + 0.05) f.state = "patrol"; else { f.x += dx / r * step; f.d += dd / r * step; if (Math.abs(dx) > 0.05) f.face = dx > 0 ? 1 : -1; }
+      // blocked on the way home: slide along one axis (try d first — rock is mostly below)
+      if (env?.blocked?.(f.x, f.d, bodyR(f))) { f.x = ox; if (env.blocked(f.x, f.d, bodyR(f))) { f.d = od; f.x = ox + dx / r * step; if (env.blocked(f.x, f.d, bodyR(f))) { f.x = ox; f.d = od - step; if (env.blocked(f.x, f.d, bodyR(f))) f.d = od; } } }
     } else {
-      f.phase += dt * sp.speed / sp.range;
+      f.phase += dt * sp.speed / rng;
       f.face = Math.cos(f.phase) >= 0 ? 1 : -1;
       f.x = Math.min(99, tx); f.d = td;
     }
     f.x = Math.max(1, Math.min(99, f.x)); f.d = Math.max(d0, Math.min(d1, f.d));
+    // terrain: flee / charge / patrol never enter rock (or, for fish, the current channels): stop at the surface
+    if (env?.blocked && (f.x !== ox || f.d !== od) && env.blocked(f.x, f.d, bodyR(f))) {
+      const r = bodyR(f);
+      if (!env.blocked(f.x, od, r)) f.d = od; else if (!env.blocked(ox, f.d, r)) f.x = ox; else { f.x = ox; f.d = od; }
+      f.vx *= 0.3; f.vd *= 0.3;
+    }
   }
 }
 
@@ -137,18 +159,32 @@ let propsImg = null;
 function props() { if (!propsImg) { propsImg = new Image(); propsImg.src = "assets/" + PROPS; } return propsImg; }
 
 // screen x = ox + x*sx, screen y = oy + d*sy; kelp/rock come from art.js (passed in so deep.js stays art-agnostic)
-export function drawDeepScenery(c, ox, oy, sx, sy, t, W, H, kelp, rock) {
+// kelp bent by the water: shear around its base (lean −1..1, + = toward +x)
+function leanKelp(c, kelp, x, y, h, t, lean, a, b) {
+  if (Math.abs(lean) < 0.02) return kelp(c, x, y, h, t, a, b);
+  c.save(); c.translate(0, y); c.transform(1, 0, -lean * 0.9, 1, 0, 0); kelp(c, x, 0, h, t, a, b); c.restore();
+}
+export { leanKelp };
+// ter (terrain.js, optional): props / tufts sit on the terrain top at their x; leanAt(x, d) → kelp lean
+const TOPS = new WeakMap();
+export function drawDeepScenery(c, ox, oy, sx, sy, t, W, H, kelp, rock, ter = null, leanAt = null) {
   const im = props(), ok = im.complete && im.naturalWidth > 0;
+  let tops = ter && TOPS.get(ter);
+  if (ter && !tops) { tops = { t: TUFTS.map(([x]) => ter.topAt(x)), s: SCENERY.map(([x]) => ter.topAt(x)) }; TOPS.set(ter, tops); }
   const prevSmooth = c.imageSmoothingEnabled; c.imageSmoothingEnabled = false;
-  for (const [x, d, h] of TUFTS) {
-    const px = Math.round(ox + x * sx), py = Math.round(oy + d * sy);
-    if (px < -30 || px > W + 30 || py < -h || py > H + 20) continue;
-    rock(c, px, py + 2, 12, 5, "#1b2733", "#2c3d4c"); kelp(c, px - 3, py, h, t, "#1d4a3a", "#2f6a50"); kelp(c, px + 4, py, h * 0.7, t + 1, "#1d4a3a", "#2f6a50");
+  for (let i = 0; i < TUFTS.length; i++) {
+    const x = TUFTS[i][0], d = tops ? tops.t[i] : TUFTS[i][1], h = TUFTS[i][2];
+    const px = Math.round(ox + x * sx), py = Math.round(oy + d * sy) + (tops ? 1 : 0);
+    if (px < -30 || px > W + 30 || py < -h || py > H + h) continue;
+    const ln = leanAt ? leanAt(x, d - 1) : 0;
+    if (!tops) rock(c, px, py + 2, 12, 5, "#1b2733", "#2c3d4c");
+    leanKelp(c, kelp, px - 3, py, h, t, ln, "#1d4a3a", "#2f6a50"); leanKelp(c, kelp, px + 4, py, h * 0.7, t + 1, ln, "#1d4a3a", "#2f6a50");
   }
-  for (const [x, d, k, s] of SCENERY) {
-    const r = RECT[k], w = r[2] * s, h = r[3] * s, px = Math.round(ox + x * sx), py = Math.round(oy + d * sy);
+  for (let i = 0; i < SCENERY.length; i++) {
+    const [x, d0, k, s] = SCENERY[i], d = tops ? tops.s[i] : d0;
+    const r = RECT[k], w = r[2] * s, h = r[3] * s, px = Math.round(ox + x * sx), py = Math.round(oy + d * sy) + (tops ? 2 : 0);
     if (px < -w || px > W + w || py < -10 || py > H + h) continue;
-    rock(c, px, py + 1, w * 0.6, 4, "#16212c", "#26384a");
+    if (!tops) rock(c, px, py + 1, w * 0.6, 4, "#16212c", "#26384a");
     if (ok) { c.globalAlpha = 0.8; c.drawImage(im, r[0], r[1], r[2], r[3], Math.round(px - w / 2), Math.round(py - h), Math.round(w), Math.round(h)); c.globalAlpha = 1; }
   }
   c.imageSmoothingEnabled = prevSmooth;
