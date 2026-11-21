@@ -64,8 +64,14 @@ def step_inventory(tmp):
     sc = os.path.join(tmp, "sc.json")
     inp = os.path.join(tmp, "in.json")
     inv = os.path.join(tmp, "kho.json")
+    with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
+        v12 = "freshness" in json.load(f)["tuning"]
+    if v12:  # Ticket-03: giỏ là mảng cá thể fresh 100, cập bến frame 0 -> quan --ticks 0 giữ id/kind/fresh
+        hold = [{"id": f"I{i}", "kind": k, "fresh": 100} for i, k in enumerate(("ca_loc", "bong_sung", "bong_sung"), 1)]
+    else:
+        hold = ["ca_loc", "bong_sung", "bong_sung"]
     with open(sc, "w", encoding="utf-8") as f:
-        json.dump({"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"]}}, f)
+        json.dump({"gather": {"hold": hold}}, f)
     with open(inp, "w", encoding="utf-8") as f:
         json.dump({"frames": [{"tick": 0, "interact": True}]}, f)
     code, err = run([*headless_cmd(), "--mode", "gather", "--seed", "1", "--ticks", "1", "--scenario", sc,
