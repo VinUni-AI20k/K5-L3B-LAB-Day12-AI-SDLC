@@ -1,4 +1,4 @@
-# Regression (P1 + P2) trên nhánh mKhaiTruong/contract-v1.1 @ dafe2ee · Python 3.12.7 · Windows 11
+# Regression (P1 + P2) trên mKhaiTruong/verify-phase-2 @ 4fea4e1 (code = contract-v1.1 @ a676021) · Python 3.12.7 · Windows 11
 # lệnh: PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
 test_day_runs_and_is_deterministic (test_day.Cli.test_day_runs_and_is_deterministic) ... ok
 test_days_validation_exit_2 (test_day.Cli.test_days_validation_exit_2) ... đầu vào sai: --days phải là số nguyên từ 1 đến 5
@@ -12,6 +12,8 @@ test_faint_gives_empty_stock (test_day.DayFlow.test_faint_gives_empty_stock) ...
 test_gather_to_quan_to_shop_and_stock_carried (test_day.DayFlow.test_gather_to_quan_to_shop_and_stock_carried) ... ok
 test_money_earned_reputation_carry_over (test_day.DayFlow.test_money_earned_reputation_carry_over) ... ok
 test_quan_menu_filtered_by_plan (test_day.DayFlow.test_quan_menu_filtered_by_plan) ... ok
+test_m2_appears_from_day_3 (test_day.MonstersByDay.test_m2_appears_from_day_3)
+Bố trí Cá Sấu theo Ngày: M1 từ Ngày 1, M2 từ Ngày 3 (spawns.from_day). ... ok
 test_pause_freezes_sim_and_resume_runs_same_tick (test_day.Pause.test_pause_freezes_sim_and_resume_runs_same_tick) ... ok
 test_pause_works_in_gather_and_quan_modes (test_day.Pause.test_pause_works_in_gather_and_quan_modes) ... ok
 test_shop_timer_frozen_while_paused (test_day.Pause.test_shop_timer_frozen_while_paused) ... ok
@@ -29,6 +31,22 @@ test_hp_upgrade_applied_next_day (test_day.Shop.test_hp_upgrade_applied_next_day
 test_last_day_ends_run (test_day.Shop.test_last_day_ends_run) ... ok
 test_shop_closes_after_600_ticks (test_day.Shop.test_shop_closes_after_600_ticks) ... ok
 test_upgrade_active_from_next_day_only (test_day.Shop.test_upgrade_active_from_next_day_only) ... ok
+test_f01_seed1_initial_schools (test_gather_fish.FishInitial.test_f01_seed1_initial_schools) ... ok
+test_f02_initial_points_valid_and_distinct (test_gather_fish.FishInitial.test_f02_initial_points_valid_and_distinct) ... ok
+test_f03_same_seed_same_fish_other_seed_differs (test_gather_fish.FishInitial.test_f03_same_seed_same_fish_other_seed_differs) ... ok
+test_f04_random_fish_false_no_default_fish (test_gather_fish.FishInitial.test_f04_random_fish_false_no_default_fish) ... ok
+test_f05_fixture_fish_replaces_initial (test_gather_fish.FishInitial.test_f05_fixture_fish_replaces_initial) ... ok
+test_p01_default_seed1_full_shift (test_gather_fish.FishSpawn.test_p01_default_seed1_full_shift) ... ok
+test_p02_new_fish_joins_next_step (test_gather_fish.FishSpawn.test_p02_new_fish_joins_next_step) ... ok
+test_p03_no_spawn_at_cap (test_gather_fish.FishSpawn.test_p03_no_spawn_at_cap) ... ok
+test_s01_swim_speed (test_gather_fish.FishSwim.test_s01_swim_speed) ... ok
+test_s02_turn_at_age_120_before_move (test_gather_fish.FishSwim.test_s02_turn_at_age_120_before_move) ... ok
+test_s03_reflect_at_x_edge (test_gather_fish.FishSwim.test_s03_reflect_at_x_edge) ... ok
+test_s04_reflect_at_depth_band (test_gather_fish.FishSwim.test_s04_reflect_at_depth_band) ... ok
+test_s05_reflect_at_corner_flips_both (test_gather_fish.FishSwim.test_s05_reflect_at_corner_flips_both) ... ok
+test_s06_catch_uses_position_before_swim (test_gather_fish.FishSwim.test_s06_catch_uses_position_before_swim) ... ok
+test_s07_no_swim_on_time_end_step (test_gather_fish.FishSwim.test_s07_no_swim_on_time_end_step) ... ok
+test_s08_random_fish_false_fixture_static (test_gather_fish.FishSwim.test_s08_random_fish_false_fixture_static) ... ok
 test_l1_06_first_choke_at_t_plus_59 (test_gather_lat1.Lat1ChokeFaint.test_l1_06_first_choke_at_t_plus_59) ... ok
 test_l1_07_surface_on_choke_step_no_choke (test_gather_lat1.Lat1ChokeFaint.test_l1_07_surface_on_choke_step_no_choke) ... ok
 test_l1_08_choke_without_surfacing (test_gather_lat1.Lat1ChokeFaint.test_l1_08_choke_without_surfacing) ... ok
@@ -47,7 +65,7 @@ test_l2_12_no_catch_at_surface (test_gather_lat2.Lat2Catch.test_l2_12_no_catch_a
 test_l2_13_hold_full_keeps_fish_no_cooldown_no_retry (test_gather_lat2.Lat2Catch.test_l2_13_hold_full_keeps_fish_no_cooldown_no_retry) ... ok
 test_l2_14_no_fish_in_range_no_cooldown (test_gather_lat2.Lat2Catch.test_l2_14_no_fish_in_range_no_cooldown) ... ok
 test_l2_15_catch_at_radius_edge (test_gather_lat2.Lat2Catch.test_l2_15_catch_at_radius_edge) ... ok
-test_l2_16_default_fish_when_random_fish_true (test_gather_lat2.Lat2Catch.test_l2_16_default_fish_when_random_fish_true) ... FAIL
+test_l2_16_default_fish_when_random_fish_true (test_gather_lat2.Lat2Catch.test_l2_16_default_fish_when_random_fish_true) ... ok
 test_l2_01_gather_at_radius_edge (test_gather_lat2.Lat2Gather.test_l2_01_gather_at_radius_edge) ... ok
 test_l2_02_regrown_then_gather_same_step (test_gather_lat2.Lat2Gather.test_l2_02_regrown_then_gather_same_step) ... ok
 test_l2_03_hold_full_keeps_node (test_gather_lat2.Lat2Gather.test_l2_03_hold_full_keeps_node) ... ok
@@ -56,6 +74,12 @@ test_l2_05_no_gather_underwater_or_out_of_radius (test_gather_lat2.Lat2Gather.te
 test_l2_06_gather_on_last_step_goes_to_inventory (test_gather_lat2.Lat2Gather.test_l2_06_gather_on_last_step_goes_to_inventory) ... ok
 test_l2_07_second_press_on_regrowing_node (test_gather_lat2.Lat2Gather.test_l2_07_second_press_on_regrowing_node) ... ok
 test_l2_08_gather_then_dock_writes_inventory (test_gather_lat2.Lat2Gather.test_l2_08_gather_then_dock_writes_inventory) ... ok
+test_m01_default_monsters_day1 (test_gather_monsters.GatherMonsters.test_m01_default_monsters_day1) ... ok
+test_m02_day_param_enables_from_day (test_gather_monsters.GatherMonsters.test_m02_day_param_enables_from_day) ... ok
+test_m03_hit_loses_half_lifo_and_sets_invuln (test_gather_monsters.GatherMonsters.test_m03_hit_loses_half_lifo_and_sets_invuln) ... ok
+test_m04_invulnerable_blocks_hit (test_gather_monsters.GatherMonsters.test_m04_invulnerable_blocks_hit) ... ok
+test_m05_faint_by_monster (test_gather_monsters.GatherMonsters.test_m05_faint_by_monster) ... ok
+test_m06_hit_before_catch_same_step (test_gather_monsters.GatherMonsters.test_m06_hit_before_catch_same_step) ... ok
 test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
 test_apply_hit_lifo_and_recoil (test_monsters.Hit.test_apply_hit_lifo_and_recoil) ... ok
 test_coincident_center_recoils_plus_x (test_monsters.Hit.test_coincident_center_recoils_plus_x) ... ok
@@ -118,7 +142,7 @@ test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_ze
 test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
 test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
 test_con_03_old_and_future_modes_rejected (test_smoke_p1.Contract.test_con_03_old_and_future_modes_rejected) ... ok
-test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... FAIL
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
 test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
 test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
 Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
@@ -143,23 +167,7 @@ test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) 
 test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
-======================================================================
-FAIL: test_l2_16_default_fish_when_random_fish_true (test_gather_lat2.Lat2Catch.test_l2_16_default_fish_when_random_fish_true)
 ----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\MINH KHAI\Documents\VinUni\Day12\K5-L3B-LAB-Day12-AI-SDLC-G2026\tests\test_gather_lat2.py", line 192, in test_l2_16_default_fish_when_random_fish_true
-    self.assertEqual(len(evs), 1)
-AssertionError: 0 != 1
+Ran 157 tests in 12.961s
 
-======================================================================
-FAIL: test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "C:\Users\MINH KHAI\Documents\VinUni\Day12\K5-L3B-LAB-Day12-AI-SDLC-G2026\tests\test_smoke_p1.py", line 45, in test_gather_snapshot_has_gather_fields
-    self.assertEqual(len(s["fish"]), 6)
-AssertionError: 0 != 6
-
-----------------------------------------------------------------------
-Ran 134 tests in 8.937s
-
-FAILED (failures=2)
+OK
