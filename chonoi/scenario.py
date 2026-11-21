@@ -9,7 +9,7 @@ import json
 import math
 
 from .errors import BadInput
-from .inventory import KINDS_P1, validate_items
+from .inventory import KINDS_P1, inventory_schema, validate_individuals, validate_items
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks", "monsters"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
@@ -32,7 +32,8 @@ def _check_ids(name, arr):
         seen.add(e["id"])
 
 
-def load_scenario(path, mode: str, tuning: dict) -> dict:
+def load_scenario(path, mode: str, tuning: dict, version="1.1") -> dict:
+    """`version` là contract_version: từ 1.2 `gather.hold`, `quan.stock` và `customers[].reserved` là cá thể (mảng)."""
     if path is None:
         return {}
     try:
@@ -41,16 +42,16 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
     if mode == "day":
-        return _load_day(data, tuning)
+        return _load_day(data, tuning, version)
     if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
         raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
     if set(data) - {mode}:
         raise BadInput(f"khối sai mode: chạy --mode {mode} chỉ nhận khối '{mode}'")
     block = data.get(mode, {})
-    return _check_block(mode, block, tuning)
+    return _check_block(mode, block, tuning, version)
 
 
-def _check_block(mode, block, tuning):
+def _check_block(mode, block, tuning, version="1.1"):
     if not isinstance(block, dict):
         raise BadInput(f"khối {mode} phải là object")
     allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
@@ -63,23 +64,23 @@ def _check_block(mode, block, tuning):
         if isinstance(t, bool) or not isinstance(t, int) or not (1 <= t <= dur):
             raise BadInput(f"time_left_ticks phải là số nguyên trong [1, {dur}]")
     if mode == "gather":
-        _validate_gather(block, tuning)
+        _validate_gather(block, tuning, version)
     else:
-        _validate_quan(block, tuning)
+        _validate_quan(block, tuning, version)
     return block
 
 
 DAY_KEYS = {"money", "earned", "reputation", "upgrades", "day_plan"}
 
 
-def _load_day(data, tuning):
+def _load_day(data, tuning, version="1.1"):
     """Scenario của chế độ day: khối `day` (trạng thái xuyên Ngày), `gather` và `quan` là mẫu khởi tạo mỗi Ngày."""
     if not isinstance(data, dict) or not set(data) <= {"day", "gather", "quan"}:
         raise BadInput("scenario của day chỉ được có các khối 'day', 'gather', 'quan'")
     out = {}
     for name in ("gather", "quan"):
         if name in data:
-            out[name] = _check_block(name, data[name], tuning)
+            out[name] = _check_block(name, data[name], tuning, version)
     quan = out.get("quan", {})
     for forbidden in ("stock", "reputation"):
         if forbidden in quan:
@@ -160,7 +161,7 @@ def _pos(name, pos, bounds, axes=("x", "d")):
             raise BadInput(f"{name} nằm ngoài vùng nước ({axis} ∈ [{lo}, {hi}])")
 
 
-def _validate_gather(b, tuning):
+def _validate_gather(b, tuning, version="1.1"):
     g = tuning["gather"]
     bounds = g["bounds"]
     for arr in ("nodes", "fish"):
@@ -170,7 +171,9 @@ def _validate_gather(b, tuning):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
+        if inventory_schema(version) == "individuals":
+            h = validate_individuals(h, tuning["freshness"]["initial"])  # v1.2: mảng cá thể {id, kind, fresh}
+        elif not isinstance(h, list) or any(k not in KINDS_P1 for k in h):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
@@ -269,12 +272,16 @@ def _validate_monsters(arr, g):
                 raise BadInput(f"{name}.waypoint_index vượt số waypoint")
 
 
-def _validate_quan(b, tuning):
+def _validate_quan(b, tuning, version="1.1"):
     for arr in ("stoves", "tables", "customers"):
         if arr in b:
             _check_ids(arr, b[arr])
+    individuals = inventory_schema(version) == "individuals"
     if "stock" in b:
-        validate_items(b["stock"])
+        if individuals:
+            validate_individuals(b["stock"], tuning["freshness"]["initial"])
+        else:
+            validate_items(b["stock"])
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")
@@ -290,7 +297,7 @@ def _validate_quan(b, tuning):
             raise BadInput(f"customers.{c['id']}: table_id phải là bàn có thật")
     if len(table_ids) != len(set(table_ids)):
         raise BadInput("hai khách cùng bàn")
-    _validate_quan_rules(b, tuning)
+    _validate_quan_rules(b, tuning, individuals)
 
 
 ORDER_STATUSES = ("reserved", "assigned", "unfulfillable", "served")
@@ -311,7 +318,7 @@ def _dish_payload(name, v, menu):
     return v
 
 
-def _validate_quan_rules(b, tuning):
+def _validate_quan_rules(b, tuning, individuals=False):
     """Mâu thuẫn mức luật của quán (PRD-0 mục D): payload món, đơn assigned/unfulfillable/served,
     khách eating, giữ chỗ khác công thức hoặc quá tồn, bếp và tay giữ cùng đơn hoặc món không khớp đơn."""
     menu = tuning["menu"]
@@ -346,16 +353,25 @@ def _validate_quan_rules(b, tuning):
                 _nonneg_int(f"{where}.{key}", s[key])
 
     reserved_total = {}
+    reserved_ids = {}  # v1.2: id cá thể -> khách đang giữ
+    kinds_of = {it["id"]: it["kind"] for it in b.get("stock", [])} if individuals and "stock" in b else None
     for cid, c in customers.items():
         status = c.get("order_status", "reserved")
         if status not in ORDER_STATUSES:
             raise BadInput(f"customers.{cid}.order_status phải thuộc {ORDER_STATUSES}")
-        reserved = validate_items(c["reserved"]) if "reserved" in c else None
+        if individuals:
+            reserved = _reserved_ids(cid, c["reserved"], reserved_ids, kinds_of) if "reserved" in c else None
+        else:
+            reserved = validate_items(c["reserved"]) if "reserved" in c else None
         dish = c.get("dish_id")
         if dish is not None and dish not in menu:
             raise BadInput(f"customers.{cid}.dish_id không có trong menu ({dish!r})")
-        if status == "reserved" and reserved is not None and dish is not None and reserved != menu[dish]["recipe"]:
-            raise BadInput(f"customers.{cid}: phần giữ chỗ khác công thức của {dish}")
+        if status == "reserved" and reserved is not None and dish is not None:
+            if individuals:
+                if kinds_of is not None and _kind_counts(kinds_of[i] for i in reserved) != menu[dish]["recipe"]:
+                    raise BadInput(f"customers.{cid}: phần giữ chỗ khác công thức của {dish}")
+            elif reserved != menu[dish]["recipe"]:
+                raise BadInput(f"customers.{cid}: phần giữ chỗ khác công thức của {dish}")
         if status == "assigned":
             if cid not in held:
                 raise BadInput(f"customers.{cid}: đơn assigned phải có đúng một món ở bếp hoặc tay")
@@ -374,11 +390,32 @@ def _validate_quan_rules(b, tuning):
                 raise BadInput(f"customers.{cid}: khách eating cần eat_ticks_left dương")
             for key in ("base_price", "tip"):
                 _nonneg_int(f"customers.{cid}.{key}", c.get(key))
-        for k, v in (reserved or {}).items():
-            reserved_total[k] = reserved_total.get(k, 0) + v
+        if not individuals:
+            for k, v in (reserved or {}).items():
+                reserved_total[k] = reserved_total.get(k, 0) + v
     # Kho đến từ --inventory thì load_scenario không biết; headless gọi check_reserved_within_stock sau khi đọc kho.
-    if "stock" in b:
+    if "stock" in b and not individuals:
         _check_within_stock(reserved_total, b["stock"])
+
+
+def _kind_counts(kinds):
+    out = {}
+    for k in kinds:
+        out[k] = out.get(k, 0) + 1
+    return out
+
+
+def _reserved_ids(cid, ids, owners, kinds_of):
+    """v1.2: `reserved` là mảng id cá thể không trùng; mỗi id có trong kho (nếu khai kho) và chỉ một khách giữ."""
+    if not isinstance(ids, list) or any(not isinstance(i, str) or not i for i in ids) or len(set(ids)) != len(ids):
+        raise BadInput(f"customers.{cid}.reserved phải là mảng id cá thể không trùng")
+    for i in ids:
+        if kinds_of is not None and i not in kinds_of:
+            raise BadInput(f"customers.{cid}: giữ chỗ cá thể {i} không có trong kho")
+        if i in owners:
+            raise BadInput(f"customers.{cid}: cá thể {i} đã được khách {owners[i]} giữ chỗ")
+        owners[i] = cid
+    return ids
 
 
 def _check_within_stock(need, stock):
@@ -390,8 +427,19 @@ def _check_within_stock(need, stock):
 def check_reserved_within_stock(block, stock):
     """Phần giữ chỗ nguyên liệu của khách (ghi rõ trong `customers[].reserved`) không được vượt kho (PRD-0 mục D, mã 2).
     Dùng cho kho nạp từ --inventory; `block` là khối quan đã qua load_scenario nên `reserved` đã hợp lệ."""
+    if isinstance(stock, list):  # v1.2: giữ chỗ theo id, mỗi id phải có trong kho và chỉ một khách giữ
+        _reserved_by_id(block, stock)
+        return
     need = {}
     for c in block.get("customers", []):
         for k, v in (c.get("reserved") or {}).items():
             need[k] = need.get(k, 0) + v
     _check_within_stock(need, stock)
+
+
+def _reserved_by_id(block, stock):
+    kinds_of = {it["id"]: it["kind"] for it in stock}
+    owners = {}
+    for c in block.get("customers", []):
+        if "reserved" in c:
+            _reserved_ids(c["id"], c["reserved"], owners, kinds_of)

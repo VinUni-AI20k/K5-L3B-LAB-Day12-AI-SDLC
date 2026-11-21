@@ -5,11 +5,16 @@
 Kiểm: --ticks 0; ca đầy đủ 10.800 tick của cả hai chế độ; cùng seed thì JSONL và file kho giống từng byte
 (nhiều seed, hai giá trị --snapshot-every, hai thư mục đầu ra khác nhau); lượt bàn giao gather -> quan theo PRD-0 mục G;
 file kho không được ghi khi chạm --ticks; mã thoát 2 cho đầu vào sai. Chỉ dùng thư viện chuẩn.
+
+Từ P3-08 `game.contract.json` là 1.2 (kho cá thể). Smoke Phase 1 và 2 kiểm hành vi kho đếm nên chạy headless với bản 1.1
+sinh từ chính file contract (biến CHONOI_CONTRACT, `legacy_env`); đường 1.2 do tools/smoke_phase3.py kiểm.
 """
 
+import atexit
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -19,10 +24,27 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from check_determinism import DEFAULT_FRAMES, ROOT, headless_cmd  # noqa: E402
 
 RESULTS = []
+_LEGACY = []
 
 
-def run(args, cwd=ROOT):
-    p = subprocess.run([*headless_cmd(), *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+def legacy_env():
+    """Môi trường chạy headless với contract 1.1 (CHONOI_CONTRACT trỏ tới bản sao đổi `contract_version`)."""
+    if not _LEGACY:
+        with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
+            data = json.load(f)
+        data["contract_version"] = "1.1"
+        d = tempfile.mkdtemp(prefix="contract-v11-")
+        path = os.path.join(d, "game.contract.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f)
+        atexit.register(shutil.rmtree, d, True)
+        _LEGACY.append({**os.environ, "CHONOI_CONTRACT": path})
+    return _LEGACY[0]
+
+
+def run(args, cwd=ROOT, v12=False):
+    p = subprocess.run([*headless_cmd(), *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace",
+                       env=None if v12 else legacy_env())
     return p.returncode, p.stderr
 
 

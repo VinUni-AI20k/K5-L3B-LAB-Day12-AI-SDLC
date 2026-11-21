@@ -30,7 +30,7 @@ from . import alerts, freshness_view
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
-from .inventory import read_inventory
+from .inventory import read_inventory_for
 from .runner import Session
 from .scenario import load_scenario
 
@@ -45,9 +45,11 @@ MAX_BUY_LEN = 32
 class LiveGame:
     """Một lượt chơi + luồng nền bước 60 tick/s. Mọi truy cập trạng thái đi qua khóa."""
 
-    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, days=1):
+    def __init__(self, mode, tuning, scenario, seed, inventory=None, inventory_out=None, days=1,
+                 contract_version="1.1"):
         """mode=None: mở menu chính, chưa dựng sim cho tới POST /start."""
         self.tuning = tuning
+        self.contract_version = contract_version
         self.seed = seed
         self.days_max = len(tuning.get("day_plan", [])) or 1
         self._scenario, self._inventory = scenario, inventory
@@ -68,7 +70,7 @@ class LiveGame:
     def _configure(self, mode, days):
         self.mode, self.days = mode, days
         self._args = (mode, self.tuning, self._scenario, self.seed,
-                      self._inventory if mode == "quan" else None, days)
+                      self._inventory if mode == "quan" else None, days, self.contract_version)
 
     def _reset(self):
         self.session = Session(*self._args)
@@ -302,17 +304,19 @@ def main(argv=None) -> int:
             raise BadInput("--inventory-out chỉ dùng với gather")
         if a.scenario and a.mode is None:
             raise BadInput("--scenario cần --mode")
-        tuning = load_contract()["tuning"]
+        contract = load_contract()
+        tuning, version = contract["tuning"], contract["contract_version"]
         days_max = len(tuning.get("day_plan", [])) or 1
         if not 1 <= a.days <= days_max:
             raise BadInput(f"--days phải trong [1, {days_max}]")
         if a.days != 1 and a.mode != "day":
             raise BadInput("--days chỉ dùng với day")
-        scenario = load_scenario(a.scenario, a.mode, tuning) if a.mode else {}
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        scenario = load_scenario(a.scenario, a.mode, tuning, version) if a.mode else {}
+        fresh_initial = tuning.get("freshness", {}).get("initial", 100)
+        inventory = read_inventory_for(a.inventory, version, fresh_initial) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
-        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, a.days)
+        game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out, a.days, version)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")

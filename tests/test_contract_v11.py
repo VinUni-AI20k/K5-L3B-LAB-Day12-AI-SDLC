@@ -31,7 +31,7 @@ def bad(edit):
 
 class StandardNumbers(unittest.TestCase):
     def test_version_and_team(self):
-        self.assertEqual(CONTRACT["contract_version"], "1.1")
+        self.assertEqual(CONTRACT["contract_version"], "1.2")  # P3-08 bật 1.2; số chuẩn v1.1 bên dưới giữ nguyên
         self.assertEqual(CONTRACT["team_size"], 4)
 
     def test_gather_core_numbers_unchanged_from_v10(self):

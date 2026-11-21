@@ -10,7 +10,7 @@ import sys
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import load_frames
-from .inventory import read_inventory
+from .inventory import read_inventory_for
 from .runner import run
 from .scenario import check_reserved_within_stock, load_scenario
 
@@ -66,10 +66,11 @@ def main(argv=None) -> int:
         if len(set(paths)) != len(paths):
             raise BadInput("các đường dẫn đầu vào/đầu ra phải khác nhau")
         contract = load_contract()
-        tuning = contract["tuning"]
-        scenario = load_scenario(a.scenario, a.mode, tuning)
+        tuning, version = contract["tuning"], contract["contract_version"]
+        scenario = load_scenario(a.scenario, a.mode, tuning, version)
         frames = load_frames(a.inputs)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        # kho đọc theo schema của contract: 1.2 là mảng cá thể, 1.0 và 1.1 là kho đếm; sai schema thì mã 2
+        inventory = read_inventory_for(a.inventory, version, tuning.get("freshness", {}).get("initial", 100)) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
         if inventory is not None:  # PRD-0 mục D: giữ chỗ quá tồn là mã 2, kiểm trước khi ghi JSONL
@@ -79,7 +80,7 @@ def main(argv=None) -> int:
         return 2
     try:
         run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out, days=days)
+            inventory=inventory, inventory_out=a.inventory_out, days=days, contract_version=version)
     except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

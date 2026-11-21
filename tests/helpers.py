@@ -1,9 +1,11 @@
 """Tiện ích test: chạy headless, đọc JSONL, dựng fixture, so sánh có dung sai."""
 
+import atexit
 import json
 import math
 import os
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -40,10 +42,30 @@ def headless_cmd():
     return cmd
 
 
-def run_headless(*args, cwd=ROOT):
-    """Chạy `<headless_cmd> <args>`; trả (mã thoát, stderr)."""
+@lru_cache(maxsize=None)
+def legacy_env():
+    """Môi trường chạy headless với bản contract 1.1 (CHONOI_CONTRACT): các test hồi quy Phase 1-2 kiểm luật kho đếm.
+
+    Từ P3-08 `game.contract.json` là 1.2 (kho cá thể, breaking). Test Phase 1-2 qua `run_headless` vẫn chạy với bản 1.1
+    sinh từ chính file contract (chỉ đổi `contract_version`); kiểm đường 1.2 nằm ở tests/test_p3_v12_cli.py
+    (`run_headless(..., v12=True)`) và tools/smoke_phase3.py.
+    """
+    with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
+        data = json.load(f)
+    data["contract_version"] = "1.1"
+    d = tempfile.mkdtemp(prefix="contract-v11-")
+    path = os.path.join(d, "game.contract.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(data, f)
+    atexit.register(shutil.rmtree, d, True)
+    return {**os.environ, "CHONOI_CONTRACT": path}
+
+
+def run_headless(*args, cwd=ROOT, v12=False):
+    """Chạy `<headless_cmd> <args>`; trả (mã thoát, stderr). Mặc định dùng contract 1.1 (hồi quy Phase 1-2);
+    `v12=True` dùng đúng game.contract.json (1.2)."""
     p = subprocess.run([*headless_cmd(), *args], cwd=cwd, capture_output=True, text=True, encoding="utf-8",
-                       errors="replace")  # stderr của headless là UTF-8; Windows mặc định cp1252
+                       errors="replace", env=None if v12 else legacy_env())  # stderr của headless là UTF-8; Windows mặc định cp1252
     return p.returncode, p.stderr
 
 

@@ -11,7 +11,7 @@ from fractions import Fraction
 
 from ..freshness import Freshness
 from ..ids import id_key, sort_by_id
-from ..inventory import counts_to_individuals
+from ..inventory import counts_to_individuals, inventory_schema
 from .ramp import ramp_velocity
 
 
@@ -47,7 +47,7 @@ class QuanSim:
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
         source_stock = inventory if inventory is not None else scenario.get("stock", {})
         self.itemized_stock = self.freshness is not None and (
-            isinstance(source_stock, list) or contract_version == "1.2")
+            isinstance(source_stock, list) or inventory_schema(contract_version or "1.1") == "individuals")
         if self.itemized_stock:
             if isinstance(source_stock, dict):
                 source_stock = counts_to_individuals(source_stock, fresh=tuning["freshness"]["initial"])
