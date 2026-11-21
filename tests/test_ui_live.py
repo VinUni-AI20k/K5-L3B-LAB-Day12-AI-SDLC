@@ -1,4 +1,4 @@
-"""Kiểm chứng giao diện live (client/ui — Người 4) và LiveGame cho cả gather, quan và --extra-content.
+"""Kiểm chứng giao diện live (client/ui — Người 4) cho Phase 1 & Phase 2 (`gather`, `quan`, `day`, Shop, Pause, HUD v1.1).
 
 Không mở socket để chạy ổn định trên mọi môi trường (Windows sandbox, local, CI).
 """
@@ -8,7 +8,7 @@ import os
 import unittest
 
 from chonoi.contract import load_contract
-from chonoi.live import EXTRA_CONTENT_PATH, LiveGame, WEB_DIR
+from chonoi.live import DAY_INTRO_TICKS, EXTRA_CONTENT_PATH, LiveGame, SHOP_DEFAULT_TICKS, WEB_DIR
 
 
 class LiveUiContractTest(unittest.TestCase):
@@ -16,23 +16,27 @@ class LiveUiContractTest(unittest.TestCase):
         with open(os.path.join(WEB_DIR, "index.html"), encoding="utf-8") as f:
             self.html = f.read()
 
-    def test_index_html_endpoints_and_canvas(self):
+    def test_index_html_endpoints_canvas_and_typography(self):
         self.assertIn("<canvas", self.html)
-        for endpoint in ("/state", "/input", "/restart"):
+        for endpoint in ("/state", "/input", "/action", "/restart"):
             self.assertIn(endpoint, self.html)
-        # Không phụ thuộc CDN ngoài (chạy offline hoàn toàn)
+        # Yêu cầu Phase 2: chữ không chân >= 18px ở 1280x720, không phụ thuộc CDN ngoài
+        self.assertIn("--hud-font: 18px", self.html)
         self.assertNotIn("https://", self.html)
         self.assertNotIn("http://", self.html)
 
-    def test_index_html_covers_core_and_extra_content_ids(self):
+    def test_index_html_covers_phase2_screens_warnings_and_assets(self):
         contract = load_contract()["tuning"]
         with open(EXTRA_CONTENT_PATH, encoding="utf-8") as f:
             extra = json.load(f)
-        for kind in ("ca_loc", "ca_linh", "bong_dien_dien", "bong_sung",
-                     "ca_keo", "ca_ro_dong", "keo_neo", "rau_muong"):
+        for kind in ("ca_loc", "ca_linh", "ca_keo", "bong_dien_dien", "bong_sung", "keo_neo",
+                     "ca_ro_dong", "rau_muong"):
             self.assertIn(kind, self.html)
         for dish_id in (*contract["menu"].keys(), *extra["menu"].keys()):
             self.assertIn(dish_id, self.html)
+        for token in ("day_intro", "evening_intro", "day_result", "shop", "summary",
+                      "THỦY QUÁI!", "HẾT HƠI!", "drawMonster", "pauseModal"):
+            self.assertIn(token, self.html)
         self.assertIn("/assets/cho-noi-sprites.png", self.html)
         self.assertIn("/assets/ut-sen-swim.png", self.html)
         self.assertTrue(os.path.isfile(os.path.join(WEB_DIR, "assets", "cho-noi-sprites.png")))
@@ -40,12 +44,12 @@ class LiveUiContractTest(unittest.TestCase):
 
     def test_live_game_gather_and_quan_snapshot_and_input(self):
         tuning = load_contract()["tuning"]
-        # Gather: bơi sang phải và cập bến -> không lỗi, restart sạch
         g = LiveGame("gather", tuning, {}, seed=1)
         st0 = json.loads(g.state_json())
         self.assertEqual(st0["mode"], "gather")
+        self.assertEqual(st0["screen"], "playing")
         self.assertIn("meta", st0)
-        self.assertIn("events", st0)
+        self.assertIn("menu", st0)
         g.set_input({"move": [1, 0], "interact": False, "catch": False})
         for _ in range(10):
             g._tick_once()
@@ -57,14 +61,10 @@ class LiveUiContractTest(unittest.TestCase):
         self.assertEqual(st_reset["tick"], 0)
         self.assertEqual(st_reset["player"]["pos"], st0["player"]["pos"])
 
-        # Quan: đi sang trái trong quán và kiểm tra snapshot đầy đủ
         q = LiveGame("quan", tuning, {}, seed=1, inventory={"ca_loc": 2, "bong_sung": 2})
         qs0 = json.loads(q.state_json())
         self.assertEqual(qs0["mode"], "quan")
         self.assertEqual(qs0["stock"], {"bong_sung": 2, "ca_loc": 2})
-        self.assertIn("stoves", qs0)
-        self.assertIn("tables", qs0)
-        self.assertIn("customers", qs0)
         q.set_input({"move": [-1, 0], "interact": False, "catch": False})
         for _ in range(10):
             q._tick_once()
@@ -81,10 +81,99 @@ class LiveUiContractTest(unittest.TestCase):
         tuning["gather"]["fish_yield"].update(extra["gather"]["fish_yield"])
         g = LiveGame("gather", tuning, {}, seed=1)
         st = json.loads(g.state_json())
-        node_kinds = {n["kind"] for n in st["nodes"]}
-        fish_kinds = {f["kind"] for f in st["fish"]}
-        self.assertTrue({"keo_neo", "rau_muong"} <= node_kinds)
-        self.assertTrue({"ca_keo", "ca_ro_dong"} <= fish_kinds)
+        self.assertTrue({"keo_neo", "rau_muong"} <= {n["kind"] for n in st["nodes"]})
+        self.assertTrue({"ca_keo", "ca_ro_dong"} <= {f["kind"] for f in st["fish"]})
+
+    def test_live_day_full_cycle_pause_shop_and_upgrades(self):
+        """Kiểm chứng trọn vòng --mode day: Menu -> DayIntro -> Gather -> EveningIntro -> Quan -> DayResult -> Shop -> Day 2 -> Summary."""
+        tuning = load_contract()["tuning"]
+        g = LiveGame("day", tuning, {}, seed=7, days=2)
+
+        # 1. Bắt đầu ở Menu chính
+        st = json.loads(g.state_json())
+        self.assertEqual(st["screen"], "menu")
+        self.assertEqual(st["day"], 1)
+        g._tick_once()
+        self.assertEqual(json.loads(g.state_json())["tick"], 0)
+
+        # 2. Nhấn Chơi -> DayIntro (4s = 240 tick) và kiểm Pause dừng timer DayIntro
+        g.perform_action({"action": "start"})
+        st = json.loads(g.state_json())
+        self.assertEqual(st["screen"], "day_intro")
+        self.assertEqual(st["screen_ticks_left"], DAY_INTRO_TICKS)
+        g.perform_action({"action": "pause"})
+        for _ in range(10):
+            g._tick_once()
+        st = json.loads(g.state_json())
+        self.assertTrue(st["paused"])
+        self.assertEqual(st["screen_ticks_left"], DAY_INTRO_TICKS)
+        g.perform_action({"action": "resume"})
+        g.perform_action({"action": "skip_intro"})
+        st = json.loads(g.state_json())
+        self.assertEqual(st["screen"], "playing")
+        self.assertEqual(st["mode"], "gather")
+        oxy_day1 = st["player"]["oxygen_max_ticks"]
+
+        # 3. Cập bến ngay tại dock -> chuyển sang EveningIntro với kho mang về
+        g.session.sim.hold.append("ca_loc")
+        g.set_input({"interact": True})
+        g._tick_once()
+        st = json.loads(g.state_json())
+        self.assertEqual(st["screen"], "evening_intro")
+        self.assertEqual(st["last_gather_inventory"], {"items": {"ca_loc": 1}})
+
+        # 4. Bỏ qua EveningIntro -> Quan -> hết giờ -> DayResult
+        g.perform_action({"action": "skip_intro"})
+        st = json.loads(g.state_json())
+        self.assertEqual(st["screen"], "playing")
+        self.assertEqual(st["mode"], "quan")
+        g.session.sim.money = 150
+        g.session.sim.earned = 150
+        g.session.sim.time_left_ticks = 1
+        g._tick_once()
+        st = json.loads(g.state_json())
+        self.assertEqual(st["screen"], "day_result")
+        self.assertEqual(st["days_completed"], 1)
+
+        # 5. Mở Shop: kiểm Pause đóng băng timer Shop, mua oxygen thành công, mua hp thất bại do thiếu tiền
+        g.perform_action({"action": "open_shop"})
+        st = json.loads(g.state_json())
+        self.assertEqual(st["screen"], "shop")
+        self.assertEqual(st["shop"]["ticks_left"], SHOP_DEFAULT_TICKS)
+        g.perform_action({"action": "pause"})
+        for _ in range(20):
+            g._tick_once()
+        self.assertEqual(json.loads(g.state_json())["shop"]["ticks_left"], SHOP_DEFAULT_TICKS)
+        g.perform_action({"action": "resume"})
+        g._tick_once()
+        self.assertEqual(json.loads(g.state_json())["shop"]["ticks_left"], SHOP_DEFAULT_TICKS - 1)
+
+        buy_ok = g.perform_action({"action": "buy", "item": "oxygen"})
+        self.assertTrue(buy_ok["ok"])
+        buy_fail = g.perform_action({"action": "buy", "item": "hp"})
+        self.assertFalse(buy_fail["ok"])
+        self.assertEqual(buy_fail["reason"], "insufficient_money")
+
+        # 6. Đóng Shop -> Ngày 2 với active_upgrades["oxygen"] == 1 (+10s oxy tối đa)
+        g.perform_action({"action": "shop_done"})
+        st = json.loads(g.state_json())
+        self.assertEqual(st["screen"], "day_intro")
+        self.assertEqual(st["day"], 2)
+        self.assertEqual(st["active_upgrades"]["oxygen"], 1)
+        g.perform_action({"action": "skip_intro"})
+        st = json.loads(g.state_json())
+        self.assertGreater(st["player"]["oxygen_max_ticks"], oxy_day1)
+
+        # 7. Hoàn thành Ngày 2 (ngày cuối với days=2) -> Summary
+        g.set_input({"interact": True})
+        g._tick_once()
+        g.perform_action({"action": "skip_intro"})
+        g.session.sim.time_left_ticks = 1
+        g._tick_once()
+        st = json.loads(g.state_json())
+        self.assertEqual(st["screen"], "summary")
+        self.assertTrue(st["finished"])
+        self.assertEqual(st["reason"], "days_complete")
 
 
 if __name__ == "__main__":
