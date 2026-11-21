@@ -30,6 +30,11 @@ python3 -m chonoi.headless --mode quan --seed 42 --inventory catch.json --ticks 
   - Công thức ở mọi snapshot và dòng `end`: `score = earned + 100 × floor(reputation)`.
   - Tiền (`money`, `earned`, `shift_earned`) tính bằng số nguyên (đơn vị nghìn đồng); boa (`tip`) = `floor(base_price × tip_rate)` khi tỷ lệ kiên nhẫn còn lại đạt `tip_min_patience_ratio` (cộng thêm `tip_reputation` vào uy tín). Khách bỏ đi vì hết kiên nhẫn trừ uy tín theo `left_reputation_delta`.
 
+## Mở rộng đã làm (nhóm 5 người — yêu cầu ≥ 1 mục)
+
+- **Cháy món (`burn` — khai `"extensions": ["burn"]`, `quan.burn_s: 20`):** Món chín để quá 20 s (`ready_ticks > 1200`) bị bỏ, nguyên liệu mất, bếp rảnh ngay, thử giữ lại 1 lần cho đơn (`reserved` hoặc `unfulfillable`), phát `dish_burnt`.
+  - Bằng chứng & test: [`tests/test_quan_burn.py`](tests/test_quan_burn.py) (10/10 test pass), [`docs/proof/phase-2/test-suite.txt`](docs/proof/phase-2/test-suite.txt).
+
 ## Sáng tạo của nhóm
 
 - **Nâng cấp giao diện Canvas 2D & hiệu ứng hạt (`chonoi/web/index.html`):** Sóng nước động trên mặt sông, bọt khí khi Út Sen lặn, khói bếp bay khi nấu, hiển thị trực quan trạng thái bếp/bàn/kiên nhẫn và bảng kết thúc buổi.
