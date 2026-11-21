@@ -112,3 +112,63 @@ class InventorySchema(unittest.TestCase):
             with self.assertRaises(FileNotFoundError):
                 with open(output, encoding="utf-8"):
                     pass
+
+class QuanFreshness(unittest.TestCase):
+    def test_spoiled_reservation_is_replaced_before_cooking_and_pricing(self):
+        with Workdir() as work:
+            scenario = write_json(
+                work.path("quan.json"),
+                {
+                    "quan": {
+                        "player": {"pos": [2, 8]},
+                        "random_customers": False,
+                        "stock": [
+                            {"id": "I1", "kind": "ca_loc", "fresh": 30},
+                            {"id": "I2", "kind": "ca_loc", "fresh": 80},
+                            {"id": "I3", "kind": "ca_loc", "fresh": 90},
+                        ],
+                        "customers": [
+                            {
+                                "id": "C1",
+                                "table_id": "T1",
+                                "dish_id": "ca_loc_nuong_trui",
+                                "state": "waiting",
+                                "order_status": "reserved",
+                                "patience_ticks_left": 3600,
+                                "reserved": ["I1"],
+                            }
+                        ],
+                    }
+                },
+            )
+            inputs = write_json(
+                work.path("inputs.json"),
+                frames({"tick": 0, "interact": True}),
+            )
+            output = work.path("quan.jsonl")
+            code, stderr = run_headless(
+                "--mode", "quan", "--seed", "42", "--ticks", "1",
+                "--scenario", scenario, "--inputs", inputs, "--out", output,
+            )
+            self.assertEqual(code, 0, stderr)
+            rows = read_jsonl(output)
+            relevant = [
+                row for row in events(rows)
+                if row["name"] in ("spoiled", "cook_started")
+            ]
+            self.assertEqual(
+                [(row["tick"], row["name"]) for row in relevant],
+                [(1, "spoiled"), (1, "cook_started")],
+            )
+            self.assertEqual(
+                relevant[0]["data"],
+                {"item_id": "I1", "kind": "ca_loc", "location": "stock"},
+            )
+            cooked = relevant[1]["data"]
+            self.assertEqual(cooked["order_id"], "C1")
+            self.assertEqual([item["id"] for item in cooked["items"]], ["I3"])
+            self.assertEqual(cooked["base_price"], 53)
+            self.assertEqual(
+                {item["id"] for item in snapshots(rows)[-1]["stock"]},
+                {"I1", "I2"},
+            )

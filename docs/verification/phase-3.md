@@ -5,7 +5,7 @@
 | Ngưỡng ươn trong giỏ | Cá thể ở fresh 30 lúc dựng fixture. Chạy hai tick, kiểm spoiled chỉ phát ở tick 1 và hàng vẫn chiếm ô | [Test QA Phase 3](../../tests/test_qa_phase3.py) | Baseline `8739a9f` trả mã 2 khi đọc `gather.hold` dạng cá thể. Chưa chạy tới bước hao tươi. |
 | Bàn giao kho cá thể qua file | So id, kind và fresh giữa gather_end, file xuất và snapshot quán tick 0 | [Test QA Phase 3](../../tests/test_qa_phase3.py) | Baseline `8739a9f` trả mã 2 khi đọc `gather.hold` dạng cá thể. Luồng dừng trước khi xuất kho. |
 | Từ chối kho đếm | Nạp `{"items":{"ca_loc":1}}` vào quán. Với v1.2, kiểm mã thoát 2 và không tạo JSONL | [Test QA Phase 3](../../tests/test_qa_phase3.py) | Baseline v1.1 tại `8739a9f` nhận kho đếm và thoát mã 0. Chờ kiểm lại khi bật v1.2. |
-| Giữ lại nguyên liệu và chốt giá | Kiểm đơn có hàng vừa ươn, chọn lại cá thể và tính giá theo fresh lúc nấu | — | Chờ kiểm trên v1.2. |
+| Giữ lại nguyên liệu và chốt giá | Nguyên liệu giữ chỗ vừa ươn ở tick 1. Kiểm chọn lại cá thể tươi nhất trước khi nấu và chốt giá 53 | [Test QA Phase 3](../../tests/test_qa_phase3.py) | Baseline v1.1 trả mã 2 với lỗi `items phải là object`. Chưa chạy tới bước giữ lại nguyên liệu và chốt giá. |
 
 ## Tác động lên regression P1–P2
 
