@@ -197,19 +197,25 @@ class GatherSim:
                 self.vel[i] = min(0.0, self.vel[i])
 
     # --- lát 2 (TV2): gọi giỏ qua TV1, hái nút mặt nước, bắt cá dưới nước -----
-    def _try_add_hold_batch(self, kind: str, events, count: int) -> bool:
-        """Gọi qua `try_add_hold` của TV1 mà không sửa hàm TV1 (chờ TV1 duyệt `count=1`).
+    def _try_add_hold_batch(self, kind: str, events, count: int, *,
+                            action: str, target_key: str, target_id: str) -> bool:
+        """Thêm nguyên tử `count` món qua `try_add_hold` của TV1 mà không sửa hàm TV1.
 
-        Đảm bảo thêm nguyên tử cả đàn (TICKET-02 §1.1): từ chối số lượng <= 0 hoặc
-        thiếu chỗ cho đủ `count` món, phát đúng một `hold_full` theo hợp đồng `{"kind": kind}`.
+        Kiểm chỗ trống TRƯỚC khi gọi `try_add_hold` để:
+        - Bảo đảm nguyên tử cả đàn (TICKET-02 §1.1) cho mọi `count >= 1`.
+        - Phát đúng payload `hold_full` chính thức theo PRD-0 v1.0
+          (`{"action", "node_id"|"fish_id", "required", "free"}`).
         """
         if count <= 0:
             return False
-        if count == 1:
-            return self.try_add_hold(kind, events)
-        if len(self.hold) + count > int(self.t["hold_capacity"]):
-            # Khớp payload `hold_full` trong docs/contracts/README.md (`{"kind": kind}`).
-            events.append(("hold_full", {"kind": kind}))
+        free = max(0, int(self.t["hold_capacity"]) - len(self.hold))
+        if free < count:
+            events.append(("hold_full", {
+                "action": action,
+                target_key: target_id,
+                "required": count,
+                "free": free,
+            }))
             return False
         for _ in range(count):
             if not self.try_add_hold(kind, events):
@@ -230,7 +236,7 @@ class GatherSim:
         return best
 
     def _try_harvest(self, events):
-        """Hái nút rau `ready` gần nhất khi đang ở mặt nước (TICKET-02 §1.1)."""
+        """Hái nút rau `ready` gần nhất khi đang ở mặt nước (PRD-0 v1.0, TICKET-02 §1.1)."""
         if not self._at_surface():
             return
         ready_nodes = (n for n in self.nodes if n["regrow_ticks"] == 0)
@@ -238,23 +244,23 @@ class GatherSim:
         if node is None:
             return
         amount = int(self.t["node_yield"])
-        if not self._try_add_hold_batch(node["kind"], events, amount):
+        if not self._try_add_hold_batch(node["kind"], events, amount,
+                                        action="gather", target_key="node_id", target_id=node["id"]):
             return
         node["regrow_ticks"] = max(1, int(round(self.t["regrow_s"] * TICK)))
-        # TODO(PRD-0): đối chiếu schema payload chính thức của `gather` khi có PRD-0 mục E.
-        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "count": amount}))
+        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
 
     def _try_catch(self, events):
-        """Bắt đàn cá gần nhất khi dưới nước và hết hồi chiêu (TICKET-02 §1.1)."""
+        """Bắt đàn cá gần nhất khi dưới nước và hết hồi chiêu (PRD-0 v1.0, TICKET-02 §1.1)."""
         if self.catch_cd_ticks > 0 or self._at_surface():
             return
         fish = self._nearest_in_radius(self.fish, self.t["catch_radius"])
         if fish is None:
             return
         amount = int(self.t["fish_yield"][fish["kind"]])
-        if not self._try_add_hold_batch(fish["kind"], events, amount):
+        if not self._try_add_hold_batch(fish["kind"], events, amount,
+                                        action="catch", target_key="fish_id", target_id=fish["id"]):
             return
         self.fish = [f for f in self.fish if f["id"] != fish["id"]]
         self.catch_cd_ticks = int(round(self.t["catch_cooldown_s"] * TICK))
-        # TODO(PRD-0): đối chiếu schema payload chính thức của `fish_caught` khi có PRD-0 mục E.
-        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "count": amount}))
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": amount}))
