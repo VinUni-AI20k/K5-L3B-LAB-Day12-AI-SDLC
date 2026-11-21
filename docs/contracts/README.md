@@ -1,6 +1,8 @@
-# Hợp đồng tích hợp (Phase 1, Test Contract v1.0)
+# Hợp đồng tích hợp (Test Contract v1.1)
 
-Người giữ: Integrator. Chốt trong kickoff. Muốn đổi tên sự kiện, trường `data`, schema kho hay cấu trúc khách thì báo cả nhóm trước, rồi ghi ADR trong `docs/adr/`, vì thay đổi ảnh hưởng nhiều lát và test ẩn.
+Người giữ: Integrator. Muốn đổi tên sự kiện, trường `data`, schema kho, cấu trúc khách hay hàm dựng sim thì báo cả nhóm trước, rồi ghi ADR trong `docs/adr/`, vì thay đổi ảnh hưởng nhiều lát và test ẩn.
+
+Mục 1 đến 4 là hợp đồng Phase 1 (v1.0), vẫn còn hiệu lực. Mục 5 là phần thêm và đổi của v1.1 (Ticket-02).
 
 ## 1. File kho (PRD-0 mục G)
 
@@ -9,7 +11,7 @@ Người giữ: Integrator. Chốt trong kickoff. Muốn đổi tên sự kiện
 ```
 
 - Gốc chỉ có khóa `items`. Giá trị là object `kind -> số nguyên không âm`.
-- `kind` chỉ thuộc `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`. Kind vắng tính là 0, bên ghi bỏ khóa có lượng 0. Kho rỗng là `{"items":{}}`.
+- `kind` thuộc 6 nguyên liệu v1.1: `ca_loc`, `ca_linh`, `ca_keo`, `bong_dien_dien`, `bong_sung`, `keo_neo` (`chonoi.inventory.KINDS`). Kind vắng tính là 0, bên ghi bỏ khóa có lượng 0. Kho rỗng là `{"items":{}}`.
 - Bên đọc (`quan --inventory`) từ chối sai schema, kind lạ, số âm hoặc không nguyên bằng mã thoát 2.
 - `gather --inventory-out` ghi đúng một lần khi có `gather_end`, nội dung khớp `inventory` trong event đó. Ngất ghi kho rỗng. Chạm `--ticks` trước khi kết thúc buổi thì không tạo và không ghi đè file.
 - Ghi qua file tạm cùng thư mục rồi thay thế nguyên tử (`chonoi/inventory.py`).
@@ -89,3 +91,65 @@ Món trên bếp hoặc trên tay là payload `{order_id, dish_id, base_price}`.
 - UI chỉ đọc snapshot qua `GET /state` (cùng trường với dòng snapshot của headless, thêm `meta` và `events` gần nhất).
 - UI chỉ gửi phím qua `POST /input` `{"move":[a,b],"interact":bool,"catch":bool}` và `POST /restart`.
 - Snapshot headless chỉ chứa trường theo PRD-0 mục E. Trường phục vụ riêng cho hiển thị thì tính ở client, ví dụ kho khả dụng.
+
+## 5. Thêm và đổi ở v1.1 (Ticket-02)
+
+### 5.1. Manifest
+
+- `contract_version: "1.1"`. `extensions` ở gốc manifest là mảng mã mở rộng đang bật (`weapon`, `net`, `snake`, `burn`, `vendor`, `ca_ho`), hiện là `[]`.
+- Số chuẩn và dữ liệu theo Ticket-02 mục 1, 2: `gather.fish_initial` là số (8), các khóa cá bơi/sinh, `gather.monsters`, nút N5/N6 kèo nèo, `quan` có B1-B2 và T1-T4, 6 món, `day_plan` (5 Ngày, `ingredients` = tổng công thức × suất), `shop`.
+- `chonoi/contract.py` kiểm toàn bộ khi nạp; sai thì mã 2. Hàm dùng chung: `plan_ingredients(menu, dishes)`, `upgrade_value(tuning, kind, level, base)`, `extensions(contract)`.
+
+### 5.2. CLI, inputs, pause
+
+- `--mode gather|quan|day`, `--days N` (chỉ với day, 1..5, mặc định 1). `--inventory`, `--inventory-out` vẫn chỉ cho hai mode độc lập.
+- Nút boolean: `interact`, `catch`, `pause` (mọi mode), `shop_done` (Shop). Trường `buy`: chuỗi khác rỗng, chỉ có hiệu lực tại đúng frame khai báo (`InputState.buy`). Nút đúng kiểu nhưng sai pha thì sim bỏ qua.
+- Pause ở `runner.PauseGate`, dùng chung mọi mode: cạnh `pause` xét trước; vào pause chỉ tăng `tick` ngoài và phát `paused`; trong pause bỏ qua hành động và `buy`, `sim_tick`, `phase_tick`, timer đứng yên; cạnh kế tiếp phát `resumed` và chạy gameplay ngay bước đó. Snapshot `state: "paused"`.
+- `tick` là bước ngoài, `sim_tick` là bước gameplay, `phase_tick` lấy từ sim.
+
+### 5.3. Hàm dựng sim (C dùng để ghép vòng ngày)
+
+| Lớp | Chữ ký | Ghi chú |
+|---|---|---|
+| `GatherSim` | `(tuning, scenario, streams, ids, day=1, active_upgrades=None)` | `day` lọc quái theo `from_day`; `active_upgrades` quyết định `oxygen_max`, `hp_max` |
+| `QuanSim` | `(tuning, scenario, streams, ids, inventory=None, plan_dishes=None, carry=None)` | `plan_dishes`: id món của kế hoạch (None = cả 6 món); `carry = {money, earned, reputation}` |
+| `ShopSim` | `(tuning, stock, carry, upgrades)` | `chonoi/shop.py`, C viết |
+| `DaySession` | `(tuning, scenario, seed, days, contract=None)` | `chonoi/day.py`, C viết, cùng giao diện với `runner.Session` |
+
+- Cấp nâng cấp là map `{"oxygen": n, "hp": n}`. `upgrades` là cấp đã mua; `active_upgrades` là cấp đang áp dụng, chép từ `upgrades` lúc dựng Ngày mới.
+- RNG: một `Streams(seed)` cho cả lượt. Luồng: `fish_init` (8 đàn đầu ca), `fish_turn`, `fish_spawn`, `customers`.
+
+### 5.4. Gather
+
+Thứ tự trong `GatherSim.step` (mục 4.5): đồng hồ, cooldown, bất tử, hồi nút → bơi → `dive`/`surface` → oxy, ngạt → `_update_monsters` (A) → bến, `_try_harvest` (B) → `_try_catch` (B, theo vị trí cá trước khi bơi) → hết giờ → nếu còn giờ và `random_fish`: `_fish_swim`, `_spawn_fish` (B).
+
+- `random_fish: false`: không cá mặc định, không bơi, không sinh; cá fixture đứng yên. Khai `fish` khi cờ bật thì thay đàn ban đầu, vẫn bơi và sinh.
+- Quái: mặc định từ `monsters.spawns` có `from_day <= day`; scenario `monsters[]` thay danh sách. Mỗi con `{id, kind, pos, waypoints, target_idx (mặc định 1), state (patrol|chase|recoil), state_ticks_left, recoil_dir}`.
+- Snapshot gather thêm `monsters[]`, `fish[].age_ticks`; `player.hp_max` theo cấp.
+
+### 5.5. Sự kiện mới
+
+| Sự kiện | `data` | Ai phát |
+|---|---|---|
+| `monster_hit` | `monster_id`, `hp`, `lost` (LIFO), `pos` (người chơi) | A, `_update_monsters` |
+| `faint` | thêm `cause: "monster"`; `lost` là phần giỏ còn lại; `hp: 0` | A |
+| `fish_spawned` | `id`, `kind`, `pos` | B, `_spawn_fish` |
+| `paused`, `resumed` | `{}` | runner (`PauseGate`) |
+| `day_start`, `phase_start` | `{}` | C, `DaySession` |
+| `day_plan` | `dishes`, `ingredients` | C |
+| `bought` | `upgrade`, `level`, `price`, `money` | C, `ShopSim` |
+| `buy_failed` | `action`, `reason` (`funds`/`max_level`/`out_of_stock`/`unknown`) | C |
+| `shop_end` | `reason` (`done`/`time`) | C |
+| `dish_burnt` (mở rộng Cháy) | `stove_id`, `order_id`, `dish_id`, `order_status` | D |
+
+Trong day, vỏ event có thêm `day`; snapshot mọi pha có `day`, `day_plan`, `upgrades`, `active_upgrades`; dòng `end` thêm `days_completed`.
+
+### 5.6. Giả định đang dùng (chờ xác nhận trong docs/clarify.md)
+
+- 8 đàn đầu ca: lặp đúng luật sinh 8 lần (trọng số loài chuẩn hóa trên loài còn điểm, chọn đều điểm cách mọi đàn > 1 m, hướng đều trong [0, 360)), luồng `fish_init`.
+- **Ghi chú sở hữu:** `GatherSim._pick_spawn` và `_initial_fish` do A (LeBao403) viết trong nền v1.1 để main xanh khi `fish_initial` đổi sang số 8. Đoạn này thuộc lát của B: B sở hữu (review, viết test cho cá, chỉnh lại sau khi có câu trả lời clarify) và dùng lại `_pick_spawn` khi nối lịch sinh trong `_spawn_fish`. Việc còn lại của B: cá bơi (`_fish_swim`), nối lịch sinh (`_spawn_fish`), test cá.
+- `recoil_dist: 2.0` là tổng quãng lùi trong `recoil_ticks` (60) bước, tức 2/60 m mỗi bước.
+- Ngưỡng độ sâu phát hiện và chạm của quái là `depths[0]` của loài.
+- Nút `attack`, `photo` khi chưa bật mở rộng vẫn là trường lạ (mã 2) như smoke P1.
+- `--mode day` tạm thời trả mã 2 cho tới khi `DaySession` (C) xong. `ShopSim` và phần kiểm giá trị khối `day` là khung cho C.
+- Test cũ sửa theo luật v1.1 trong nền (A sửa, ghi lý do trong commit, chủ test review lại): `test_smoke_p1` (6 thành `fish_initial` = 8 đàn), `test_lat3_khach.test_het_ban_trong_thi_bo_luot` (4 bàn nên lấp đủ T1-T4), `test_lat4_quan.test_ngoai_ban_kinh_khong_lam_gi` (B2 ở [5, 8] nên đứng lệch theo trục z).
