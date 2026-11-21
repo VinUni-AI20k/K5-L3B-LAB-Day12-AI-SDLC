@@ -7,6 +7,10 @@ var cam: Camera3D
 var env: Environment
 var diver_root: Node3D
 var diver_visual: Node3D
+var left_leg_pivot: Node3D
+var right_leg_pivot: Node3D
+var left_arm_pivot: Node3D
+var right_arm_pivot: Node3D
 var hud_label: Label
 
 var diver_pos := Vector2(18.0, 6.0) # [x, d]
@@ -82,13 +86,13 @@ func _setup_environment() -> void:
 	env.background_mode = Environment.BG_COLOR
 	env.background_color = SHALLOW_BG
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("#b8c88c")
-	env.ambient_light_energy = 0.88
+	env.ambient_light_color = Color("#98b074")
+	env.ambient_light_energy = 0.52
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	env.fog_enabled = true
 	env.fog_mode = Environment.FOG_MODE_EXPONENTIAL
 	env.fog_light_color = SHALLOW_FOG
-	env.fog_light_energy = 1.0
+	env.fog_light_energy = 0.85
 	env.fog_density = 0.024
 	world.environment = env
 	add_child(world)
@@ -96,16 +100,16 @@ func _setup_environment() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.name = "UnderwaterSun"
 	sun.rotation_degrees = Vector3(-66.0, -25.0, 0.0)
-	sun.light_color = Color("#ffe0a3")
-	sun.light_energy = 1.4
+	sun.light_color = Color("#ffdca0")
+	sun.light_energy = 0.85
 	sun.shadow_enabled = true
 	add_child(sun)
 
 	var rim := DirectionalLight3D.new()
 	rim.name = "DepthFillLight"
 	rim.rotation_degrees = Vector3(25.0, 145.0, 0.0)
-	rim.light_color = Color("#6f8c54")
-	rim.light_energy = 0.42
+	rim.light_color = Color("#5b7844")
+	rim.light_energy = 0.30
 	add_child(rim)
 
 
@@ -180,39 +184,33 @@ func _build_underwater_cliffs_and_seabed() -> void:
 	mud_wall.rotation_degrees = Vector3(-12.0, 0.0, 0.0)
 	add_child(mud_wall)
 
-	# Wooden stilt-house pilings descending from the surface deep into the Mekong river mud
+	# Wooden stilt-house pilings descending cleanly in the far background (z = -12..-18)
 	var piling_mat := StandardMaterial3D.new()
-	piling_mat.albedo_color = Color("#4c331e")
+	piling_mat.albedo_color = Color("#4a321d")
 	piling_mat.roughness = 0.92
-	for i in range(18):
-		var px := -2.0 + i * 6.2 + rng.randf_range(-0.6, 0.6)
-		var pz := rng.randf_range(-13.5, -6.5)
+	for i in range(14):
+		var px := 0.0 + i * 7.8 + rng.randf_range(-0.6, 0.6)
+		var pz := rng.randf_range(-17.5, -12.0)
 		var pile := MeshInstance3D.new()
 		var cm := CylinderMesh.new()
-		cm.top_radius = 0.24
-		cm.bottom_radius = 0.30
+		cm.top_radius = 0.18
+		cm.bottom_radius = 0.24
 		cm.height = 24.0
 		cm.radial_segments = 8
 		cm.material = piling_mat
 		pile.mesh = cm
 		pile.position = Vector3(px, -10.5, pz)
-		pile.rotation_degrees = Vector3(rng.randf_range(-3.0, 3.0), 0.0, rng.randf_range(-3.0, 3.0))
+		pile.rotation_degrees = Vector3(rng.randf_range(-2.0, 2.0), 0.0, rng.randf_range(-2.0, 2.0))
 		add_child(pile)
 
-	# Submerged mangrove root systems & mossy river-bank terraces (z = -7..-18)
+	# Mossy river-bank terraces & boulders only in the lower/background depths (clean underwater view)
 	for i in range(16):
-		var mx := -4.0 + i * 7.2
-		var mz := rng.randf_range(-16.0, -8.5)
-		var m_id := "mangrove_large" if i % 2 == 0 else "mangrove_red"
-		_asset("tropical", m_id, Vector3(mx, -3.5, mz), Vector3(2.8, 3.6, 2.8), Vector3(0.0, rng.randf_range(-180.0, 180.0), 0.0))
-
-	for i in range(20):
-		var rx := -6.0 + i * 5.8 + rng.randf_range(-1.5, 1.5)
-		var ry := rng.randf_range(-29.0, -10.0)
-		var rz := rng.randf_range(-16.0, -7.0)
-		var rs := rng.randf_range(2.4, 4.8)
+		var rx := -4.0 + i * 6.8 + rng.randf_range(-1.2, 1.2)
+		var ry := rng.randf_range(-29.5, -16.0)
+		var rz := rng.randf_range(-17.0, -9.5)
+		var rs := rng.randf_range(2.0, 3.8)
 		var rock_id := "boulder_mossy" if i % 2 == 0 else "cliff_block"
-		_asset("underwater", rock_id, Vector3(rx, ry, rz), Vector3(rs, rs * rng.randf_range(0.7, 1.1), rs), Vector3(rng.randf_range(-8.0, 8.0), rng.randf_range(-180.0, 180.0), rng.randf_range(-8.0, 8.0)))
+		_asset("underwater", rock_id, Vector3(rx, ry, rz), Vector3(rs, rs * rng.randf_range(0.6, 0.95), rs), Vector3(rng.randf_range(-6.0, 6.0), rng.randf_range(-180.0, 180.0), rng.randf_range(-6.0, 6.0)))
 
 	# Seabed flora (kelp forests, seaweed rocks, sunken driftwood & roots at y = -30)
 	for i in range(24):
@@ -314,40 +312,151 @@ func _build_prd_nodes_and_fish() -> void:
 				})
 
 
+func _make_mat(hex: String, rough := 0.72) -> StandardMaterial3D:
+	var m := StandardMaterial3D.new()
+	m.albedo_color = Color(hex)
+	m.roughness = rough
+	return m
+
+
 func _build_diver() -> void:
 	diver_root = Node3D.new()
 	diver_root.name = "DiverUtSen"
 	diver_root.position = Vector3(diver_pos.x, -diver_pos.y, 0.0)
 	add_child(diver_root)
 
+	# Stylized 3D Ut Sen diver facing +X (ao ba ba, khan ran, diving goggles, bamboo basket, animated limbs & yellow fins)
 	diver_visual = Node3D.new()
 	diver_root.add_child(diver_visual)
 
-	# Ut Sen 3D character tilted horizontally in swimming pose
-	var body := _asset("characters", "villager_woman", Vector3(0.0, -0.7, 0.0), Vector3.ONE * 1.15, Vector3(0.0, 90.0, 0.0), diver_visual)
-	if body != null:
-		body.rotation_degrees = Vector3(0.0, 90.0, -72.0)
+	var skin_mat := _make_mat("#f2c29b", 0.65)
+	var hair_mat := _make_mat("#1e1a18", 0.60)
+	var ao_mat := _make_mat("#6b3f26", 0.80)      # Ao ba ba nau dat mien Tay
+	var pants_mat := _make_mat("#24242b", 0.82)   # Quan den ba ba
+	var scarf_mat := _make_mat("#e8e4d8", 0.75)   # Khan ran quai co
+	var goggle_mat := _make_mat("#52dcff", 0.18)  # Kinh lan tu che
+	var basket_mat := _make_mat("#c9994a", 0.85)  # Gio luoi tre deo lung
+	var fin_mat := _make_mat("#ffd233", 0.45)     # Chan vit vang
 
-	# Yellow flippers + diving mask accent (inspired by Dave the Diver silhouette readability)
-	var fin_mat := StandardMaterial3D.new()
-	fin_mat.albedo_color = Color("#ffd53d")
-	fin_mat.roughness = 0.5
-	for side_z in [-0.16, 0.16]:
+	# Torso (horizontal swimming posture along +X)
+	var torso := MeshInstance3D.new()
+	var tm := CapsuleMesh.new()
+	tm.radius = 0.28
+	tm.height = 0.92
+	tm.material = ao_mat
+	torso.mesh = tm
+	torso.rotation_degrees = Vector3(0.0, 0.0, 90.0)
+	diver_visual.add_child(torso)
+
+	# Khan ran neck scarf
+	var scarf := MeshInstance3D.new()
+	var scm := TorusMesh.new()
+	scm.inner_radius = 0.14
+	scm.outer_radius = 0.25
+	scm.material = scarf_mat
+	scarf.mesh = scm
+	scarf.position = Vector3(0.42, 0.02, 0.0)
+	scarf.rotation_degrees = Vector3(0.0, 0.0, 90.0)
+	diver_visual.add_child(scarf)
+
+	# Head + black hair bun + diving goggles
+	var head := MeshInstance3D.new()
+	var hm := SphereMesh.new()
+	hm.radius = 0.27
+	hm.height = 0.54
+	hm.material = skin_mat
+	head.mesh = hm
+	head.position = Vector3(0.68, 0.08, 0.0)
+	diver_visual.add_child(head)
+
+	var hair := MeshInstance3D.new()
+	var hrm := SphereMesh.new()
+	hrm.radius = 0.26
+	hrm.height = 0.48
+	hrm.material = hair_mat
+	hair.mesh = hrm
+	hair.position = Vector3(0.60, 0.14, 0.0)
+	diver_visual.add_child(hair)
+
+	var bun := MeshInstance3D.new()
+	var bnm := SphereMesh.new()
+	bnm.radius = 0.12
+	bnm.height = 0.24
+	bnm.material = hair_mat
+	bun.mesh = bnm
+	bun.position = Vector3(0.42, 0.25, 0.0)
+	diver_visual.add_child(bun)
+
+	var goggles := MeshInstance3D.new()
+	var gm := BoxMesh.new()
+	gm.size = Vector3(0.14, 0.16, 0.34)
+	gm.material = goggle_mat
+	goggles.mesh = gm
+	goggles.position = Vector3(0.90, 0.10, 0.0)
+	diver_visual.add_child(goggles)
+
+	# Woven fish basket on her back
+	var basket := MeshInstance3D.new()
+	var bkm := CylinderMesh.new()
+	bkm.top_radius = 0.18
+	bkm.bottom_radius = 0.22
+	bkm.height = 0.44
+	bkm.material = basket_mat
+	basket.mesh = bkm
+	basket.position = Vector3(-0.04, 0.34, 0.0)
+	basket.rotation_degrees = Vector3(0.0, 0.0, 82.0)
+	diver_visual.add_child(basket)
+
+	# Animated arms
+	left_arm_pivot = Node3D.new()
+	left_arm_pivot.position = Vector3(0.28, -0.05, 0.28)
+	diver_visual.add_child(left_arm_pivot)
+	right_arm_pivot = Node3D.new()
+	right_arm_pivot.position = Vector3(0.28, -0.05, -0.28)
+	diver_visual.add_child(right_arm_pivot)
+	for pivot in [left_arm_pivot, right_arm_pivot]:
+		var arm := MeshInstance3D.new()
+		var am := CapsuleMesh.new()
+		am.radius = 0.085
+		am.height = 0.56
+		am.material = ao_mat
+		arm.mesh = am
+		arm.position = Vector3(0.18, -0.14, 0.0)
+		arm.rotation_degrees = Vector3(0.0, 0.0, 58.0)
+		pivot.add_child(arm)
+
+	# Animated legs + yellow swim flippers
+	left_leg_pivot = Node3D.new()
+	left_leg_pivot.position = Vector3(-0.44, -0.02, 0.13)
+	diver_visual.add_child(left_leg_pivot)
+	right_leg_pivot = Node3D.new()
+	right_leg_pivot.position = Vector3(-0.44, -0.02, -0.13)
+	diver_visual.add_child(right_leg_pivot)
+	for pivot in [left_leg_pivot, right_leg_pivot]:
+		var leg := MeshInstance3D.new()
+		var lm := CapsuleMesh.new()
+		lm.radius = 0.10
+		lm.height = 0.62
+		lm.material = pants_mat
+		leg.mesh = lm
+		leg.position = Vector3(-0.28, 0.0, 0.0)
+		leg.rotation_degrees = Vector3(0.0, 0.0, 90.0)
+		pivot.add_child(leg)
+
 		var fin := MeshInstance3D.new()
 		var fbox := BoxMesh.new()
-		fbox.size = Vector3(0.55, 0.08, 0.18)
+		fbox.size = Vector3(0.42, 0.06, 0.18)
 		fbox.material = fin_mat
 		fin.mesh = fbox
-		fin.position = Vector3(-1.05, 0.18, side_z)
-		fin.rotation_degrees = Vector3(0.0, 0.0, 15.0)
-		diver_visual.add_child(fin)
+		fin.position = Vector3(-0.70, 0.0, 0.0)
+		pivot.add_child(fin)
 
-	# Small warm dive-lamp light on diver so nearby fish & rocks pop with 3D shading
+	# Gentle warm dive-lamp light on diver
 	var lamp := OmniLight3D.new()
-	lamp.light_color = Color("#fff2cc")
-	lamp.light_energy = 1.6
-	lamp.omni_range = 10.0
-	lamp.position = Vector3(0.7, 0.2, 0.8)
+	lamp.light_color = Color("#ffe8b3")
+	lamp.light_energy = 0.75
+	lamp.omni_range = 8.0
+	lamp.position = Vector3(0.8, 0.2, 1.0)
 	diver_visual.add_child(lamp)
 
 
@@ -428,6 +537,14 @@ func _physics_process(delta: float) -> void:
 	var target_tilt := clampf(-diver_vel.y * 5.0, -32.0, 32.0)
 	diver_visual.rotation_degrees.y = lerpf(diver_visual.rotation_degrees.y, target_yaw, delta * 10.0)
 	diver_visual.rotation_degrees.z = lerpf(diver_visual.rotation_degrees.z, target_tilt if facing_right else -target_tilt, delta * 8.0)
+
+	# Animate swimming kick & arm stroke (faster when actively swimming)
+	var swim_speed_factor := 9.5 if diver_vel.length() > 0.5 else 3.2
+	var kick := sin(time_acc * swim_speed_factor) * (24.0 if diver_vel.length() > 0.5 else 9.0)
+	left_leg_pivot.rotation_degrees.z = kick
+	right_leg_pivot.rotation_degrees.z = -kick
+	left_arm_pivot.rotation_degrees.z = -kick * 0.65
+	right_arm_pivot.rotation_degrees.z = kick * 0.65
 
 	# Smooth Dave-the-Diver depth fog color shift from sunlit shallow to deep abyss
 	var depth_t := clampf(diver_pos.y / 28.0, 0.0, 1.0)
