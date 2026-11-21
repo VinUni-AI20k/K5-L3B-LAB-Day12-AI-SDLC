@@ -137,7 +137,8 @@ class Sau(unittest.TestCase):
             hold = H("ca_loc", "ca_loc", "bong_sung", "bong_sung", "ca_loc")
             sc = {"player": {"pos": [50, 20]}, "hold": hold,
                   "monsters": [self.croc([50, 20], [[50, 20], [54, 20]])]}
-            rows = gather(w, sc, ticks=100)
+            # Chỉ đo trong thời gian bất tử (90 tick): sau đó được phép chạm lại (lần chạm thứ 2 ở tick 91 là đúng luật).
+            rows = gather(w, sc, ticks=60)
             hit = only(rows, "monster_hit")
             self.assertEqual(hit["tick"], 1)
             d = hit["data"]
@@ -308,7 +309,8 @@ class Shop(unittest.TestCase):
         self.assertEqual(d, {"upgrade": "oxygen", "level": 1, "price": 200, "money": 0})
         names = [e["name"] for e in events(rows) if e["name"] in ("bought", "shop_end")]
         self.assertEqual(names, ["bought", "shop_end"], "buy xử lý trước shop_done kể cả bước cuối")
-        s = [x for x in snapshots(rows) if x["phase"] == "shop"][0]
+        # Lệnh mua được xử lý ở bước mà shop_done đóng Shop (tick 7); snapshot tick 6 còn là trạng thái trước khi mua.
+        s = [x for x in snapshots(rows) if x["phase"] == "shop" and x["tick"] == 7][0]
         self.assertEqual((s["money"], s["earned"]), (0, 200))
         self.assertEqual(s["upgrades"], {"oxygen": 1})
         self.assertEqual(s["active_upgrades"], {}, "chưa có hiệu lực trong Ngày hiện tại")

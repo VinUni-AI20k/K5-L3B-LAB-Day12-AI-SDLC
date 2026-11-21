@@ -1,373 +1,325 @@
-# Regression Phase 1–4 (phần QA/UI) — nhánh huydn8816, HEAD 1febf62 + thay đổi chưa commit
-# Lệnh: PYTHONPATH=tests:. python3 -m unittest discover -s tests -v
+# Regression Phase 1–4 (phần QA/UI) sau merge main — commit 066a565 + thay đổi chưa commit (test_p2_rules, index.html)
 # contract_version: 1.2
 
-....................................................................FFF...FFFF.FF....F..FFFFFlỗi: --duration phải > 0
-.usage: chonoi.bench [-h] --seed SEED --duration DURATION --out OUT
+test_random_fish_false_dung_yen_va_khong_sinh (test_gather_fish.Spawn.test_random_fish_false_dung_yen_va_khong_sinh)
+random_fish:false: cá fixture đứng yên, KHÔNG sinh đàn (v1.1 mục D). ... ok
+test_sinh_dung_lich_360_va_clearance (test_gather_fish.Spawn.test_sinh_dung_lich_360_va_clearance)
+phase_tick = 360: đúng 1 đàn sinh ra, id nối họ (F9), điểm thuộc preset và ... ok
+test_tat_dinh_tung_byte (test_gather_fish.Spawn.test_tat_dinh_tung_byte)
+Cùng seed + inputs: cá bơi/sinh vẫn tất định, JSONL giống nhau từng byte. ... ok
+test_tran_12_dan_thi_khong_sinh_them (test_gather_fish.Spawn.test_tran_12_dan_thi_khong_sinh_them)
+Sinh đủ tới fish_max = 12 rồi dừng: tổng 4 lần sinh (360·k), tick 1800 không sinh. ... ok
+test_ca_boi_dung_toc_do_va_huong (test_gather_fish.Swim.test_ca_boi_dung_toc_do_va_huong)
+Đàn heading 0 bơi +x đúng fish_speed: 60 tick đi được 1.5 m, độ sâu giữ nguyên. ... ok
+test_doi_huong_dung_buoc_boi_thu_120 (test_gather_fish.Swim.test_doi_huong_dung_buoc_boi_thu_120)
+Bước bơi thứ 120 đổi hướng theo seed TRƯỚC khi di chuyển: tick 119 giữ hướng cũ. ... ok
+test_phan_xa_dai_sau_theo_loai (test_gather_fish.Swim.test_phan_xa_dai_sau_theo_loai)
+ca_linh (dải [3,12]) bơi xuống đụng d = 12: phản xạ, heading đảo ~270° (bơi lên). ... ok
+test_phan_xa_mep_x (test_gather_fish.Swim.test_phan_xa_mep_x)
+Bơi đụng mép x = 96: phản xạ phần còn lại, đảo thành phần ngang (heading ~180°). ... ok
+test_bat_ca_keo_yield_2 (test_gather_fish.V11Kinds.test_bat_ca_keo_yield_2)
+Loài mới ca_keo: bắt được đàn, yield = 2 vào giỏ. ... ok
+test_hai_nut_keo_neo (test_gather_fish.V11Kinds.test_hai_nut_keo_neo)
+Nút mới keo_neo (N5): hái được ở mặt nước, vào giỏ đúng kind, nút bắt đầu mọc lại. ... ok
+test_hang_moi_fresh_100_hao_tu_buoc_sau_va_id_noi_tiep (test_gather_fresh.Decay.test_hang_moi_fresh_100_hao_tu_buoc_sau_va_id_noi_tiep)
+Hái ở bước 1 -> fresh 100 ở tick 1, 100 - 1/120 ở tick 2; id nối tiếp id lớn nhất đã nạp. ... ok
+test_hao_0_5_moi_giay_va_kep_day_0 (test_gather_fresh.Decay.test_hao_0_5_moi_giay_va_kep_day_0) ... ok
+test_ngat_bo_toan_bo_lifo_roi_faint (test_gather_fresh.Faint.test_ngat_bo_toan_bo_lifo_roi_faint) ... ok
+test_file_kho_dem_cu_ma_2 (test_gather_fresh.Handoff.test_file_kho_dem_cu_ma_2) ... ok
+test_smoke_ban_giao_file_v1_2 (test_gather_fresh.Handoff.test_smoke_ban_giao_file_v1_2)
+Smoke đề bài: fresh 100, interact frame 0 -> docked tick 1; file giữ đúng 100 - 1/120. ... ok
+test_tick_limit_truoc_gather_end_khong_ghi_file (test_gather_fresh.Handoff.test_tick_limit_truoc_gather_end_khong_ghi_file) ... ok
+test_hold_sai_schema_ma_2 (test_gather_fresh.Scenario.test_hold_sai_schema_ma_2) ... ok
+test_fixture_de_bai_fresh_30_uon_o_tick_1 (test_gather_fresh.Spoil.test_fixture_de_bai_fresh_30_uon_o_tick_1)
+Fixture đề bài: fresh đúng 30, một bước không input -> spoiled ở tick 1. ... ok
+test_nguong_chinh_xac_khong_lam_tron (test_gather_fresh.Spoil.test_nguong_chinh_xac_khong_lam_tron)
+30.009 - 1/120 = 30.00067 (chưa ươn); 30.008 - 1/120 = 29.99967 (ươn). ... ok
+test_spoiled_mot_lan_va_theo_id (test_gather_fresh.Spoil.test_spoiled_mot_lan_va_theo_id)
+Nhiều cá thể cùng vượt ngưỡng: phát theo id (I2 trước I10), mỗi cá thể đúng một lần. ... ok
+test_chase_3ms_khi_nguoi_choi_o_vung_sau (test_gather_monster.Chase.test_chase_3ms_khi_nguoi_choi_o_vung_sau)
+Người chơi d ≥ 10 và cách ≤ 10 m: chuyển chase, bơi 3.0 m/s về phía người chơi. ... ok
+test_noi_qua_khong_chase_va_khong_hit (test_gather_monster.Chase.test_noi_qua_khong_chase_va_khong_hit)
+Người chơi d < 10 (vùng nông): quái không chase, không hit dù trong hit_radius. ... ok
+test_dang_bat_tu_khong_hit_khong_recoil (test_gather_monster.Hit.test_dang_bat_tu_khong_hit_khong_recoil)
+Còn bất tử: không monster_hit, quái không chuyển recoil, Máu giữ nguyên. ... ok
+test_hai_quai_hit_con_gan_nhat (test_gather_monster.Hit.test_hai_quai_hit_con_gan_nhat)
+Hai con cùng trong hit_radius: chỉ 1 hit cho con GẦN nhất; con kia giữ trạng thái. ... ok
+test_hit_mat_1_mau_bo_nua_gio_bat_tu_90_recoil (test_gather_monster.Hit.test_hit_mat_1_mau_bo_nua_gio_bat_tu_90_recoil)
+Chạm: -1 Máu, bỏ floor(giỏ × 0.5) theo LIFO, bất tử 90, quái recoil 60 bước ... ok
+test_hp_0_ngat_ngay_kho_rong_van_mo_quan (test_gather_monster.Hit.test_hp_0_ngat_ngay_kho_rong_van_mo_quan)
+Máu chạm 0: monster_hit -> faint cause monster (phần giỏ còn lại) -> gather_end ... ok
+test_recoil_60_buoc_khong_hit_roi_ve_patrol (test_gather_monster.Hit.test_recoil_60_buoc_khong_hit_roi_ve_patrol)
+Trong 60 bước recoil không gây hit; hết recoil về patrol, chạm xét từ bước kế. ... ok
+test_bo_tri_ngay_1_chi_co_M1 (test_gather_monster.Patrol.test_bo_tri_ngay_1_chi_co_M1)
+Gather độc lập dùng bố trí Ngày 1: chỉ M1 (M2 from_day 3 bị loại). ... ok
+test_patrol_den_waypoint_roi_dao_muc_tieu (test_gather_monster.Patrol.test_patrol_den_waypoint_roi_dao_muc_tieu)
+1 m/s tới [64,24]: đến đúng tick 240 (4 m), snap waypoint, đổi target cho bước sau. ... ok
+test_dive_surface_events_va_pos (test_gather_slice1.Oxygen.test_dive_surface_events_va_pos)
+Lặn xuống rồi nổi lên: đúng một dive, một surface, data pos khớp snapshot cùng tick. ... ok
+test_ngat_bo_gio_lifo_va_kho_rong (test_gather_slice1.Oxygen.test_ngat_bo_gio_lifo_va_kho_rong)
+Máu 1, oxy 0 dưới nước: choke tick 60 -> faint, giỏ bỏ theo LIFO, kho rỗng, dừng ngay. ... ok
+test_ngat_thang_truoc_het_gio (test_gather_slice1.Oxygen.test_ngat_thang_truoc_het_gio)
+Ngạt đúng bước ca cũng hết giờ: faint thắng, chỉ một gather_end, không reason time. ... ok
+test_noi_dung_buoc_dang_le_ngat_khong_choke (test_gather_slice1.Oxygen.test_noi_dung_buoc_dang_le_ngat_khong_choke)
+Nổi lên đúng bước mà đếm ngạt sẽ đủ 60: hồi oxy, không choke, không trừ Máu. ... ok
+test_noi_hoi_oxy_va_reset_dem (test_gather_slice1.Oxygen.test_noi_hoi_oxy_va_reset_dem)
+Ở mặt nước: hồi oxygen_refill_per_tick/tick kẹp max, zero_oxy_ticks giữ 0. ... ok
+test_oxygen_empty_va_choke_dung_tick (test_gather_slice1.Oxygen.test_oxygen_empty_va_choke_dung_tick)
+oxy = 5, dưới nước: oxygen_empty tick 5 (vừa chạm 0), choke tick 64 (= 5 + 59), đếm reset. ... ok
+test_bat_ca_yield_huy_dan_va_hoi_chieu (test_gather_slice2.Catch.test_bat_ca_yield_huy_dan_va_hoi_chieu)
+Bắt ca_linh: yield 3 vào giỏ, đàn biến mất, cooldown 30 tick chặn cú tiếp theo. ... ok
+test_bat_chi_khi_duoi_nuoc (test_gather_slice2.Catch.test_bat_chi_khi_duoi_nuoc)
+Đứng ở mặt nước (d ≤ 0.5): catch không bắt dù đàn trong bán kính, không hồi chiêu. ... ok
+test_bat_dung_mep_ban_kinh (test_gather_slice2.Catch.test_bat_dung_mep_ban_kinh)
+Đúng mép catch_radius (dist = 2.0) vẫn bắt được. ... ok
+test_hold_full_catch_giu_dan_va_cooldown (test_gather_slice2.Catch.test_hold_full_catch_giu_dan_va_cooldown)
+Giỏ thiếu chỗ cho yield: hold_full action catch, giữ đàn, giữ cooldown, KHÔNG thử đàn khác. ... ok
+test_ben_uu_tien_truoc_hai (test_gather_slice2.Dock.test_ben_uu_tien_truoc_hai)
+Nút nằm trong vùng bến: interact ưu tiên cập bến, không hái. ... ok
+test_dung_mep_ben_van_docked (test_gather_slice2.Dock.test_dung_mep_ben_van_docked)
+Khoảng cách tới tâm bến đúng bằng dock_radius (3.0) vẫn docked. ... ok
+test_hai_chi_khi_o_mat_nuoc (test_gather_slice2.Harvest.test_hai_chi_khi_o_mat_nuoc)
+Underwater trong bán kính: interact không hái, không hold_full, nút giữ nguyên. ... ok
+test_hai_dung_nut_gan_nhat_hoa_theo_id (test_gather_slice2.Harvest.test_hai_dung_nut_gan_nhat_hoa_theo_id)
+Hai nút cách đều: chọn id nhỏ hơn (N1 trước N2). ... ok
+test_hold_full_hai_gio_day (test_gather_slice2.Harvest.test_hold_full_hai_gio_day)
+Giỏ đầy: hold_full (required, free = 0), không gather, nút vẫn ready không mọc lại. ... ok
+test_nut_moc_lai_dung_tick_va_hai_duoc_ngay (test_gather_slice2.Harvest.test_nut_moc_lai_dung_tick_va_hai_duoc_ngay)
+Hái tick 1 → regrow 1200 tick → node_regrown tick 1201 (= 1 + regrow_s × 60). ... ok
+test_het_gio_giu_gio_sau_hai_buoc_cuoi (test_gather_slice2.TimeEnd.test_het_gio_giu_gio_sau_hai_buoc_cuoi)
+Hái hợp lệ ở bước cuối vẫn vào kho trước khi kết thúc time. ... ok
+test_state_input_and_clean_stop (test_live.LiveServerTest.test_state_input_and_clean_stop) ... ok
+test_contract_version_and_commands (test_p2_contract.DayShop.test_contract_version_and_commands) ... ok
+test_day_01_plan_has_five_days_matching_ticket (test_p2_contract.DayShop.test_day_01_plan_has_five_days_matching_ticket) ... ok
+test_day_02_plan_ingredients_equal_sum_of_recipes (test_p2_contract.DayShop.test_day_02_plan_ingredients_equal_sum_of_recipes)
+ingredients = tổng (công thức × số suất) — kiểm bằng menu trong contract, không bằng bảng trong test. ... ok
+test_shop_01_upgrades_and_timeout (test_p2_contract.DayShop.test_shop_01_upgrades_and_timeout) ... ok
+test_gather_01_fish_initial_is_8 (test_p2_contract.Gather.test_gather_01_fish_initial_is_8)
+`fish_initial` có đúng 8 đàn, id khác nhau, đủ cả ba loài. ... ok
+test_gather_02_six_nodes_two_per_plant (test_p2_contract.Gather.test_gather_02_six_nodes_two_per_plant)
+6 nút: N1–N2 điên điển, N3–N4 bông súng, N5–N6 kèo nèo, đúng tọa độ, d = 0. ... ok
+test_gather_03_fish_yield_three_species (test_p2_contract.Gather.test_gather_03_fish_yield_three_species) ... ok
+test_gather_04_fish_swim_and_spawn_keys_present (test_p2_contract.Gather.test_gather_04_fish_swim_and_spawn_keys_present)
+Các khóa cá bơi/sinh có mặt (giá trị chi tiết do luật và test hành vi kiểm). ... ok
+test_gather_05_nodes_and_fish_spawn_inside_bounds (test_p2_contract.Gather.test_gather_05_nodes_and_fish_spawn_inside_bounds) ... ok
+test_monster_01_global_rules (test_p2_contract.Monster.test_monster_01_global_rules) ... ok
+test_monster_02_ca_sau_species (test_p2_contract.Monster.test_monster_02_ca_sau_species) ... ok
+test_monster_03_spawns_m1_day1_m2_day3 (test_p2_contract.Monster.test_monster_03_spawns_m1_day1_m2_day3) ... ok
+test_quan_01_stoves_and_tables (test_p2_contract.Quan.test_quan_01_stoves_and_tables) ... ok
+test_quan_02_menu_matches_ticket (test_p2_contract.Quan.test_quan_02_menu_matches_ticket) ... ok
+test_quan_03_customer_schedule (test_p2_contract.Quan.test_quan_03_customer_schedule)
+Lượt đầu tick 120, chu kỳ 900 tick (15 s), kiên nhẫn 60 s, ăn 10 s, boa 0.2 / ngưỡng 0.5. ... ok
+test_ca_01_swims_at_1_5_mps (test_p2_rules.Ca.test_ca_01_swims_at_1_5_mps)
+Đàn bơi theo hướng ban đầu 1.5 m/s: 60 tick đi 1.5 m (chưa tới bước đổi hướng 120). ... ok
+test_ca_02_reflects_off_x_edge_with_remaining_distance (test_p2_rules.Ca.test_ca_02_reflects_off_x_edge_with_remaining_distance)
+Chạm mép x = 96: phản xạ phần quãng đường còn lại, đảo hướng x. Từ 95.5, 60 tick = 1.5 m → x = 95.0. ... ok
+test_ca_03_reflects_off_depth_range (test_p2_rules.Ca.test_ca_03_reflects_off_depth_range)
+Cá linh chỉ ở d ∈ [3,12]: từ d = 11.5 hướng xuống, 60 tick → phản xạ ở 12, d = 11.0. ... ok
+test_ca_04_random_fish_false_keeps_fish_still (test_p2_rules.Ca.test_ca_04_random_fish_false_keeps_fish_still)
+random_fish:false: cá fixture đứng yên, không sinh thêm. ... ok
+test_ca_05_spawn_at_phase_tick_360 (test_p2_rules.Ca.test_ca_05_spawn_at_phase_tick_360)
+Tại phase_tick 360: sinh tối đa một đàn, `fish_spawned` {id,kind,pos}; id nối sau hậu tố lớn nhất; ... ok
+test_ca_06_no_spawn_at_cap_12 (test_p2_rules.Ca.test_ca_06_no_spawn_at_cap_12)
+Đủ trần 12 đàn thì không sinh. ... ok
+test_day_01_plan_announced_for_day_1 (test_p2_rules.Day.test_day_01_plan_announced_for_day_1)
+Đầu Ngày: day_start → day_plan → phase_start(gather); day_plan khớp D1; snapshot có day, day_plan, upgrades. ... ok
+test_day_02_phases_change_on_same_tick (test_p2_rules.Day.test_day_02_phases_change_on_same_tick)
+gather_end → phase_start(quan) cùng tick; quan_end → phase_start(shop) cùng tick. ... ok
+test_day_03_faint_still_opens_quan_with_empty_stock (test_p2_rules.Day.test_day_03_faint_still_opens_quan_with_empty_stock)
+Ngất vẫn mở quán tối với kho bàn giao rỗng. ... ok
+test_day_04_days_flag_range (test_p2_rules.Day.test_day_04_days_flag_range)
+--days chỉ từ 1 đến 5 và chỉ với mode day. ... ok
+test_day_05_forbids_quan_stock_and_reputation (test_p2_rules.Day.test_day_05_forbids_quan_stock_and_reputation)
+Cấm quan.stock và quan.reputation khi chạy day (mã 2). ... ok
+test_day_06_day_scenario_money_earned_rule (test_p2_rules.Day.test_day_06_day_scenario_money_earned_rule)
+day.money > day.earned là mâu thuẫn (mã 2). ... ok
+test_day_07_days_complete_end_line (test_p2_rules.Day.test_day_07_days_complete_end_line)
+Đóng Shop ở Ngày cuối: end.reason = days_complete, days_completed = 1. ... ok
+test_perf_01_one_day_under_20s (test_p2_rules.Hieunang.test_perf_01_one_day_under_20s) ... ok
+test_pause_01_freezes_sim_and_timers (test_p2_rules.Pause.test_pause_01_freezes_sim_and_timers)
+pause (cạnh lên): phát `paused`, tick ngoài chạy tiếp, sim_tick, phase_tick, time_left_ticks đứng yên, ... ok
+test_pause_02_actions_ignored_while_paused (test_p2_rules.Pause.test_pause_02_actions_ignored_while_paused)
+Đang pause: bỏ qua cạnh hành động (hái, bắt cá, mua). ... ok
+test_quan_01_four_tables_two_stoves_in_snapshot (test_p2_rules.Quan.test_quan_01_four_tables_two_stoves_in_snapshot) ... ok
+test_quan_02_second_customer_at_1020_sits_at_t2 (test_p2_rules.Quan.test_quan_02_second_customer_at_1020_sits_at_t2)
+Lượt khách 120 + 900k: khách thứ hai tick 1020 ngồi ghế trống id nhỏ nhất (T2). ... ok
+test_quan_03_lau_mam_reserves_and_cooks (test_p2_rules.Quan.test_quan_03_lau_mam_reserves_and_cooks)
+Kho chỉ đủ lẩu mắm: khách gọi lau_mam, giữ đủ 5 nguyên liệu; nấu 12 s giá 200, items theo kind. ... ok
+test_quan_04_tip_on_200 (test_p2_rules.Quan.test_quan_04_tip_on_200)
+Giá 200 còn ≥ 50% kiên nhẫn: boa floor(200 × 0.2) = 40. ... ok
+test_sau_01_default_day1_layout_and_patrol (test_p2_rules.Sau.test_sau_01_default_day1_layout_and_patrol)
+Không khai monsters: Ngày 1 có M1 ở [60,24]; tuần tra 1.0 m/s về waypoint kia ([64,24]). ... ok
+test_sau_02_chase_when_player_deep_and_near (test_p2_rules.Sau.test_sau_02_chase_when_player_deep_and_near)
+Người chơi ở d ≥ 10 và cách ≤ 10 m: chuyển chase. ... ok
+test_sau_03_no_chase_when_player_shallow (test_p2_rules.Sau.test_sau_03_no_chase_when_player_shallow)
+Người chơi lên d < 10 thì không bị đuổi. ... ok
+test_sau_04_hit_loses_hp_half_hold_lifo_and_invuln (test_p2_rules.Sau.test_sau_04_hit_loses_hp_half_hold_lifo_and_invuln)
+Chạm ≤ 1.5 m ở d ≥ 10: -1 Máu, bỏ floor(n/2) nguyên liệu LIFO, bất tử 90 tick, đúng một hit. ... ok
+test_sau_05_no_hit_when_player_shallow (test_p2_rules.Sau.test_sau_05_no_hit_when_player_shallow) ... ok
+test_sau_06_faint_by_monster (test_p2_rules.Sau.test_sau_06_faint_by_monster)
+Máu về 0 do chạm: monster_hit(hp 0), faint {cause:monster, lost: phần giỏ còn lại, hp:0}, gather_end fainted. ... ok
+test_shop_01_exact_price_buys_and_keeps_earned (test_p2_rules.Shop.test_shop_01_exact_price_buys_and_keeps_earned)
+Đủ đúng giá (200) vẫn mua được bình oxy cấp 1: `bought`, trừ money, giữ earned và điểm. ... ok
+test_shop_02_not_enough_funds (test_p2_rules.Shop.test_shop_02_not_enough_funds)
+Thiếu tiền: `buy_failed` reason funds, tiền và cấp giữ nguyên. ... ok
+test_shop_03_unknown_item_fails (test_p2_rules.Shop.test_shop_03_unknown_item_fails) ... ok
+test_shop_04_upgrade_active_next_day (test_p2_rules.Shop.test_shop_04_upgrade_active_next_day)
+Cấp đã mua có hiệu lực từ Ngày kế: Ngày 2 oxy tối đa 45 s = 2700 tick, active_upgrades {oxygen:1}. ... ok
+test_shop_05_auto_close_after_600_ticks (test_p2_rules.Shop.test_shop_05_auto_close_after_600_ticks)
+Shop tự đóng sau 600 tick hoạt động: shop_end reason time. ... ok
+test_cli_01_bad_duration_exit_2 (test_p4_bench.Cli.test_cli_01_bad_duration_exit_2) ... lỗi: --duration phải > 0
+ok
+test_cli_02_missing_args_exit_2 (test_p4_bench.Cli.test_cli_02_missing_args_exit_2) ... usage: chonoi.bench [-h] --seed SEED --duration DURATION --out OUT
 chonoi.bench: error: the following arguments are required: --duration, --out
-.không tìm thấy Chrome/Chromium/Edge (đặt biến môi trường CHROME_BIN)
-...........................................F....FFF.FFFF............................
-======================================================================
-FAIL: test_day_01_plan_announced_for_day_1 (test_p2_rules.Day.test_day_01_plan_announced_for_day_1)
-Đầu Ngày: day_start → day_plan → phase_start(gather); day_plan khớp D1; snapshot có day, day_plan, upgrades.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 225, in test_day_01_plan_announced_for_day_1
-    rows = run_day(w, DAY_SC, ticks=0)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 1
-
-
-======================================================================
-FAIL: test_day_02_phases_change_on_same_tick (test_p2_rules.Day.test_day_02_phases_change_on_same_tick)
-gather_end → phase_start(quan) cùng tick; quan_end → phase_start(shop) cùng tick.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 239, in test_day_02_phases_change_on_same_tick
-    rows = run_day(w, DAY_SC, ticks=7)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 1
-
-
-======================================================================
-FAIL: test_day_03_faint_still_opens_quan_with_empty_stock (test_p2_rules.Day.test_day_03_faint_still_opens_quan_with_empty_stock)
-Ngất vẫn mở quán tối với kho bàn giao rỗng.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 254, in test_day_03_faint_still_opens_quan_with_empty_stock
-    rows = run_day(w, sc, ticks=6, every=1)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 1
-
-
-======================================================================
-FAIL: test_day_07_days_complete_end_line (test_p2_rules.Day.test_day_07_days_complete_end_line)
-Đóng Shop ở Ngày cuối: end.reason = days_complete, days_completed = 1.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 287, in test_day_07_days_complete_end_line
-    rows = run_day(w, DAY_SC, inp=frames({"tick": 6, "shop_done": True}), ticks=50)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 1
-
-
-======================================================================
-FAIL: test_perf_01_one_day_under_20s (test_p2_rules.Hieunang.test_perf_01_one_day_under_20s)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 384, in test_perf_01_one_day_under_20s
-    self.assertEqual(code, 0, err)
-    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
-AssertionError: 2 != 0 : usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 1
-
-
-======================================================================
-FAIL: test_pause_01_freezes_sim_and_timers (test_p2_rules.Pause.test_pause_01_freezes_sim_and_timers)
-pause (cạnh lên): phát `paused`, tick ngoài chạy tiếp, sim_tick, phase_tick, time_left_ticks đứng yên,
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 356, in test_pause_01_freezes_sim_and_timers
-    rows = gather(w, {"player": {"pos": [50, 10]}}, inp=inp, ticks=12)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 31, in gather
-    return run_mode(w, "gather", block, **kw)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: frame 0 có trường lạ/chưa hỗ trợ: ['pause']
-
-
-======================================================================
-FAIL: test_pause_02_actions_ignored_while_paused (test_p2_rules.Pause.test_pause_02_actions_ignored_while_paused)
-Đang pause: bỏ qua cạnh hành động (hái, bắt cá, mua).
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 371, in test_pause_02_actions_ignored_while_paused
-    rows = gather(w, {"player": {"pos": [12, 0]}}, inp=inp, ticks=5)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 31, in gather
-    return run_mode(w, "gather", block, **kw)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: frame 0 có trường lạ/chưa hỗ trợ: ['pause']
-
-
-======================================================================
-FAIL: test_quan_02_second_customer_at_1020_sits_at_t2 (test_p2_rules.Quan.test_quan_02_second_customer_at_1020_sits_at_t2)
-Lượt khách 120 + 900k: khách thứ hai tick 1020 ngồi ghế trống id nhỏ nhất (T2).
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 183, in test_quan_02_second_customer_at_1020_sits_at_t2
-    rows = run_mode(w, "quan", {"stock": Kitchen({"ca_loc": 5, "bong_sung": 5}).stock}, ticks=1020, every=1020)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
-
-
-======================================================================
-FAIL: test_quan_03_lau_mam_reserves_and_cooks (test_p2_rules.Quan.test_quan_03_lau_mam_reserves_and_cooks)
-Kho chỉ đủ lẩu mắm: khách gọi lau_mam, giữ đủ 5 nguyên liệu; nấu 12 s giá 200, items theo kind.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 196, in test_quan_03_lau_mam_reserves_and_cooks
-    rows = run_mode(w, "quan", sc, inp=frames({"tick": 0, "interact": True}), ticks=1)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
-
-
-======================================================================
-FAIL: test_sau_04_hit_loses_hp_half_hold_lifo_and_invuln (test_p2_rules.Sau.test_sau_04_hit_loses_hp_half_hold_lifo_and_invuln)
-Chạm ≤ 1.5 m ở d ≥ 10: -1 Máu, bỏ floor(n/2) nguyên liệu LIFO, bất tử 90 tick, đúng một hit.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 141, in test_sau_04_hit_loses_hp_half_hold_lifo_and_invuln
-    hit = only(rows, "monster_hit")
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 36, in only
-    assert len(ev) == 1, f"cần đúng 1 event {name}, có {len(ev)}"
-           ^^^^^^^^^^^^
-AssertionError: cần đúng 1 event monster_hit, có 2
-
-======================================================================
-FAIL: test_shop_01_exact_price_buys_and_keeps_earned (test_p2_rules.Shop.test_shop_01_exact_price_buys_and_keeps_earned)
-Đủ đúng giá (200) vẫn mua được bình oxy cấp 1: `bought`, trừ money, giữ earned và điểm.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 306, in test_shop_01_exact_price_buys_and_keeps_earned
-    rows = self.shop_rows(200, "oxygen")
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 302, in shop_rows
-    return run_day(w, sc, inp=inp, ticks=ticks)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 1
-
-
-======================================================================
-FAIL: test_shop_02_not_enough_funds (test_p2_rules.Shop.test_shop_02_not_enough_funds)
-Thiếu tiền: `buy_failed` reason funds, tiền và cấp giữ nguyên.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 318, in test_shop_02_not_enough_funds
-    rows = self.shop_rows(199, "oxygen")
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 302, in shop_rows
-    return run_day(w, sc, inp=inp, ticks=ticks)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 1
-
-
-======================================================================
-FAIL: test_shop_03_unknown_item_fails (test_p2_rules.Shop.test_shop_03_unknown_item_fails)
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 324, in test_shop_03_unknown_item_fails
-    rows = self.shop_rows(500, "khong_co")
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 302, in shop_rows
-    return run_day(w, sc, inp=inp, ticks=ticks)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 1
-
-
-======================================================================
-FAIL: test_shop_04_upgrade_active_next_day (test_p2_rules.Shop.test_shop_04_upgrade_active_next_day)
-Cấp đã mua có hiệu lực từ Ngày kế: Ngày 2 oxy tối đa 45 s = 2700 tick, active_upgrades {oxygen:1}.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 332, in test_shop_04_upgrade_active_next_day
-    rows = run_day(w, sc, inp=inp, days=2, ticks=30)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 2
-
-
-======================================================================
-FAIL: test_shop_05_auto_close_after_600_ticks (test_p2_rules.Shop.test_shop_05_auto_close_after_600_ticks)
-Shop tự đóng sau 600 tick hoạt động: shop_end reason time.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_p2_rules.py", line 341, in test_shop_05_auto_close_after_600_ticks
-    rows = run_day(w, DAY_SC, ticks=700, every=700)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 121, in run_day
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: usage: chonoi.headless [-h] --mode {gather,quan,day} --seed SEED --ticks TICKS
-                       --out OUT [--scenario SCENARIO] [--inputs INPUTS]
-                       [--inventory INVENTORY] [--inventory-out INVENTORY_OUT]
-                       [--snapshot-every SNAPSHOT_EVERY]
-lỗi: unrecognized arguments: --days 1
-
-
-======================================================================
-FAIL: test_bep_01_cook_started_consumes_reserved_stock (test_rules_quan.Bep.test_bep_01_cook_started_consumes_reserved_stock)
-interact cạnh bếp idle: lấy đơn reserved, tiêu nguyên liệu giữ, `cook_started`, bếp cooking đủ cook_s × 60.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 122, in test_bep_01_cook_started_consumes_reserved_stock
-    rows = run(w, sc, inp=frames({"tick": 0, "interact": True}), ticks=1)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
-    return run_mode(w, "quan", block, **kw)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
-
-
-======================================================================
-FAIL: test_het_01_patience_runs_out (test_rules_quan.HetGio.test_het_01_patience_runs_out)
-Khách waiting hết kiên nhẫn khi ca còn giờ: `customer_left` reason patience, uy tín + left_reputation_delta,
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 238, in test_het_01_patience_runs_out
-    rows = run(w, sc, ticks=6)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
-    return run_mode(w, "quan", block, **kw)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
-
-
-======================================================================
-FAIL: test_het_02_reputation_clamped_at_min (test_rules_quan.HetGio.test_het_02_reputation_clamped_at_min)
-Uy tín không xuống dưới reputation_min.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 254, in test_het_02_reputation_clamped_at_min
-    rows = run(w, sc, ticks=3)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
-    return run_mode(w, "quan", block, **kw)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
-
-
-======================================================================
-FAIL: test_het_03_closing_waiting_customer_leaves_without_penalty (test_rules_quan.HetGio.test_het_03_closing_waiting_customer_leaves_without_penalty)
-Hết ca: khách còn chờ rời với reason closing, không trừ uy tín; rồi `quan_end`.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 262, in test_het_03_closing_waiting_customer_leaves_without_penalty
-    rows = run(w, sc, ticks=10)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
-    return run_mode(w, "quan", block, **kw)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
-
-
-======================================================================
-FAIL: test_khach_01_first_customer_on_schedule_reserves_recipe (test_rules_quan.Khach.test_khach_01_first_customer_on_schedule_reserves_recipe)
-Tick first_customer_tick: `customer_arrived` ở T1; khách giữ đúng công thức; chưa có khách trước đó.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 70, in test_khach_01_first_customer_on_schedule_reserves_recipe
-    rows = run(w, {"stock": Kitchen({"ca_loc": 1}).stock}, ticks=first)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
-    return run_mode(w, "quan", block, **kw)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
-
-
-======================================================================
-FAIL: test_khach_02_no_dish_when_stock_insufficient (test_rules_quan.Khach.test_khach_02_no_dish_when_stock_insufficient)
-Có bàn trống mà không món nào đủ nguyên liệu: `no_dish` {}, không có khách.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 86, in test_khach_02_no_dish_when_stock_insufficient
-    rows = run(w, {"stock": Kitchen({"bong_sung": 1}).stock}, ticks=first)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
-    return run_mode(w, "quan", block, **kw)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
-
-
-======================================================================
-FAIL: test_khach_03_no_free_table_skips_turn (test_rules_quan.Khach.test_khach_03_no_free_table_skips_turn)
-Không còn bàn trống thì bỏ lượt: không `customer_arrived`, không `no_dish`.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 100, in test_khach_03_no_free_table_skips_turn
-    rows = run(w, sc, ticks=first)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
-    return run_mode(w, "quan", block, **kw)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
-
-
-======================================================================
-FAIL: test_khach_04_random_customers_false_disables_arrivals (test_rules_quan.Khach.test_khach_04_random_customers_false_disables_arrivals)
-random_customers:false tắt khách tự sinh.
-----------------------------------------------------------------------
-Traceback (most recent call last):
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 108, in test_khach_04_random_customers_false_disables_arrivals
-    rows = run(w, {"stock": Kitchen({"ca_loc": 1}).stock, "random_customers": False}, ticks=first + 5)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\test_rules_quan.py", line 32, in run
-    return run_mode(w, "quan", block, **kw)
-  File "e:\AI20K_KhoaV\TeamLabAssignment\Day12\tests\rules_common.py", line 137, in run_mode
-    assert code == 0, f"headless thoát mã {code}: {err}"
-           ^^^^^^^^^
-AssertionError: headless thoát mã 2: đầu vào sai: items phải là object
-
+ok
+test_cli_03_no_browser_exit_1_without_hanging (test_p4_bench.Cli.test_cli_03_no_browser_exit_1_without_hanging) ... không tìm thấy Chrome/Chromium/Edge (đặt biến môi trường CHROME_BIN)
+ok
+test_compute_01_steady_60fps (test_p4_bench.Compute.test_compute_01_steady_60fps)
+600 khung đều 1000/60 ms: 60 FPS, 1% low cũng 60 FPS, 10 s. ... ok
+test_compute_02_p1_low_uses_slowest_one_percent (test_p4_bench.Compute.test_compute_02_p1_low_uses_slowest_one_percent)
+100 khung: 99 khung 10 ms và 1 khung 100 ms. max(1, ceil(0.01×100)) = 1 khung chậm nhất → 1/0.1 s = 10 FPS. ... ok
+test_compute_03_ceil_for_non_round_frame_counts (test_p4_bench.Compute.test_compute_03_ceil_for_non_round_frame_counts)
+250 khung → ceil(2.5) = 3 khung chậm nhất: ba khung 50 ms, trung bình 50 ms → 20 FPS. ... ok
+test_compute_04_few_frames_use_at_least_one (test_p4_bench.Compute.test_compute_04_few_frames_use_at_least_one)
+Dưới 100 khung vẫn lấy ít nhất 1 khung chậm nhất. ... ok
+test_real_01_bench_json_has_five_fields (test_p4_bench.Real.test_real_01_bench_json_has_five_fields) ... ok
+test_catch_ca_linh_yield_creates_3_individual_items (test_phase3_slice2.FreshnessAndIndividualItems.test_catch_ca_linh_yield_creates_3_individual_items)
+Bắt ca_linh (yield=3) tạo 3 cá thể riêng biệt I1, I2, I3 đều có fresh=100.0. ... ok
+test_faint_lifo_lost_and_empty_inventory (test_phase3_slice2.FreshnessAndIndividualItems.test_faint_lifo_lost_and_empty_inventory)
+Ngất: lost là mảng cá thể theo thứ tự LIFO, kho xuất rỗng {"items": []}. ... ok
+test_freshness_decay_in_hold (test_phase3_slice2.FreshnessAndIndividualItems.test_freshness_decay_in_hold)
+Hao tươi trong giỏ 0.5/s: sau 60 tick (1s), fresh giảm đúng 0.5. ... ok
+test_handover_v12_inventory_file (test_phase3_slice2.FreshnessAndIndividualItems.test_handover_v12_inventory_file)
+Bàn giao file kho v1.2: mảng cá thể {id, kind, fresh}, quán đọc đúng. ... ok
+test_harvest_creates_individual_item_fresh_100 (test_phase3_slice2.FreshnessAndIndividualItems.test_harvest_creates_individual_item_fresh_100)
+Hái nút N1 tạo cá thể mới với id I1, fresh=100.0. ... ok
+test_reject_count_inventory_in_v12 (test_phase3_slice2.FreshnessAndIndividualItems.test_reject_count_inventory_in_v12)
+Contract v1.2 từ chối file kho đếm kiểu cũ {"items": {"ca_loc": 1}} với mã thoát 2. ... ok
+test_spoiled_event_at_threshold_30 (test_phase3_slice2.FreshnessAndIndividualItems.test_spoiled_event_at_threshold_30)
+Ticket-03 mẫu: Cá thể bắt đầu đúng fresh 30 nên ươn ở bước đầu. ... ok
+test_cook_locks_exact_item_and_fresh_adjusted_price (test_phase3_slice3_4.QuanFreshness.test_cook_locks_exact_item_and_fresh_adjusted_price) ... ok
+test_stock_decays_and_spoils_before_order_handling (test_phase3_slice3_4.QuanFreshness.test_stock_decays_and_spoils_before_order_handling) ... ok
+test_day_publishes_reservations_after_gather_phase_start (test_phase3_slice3_4.ReservationOrders.test_day_publishes_reservations_after_gather_phase_start) ... ok
+test_day_two_fixture_items_get_new_ids_and_initial_freshness (test_phase3_slice3_4.ReservationOrders.test_day_two_fixture_items_get_new_ids_and_initial_freshness) ... ok
+test_fixture_reservation_arrives_and_holds_distinct_stock_ids (test_phase3_slice3_4.ReservationOrders.test_fixture_reservation_arrives_and_holds_distinct_stock_ids) ... ok
+test_occupied_reservation_fails_once_with_penalty (test_phase3_slice3_4.ReservationOrders.test_occupied_reservation_fails_once_with_penalty) ... ok
+test_bad_frames_raise (test_python_starter_units.Units.test_bad_frames_raise) ... ok
+test_catch_is_a_v10_button_and_attack_is_not (test_python_starter_units.Units.test_catch_is_a_v10_button_and_attack_is_not) ... ok
+test_id_allocator_continues_after_max (test_python_starter_units.Units.test_id_allocator_continues_after_max) ... ok
+test_id_sorting (test_python_starter_units.Units.test_id_sorting) ... ok
+test_input_edges_and_inherit (test_python_starter_units.Units.test_input_edges_and_inherit) ... ok
+test_live_inputs_keep_fast_tap_edge (test_python_starter_units.Units.test_live_inputs_keep_fast_tap_edge) ... ok
+test_session_steps_gather_and_dock (test_python_starter_units.Units.test_session_steps_gather_and_dock) ... ok
+test_ca_01_catch_takes_whole_school (test_rules_gather.Ca.test_ca_01_catch_takes_whole_school)
+Dưới nước, trong tầm: +yield, đàn bị xóa, `fish_caught`, hồi chiêu catch_cooldown_s × 60. ... ok
+test_ca_02_no_catch_at_surface (test_rules_gather.Ca.test_ca_02_no_catch_at_surface)
+Ở mặt nước thì không bắt, không hồi chiêu. ... ok
+test_ca_03_cooldown_usable_again_after_L_ticks (test_rules_gather.Ca.test_ca_03_cooldown_usable_again_after_L_ticks)
+Hồi chiêu L đặt ở tick t dùng lại từ t+L: bấm ở bước 29 chưa được, bước 30 được (L = 30). ... ok
+test_ca_04_nearest_school_ties_by_id (test_rules_gather.Ca.test_ca_04_nearest_school_ties_by_id)
+Chọn đúng một đàn gần nhất trong catch_radius; hòa khoảng cách thì id nhỏ; đàn khác còn nguyên. ... ok
+test_ca_05_out_of_radius_no_event_no_cooldown (test_rules_gather.Ca.test_ca_05_out_of_radius_no_event_no_cooldown)
+Không có đàn trong tầm: không event, không hồi chiêu. ... ok
+test_ca_06_not_enough_room_keeps_school_and_cooldown (test_rules_gather.Ca.test_ca_06_not_enough_room_keeps_school_and_cooldown)
+Thiếu chỗ (không bắt một phần): `hold_full` {action:catch,fish_id,required,free}; giữ đàn; không hồi chiêu. ... ok
+test_ket_01_dock_radius_inclusive_beats_gather (test_rules_gather.KetThuc.test_ket_01_dock_radius_inclusive_beats_gather)
+Đúng mép dock_radius vẫn `docked`; bến xét trước hái (nút nằm trong bến không bị hái). ... ok
+test_ket_02_gather_on_last_step_still_counts (test_rules_gather.KetThuc.test_ket_02_gather_on_last_step_still_counts)
+Hết giờ ở bước cuối: hái hợp lệ ở bước đó vẫn vào kho; lý do `time`. ... ok
+test_ket_03_time_end_at_depth_keeps_hold (test_rules_gather.KetThuc.test_ket_03_time_end_at_depth_keeps_hold)
+Hết giờ khi đang ở dưới nước: kết thúc `time`, giữ nguyên giỏ (không ngất). ... ok
+test_ngat_01_choke_every_interval (test_rules_gather.Ngat.test_ngat_01_choke_every_interval)
+Oxy 0 dưới nước liên tục: ngạt lần đầu ở tick 60 (= t+59 với t = tick chạm 0), -1 Máu, `choke.hp`. ... ok
+test_ngat_02_no_choke_at_surface (test_rules_gather.Ngat.test_ngat_02_no_choke_at_surface)
+Oxy 0 nhưng ở mặt nước: không ngạt, oxy hồi. ... ok
+test_ngat_03_surfacing_on_choke_step_saves_player (test_rules_gather.Ngat.test_ngat_03_surfacing_on_choke_step_saves_player)
+Nổi lên đúng bước đáng lẽ ngạt (đếm 59): hồi oxy, không ngạt. ... ok
+test_ngat_04_faint_lifo_and_empty_inventory (test_rules_gather.Ngat.test_ngat_04_faint_lifo_and_empty_inventory)
+Máu về 0: choke(hp 0) → faint{cause:choke, lost theo LIFO, hp:0} → gather_end fainted, kho rỗng. ... ok
+test_nut_01_gather_at_surface (test_rules_gather.Nut.test_nut_01_gather_at_surface)
+interact ở mặt nước trong tầm: +node_yield, event `gather`, nút regrow_s × 60 tick. ... ok
+test_nut_02_no_gather_underwater (test_rules_gather.Nut.test_nut_02_no_gather_underwater)
+Dưới nước thì bỏ qua interact (không phải bến). ... ok
+test_nut_03_radius_is_inclusive (test_rules_gather.Nut.test_nut_03_radius_is_inclusive)
+Đúng mép interact_radius vẫn hái được; vượt mép thì không. ... ok
+test_nut_04_nearest_ready_node_ties_by_id (test_rules_gather.Nut.test_nut_04_nearest_ready_node_ties_by_id)
+Chọn nút ready gần nhất; bằng khoảng cách thì id nhỏ; nút chưa ready bị bỏ qua. ... ok
+test_nut_05_hold_full_keeps_node (test_rules_gather.Nut.test_nut_05_hold_full_keeps_node)
+Giỏ đầy: `hold_full` {action:gather,node_id,required,free}; nút giữ nguyên. ... ok
+test_nut_06_regrow_event_and_gather_again (test_rules_gather.Nut.test_nut_06_regrow_event_and_gather_again)
+Nút 1 → 0 phát `node_regrown` rồi hái lại được (kể cả ngay bước đó). ... ok
+test_oxy_01_underwater_drops_one_per_tick (test_rules_gather.Oxy.test_oxy_01_underwater_drops_one_per_tick)
+Dưới nước (d > 0.5) oxy trừ đúng 1 mỗi tick. ... ok
+test_oxy_02_surface_refills_and_clamps (test_rules_gather.Oxy.test_oxy_02_surface_refills_and_clamps)
+Mặt nước (d ≤ 0.5): +oxygen_refill_per_tick mỗi tick, kẹp ở oxy tối đa. ... ok
+test_oxy_03_oxygen_empty_event (test_rules_gather.Oxy.test_oxy_03_oxygen_empty_event)
+`oxygen_empty` phát đúng 1 lần ở tick oxy từ dương xuống 0, data.oxygen_ticks = 0. ... ok
+test_oxy_04_dive_and_surface_events (test_rules_gather.Oxy.test_oxy_04_dive_and_surface_events)
+Đổi phía biên mặt nước: `dive` khi xuống, `surface` khi nổi; data có `pos`; đúng thứ tự. ... ok
+test_bep_01_cook_started_consumes_reserved_stock (test_rules_quan.Bep.test_bep_01_cook_started_consumes_reserved_stock)
+interact cạnh bếp idle: lấy đơn reserved, tiêu nguyên liệu giữ, `cook_started`, bếp cooking đủ cook_s × 60. ... ok
+test_bep_02_dish_ready_then_pick_up (test_rules_quan.Bep.test_bep_02_dish_ready_then_pick_up)
+Món nấu xong → `dish_ready`, ready_ticks = 0; interact nhận món: `dish_picked`, tay có payload, bếp idle. ... ok
+test_bep_03_serve_order_to_customer_table (test_rules_quan.Bep.test_bep_03_serve_order_to_customer_table)
+Tay có món đúng đơn, interact cạnh bàn: `served` {order_id,table_id,dish_id,patience_ticks_left,base_price,tip}; ... ok
+test_bep_04_wrong_order_not_served (test_rules_quan.Bep.test_bep_04_wrong_order_not_served)
+Món của đơn khác không phục vụ được cho khách này (bỏ lượt, tay giữ nguyên). ... ok
+test_di_01_walk_stays_in_bounds (test_rules_quan.Di.test_di_01_walk_stays_in_bounds)
+Đi chéo mãi vào góc: bị chặn đúng biên trên của x và z. ... ok
+test_het_01_patience_runs_out (test_rules_quan.HetGio.test_het_01_patience_runs_out)
+Khách waiting hết kiên nhẫn khi ca còn giờ: `customer_left` reason patience, uy tín + left_reputation_delta, ... ok
+test_het_02_reputation_clamped_at_min (test_rules_quan.HetGio.test_het_02_reputation_clamped_at_min)
+Uy tín không xuống dưới reputation_min. ... ok
+test_het_03_closing_waiting_customer_leaves_without_penalty (test_rules_quan.HetGio.test_het_03_closing_waiting_customer_leaves_without_penalty)
+Hết ca: khách còn chờ rời với reason closing, không trừ uy tín; rồi `quan_end`. ... ok
+test_het_04_closing_eating_customer_pays_immediately (test_rules_quan.HetGio.test_het_04_closing_eating_customer_pays_immediately)
+Hết ca: khách đang ăn trả ngay (reason closing) rồi `quan_end` với shift_earned đúng. ... ok
+test_khach_01_first_customer_on_schedule_reserves_recipe (test_rules_quan.Khach.test_khach_01_first_customer_on_schedule_reserves_recipe)
+Tick first_customer_tick: `customer_arrived` ở T1; khách giữ đúng công thức; chưa có khách trước đó. ... ok
+test_khach_02_no_dish_when_stock_insufficient (test_rules_quan.Khach.test_khach_02_no_dish_when_stock_insufficient)
+Có bàn trống mà không món nào đủ nguyên liệu: `no_dish` {}, không có khách. ... ok
+test_khach_03_no_free_table_skips_turn (test_rules_quan.Khach.test_khach_03_no_free_table_skips_turn)
+Không còn bàn trống thì bỏ lượt: không `customer_arrived`, không `no_dish`. ... ok
+test_khach_04_random_customers_false_disables_arrivals (test_rules_quan.Khach.test_khach_04_random_customers_false_disables_arrivals)
+random_customers:false tắt khách tự sinh. ... ok
+test_tien_01_tip_when_patience_ratio_enough (test_rules_quan.Tien.test_tien_01_tip_when_patience_ratio_enough)
+Kiên nhẫn còn ≥ tip_min_patience_ratio: boa = floor(giá × tip_rate) (= 12 với giá 60, tỷ lệ 0.2). ... ok
+test_tien_02_no_tip_when_patience_low (test_rules_quan.Tien.test_tien_02_no_tip_when_patience_low)
+Kiên nhẫn dưới ngưỡng boa: boa 0. ... ok
+test_tien_03_paid_after_eating_and_reputation_bonus (test_rules_quan.Tien.test_tien_03_paid_after_eating_and_reputation_bonus)
+Ăn xong: `paid` {amount = giá + boa, reason finished_eating}, khách rời bàn, tiền/earned tăng, uy tín +tip_reputation. ... ok
+test_tien_04_no_reputation_bonus_without_tip (test_rules_quan.Tien.test_tien_04_no_reputation_bonus_without_tip)
+Boa 0 thì uy tín không đổi khi thu tiền. ... ok
+test_con_01_ticks_zero_and_end_line (test_smoke_p1.Contract.test_con_01_ticks_zero_and_end_line) ... ok
+test_con_02_deterministic_bytes (test_smoke_p1.Contract.test_con_02_deterministic_bytes) ... ok
+test_con_03_bad_input_exit_2 (test_smoke_p1.Contract.test_con_03_bad_input_exit_2) ... ok
+test_con_03_old_mode_rejected_and_day_mode_supported (test_smoke_p1.Contract.test_con_03_old_mode_rejected_and_day_mode_supported) ... ok
+test_gather_snapshot_has_gather_fields (test_smoke_p1.Contract.test_gather_snapshot_has_gather_fields) ... ok
+test_scenario_out_of_domain_exit_2 (test_smoke_p1.Contract.test_scenario_out_of_domain_exit_2) ... ok
+test_inv_01_gather_writes_inventory_quan_reads_it (test_smoke_p1.Integration.test_inv_01_gather_writes_inventory_quan_reads_it)
+Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung. ... ok
+test_inv_01_not_written_when_tick_limit_first (test_smoke_p1.Integration.test_inv_01_not_written_when_tick_limit_first) ... ok
+test_inv_bad_schema_exit_2 (test_smoke_p1.Integration.test_inv_bad_schema_exit_2) ... ok
+test_inventory_and_scenario_stock_conflict (test_smoke_p1.Integration.test_inventory_and_scenario_stock_conflict) ... ok
+test_inventory_flags_mode_mismatch_exit_2 (test_smoke_p1.Integration.test_inventory_flags_mode_mismatch_exit_2) ... ok
+test_move_01_swim_speed_after_ramp (test_smoke_p1.Movement.test_move_01_swim_speed_after_ramp)
+Bỏ 6 tick tăng tốc rồi đo 60 tick: quãng ≈ swim_speed × 1 s (±0.1). Ngang, xuống, chéo (không nhanh hơn). ... ok
+test_move_02_heading_positive_is_down (test_smoke_p1.Movement.test_move_02_heading_positive_is_down) ... ok
+test_move_03_edge_clamp (test_smoke_p1.Movement.test_move_03_edge_clamp)
+Chặn từng mép của vùng nước, kể cả d không âm (không bay lên khỏi mặt nước) và đáy d = 30. ... ok
+test_move_mep_vel_ve_0 (test_smoke_p1.Movement.test_move_mep_vel_ve_0) ... ok
+test_move_ramp_doi_huong_trong_tran (test_smoke_p1.Movement.test_move_ramp_doi_huong_trong_tran)
+Đảo từ +speed sang -speed: vận tốc chạm mục tiêu sau tối đa ramp_max_ticks tick kể từ lúc đổi input. ... ok
+test_time_ends_gather_and_keeps_hold (test_smoke_p1.Movement.test_time_ends_gather_and_keeps_hold) ... ok
+test_khoi_sai_mode_exit_2 (test_smoke_p1.ScenarioModes.test_khoi_sai_mode_exit_2) ... ok
+test_quan_fixture_khong_hop_le_exit_2 (test_smoke_p1.ScenarioModes.test_quan_fixture_khong_hop_le_exit_2) ... ok
+test_quan_player_vel_hop_le (test_smoke_p1.ScenarioModes.test_quan_player_vel_hop_le) ... ok
+test_good (test_team_check.TeamCheck.test_good) ... ok
+test_template_is_rejected (test_team_check.TeamCheck.test_template_is_rejected) ... ok
+test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
+test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 179 tests in 38.120s
+Ran 185 tests in 34.752s
 
-FAILED (failures=23)
+OK

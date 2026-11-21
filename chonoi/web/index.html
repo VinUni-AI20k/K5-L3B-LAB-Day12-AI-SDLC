@@ -519,7 +519,8 @@ function drawQuan(w, h) {
   const avail = fmtItems(availableStock()), stock = stockCounts(snap.stock), phys = fmtItems(stock);
   text("Kho khả dụng: " + (avail || "(trống)"), 14, 60, { size: 18, color: "#cfd8dc" });
   if (phys && phys !== avail) text("Tồn kho (gồm phần đã giữ): " + phys, 14, 86, { size: 18, color: "#9fb3c0" });
-  if (Array.isArray(snap.stock) && snap.stock.length) text("Độ tươi kho: " + fmtFresh(snap.stock), 14, 110, { size: 18, color: "#ffe082" });
+  const fsq = Array.isArray(snap.stock) ? freshSummary(snap.stock) : null;   // HUD: tóm tắt ngắn để không đè danh sách đơn
+  if (fsq) text(`Độ tươi kho: TB ${fsq.avg.toFixed(0)} · thấp nhất ${fsq.min.toFixed(0)}` + (fsq.spoiled ? ` · ✕ ươn ${fsq.spoiled}` : ""), 14, 110, { size: 18, color: fsq.spoiled ? "#ff8a80" : "#ffe082", hcColor: fsq.spoiled ? "#ff8a80" : "#fff" });
   const reservations = snap.reservations || [];
   if (reservations.length) text("Đặt trước: " + reservations.map((r) => r.id + " " + r.table_id + " " + dishName(r.dish_id) + " · " + r.state + (r.arrival_tick ? " @" + r.arrival_tick : "")).join(" | "), 14, 136, { size: 17, color: "#ffe0a3" });
   const handTxt = snap.hand ? (typeof snap.hand === "string" ? snap.hand : dishName(snap.hand.dish_id)) : "tay trống";
