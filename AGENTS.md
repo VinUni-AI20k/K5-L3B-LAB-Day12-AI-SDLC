@@ -14,7 +14,7 @@
 - **Số liệu chỉ đọc từ `game.contract.json` / dữ liệu**, không hard-code trong luật.
 - Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.
-- P1-04: helper `chonoi/sim/kitchen.py`; `dish.order_id == customer.id`. Timer khách và cleanup hiện chạy qua helper; khi tích hợp P1-03 không giảm timer hoặc phát `customer_left` hai lần. Xem `docs/notes/P1-04.md`.
+- P1-03/P1-04 đã tích hợp: helper `chonoi/sim/kitchen.py`; `dish.order_id == customer.id`. Timer, validation và cleanup chạy qua helper một lần; lịch khách trong `quan.py` chạy sau settlement khi chưa đóng ca. Regression: `tests/test_quan_integration.py`. Xem `docs/notes/P1-04.md`.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).

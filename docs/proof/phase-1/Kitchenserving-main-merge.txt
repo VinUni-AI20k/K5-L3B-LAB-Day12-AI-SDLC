@@ -1,0 +1,50 @@
+Integration verification: 2026-11-21 (Asia/Bangkok)
+Target branch: Kitchenserving, previously 1e7e6c6
+Source: origin/main, fetched at f1bd68e
+
+Git reported content conflicts in:
+  chonoi/sim/quan.py
+  docs/ai-usage-log.md
+
+Resolution:
+  Keep P1-03 customer scheduling, seeded menu selection and stock reservations.
+  Keep P1-04 interaction, cooking, serving, payment and closing settlement.
+  Use KitchenServingMixin validation/timers/cleanup once for all customers.
+  Spawn scheduled customers only after settlement, if the shift is still open.
+  Keep both branches' AI usage entries and incoming Gather/frontend changes.
+  No contract/schema changes or edits to existing test assertions.
+
+Runtime: Python 3.14.10 from .venv/Scripts/python3.exe
+Commands from repository root (PowerShell):
+  $env:PATH = (Join-Path $PWD '.venv\Scripts') + ';' + $env:PATH
+  $env:PYTHONPATH = 'tests;.'
+  $env:PYTHONUTF8 = '1'
+  $env:PYTHONIOENCODING = 'utf-8'
+  python3 -m unittest test_quan_integration -v
+  python3 tools/verify_p1_04.py
+
+Results:
+  Targeted integration tests: 3 passed, exit 0.
+  Full suite via verifier: 105 tests in 16.971s, OK, exit 0.
+  Full output: docs/proof/phase-1/P1-04-tests.txt
+  Verifier headless runs: default Quan 10800 ticks, two fixture Quan runs
+    of 10800 ticks, and Gather 600 ticks; all exit 0.
+  Fixture output matches byte for byte; money=earned=72,
+    reputation=3.2, score=372.
+  Verifier report: docs/proof/phase-1/P1-04-results.json
+
+New merge regressions (tests/test_quan_integration.py):
+  Real scheduled customer through cook/ready/pick/serve/pay, two byte-identical
+    headless runs; full patience on arrival, exactly one decrement next tick.
+  Generated order timeout while cooking, ready or carried: one departure,
+    one reputation penalty, cleanup without refunding consumed stock.
+  Generated customer served at zero patience on the closing tick:
+    served -> paid(closing) -> quan_end, exactly once, no departure penalty.
+
+Windows encoding note: the first full-suite run passed 102 tests but printed
+subprocess decoder thread exceptions with mixed UTF-8/cp1252 settings.
+The final run above uses PYTHONUTF8=1 and has no such exceptions.
+
+Existing edits in TEAM.md and game.contract.json are preserved and excluded
+from the merge commit. The earlier untracked RESTAURANTEXPANSION-baseline.txt
+is also excluded. No push, main-branch update or GUI playtest in this task.

@@ -1,12 +1,12 @@
-"""Buổi tối — Mở Quán. Kitchen & Serving: xem kitchen.py.
+"""Buổi tối — Mở Quán: khách/giữ chỗ P1-03 và bếp/phục vụ P1-04.
 
-Nhóm viết tiếp (PRD-0 mục F, Quán):
-  TODO(nhóm, lát 3): khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, no_dish.
-  Khách dựng sẵn dùng chung timers/cleanup của kitchen.py; không chạy cleanup hai lần.
+KitchenServingMixin quản lý validation, timers và cleanup dùng chung.
+Khách mới sinh sau settlement, chỉ tham gia tương tác từ bước sau.
 """
 
 from copy import deepcopy
 
+from ..errors import BadInput
 from ..ids import sort_by_id
 from .kitchen import KitchenServingMixin
 from .ramp import ramp_velocity
@@ -35,6 +35,12 @@ class QuanSim(KitchenServingMixin):
         self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", self._ticks(t["duration_s"]))
+        self.phase_tick = 0
+        self.customer_interval_ticks = self._ticks(t["customer_interval_s"])
+        self.patience_ticks = self._ticks(t["patience_s"])
+        self.random_customers = scenario.get("random_customers", True)
+        if not isinstance(self.random_customers, bool):
+            raise BadInput("random_customers phải là boolean")
         self.reputation = scenario.get("reputation", t["reputation_initial"])
         self.stoves = [dict(s, state=s.get("state", "idle"), dish=s.get("dish"),
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
@@ -55,7 +61,6 @@ class QuanSim(KitchenServingMixin):
         by_id = {d["id"]: dict(d) for d in defaults}
         for u in updates:
             if u["id"] not in by_id:
-                from ..errors import BadInput
                 raise BadInput(f"id bếp/bàn không tồn tại: {u['id']}")
             by_id[u["id"]].update(u)
         return sort_by_id(list(by_id.values()))
@@ -77,14 +82,48 @@ class QuanSim(KitchenServingMixin):
             return []
         events = []
         self.tick += 1
+        self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self._advance_kitchen_timers(events)
         self._move(inp)
         if inp.pressed("interact"):
             self._interact(events)
         self._settle_customers(events)
-        # TODO(nhóm, lát 3): if not self.done, khách mới theo lịch + no_dish.
+        if not self.done:
+            self._maybe_add_customer(events)
         return events
+
+    def _available_stock(self):
+        available = self.stock.copy()
+        for customer in self.customers:
+            for kind, count in customer["reserved"].items():
+                available[kind] = available.get(kind, 0) - count
+        return available
+
+    def _maybe_add_customer(self, events):
+        since_first = self.phase_tick - self.t["first_customer_tick"]
+        if not self.random_customers or since_first < 0 or since_first % self.customer_interval_ticks:
+            return
+        occupied = {customer["table_id"] for customer in self.customers}
+        table = next((table for table in self.tables if table["id"] not in occupied), None)
+        if table is None:
+            return
+        table_id = table["id"]
+        available = self._available_stock()
+        dishes = [dish_id for dish_id in sorted(self.menu)
+                  if all(available.get(kind, 0) >= count for kind, count in self.menu[dish_id]["recipe"].items())]
+        if not dishes:
+            events.append(("no_dish", {}))
+            return
+        dish_id = self.rng.get("customer_order").choice(dishes)
+        reserved = dict(self.menu[dish_id]["recipe"])
+        order_id = self.ids.new("C")
+        self.customers.append({
+            "id": order_id, "table_id": table_id, "dish_id": dish_id, "state": "waiting",
+            "order_tick": self.phase_tick, "order_status": "reserved", "reserved": reserved,
+            "patience_ticks_left": self.patience_ticks, "eat_ticks_left": 0, "base_price": 0, "tip": 0,
+        })
+        events.append(("customer_arrived", {"order_id": order_id, "table_id": table_id, "dish_id": dish_id}))
 
     def _move(self, inp):
         speed = self.t["walk_speed"]

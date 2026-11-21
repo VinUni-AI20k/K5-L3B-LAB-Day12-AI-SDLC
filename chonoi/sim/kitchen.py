@@ -274,8 +274,7 @@ class KitchenServingMixin:
         self._remove_order(c)
 
     def _leave(self, c, reason, events):
-        # Minimal shared cleanup for fixture customers until P1-03 is integrated.
-        # P1-03 must reuse this path, rather than emit customer_left a second time.
+        # Shared cleanup for fixture and scheduled customers; emit only once.
         if reason != "closing":
             self._change_reputation(self.t["left_reputation_delta"])
         events.append(("customer_left", {"order_id": c["id"], "table_id": c["table_id"],
