@@ -3,12 +3,12 @@
 Nhóm viết tiếp (PRD-0 mục F, Quán):
   TODO(nhóm, lát 3): khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, kiên nhẫn,
                      bỏ đi (customer_left), no_dish, vòng đời khách.
-  TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
-                     ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
+  Lát 4 (chur04): quan_service.py xử lý timer, bếp, bưng, phục vụ, tiền và dọn đơn.
 """
 
 from ..ids import sort_by_id
 from .ramp import ramp_velocity
+from . import quan_service
 
 TICK = 60.0
 
@@ -21,6 +21,10 @@ class QuanSim:
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
+        self.tick_hz = tuning["tick_hz"]
+        self.patience_max_ticks = int(round(t["patience_s"] * self.tick_hz))
+        self.eat_ticks = int(round(t["eat_s"] * self.tick_hz))
+        self.phase_tick = 0
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -30,15 +34,19 @@ class QuanSim:
         self._ramp_left = 0
         # kho: --inventory HOẶC scenario.stock (cả hai -> cli đã báo mã 2)
         self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
-        self.hand = scenario.get("hand")
+        self.hand = dict(scenario["hand"]) if isinstance(scenario.get("hand"), dict) else scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
         self.reputation = scenario.get("reputation", t["reputation_initial"])
         self.stoves = [dict(s, state=s.get("state", "idle"), dish=s.get("dish"),
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
         self.tables = self._merge(t["tables"], scenario.get("tables", []))
-        # TODO(nhóm): khách dựng sẵn từ scenario (customers[]) và suy ra giữ chỗ (reserved).
-        self.customers = [dict(c, reserved=c.get("reserved", {})) for c in scenario.get("customers", [])]
+        # Lát 3 có thể dùng phần chuẩn hóa này và thêm kiểm schema/lịch khách.
+        self.customers = [dict(c) for c in scenario.get("customers", [])]
+        for stove in self.stoves:
+            if isinstance(stove["dish"], dict):
+                stove["dish"] = dict(stove["dish"])
+        quan_service.prepare_customers(self)
         for e in self.customers:
             ids.reserve(e["id"])
         self.money = 0
@@ -64,23 +72,30 @@ class QuanSim:
             "stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0},
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
-                       for s in self.stoves],
-            "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in self.tables],
+                       for s in sort_by_id(self.stoves)],
+            "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in sort_by_id(self.tables)],
             "customers": sort_by_id(self.customers),
         }
 
     def step(self, inp):
+        if self.done:
+            return []
         events = []
+        self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # TODO(nhóm): giảm kiên nhẫn / nấu / ăn; bếp chín -> ready; xử lý khách theo thứ tự PRD-0 mục F.
+        quan_service.advance_timers(self)
+        quan_service.ready_dishes(self, events)
         self._move(inp)
-        # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
-        # TODO(nhóm): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.
+        if inp.pressed("interact"):
+            quan_service.interact(self, events)
+        quan_service.settle_customers(self, events)
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
+        # TODO(nhóm, lát 3): nếu còn giờ, sinh khách theo phase_tick ở CUỐI bước.
+        # Giữ một nơi giảm timer/rời bàn (quan_service) để không xử lý hai lần.
         return events
 
     def _move(self, inp):
