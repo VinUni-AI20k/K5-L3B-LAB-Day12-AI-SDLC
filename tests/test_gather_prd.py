@@ -37,7 +37,8 @@ class GatherPRD(unittest.TestCase):
         ])
         self.assertEqual(inv, {"items": {}})
         self.assertEqual(snapshots(rows)[-1]["hold"], [])
-        self.assertNotIn("invuln_ticks", snapshots(rows)[0]["player"])
+        # v1.0 không có invuln_ticks; v1.1 (có gather.monsters) thêm lại vào snapshot (docs/contracts/README.md)
+        self.assertEqual("invuln_ticks" in snapshots(rows)[0]["player"], "monsters" in self.tuning)
 
     def test_harvest_reports_amount_and_free_capacity(self):
         radius = self.tuning["interact_radius"]
@@ -84,12 +85,16 @@ class GatherPRD(unittest.TestCase):
         self.assertEqual(end["hold"], hold)
         self.assertEqual(end["player"]["catch_cd_ticks"], 0)
 
-    def test_v10_rejects_invuln_fixture_before_writing_output(self):
+    def test_invuln_fixture_follows_contract_version(self):
+        # Quyết định 4 (docs/plan/phase-2.md): v1.0 từ chối invuln_ticks trước khi ghi file, v1.1 chấp nhận.
+        # Nhánh v1.0 với tuning dạng v1.0 được kiểm ở tests/test_p2_monsters.py (load_scenario).
+        v11 = json.loads(Path(ROOT, "game.contract.json").read_text(encoding="utf-8"))["contract_version"] == "1.1"
         with Workdir() as w:
             sc = write_json(w.path("scenario.json"), {"gather": {"player": {"invuln_ticks": 5}}})
             out, inv = Path(w.path("gather.jsonl")), Path(w.path("inventory.json"))
             code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "0", "--scenario", sc,
                                      "--out", str(out), "--inventory-out", str(inv))
-            self.assertEqual(code, 2, err)
-            self.assertFalse(out.exists())
-            self.assertFalse(inv.exists())
+            self.assertEqual(code, 0 if v11 else 2, err)
+            self.assertEqual(out.exists(), v11)
+            if not v11:
+                self.assertFalse(inv.exists())

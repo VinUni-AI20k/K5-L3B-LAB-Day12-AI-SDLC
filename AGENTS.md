@@ -7,7 +7,7 @@
 - Kiểm tất định: `python3 tools/check_determinism.py` (cùng seed, output giống từng byte)
 - Smoke Phase 1 (hộp đen, 27 mục): `python3 tools/smoke_phase1.py`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
-- Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
+- Chơi thử trên trình duyệt: `python3 -m chonoi.live` (menu chính) hoặc `python3 -m chonoi.live --mode gather|quan|day [--days N]` (mở địa chỉ in ra; WASD, E, Space, P/Esc tạm dừng, R chơi lại, M về menu; Shop: 1 mua oxy, 2 mua Máu, Enter sang Ngày mới)
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
