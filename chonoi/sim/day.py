@@ -15,6 +15,7 @@ import copy
 from ..contract import plan_ingredients
 from ..errors import BadInput
 from ..ids import IdAllocator
+from ..items import is_v12
 from ..rng import Streams
 from .gather import GatherSim
 from .quan import QuanSim
@@ -111,7 +112,7 @@ class DaySim:
     def _start_day(self, out):
         self.day += 1
         self.active_upgrades = dict(self.upgrades)
-        gather = GatherSim(self._gather_tuning(), copy.deepcopy(self._gather_tpl), self.streams, self.ids,
+        gather = GatherSim(self._gather_tuning(), self._gather_template(), self.streams, self.ids,
                            day=self.day)  # bố trí Cá Sấu theo Ngày (M2 từ Ngày 3)
         out.append(("gather", self.day, "day_start", {}))
         out.append(("gather", self.day, "day_plan", self._plan_data()))
@@ -124,7 +125,10 @@ class DaySim:
             if c.get("dish_id") not in dishes:
                 raise BadInput(f"Ngày {self.day}: khách {c.get('id')} gọi món ngoài kế hoạch")
         carry = {"money": self._money, "earned": self._earned, "reputation": self._reputation}
-        quan = QuanSim(self.tuning, tpl, self.streams, self.ids, inventory=dict(items),
+        # Bàn giao trong bộ nhớ, cùng tick chuyển pha, KHÔNG hao thêm (Ticket-03): v1.2 chuyển nguyên mảng cá thể
+        # (id, kind, fresh); v1.1 vẫn chuyển kho đếm {kind: số}.
+        handed = [dict(i) for i in items] if is_v12(self.tuning) else dict(items)
+        quan = QuanSim(self.tuning, tpl, self.streams, self.ids, inventory=handed,
                        allowed_dishes=list(dishes), carry=carry)
         self._begin("quan", quan, out)
 
@@ -145,6 +149,14 @@ class DaySim:
     def _plan_data(self) -> dict:
         p = self.plans[self.day]
         return {"dishes": dict(p["dishes"]), "ingredients": dict(p["ingredients"])}
+
+    def _gather_template(self) -> dict:
+        """Mẫu gather mỗi Ngày. v1.2: Ngày đầu giữ nguyên id trong `gather.hold`; các Ngày kế cấp id MỚI theo thứ tự
+        mảng với kind/fresh ban đầu (Ticket-03 "Scenario"). Id cấp từ bộ cấp dùng chung nên tăng xuyên pha và Ngày."""
+        tpl = copy.deepcopy(self._gather_tpl)
+        if is_v12(self.tuning) and self.day > 1 and tpl.get("hold"):
+            tpl["hold"] = [{"id": self.ids.new("I"), "kind": i["kind"], "fresh": i["fresh"]} for i in tpl["hold"]]
+        return tpl
 
     def _gather_tuning(self) -> dict:
         """Bản sao tuning với oxy/Máu tối đa theo cấp đang áp dụng (cấp 0 = số cơ sở)."""
