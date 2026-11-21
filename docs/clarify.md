@@ -17,3 +17,8 @@
 | 11 | 2026-11-21 | Có đếm số suất kế hoạch để chặn khách gọi món không? | Theo Ticket02 mục 2: không. Số suất chỉ dùng tính mục tiêu thu gom; khách gọi tiếp món đủ nguyên liệu kể cả khi đã bán đủ suất. | M3 (Cao) theo Ticket02 |
 | 12 | 2026-11-21 | Có 4 bàn mà không món trong kế hoạch đủ nguyên liệu thì sao? | `no_dish` ở mỗi lượt khách còn bàn trống (không tạo khách), đúng PRD "có bàn mà thiếu món thì no_dish". | M3 (Cao) |
 | 13 | 2026-11-21 | Test Phase 1 nào phải đổi khi có 4 bàn, 2 bếp? | Liệt kê và ghi lý do ở `docs/plan/phase-2.md` mục "Test Phase 1 đổi vì luật v1.1". | M3 (Cao) |
+| 14 | 2026-11-21 | `QuanSim` biết đang ở kho đếm hay kho cá thể bằng cách nào khi `contract_version` vẫn là 1.1? | Giả định: kho đưa vào là MẢNG → chế độ cá thể (v1.2); là object → kho đếm (v1.0/v1.1). Việc từ chối file đếm ở v1.2 (mã 2) do tầng đọc file/scenario của M6. | M3 (Cao) |
+| 15 | 2026-11-21 | Nhiều đơn cùng bị ảnh hưởng khi hàng ươn: nhả hết rồi giữ lại, hay nhả và giữ lại lần lượt từng đơn? | Giả định: lần lượt từng đơn theo `order_tick` rồi id bàn (nhả đơn đó, thử giữ lại một lần, sang đơn kế); đơn chưa tới lượt vẫn đang giữ nên cá thể của nó chưa khả dụng. | M3 (Cao) |
+| 16 | 2026-11-21 | Đơn đã `unfulfillable` có được giữ lại khi sau đó có hàng mới tươi không? | Giả định: không. Ticket03 chỉ cho thử giữ lại một lần khi ươn; khách chờ tới hạn rồi rời. | M3 (Cao) |
+| 17 | 2026-11-21 | Thứ tự id trong `customers[].reserved`? | Giả định: mảng id sắp theo `sort_by_id` (I2 trước I10), không theo thứ tự lấy. | M3 (Cao) |
+| 18 | 2026-11-21 | Món không đủ cá thể tươi có bị loại khỏi lựa chọn của khách mới không? | Có: khách mới chỉ chọn trong các món còn đủ cá thể chưa ươn và chưa bị giữ; không có món thì `no_dish`. | M3 (Cao) |
