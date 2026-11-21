@@ -113,9 +113,6 @@ class DaySession:
             g["oxygen_max_s"] = ups["oxygen"][self.active_upgrades["oxygen"] - 1]["oxygen_max_s"]
         if self.active_upgrades.get("hp"):
             g["hp_max"] = ups["hp"][self.active_upgrades["hp"] - 1]["hp_max"]
-        mons = g.get("monsters")
-        if isinstance(mons, dict):
-            mons["spawns"] = [m for m in mons.get("spawns", []) if m.get("from_day", 1) <= self.day]
         dishes = self.plan[self.day]["dishes"]
         t["menu"] = {k: v for k, v in t["menu"].items() if k in dishes}  # lọc theo kế hoạch trước nguyên liệu
         return t
@@ -125,7 +122,7 @@ class DaySession:
         self.active_upgrades = dict(self.upgrades)  # chỉ khi dựng Ngày mới mới chép cấp đã mua
         self._day_t = self._day_tuning()
         self._streams = Streams(f"{self.seed}:day{self.day}")
-        self.sim = GatherSim(self._day_t, copy.deepcopy(self.scenario.get("gather", {})), self._streams, IdAllocator())
+        self.sim = GatherSim(self._day_t, copy.deepcopy(self.scenario.get("gather", {})), self._streams, IdAllocator(), day=self.day)
         self._sync_into(self.sim)
         self.phase_tick = 0
         plan = self.plan[self.day]

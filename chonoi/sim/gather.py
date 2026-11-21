@@ -34,7 +34,7 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids):
+    def __init__(self, tuning, scenario, streams, ids, day=1):
         t = tuning["gather"]
         self.t = t
         self.tick_hz = tuning["tick_hz"]
@@ -63,7 +63,18 @@ class GatherSim:
         self.fish = [{"id": f["id"], "kind": f["kind"], "pos": [float(c) for c in f["pos"]],
                       "heading_deg": f.get("heading_deg", 0), "age_ticks": f.get("age_ticks", 0)}
                      for f in src_fish]
-        for coll in (self.nodes, self.fish):
+        # Fixture thay toàn bộ spawn; gather độc lập mặc định ngày 1.
+        src_monsters = scenario.get("monsters")
+        if src_monsters is None:
+            src_monsters = [m for m in t["monsters"]["spawns"] if m["from_day"] <= day]
+        self.monsters = [{"id": m["id"], "kind": m["kind"],
+                          "pos": [float(c) for c in m["pos"]],
+                          "waypoints": [[float(c) for c in p] for p in m["waypoints"]],
+                          "target_idx": m.get("target_idx", 1), "state": m.get("state", "patrol"),
+                          "state_ticks_left": m.get("state_ticks_left", 0),
+                          "recoil_dir": list(m["recoil_dir"]) if m.get("recoil_dir") is not None else None}
+                         for m in src_monsters]
+        for coll in (self.nodes, self.fish, self.monsters):
             for e in coll:
                 ids.reserve(e["id"])
         if "fish" not in scenario and scenario.get("random_fish", True):
@@ -97,6 +108,10 @@ class GatherSim:
             "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"], "heading_deg": f["heading_deg"],
                       "age_ticks": f["age_ticks"]}
                      for f in sort_by_id(self.fish)],
+            "monsters": [{"id": m["id"], "kind": m["kind"], "pos": list(m["pos"]),
+                          "waypoints": [list(p) for p in m["waypoints"]], "target_idx": m["target_idx"],
+                          "state": m["state"], "state_ticks_left": m["state_ticks_left"],
+                          "recoil_dir": m["recoil_dir"]} for m in sort_by_id(self.monsters)],
         }
 
     # --- một bước ---------------------------------------------------------------
@@ -137,6 +152,10 @@ class GatherSim:
                         events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
                         self._finish("fainted", events)
                         return events
+        eligible = self._move_monsters()
+        self._monster_hit(eligible, events)
+        if self.done:
+            return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
@@ -154,6 +173,80 @@ class GatherSim:
         return events
 
     # --- tiện ích ---------------------------------------------------------------
+    def _move_monsters(self):
+        """Cập nhật patrol/chase sau khi người chơi di chuyển, theo thứ tự id."""
+        eligible = []
+        for monster in sort_by_id(self.monsters):
+            spec = self.t["monsters"]["species"][monster["kind"]]
+            if monster["state"] == "stunned":
+                monster["state_ticks_left"] -= 1
+                if monster["state_ticks_left"] == 0:
+                    monster["state"] = "patrol"
+                continue
+            if monster["state"] == "recoil":
+                distance = spec["recoil_dist"] / spec["recoil_ticks"]
+                for i in range(2):
+                    monster["pos"][i] += monster["recoil_dir"][i] * distance
+                self._clamp_monster(monster, spec)
+                monster["state_ticks_left"] -= 1
+                if monster["state_ticks_left"] == 0:
+                    monster["state"] = "patrol"
+                    monster["recoil_dir"] = None
+                continue
+            distance = math.dist(monster["pos"], self.pos)
+            if monster["state"] == "chase":
+                if self.pos[1] < spec["depths"][0] or distance > spec["exit_radius"]:
+                    monster["state"] = "patrol"
+            elif monster["state"] == "patrol":
+                if self.pos[1] >= spec["depths"][0] and distance <= spec["detect_radius"]:
+                    monster["state"] = "chase"
+            else:
+                continue
+            target = self.pos if monster["state"] == "chase" else monster["waypoints"][monster["target_idx"]]
+            dx, dd = (target[i] - monster["pos"][i] for i in range(2))
+            length = math.hypot(dx, dd)
+            speed = spec["chase_speed"] if monster["state"] == "chase" else spec["patrol_speed"]
+            step = min(length, speed / self.tick_hz)
+            if length:
+                monster["pos"][0] += dx * step / length
+                monster["pos"][1] += dd * step / length
+            if monster["state"] == "patrol" and length <= speed / self.tick_hz:
+                monster["target_idx"] = 1 - monster["target_idx"]
+            self._clamp_monster(monster, spec)
+            eligible.append(monster)
+        return eligible
+
+    def _clamp_monster(self, monster, spec):
+        bounds = self.t["bounds"]
+        for i, (lo, hi) in enumerate((bounds["x"], (max(bounds["d"][0], spec["depths"][0]),
+                                                    min(bounds["d"][1], spec["depths"][1])))):
+            monster["pos"][i] = max(lo, min(hi, monster["pos"][i]))
+
+    def _monster_hit(self, eligible, events):
+        if self.invuln_ticks:
+            return
+        candidates = [m for m in eligible
+                      if self.pos[1] >= self.t["monsters"]["species"][m["kind"]]["depths"][0]
+                      and math.dist(self.pos, m["pos"]) <= self.t["monsters"]["species"][m["kind"]]["hit_radius"]]
+        if not candidates:
+            return
+        m = min(candidates, key=lambda x: (math.dist(self.pos, x["pos"]), id_key(x["id"])))
+        spec = self.t["monsters"]["species"][m["kind"]]
+        dx, dd = m["pos"][0] - self.pos[0], m["pos"][1] - self.pos[1]
+        length = math.hypot(dx, dd)
+        m["recoil_dir"] = [dx / length, dd / length] if length else [1.0, 0.0]
+        m["state"] = "recoil"
+        m["state_ticks_left"] = spec["recoil_ticks"]
+        self.hp -= 1
+        lost = [self.hold.pop() for _ in range(math.floor(len(self.hold) * self.t["monsters"]["loss_ratio"]))]
+        self.invuln_ticks = self.t["monsters"]["invuln_ticks"]
+        events.append(("monster_hit", {"monster_id": m["id"], "hp": self.hp, "lost": lost, "pos": list(self.pos)}))
+        if self.hp == 0:
+            remaining = list(reversed(self.hold))
+            self.hold.clear()
+            events.append(("faint", {"cause": "monster", "lost": remaining, "hp": 0}))
+            self._finish("fainted", events)
+
     def _spawn_school(self):
         """Sinh MỘT đàn theo TICKET-02 mục 1.1 "Sinh cá"; trả dict hoặc None nếu hết điểm.
 

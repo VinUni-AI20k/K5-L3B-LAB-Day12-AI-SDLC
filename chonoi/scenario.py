@@ -10,12 +10,13 @@ bếp cooking có timer dương, bếp idle không có món -> mã 2.
 """
 
 import json
+import math
 
 from .errors import BadInput
 from .contract import recipe_sum
 from .inventory import KINDS_P1, validate_items
 
-GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
+GATHER_KEYS = {"player", "hold", "nodes", "fish", "monsters", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "invuln_ticks", "catch_cd_ticks"}
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
@@ -161,7 +162,7 @@ def _pos(name, pos, bounds, axes=("x", "d")):
 def _validate_gather(b, tuning):
     g = tuning["gather"]
     bounds = g["bounds"]
-    for arr in ("nodes", "fish"):
+    for arr in ("nodes", "fish", "monsters"):
         if arr in b:
             _check_ids(arr, b[arr])
     if "random_fish" in b and not isinstance(b["random_fish"], bool):
@@ -217,6 +218,39 @@ def _validate_gather(b, tuning):
             raise BadInput(f"fish.{f['id']}.heading_deg phải là số")
         if "age_ticks" in f:  # v1.1 mục 4.3
             _nonneg_int(f"fish.{f['id']}.age_ticks", f["age_ticks"])
+    for m in b.get("monsters", []):
+        name = f"monsters.{m['id']}"
+        if set(m) - {"id", "kind", "pos", "waypoints", "target_idx", "state", "state_ticks_left", "recoil_dir"}:
+            raise BadInput(f"{name}: trường lạ")
+        kind = m.get("kind")
+        species = g["monsters"]["species"]
+        if not isinstance(kind, str) or kind not in species:
+            raise BadInput(f"{name}: kind không hợp lệ")
+        mbounds = {"x": bounds["x"], "d": species[kind]["depths"]}
+        _pos(f"{name}.pos", m.get("pos"), mbounds)
+        waypoints = m.get("waypoints")
+        if not isinstance(waypoints, list) or len(waypoints) != 2:
+            raise BadInput(f"{name}.waypoints cần hai điểm")
+        for point in waypoints:
+            _pos(f"{name}.waypoints", point, mbounds)
+        idx = m.get("target_idx", 1)
+        if isinstance(idx, bool) or not isinstance(idx, int) or idx not in (0, 1):
+            raise BadInput(f"{name}.target_idx phải là 0 hoặc 1")
+        state = m.get("state", "patrol")
+        if state not in ("patrol", "chase", "recoil", "stunned"):
+            raise BadInput(f"{name}.state không hợp lệ")
+        timer = m.get("state_ticks_left", 0)
+        _nonneg_int(f"{name}.state_ticks_left", timer)
+        if state in ("recoil", "stunned") and timer == 0:
+            raise BadInput(f"{name}: trạng thái cần timer dương")
+        direction = m.get("recoil_dir")
+        if state == "recoil":
+            if not (isinstance(direction, list) and len(direction) == 2 and
+                    all(_num(x) and math.isfinite(x) for x in direction) and
+                    math.isclose(math.hypot(*direction), 1.0, rel_tol=1e-6, abs_tol=1e-6)):
+                raise BadInput(f"{name}.recoil_dir phải là vector đơn vị")
+        elif direction is not None:
+            raise BadInput(f"{name}.recoil_dir chỉ dùng khi recoil")
 
 
 def _validate_quan(b, tuning):
