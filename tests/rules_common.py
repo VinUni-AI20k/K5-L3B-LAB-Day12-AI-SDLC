@@ -25,11 +25,88 @@ def contract_all():
         return json.load(f)
 
 
-# Test Phase 2 chỉ chạy khi game.contract.json đã chuyển sang v1.1 (Integrator đổi khi tích hợp xong),
-# để nhánh chính không đỏ trong lúc các lát Phase 2 đang làm. Khi đổi sang 1.1, các test này tự bật.
+def version_tuple():
+    return tuple(int(x) for x in contract_version().split("."))
+
+
+# Test Phase 2 chạy từ contract 1.1 trở lên; test Phase 3 chỉ chạy khi contract 1.2 (kho cá thể + độ tươi).
+# Nhờ vậy nhánh chính không đỏ trong lúc các lát đang làm, và regression P1-P2 vẫn còn hiệu lực sau khi bật 1.2.
 import unittest  # noqa: E402
 
-requires_v11 = unittest.skipUnless(contract_version() == "1.1", "chờ contract_version 1.1 (Phase 2)")
+FRESH = version_tuple() >= (1, 2)
+requires_v11 = unittest.skipUnless(version_tuple() >= (1, 1), "chờ contract_version >= 1.1 (Phase 2)")
+requires_v12 = unittest.skipUnless(FRESH, "chờ contract_version 1.2 (Phase 3)")
+
+
+# ---- Fixture kho theo schema của contract hiện hành -------------------------------------------------
+# <= 1.1: giỏ là mảng kind, kho là {kind: số lượng}, giữ chỗ là {kind: số lượng}.
+# 1.2: giỏ và kho là mảng cá thể {id, kind, fresh}, giữ chỗ là mảng id (Phase3.md mục 1).
+def item(i, kind, fresh=100):
+    return {"id": f"I{i}", "kind": kind, "fresh": fresh}
+
+
+def H(*kinds, fresh=100):
+    """Fixture giỏ `gather.hold` theo thứ tự nhặt (mới nhất cuối)."""
+    return [item(i, k, fresh) for i, k in enumerate(kinds, 1)] if FRESH else list(kinds)
+
+
+class Kitchen:
+    """Dựng `quan.stock` và `customers[].reserved` nhất quán: Kitchen({'ca_loc': 2}).stock / .reserve({'ca_loc': 1})."""
+
+    def __init__(self, counts, fresh=100):
+        self._free = {}
+        self._items = []
+        for kind, n in counts.items():
+            for _ in range(n):
+                it = item(len(self._items) + 1, kind, fresh)
+                self._items.append(it)
+                self._free.setdefault(kind, []).append(it["id"])
+        self._counts = dict(counts)
+        self.stock = self._items if FRESH else dict(counts)
+
+    def reserve(self, counts):
+        if not FRESH:
+            return dict(counts)
+        ids = []
+        for kind, n in counts.items():
+            for _ in range(n):
+                ids.append(self._free[kind].pop(0))
+        return ids
+
+
+def kinds(xs):
+    """Chuẩn hóa mảng giỏ / lost / items thành mảng kind (giữ thứ tự)."""
+    return [x["kind"] if isinstance(x, dict) else x for x in xs]
+
+
+def counts(x):
+    """Chuẩn hóa kho (dict đếm, mảng cá thể hoặc object file kho {items: ...}) thành {kind: số lượng}."""
+    if isinstance(x, dict) and "items" in x:
+        x = x["items"]
+    if isinstance(x, dict):
+        return {k: v for k, v in x.items() if v}
+    out = {}
+    for it in x:
+        out[it["kind"]] = out.get(it["kind"], 0) + 1
+    return out
+
+
+def res_counts(snapshot, customer):
+    """Giữ chỗ của một khách thành {kind: số lượng}; v1.2 tra id trong kho của snapshot."""
+    r = customer.get("reserved") or {}
+    if isinstance(r, dict):
+        return dict(r)
+    by_id = {it["id"]: it["kind"] for it in snapshot.get("stock", [])}
+    out = {}
+    for iid in r:
+        out[by_id[iid]] = out.get(by_id[iid], 0) + 1
+    return out
+
+
+def settled_price(price, decay_ticks):
+    """Giá chốt khi nấu (Phase3.md mục 1): floor(giá × trung bình fresh / 100). Từ 1.2 kho quán hao 1 đơn vị/tick
+    (240 đơn vị = 1 điểm), nên nấu sau `decay_ticks` bước thì mọi cá thể mới có fresh = (24000 - n)/240."""
+    return price * (24000 - decay_ticks) // 24000 if FRESH else price
 
 
 def run_day(w, scenario=None, inp=None, days=1, ticks=10, every=1, seed=1):

@@ -20,7 +20,9 @@ import time
 import unittest
 
 from helpers import Workdir, events, frames, run_headless, snapshots, write_json
-from rules_common import at, requires_v11, run_day, run_mode
+from rules_common import FRESH, H, Kitchen, at, counts, kinds, requires_v11, run_day, run_mode, settled_price
+
+NORES = [] if FRESH else {}   # "không giữ gì" theo schema hiện hành
 
 SPAWN_DEPTHS = {"ca_linh": (5, 10), "ca_loc": (10, 16), "ca_keo": (24, 27)}
 
@@ -132,7 +134,7 @@ class Sau(unittest.TestCase):
     def test_sau_04_hit_loses_hp_half_hold_lifo_and_invuln(self):
         """Chạm ≤ 1.5 m ở d ≥ 10: -1 Máu, bỏ floor(n/2) nguyên liệu LIFO, bất tử 90 tick, đúng một hit."""
         with Workdir() as w:
-            hold = ["ca_loc", "ca_loc", "bong_sung", "bong_sung", "ca_loc"]
+            hold = H("ca_loc", "ca_loc", "bong_sung", "bong_sung", "ca_loc")
             sc = {"player": {"pos": [50, 20]}, "hold": hold,
                   "monsters": [self.croc([50, 20], [[50, 20], [54, 20]])]}
             rows = gather(w, sc, ticks=100)
@@ -140,10 +142,10 @@ class Sau(unittest.TestCase):
             self.assertEqual(hit["tick"], 1)
             d = hit["data"]
             self.assertEqual((d["monster_id"], d["hp"]), ("M1", 2))
-            self.assertEqual(d["lost"], ["ca_loc", "bong_sung"])
+            self.assertEqual(kinds(d["lost"]), ["ca_loc", "bong_sung"])
             s = at(rows, 1)
             self.assertEqual(s["player"]["invuln_ticks"], 90)
-            self.assertEqual(s["hold"], ["ca_loc", "ca_loc", "bong_sung"])
+            self.assertEqual(kinds(s["hold"]), ["ca_loc", "ca_loc", "bong_sung"])
 
     def test_sau_05_no_hit_when_player_shallow(self):
         with Workdir() as w:
@@ -154,13 +156,13 @@ class Sau(unittest.TestCase):
     def test_sau_06_faint_by_monster(self):
         """Máu về 0 do chạm: monster_hit(hp 0), faint {cause:monster, lost: phần giỏ còn lại, hp:0}, gather_end fainted."""
         with Workdir() as w:
-            sc = {"player": {"pos": [50, 20], "hp": 1}, "hold": ["ca_loc", "bong_sung"],
+            sc = {"player": {"pos": [50, 20], "hp": 1}, "hold": H("ca_loc", "bong_sung"),
                   "monsters": [self.croc([50, 20], [[50, 20], [54, 20]])]}
             rows = gather(w, sc, ticks=20)
             self.assertEqual(only(rows, "monster_hit")["data"]["hp"], 0)
             faint = only(rows, "faint")["data"]
             self.assertEqual((faint["cause"], faint["hp"]), ("monster", 0))
-            self.assertEqual(faint["lost"], ["ca_loc"])
+            self.assertEqual(kinds(faint["lost"]), ["ca_loc"])
             self.assertEqual(only(rows, "gather_end")["data"]["reason"], "fainted")
 
 
@@ -178,23 +180,24 @@ class Quan(unittest.TestCase):
     def test_quan_02_second_customer_at_1020_sits_at_t2(self):
         """Lượt khách 120 + 900k: khách thứ hai tick 1020 ngồi ghế trống id nhỏ nhất (T2)."""
         with Workdir() as w:
-            rows = run_mode(w, "quan", {"stock": {"ca_loc": 5, "bong_sung": 5}}, ticks=1020, every=1020)
+            rows = run_mode(w, "quan", {"stock": Kitchen({"ca_loc": 5, "bong_sung": 5}).stock}, ticks=1020, every=1020)
             arr = events(rows, "customer_arrived")
             self.assertEqual([e["tick"] for e in arr], [120, 1020])
             self.assertEqual([e["data"]["table_id"] for e in arr], ["T1", "T2"])
 
     def test_quan_03_lau_mam_reserves_and_cooks(self):
         """Kho chỉ đủ lẩu mắm: khách gọi lau_mam, giữ đủ 5 nguyên liệu; nấu 12 s giá 200, items theo kind."""
-        stock = {"ca_linh": 2, "ca_keo": 1, "keo_neo": 1, "bong_dien_dien": 1}
+        counts_ = {"ca_linh": 2, "ca_keo": 1, "keo_neo": 1, "bong_dien_dien": 1}
+        k = Kitchen(counts_)
         with Workdir() as w:
-            sc = {"stock": stock, "random_customers": False, "player": {"pos": [2, 7.5]},
+            sc = {"stock": k.stock, "random_customers": False, "player": {"pos": [2, 7.5]},
                   "customers": [{"id": "C1", "table_id": "T1", "dish_id": "lau_mam", "order_tick": 0,
-                                 "state": "waiting", "order_status": "reserved", "reserved": stock}]}
+                                 "state": "waiting", "order_status": "reserved", "reserved": k.reserve(counts_)}]}
             rows = run_mode(w, "quan", sc, inp=frames({"tick": 0, "interact": True}), ticks=1)
             d = only(rows, "cook_started")["data"]
             self.assertEqual(d["dish_id"], "lau_mam")
-            self.assertEqual(d["base_price"], 200)
-            self.assertEqual(d["items"], ["bong_dien_dien", "ca_keo", "ca_linh", "ca_linh", "keo_neo"])
+            self.assertEqual(d["base_price"], settled_price(200, 1))   # v1.2: giá theo độ tươi
+            self.assertEqual(kinds(d["items"]), ["bong_dien_dien", "ca_keo", "ca_linh", "ca_linh", "keo_neo"])
             b = next(x for x in at(rows, 1)["stoves"] if x["id"] == "B1")
             self.assertEqual(b["cook_ticks_left"], 12 * 60)
 
@@ -204,7 +207,7 @@ class Quan(unittest.TestCase):
         with Workdir() as w:
             sc = {"random_customers": False, "player": {"pos": [9, 2.5]}, "hand": dish,
                   "customers": [{"id": "C1", "table_id": "T1", "dish_id": "lau_mam", "order_tick": 0,
-                                 "state": "waiting", "order_status": "assigned", "reserved": {}}]}
+                                 "state": "waiting", "order_status": "assigned", "reserved": NORES}]}
             rows = run_mode(w, "quan", sc, inp=frames({"tick": 0, "interact": True}), ticks=1)
             self.assertEqual(only(rows, "served")["data"]["tip"], 40)
 
@@ -247,12 +250,12 @@ class Day(unittest.TestCase):
         """Ngất vẫn mở quán tối với kho bàn giao rỗng."""
         with Workdir() as w:
             sc = {"gather": {"player": {"pos": [50, 10], "oxygen_ticks": 0, "zero_oxy_ticks": 59, "hp": 1},
-                             "hold": ["ca_loc"]}, "quan": {"time_left_ticks": 3}}
+                             "hold": H("ca_loc")}, "quan": {"time_left_ticks": 3}}
             rows = run_day(w, sc, ticks=6, every=1)
             self.assertEqual(only(rows, "gather_end")["data"]["reason"], "fainted")
             self.assertEqual(events(rows, "phase_start")[-1]["data"], {})
             q = [s for s in snapshots(rows) if s["phase"] == "quan"][0]
-            self.assertEqual(q["stock"], {})
+            self.assertEqual(counts(q["stock"]), {})
 
     def test_day_04_days_flag_range(self):
         """--days chỉ từ 1 đến 5 và chỉ với mode day."""
@@ -266,7 +269,7 @@ class Day(unittest.TestCase):
     def test_day_05_forbids_quan_stock_and_reputation(self):
         """Cấm quan.stock và quan.reputation khi chạy day (mã 2)."""
         with Workdir() as w:
-            for block in ({"stock": {"ca_loc": 1}}, {"reputation": 4}):
+            for block in ({"stock": Kitchen({"ca_loc": 1}).stock}, {"reputation": 4}):
                 sc = write_json(w.path("sc.json"), {"quan": block})
                 code = run_headless("--mode", "day", "--seed", "1", "--ticks", "0", "--scenario", sc, "--out", w.path("o.jsonl"))[0]
                 self.assertEqual(code, 2, block)
