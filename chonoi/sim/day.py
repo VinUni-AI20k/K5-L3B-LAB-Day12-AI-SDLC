@@ -15,6 +15,7 @@ khi dựng Ngày mới.
 """
 
 from ..ids import IdAllocator
+from ..inventory import inventory_schema
 from ..scenario import check_reserved_within_stock
 from .gather import GatherSim
 from .quan import QuanSim
@@ -33,10 +34,12 @@ def plan_ingredients(menu, dishes):
 class DaySim:
     mode = "day"
 
-    def __init__(self, tuning, scenario, streams, days):
+    def __init__(self, tuning, scenario, streams, days, *, contract_version="1.1"):
         self.tuning = tuning
         self.streams = streams
         self.days = days
+        self.contract_version = contract_version
+        self._item_ids = IdAllocator() if inventory_schema(contract_version) == "individuals" else None
         block = scenario.get("day", {})
         self._gather_tpl = scenario.get("gather", {})
         self._quan_tpl = scenario.get("quan", {})
@@ -118,7 +121,14 @@ class DaySim:
         self.active_upgrades = dict(self.upgrades)
         self.plan = self._plan_for(self.day)
         gather_tuning = apply_gather_upgrades(self.tuning, self.active_upgrades)
-        sim = GatherSim(gather_tuning, self._gather_tpl, self.streams, IdAllocator(), day=self.day)
+        scenario = self._gather_tpl
+        if self._item_ids is not None and self.day > 1 and scenario.get("hold"):
+            # Mẫu áp lại mỗi ngày nhưng mỗi món của ngày mới là cá thể mới.
+            scenario = {**scenario, "hold": [
+                {**item, "id": self._item_ids.new("I")} for item in scenario["hold"]
+            ]}
+        sim = GatherSim(gather_tuning, scenario, self.streams, IdAllocator(), day=self.day,
+                        contract_version=self.contract_version, item_ids=self._item_ids)
         sim.money, sim.earned, sim.reputation = self._money, self._earned, self._reputation
         self.current, self.phase, self.phase_tick = sim, "gather", 0
         meta = self._meta("gather")
@@ -127,16 +137,21 @@ class DaySim:
     def _open_quan(self):
         gather = self.current
         stock = gather.inventory_items()
-        check_reserved_within_stock(self._quan_tpl, stock)  # mâu thuẫn với kho thực lúc mở quán -> mã 2
+        options = {}
+        if self._item_ids is None:
+            check_reserved_within_stock(self._quan_tpl, stock)
+        else:
+            # Quan v1.2 kiểm giữ chỗ theo ID trên kho thực nhận.
+            options["contract_version"] = self.contract_version
         quan = QuanSim(self.tuning, self._quan_tpl, self.streams, IdAllocator(), inventory=stock,
                        allowed_dishes=self.plan["dishes"], money=gather.money, earned=gather.earned,
-                       shift_earned=0, reputation=gather.reputation)
+                       shift_earned=0, reputation=gather.reputation, **options)
         self.current, self.phase, self.phase_tick = quan, "quan", 0
         return [("phase_start", {}, self._meta("quan"))]
 
     def _open_shop(self):
         quan = self.current
-        leftover = {k: v for k, v in quan.stock.items() if v > 0}  # kho dư: chỉ để hiển thị, bỏ sau Shop
+        leftover = quan.snapshot()["stock"]  # dạng xuất, chỉ để hiển thị và bỏ sau Shop
         shop = ShopSim(self.tuning, money=quan.money, earned=quan.earned, reputation=quan.reputation,
                        stock=leftover, upgrades=self.upgrades)
         self.current, self.phase, self.phase_tick = shop, "shop", 0
