@@ -167,6 +167,13 @@ class QuanSim:
         # 1. đồng hồ, timer ca, nấu, ăn, kiên nhẫn
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
+        if self.time_left_ticks <= 0:
+            self._settle_tables(events)
+            self.done = True
+            self.reason = "time"
+            events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
+                                        "shift_earned": self.shift_earned, "reputation": self.reputation}))
+            return events
         self._tick_patience()
         self._tick_eating()
         self._tick_cooking(events)
@@ -176,12 +183,6 @@ class QuanSim:
         self._interact(inp, events)
         # 4. theo id bàn: ăn xong trả tiền / hết kiên nhẫn / hết ca; dọn xong -> quan_end
         self._settle_tables(events)
-        if self.time_left_ticks <= 0:
-            self.done = True
-            self.reason = "time"
-            events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
-                                        "shift_earned": self.shift_earned, "reputation": self.reputation}))
-            return events
         # 5. còn giờ: lượt khách mới
         self._spawn_customer(events)
         return events

@@ -107,7 +107,9 @@ class DishChoice(unittest.TestCase):
                     "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]}, tuning=t)
         self.assertEqual(sim.available().get("ca_loc", 0), 0)
         ev = run_until(sim, FIRST)
-        self.assertEqual([(n, d) for _, n, d in ev], [("no_dish", {})])
+        self.assertEqual([(n, d) for _, n, d in ev if n == "no_dish"], [("no_dish", {})])
+        self.assertEqual([n for _, n, _ in ev].count("cook_started"), 1,
+                         "đơn fixture đã giữ chỗ được bếp nhận trước lượt khách kế tiếp")
 
     def test_same_seed_same_choice_and_uniform_spread(self):
         stock = {"bong_sung": 2, "ca_loc": 1, "ca_linh": 3, "bong_dien_dien": 1}
@@ -158,13 +160,24 @@ class Reservation(unittest.TestCase):
         run_until(sim, 1)
         self.assertEqual((sim.stoves[0]["state"], sim.stoves[0]["dish"]), ("idle", None))
 
-    def test_reserved_released_on_patience_leave(self):
+    def test_reserved_released_before_cooking_restores_availability(self):
         sim = make({"stock": {"ca_loc": 1}, "random_customers": False,
                     "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
                                    "patience_ticks_left": 2}]})
         self.assertEqual(sim.available()["ca_loc"], 0)
-        run_until(sim, 2)
+        sim._customer_left(sim.customers[0], "patience", [], rep_delta=Q["left_reputation_delta"])
         self.assertEqual(sim.available()["ca_loc"], 1)
+
+    def test_assigned_dish_is_discarded_and_consumed_stock_not_restored_on_leave(self):
+        sim = make({"stock": {"ca_loc": 1}, "random_customers": False,
+                    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                                   "patience_ticks_left": 2}]})
+        sim.step(IDLE)  # bếp nhận đơn và tiêu phần nguyên liệu đã giữ
+        self.assertEqual(sim.stock["ca_loc"], 0)
+        run_until(sim, 2)
+        self.assertEqual(sim.available()["ca_loc"], 0)
+        self.assertEqual(sim.stoves[0]["state"], "idle")
+        self.assertIsNone(sim.stoves[0]["dish"])
 
 
 class Patience(unittest.TestCase):
@@ -219,7 +232,7 @@ class StepOrder(unittest.TestCase):
 
         sim = ServeInStep3(TUNING, self._one(), Streams(1), IdAllocator())
         ev = sim.step(IDLE)
-        self.assertEqual(ev, [])
+        self.assertNotIn("customer_left", [name for name, _ in ev])
         self.assertEqual(sim.customers[0]["patience_ticks_left"], 0, "bước 1 đã giảm về 0 trước khi phục vụ")
 
     def test_leave_then_new_customer_same_tick(self):
@@ -228,7 +241,8 @@ class StepOrder(unittest.TestCase):
                                    "patience_ticks_left": FIRST}]})
         ev = run_until(sim, FIRST)
         self.assertEqual([(tk, n, d["order_id"]) for tk, n, d in ev],
-                         [(FIRST, "customer_left", "C1"), (FIRST, "customer_arrived", "C2")])
+                         [(1, "cook_started", "C1"), (FIRST, "customer_left", "C1"),
+                          (FIRST, "customer_arrived", "C2")])
 
     def test_closing_waiting_customer_leaves_without_penalty(self):
         sc = self._one(patience_ticks_left=100)
