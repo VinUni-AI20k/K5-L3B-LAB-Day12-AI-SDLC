@@ -9,6 +9,11 @@ test_reflects_remaining_distance_in_both_axes (test_gather_fish_v11.GatherFishV1
 test_spawn_schedule_uses_elapsed_phase_ticks_and_respects_cap (test_gather_fish_v11.GatherFishV11.test_spawn_schedule_uses_elapsed_phase_ticks_and_respects_cap) ... ok
 test_static_fish_fixture_does_not_swim_or_spawn (test_gather_fish_v11.GatherFishV11.test_static_fish_fixture_does_not_swim_or_spawn) ... ok
 test_turn_happens_before_swimming_on_turn_tick (test_gather_fish_v11.GatherFishV11.test_turn_happens_before_swimming_on_turn_tick) ... ok
+test_chase_and_stop_when_surfacing (test_gather_monsters.GatherMonstersTests.test_chase_and_stop_when_surfacing) ... ok
+test_coincident_center_recoils_plus_x (test_gather_monsters.GatherMonstersTests.test_coincident_center_recoils_plus_x) ... ok
+test_faint_by_monster_clears_hold_and_ends_gather (test_gather_monsters.GatherMonstersTests.test_faint_by_monster_clears_hold_and_ends_gather) ... ok
+test_patrol_chase_hit_lifo_recoil_and_invuln (test_gather_monsters.GatherMonstersTests.test_patrol_chase_hit_lifo_recoil_and_invuln) ... ok
+test_spawn_by_day_m1_day1_m2_day3 (test_gather_monsters.GatherMonstersTests.test_spawn_by_day_m1_day1_m2_day3) ... ok
 test_dive_from_surface_boundary_counts_first_empty_tick (test_gather_oxygen.GatherOxygen.test_dive_from_surface_boundary_counts_first_empty_tick) ... ok
 test_faint_precedes_docking_and_timeout_and_empties_inventory (test_gather_oxygen.GatherOxygen.test_faint_precedes_docking_and_timeout_and_empties_inventory) ... ok
 test_invulnerability_is_not_a_v10_fixture_field (test_gather_oxygen.GatherOxygen.test_invulnerability_is_not_a_v10_fixture_field) ... ok
@@ -69,6 +74,6 @@ test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 65 tests in 8.457s
+Ran 70 tests in 11.296s
 
 OK

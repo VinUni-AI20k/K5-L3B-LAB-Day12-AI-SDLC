@@ -1,15 +1,25 @@
-D1 quan tick0 stock==gather_end: True phase_tick 0
+D1 gather: monsters ['M1']
+   quan tick0 stock==gather_end: True phase_tick 0
    shop open: time_left 600 stock {}
    after bought: {'upgrade': 'oxygen', 'level': 1, 'price': 200, 'money': 160} upgrades {'oxygen': 1} active {}
-D2 quan tick0 stock==gather_end: True phase_tick 0
+D2 gather: monsters ['M1']
+   quan tick0 stock==gather_end: True phase_tick 0
    shop open: time_left 600 stock {}
    after bought: {'upgrade': 'hp', 'level': 1, 'price': 250, 'money': 342} upgrades {'oxygen': 1, 'hp': 1} active {'oxygen': 1}
-D3 quan tick0 stock==gather_end: True phase_tick 0
+D3 gather: monsters ['M1', 'M2']
+   monster_hit tick 31228 M1 hp 4->3 hold 5 lost ['ca_loc', 'bong_sung'] ok=True
+   monster_hit tick 31318 M1 hp 3->2 hold 5 lost ['ca_keo', 'ca_keo'] ok=True
+   quan tick0 stock==gather_end: True phase_tick 0
    shop open: time_left 600 stock {}
    after bought: {'upgrade': 'oxygen', 'level': 2, 'price': 400, 'money': 422} upgrades {'oxygen': 2, 'hp': 1} active {'oxygen': 1, 'hp': 1}
-D4 quan tick0 stock==gather_end: True phase_tick 0
-   shop open: time_left 600 stock {'ca_keo': 1, 'ca_linh': 1}
+D4 gather: monsters ['M1', 'M2']
+   monster_hit tick 46848 M2 hp 4->3 hold 9 lost ['keo_neo', 'ca_loc', 'ca_linh', 'ca_linh'] ok=True
+   monster_hit tick 47688 M1 hp 3->2 hold 10 lost ['ca_loc', 'keo_neo', 'ca_linh', 'ca_linh', 'ca_linh'] ok=True
+   quan tick0 stock==gather_end: True phase_tick 0
+   shop open: time_left 600 stock {'ca_keo': 1, 'ca_linh': 2}
    after bought: {'upgrade': 'hp', 'level': 2, 'price': 500, 'money': 354} upgrades {'oxygen': 2, 'hp': 2} active {'oxygen': 2, 'hp': 1}
-D5 quan tick0 stock==gather_end: True phase_tick 0
+D5 gather: monsters ['M1', 'M2']
+   quan tick0 stock==gather_end: True phase_tick 0
    shop open: time_left 600 stock {'ca_keo': 1, 'ca_linh': 1}
 orders outside day_plan: []
+bad monster_hit: []
