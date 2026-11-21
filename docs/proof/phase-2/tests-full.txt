@@ -10,6 +10,8 @@ test_faint_gives_empty_stock (test_day.DayFlow.test_faint_gives_empty_stock) ...
 test_gather_to_quan_to_shop_and_stock_carried (test_day.DayFlow.test_gather_to_quan_to_shop_and_stock_carried) ... ok
 test_money_earned_reputation_carry_over (test_day.DayFlow.test_money_earned_reputation_carry_over) ... ok
 test_quan_menu_filtered_by_plan (test_day.DayFlow.test_quan_menu_filtered_by_plan) ... ok
+test_m2_appears_from_day_3 (test_day.MonstersByDay.test_m2_appears_from_day_3)
+Bố trí Cá Sấu theo Ngày: M1 từ Ngày 1, M2 từ Ngày 3 (spawns.from_day). ... ok
 test_pause_freezes_sim_and_resume_runs_same_tick (test_day.Pause.test_pause_freezes_sim_and_resume_runs_same_tick) ... ok
 test_pause_works_in_gather_and_quan_modes (test_day.Pause.test_pause_works_in_gather_and_quan_modes) ... ok
 test_shop_timer_frozen_while_paused (test_day.Pause.test_shop_timer_frozen_while_paused) ... ok
@@ -164,6 +166,6 @@ test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 156 tests in 11.101s
+Ran 157 tests in 11.127s
 
 OK
