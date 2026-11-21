@@ -26,7 +26,7 @@ UI chỉ ĐỌC trạng thái và GỬI lệnh. UI không sửa trạng thái si
 **UI đọc** (cùng một dạng với dòng `snapshot` của headless và `GET /state` của `chonoi.live`):
 
 - Chung: `tick`, `mode` (`gather` hoặc `quan`), `state` (`playing` hoặc `finished`), `time_left_ticks`, `money`, `earned`, `reputation`, `score`.
-- `gather`: `player` (`pos` `[x, d]`, `vel`, `heading_deg`, `oxygen_ticks`, `oxygen_max_ticks`, `hp`, `hp_max`, `zero_oxy_ticks`, `catch_cd_ticks`, `at_surface`), `hold` (mảng, cuối mảng là món mới nhặt), `hold_count`, `hold_capacity`, `nodes` (`id`, `pos`, `kind`, `ready`, `regrow_ticks`), `fish` (`id`, `pos`, `kind`, `heading_deg`).
+- `gather`: `player` (`pos` `[x, d]`, `vel`, `heading_deg`, `oxygen_ticks`, `oxygen_max_ticks`, `hp`, `hp_max`, `zero_oxy_ticks`, `catch_cd_ticks`, `at_surface`), `hold` (mảng, cuối mảng là món mới nhặt), `hold_count`, `hold_capacity`, `nodes` (`id`, `pos`, `kind`, `ready`, `regrow_ticks`), `fish` (`id`, `pos`, `kind`, `heading_deg`). Từ v1.1 (P2-04): `player.invuln_ticks` và `monsters` (`id`, `kind`, `pos`, `state` là `patrol`, `chase` hoặc `recoil`, `waypoint_index`, `recoil_ticks_left`).
 - `quan`: `player` (`pos` `[x, z]`), `stock`, `hand` (`null` hoặc payload món `{order_id, dish_id, base_price}`), `stoves` (`id`, `pos`, `state` là `idle`, `cooking` hoặc `ready`, `dish` là `null` hoặc payload món, `cook_ticks_left`, `ready_ticks`), `tables` (`id`, `pos`, `customer_id`, `null` khi trống), `customers` (chỉ khách còn ngồi: `id`, `table_id`, `dish_id`, `order_tick`, `state`, `patience_ticks_left`, `eat_ticks_left`, `order_status`, `reserved`, `base_price`, `tip`).
 - Trường nào chưa có thì UI bỏ qua, không báo lỗi. Sim thêm trường mới thì không được đổi tên hoặc ý nghĩa trường cũ.
 - Riêng cửa sổ `chonoi.live` (không có trong JSONL headless): `GET /state` trả thêm `meta` (tuning của chế độ đang chạy), `events` (tối đa 40 sự kiện gần nhất), `finished` (bool) và `error` (chuỗi lỗi luật hoặc `null`); `POST /input` nhận `{"move": [a, b], "interact": bool, "catch": bool}` (sai thì HTTP 400); `POST /restart` chơi lại cùng seed và scenario.
@@ -49,7 +49,8 @@ Mỗi sự kiện là một dòng JSONL `{"type":"event","tick":…,"phase":…,
 | `surface` | gather | `pos` lúc nổi | `sim/gather` | UI |
 | `oxygen_empty` | gather | `oxygen_ticks` (luôn 0) | `sim/gather` | UI |
 | `choke` | gather | `hp` còn lại | `sim/gather` | UI |
-| `faint` | gather | `cause` (`choke`), `lost` (món rơi, mới nhặt trước), `hp` (0) | `sim/gather` | UI, QA |
+| `faint` | gather | `cause` (`choke`, hoặc `monster` từ v1.1), `lost` (món rơi, mới nhặt trước), `hp` (0) | `sim/gather` | UI, QA |
+| `monster_hit` | gather (v1.1) | `monster_id`, `kind`, `hp` còn lại, `lost` (món rơi do cắn, mới nhặt trước) | `sim/monsters` | UI, QA |
 | `gather` | gather | `node_id`, `kind`, `amount` | `sim/gather` | UI, QA |
 | `hold_full` | gather | `action` (`gather` hoặc `catch`), `node_id` hoặc `fish_id`, `required`, `free` | `sim/gather` | UI |
 | `fish_caught` | gather | `fish_id`, `kind`, `yield` | `sim/gather` | UI, QA |
@@ -72,3 +73,4 @@ Các sự kiện `gather` (từ `dive` đến `gather_end`) khớp code của P1
 - Bản đầu do Integrator viết ở nhánh `p1-01-03-kickoff`, cần A, B, C đọc và đồng ý trước khi viết luật.
 - Cập nhật bảng sự kiện `gather` và bỏ `invuln_ticks` khỏi snapshot theo code của P1-04 và P1-05 (v1.0 không có `invuln_ticks`). Phase 2 (v1.1) thêm lại `invuln_ticks`, `attack_cd_ticks`, `monsters[]` và các sự kiện `monster_hit`, `fish_spawned`, `day_start`, `phase_start`, `paused`, `resumed`, `bought`, `buy_failed`, `shop_end`; cần quyết định chấp nhận hay từ chối `invuln_ticks` theo `contract_version`.
 - Bảng sự kiện `quan` và `customer_arrived` viết lại theo PRD-0 mục E (bản đề xuất cũ dùng `customer_id` và thiếu `customer_arrived`).
+- P2-04 (C): thêm `monster_hit`, `faint.cause = monster`, `player.invuln_ticks` và `monsters[]` trong snapshot gather v1.1; scenario gather nhận `monsters` (thay bố trí mặc định) và `player.invuln_ticks` (chỉ v1.1).

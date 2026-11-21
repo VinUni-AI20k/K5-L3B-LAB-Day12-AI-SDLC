@@ -3,7 +3,7 @@
 Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` độ sâu hướng xuống, d = 0 là mặt nước).
 `move = [x, d]`: thành phần thứ hai DƯƠNG = bơi xuống. Hướng mặt là góc từ +x, dương = xuống.
 
-Thứ tự mỗi bước: bộ đếm và mọc lại, bơi và oxy, cập bến hoặc hái, bắt cá, hết giờ.
+Thứ tự mỗi bước: bộ đếm và mọc lại, bơi và oxy, Cá Sấu (v1.1, `monsters.py`), cập bến hoặc hái, bắt cá, hết giờ.
 Khi ngất, bước kết thúc ngay và kho bàn giao rỗng.
 """
 
@@ -12,6 +12,7 @@ import math
 from ..ids import sort_by_id
 from ..inventory import hold_to_items
 from .fish import FishDynamics
+from .monsters import MonsterDynamics, active_spawns, make_monster, snapshot_monster
 from .ramp import ramp_velocity
 
 AXES = ("x", "d")
@@ -23,7 +24,7 @@ class GatherSim:
 
     def __init__(self, tuning, scenario, streams, ids, *, day=1):
         t = tuning["gather"]
-        self.day = day  # số Ngày (chế độ day); Cá Sấu M2 từ Ngày 3 dùng ở P2-04
+        self.day = day  # số Ngày (chế độ day); quái mặc định theo `from_day` (P2-04)
         self.t = t
         self.tick_hz = tuning["tick_hz"]
         self.rng = streams
@@ -55,7 +56,13 @@ class GatherSim:
         if v11:
             for fish, source in zip(self.fish, src_fish):
                 fish["age_ticks"] = source.get("age_ticks", 0)
-        for coll in (self.nodes, self.fish):
+        # Cá Sấu (v1.1): scenario `monsters` THAY THẾ bố trí mặc định của Ngày
+        mt = t.get("monsters")
+        self.invuln_ticks = p.get("invuln_ticks", 0)
+        src_monsters = scenario["monsters"] if "monsters" in scenario else (active_spawns(mt, day) if mt else [])
+        self.monsters = [make_monster(m) for m in src_monsters]
+        self._monster_dynamics = MonsterDynamics(t, self.tick_hz) if mt else None
+        for coll in (self.nodes, self.fish, self.monsters):
             for e in coll:
                 ids.reserve(e["id"])
         self._fish_dynamics = FishDynamics(t, self.tick_hz, streams, ids) if v11 and random_fish else None
@@ -72,7 +79,7 @@ class GatherSim:
         return hold_to_items(self.hold)
 
     def snapshot(self) -> dict:
-        return {
+        snap = {
             "player": {"pos": self.pos.copy(), "vel": self.vel.copy(), "heading_deg": self.heading,
                        "oxygen_ticks": self.oxygen_ticks, "oxygen_max_ticks": self.oxygen_max,
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
@@ -85,6 +92,10 @@ class GatherSim:
                       for n in sort_by_id(self.nodes)],
             "fish": [{**f, "pos": f["pos"].copy()} for f in sort_by_id(self.fish)],
         }
+        if self._monster_dynamics is not None:
+            snap["player"]["invuln_ticks"] = self.invuln_ticks
+            snap["monsters"] = [snapshot_monster(m) for m in sort_by_id(self.monsters)]
+        return snap
 
     # --- một bước ---------------------------------------------------------------
     def step(self, inp):
@@ -93,6 +104,7 @@ class GatherSim:
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.catch_cd_ticks = max(0, self.catch_cd_ticks - 1)
+        self.invuln_ticks = max(0, self.invuln_ticks - 1)
         for n in sort_by_id(self.nodes):
             if n["regrow_ticks"] > 0:
                 n["regrow_ticks"] -= 1
@@ -107,6 +119,11 @@ class GatherSim:
         self._update_oxygen(at_surface, events)
         if self.done:
             return events
+        # 2b. Cá Sấu: bơi, đuổi, cắn (Máu, mất giỏ, bất tử); Máu về 0 thì ngất
+        if self._monster_dynamics is not None:
+            self._monster_dynamics.step(self, at_surface, events)
+            if self.done:
+                return events
 
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):

@@ -11,7 +11,7 @@ import math
 from .errors import BadInput
 from .inventory import KINDS_P1, validate_items
 
-GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
+GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks", "monsters"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "catch_cd_ticks"}
 NODE_KINDS = ("bong_dien_dien", "bong_sung", "keo_neo")
@@ -174,10 +174,12 @@ def _validate_gather(b, tuning):
             raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
+    v11 = isinstance(g["fish_initial"], int)
     p = b.get("player", {})
     if not isinstance(p, dict):
         raise BadInput("player phải là object")
-    extra = set(p) - GATHER_PLAYER_KEYS
+    # quyết định 4 (docs/plan/phase-2.md): invuln_ticks bị từ chối ở v1.0, chấp nhận ở v1.1
+    extra = set(p) - GATHER_PLAYER_KEYS - ({"invuln_ticks"} if v11 else set())
     if extra:
         raise BadInput(f"trường lạ/chưa hỗ trợ trong gather.player: {sorted(extra)}")
     if "pos" in p:
@@ -186,7 +188,7 @@ def _validate_gather(b, tuning):
         raise BadInput("player.vel phải là [x, d]")
     if "heading_deg" in p and not _num(p["heading_deg"]):
         raise BadInput("player.heading_deg phải là số")
-    for key in ("catch_cd_ticks", "zero_oxy_ticks", "oxygen_ticks", "hp"):
+    for key in ("catch_cd_ticks", "zero_oxy_ticks", "oxygen_ticks", "hp", "invuln_ticks"):
         if key in p:
             _nonneg_int(f"player.{key}", p[key])
     omax = int(round(g["oxygen_max_s"] * 60))
@@ -194,6 +196,10 @@ def _validate_gather(b, tuning):
         raise BadInput("player.oxygen_ticks vượt oxy tối đa")
     if "hp" in p and not (1 <= p["hp"] <= g["hp_max"]):
         raise BadInput("player.hp phải trong [1, hp_max]")
+    if "invuln_ticks" in p and "monsters" in g and p["invuln_ticks"] > g["monsters"]["invuln_ticks"]:
+        raise BadInput("player.invuln_ticks vượt gather.monsters.invuln_ticks")
+    if "monsters" in b:
+        _validate_monsters(b["monsters"], g)
     if "zero_oxy_ticks" in p:
         pos = p.get("pos", g["start_pos"])
         oxy = p.get("oxygen_ticks", omax)
@@ -209,7 +215,6 @@ def _validate_gather(b, tuning):
             raise BadInput(f"nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
         if "regrow_ticks" in n:
             _nonneg_int(f"nodes.{n['id']}.regrow_ticks", n["regrow_ticks"])
-    v11 = isinstance(g["fish_initial"], int)
     for f in b.get("fish", []):
         name = f"fish.{f['id']}"
         allowed = {"id", "kind", "pos", "heading_deg"}
@@ -231,6 +236,37 @@ def _validate_gather(b, tuning):
             raise BadInput(f"{name}.heading_deg phải là số hữu hạn")
         if "age_ticks" in f:
             _nonneg_int(f"{name}.age_ticks", f["age_ticks"])
+
+
+MONSTER_KEYS = {"id", "kind", "pos", "waypoints", "state", "waypoint_index"}
+
+
+def _validate_monsters(arr, g):
+    """Cá Sấu trong scenario (v1.1, P2-04): thay thế bố trí mặc định; `[]` là không có quái."""
+    mt = g.get("monsters")
+    if mt is None:
+        raise BadInput("monsters chỉ dùng được khi contract có gather.monsters (v1.1)")
+    _check_ids("monsters", arr)
+    for m in arr:
+        name = f"monsters.{m['id']}"
+        if set(m) - MONSTER_KEYS:
+            raise BadInput(f"{name}: trường lạ {sorted(set(m) - MONSTER_KEYS)}")
+        kind = m.get("kind")
+        if not isinstance(kind, str) or kind not in mt["species"]:
+            raise BadInput(f"{name}: kind phải thuộc gather.monsters.species")
+        area = {"x": g["bounds"]["x"], "d": mt["species"][kind]["depths"]}
+        _pos(f"{name}.pos", m.get("pos"), area)
+        wps = m.get("waypoints", [m["pos"]])
+        if not isinstance(wps, list) or not wps:
+            raise BadInput(f"{name}.waypoints phải là mảng không rỗng")
+        for k, wp in enumerate(wps):
+            _pos(f"{name}.waypoints.{k}", wp, area)
+        if m.get("state", "patrol") not in ("patrol", "chase"):
+            raise BadInput(f"{name}.state phải là patrol hoặc chase")
+        if "waypoint_index" in m:
+            _nonneg_int(f"{name}.waypoint_index", m["waypoint_index"])
+            if m["waypoint_index"] >= len(wps):
+                raise BadInput(f"{name}.waypoint_index vượt số waypoint")
 
 
 def _validate_quan(b, tuning):
