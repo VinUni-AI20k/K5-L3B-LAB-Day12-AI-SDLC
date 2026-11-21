@@ -72,7 +72,9 @@ class QuanSim:
     def step(self, inp):
         events = []
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # TODO(nhóm): giảm kiên nhẫn / nấu / ăn; bếp chín -> ready; xử lý khách theo thứ tự PRD-0 mục F.
+        # 1. Bếp nấu (Lát 4)
+        self._tick_stoves(events)
+        # TODO(nhóm): giảm kiên nhẫn / ăn; xử lý khách theo thứ tự PRD-0 mục F.
         self._move(inp)
         # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
         # TODO(nhóm): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.
@@ -82,6 +84,19 @@ class QuanSim:
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
         return events
+
+    def _tick_stoves(self, events):
+        """Lát 4: Bếp nấu, giảm cook_ticks_left, chuyển sang ready, bắn dish_ready."""
+        for s in sort_by_id(self.stoves):
+            if s["state"] == "cooking":
+                s["cook_ticks_left"] -= 1
+                if s["cook_ticks_left"] <= 0:
+                    s["state"] = "ready"
+                    s["cook_ticks_left"] = 0
+                    s["ready_ticks"] = 0
+                    events.append(("dish_ready", {"stove_id": s["id"], "dish": s["dish"]}))
+            elif s["state"] == "ready":
+                s["ready_ticks"] = s.get("ready_ticks", 0) + 1
 
     def _move(self, inp):
         speed = self.t["walk_speed"]
