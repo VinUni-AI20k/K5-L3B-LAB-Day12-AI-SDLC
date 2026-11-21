@@ -13,6 +13,9 @@ Dùng `contract.upgrade_value(tuning, kind, level, base)` để đọc giá tr�
 `tuning["shop"]["upgrades"][kind][level - 1]["price"]` để đọc giá.
 """
 
+from . import fresh
+from .ids import sort_by_id
+
 TICK = 60.0
 
 
@@ -22,7 +25,8 @@ class ShopSim:
 
     def __init__(self, tuning, stock, carry, upgrades):
         self.t = tuning["shop"]
-        self.stock = dict(stock)
+        # kho dư từ ca quán: v1.1 dict đếm, v1.2 mảng cá thể (Shop không hao tươi)
+        self.stock = [dict(it) for it in stock] if isinstance(stock, list) else dict(stock)
         self.money = carry["money"]
         self.earned = carry["earned"]
         self.reputation = carry["reputation"]
@@ -33,7 +37,10 @@ class ShopSim:
         self.reason = None
 
     def snapshot(self) -> dict:
-        """Ticket-02 mục 4.4: Shop có `stock` dư từ ca quán (bỏ mục bằng 0). `upgrades` do DaySession thêm."""
+        """Ticket-02 mục 4.4: Shop có `stock` dư từ ca quán (bỏ mục bằng 0). `upgrades` do DaySession thêm.
+        v1.2: mảng cá thể public sắp theo id."""
+        if isinstance(self.stock, list):
+            return {"stock": fresh.public_list(sort_by_id(self.stock))}
         return {"stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}}
 
     def step(self, inp):

@@ -319,8 +319,7 @@ def _validate_quan(b, tuning):
             validate_instances(b["stock"], "stock")
         else:
             validate_items(b["stock"])
-    # TODO(C, v1.2): customers[].reserved là mảng id cá thể trỏ tới hàng chưa ươn trong stock, đủ công thức, không
-    #   dùng chung giữa các đơn; đơn reserved thiếu reserved thì cấp theo order_tick rồi id bàn (Ticket-03 mục 1).
+    # v1.2: customers[].reserved (mảng id cá thể) kiểm trong _check_reserved_ids_v12 (C).
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
         raise BadInput("quan.player chỉ có pos và vel")
@@ -345,6 +344,37 @@ CUSTOMER_STATES = ("waiting", "eating")
 ORDER_STATUSES = ("reserved", "assigned", "unfulfillable", "served")
 
 
+def _check_reserved_ids_v12(b, c, status, dish_id, menu, tuning, used_ids):
+    """v1.2 (Ticket-03 mục 1): customers[].reserved là mảng id cá thể trỏ tới hàng chưa ươn trong quan.stock, đúng
+    công thức, không dùng chung giữa các đơn. Đơn reserved thiếu reserved: QuanSim cấp theo order_tick rồi id bàn.
+    Khi kho đến từ --inventory (scenario không có stock), QuanSim kiểm lại phần trỏ kho lúc dựng."""
+    from .fresh import from_public, is_spoiled
+    cid = c["id"]
+    if "reserved" not in c:
+        return
+    res = c["reserved"]
+    if not isinstance(res, list) or not all(isinstance(i, str) and i for i in res) or len(set(res)) != len(res):
+        raise BadInput(f"customers.{cid}.reserved phải là mảng id cá thể khác nhau")
+    if status != "reserved" and res:
+        raise BadInput(f"customers.{cid}: chỉ đơn reserved mới được giữ nguyên liệu")
+    shared = used_ids & set(res)
+    if shared:
+        raise BadInput(f"customers.{cid}.reserved: {sorted(shared)} đã bị đơn khác giữ")
+    used_ids.update(res)
+    if "stock" not in b:
+        return
+    by_id = {it["id"]: from_public(it) for it in b["stock"]}
+    kinds = {}
+    for iid in res:
+        if iid not in by_id:
+            raise BadInput(f"customers.{cid}.reserved: không có cá thể {iid} trong quan.stock")
+        if is_spoiled(by_id[iid], tuning):
+            raise BadInput(f"customers.{cid}.reserved: cá thể {iid} đã ươn")
+        kinds[by_id[iid]["kind"]] = kinds.get(by_id[iid]["kind"], 0) + 1
+    if status == "reserved" and kinds != menu[dish_id]["recipe"]:
+        raise BadInput(f"customers.{cid}.reserved khác công thức {dish_id}")
+
+
 def _validate_quan_customers(b, tuning):
     """Mâu thuẫn mức luật của quan.customers (PRD-0 mục D). Vượt tồn kho kiểm thêm trong QuanSim vì kho có thể đến từ --inventory."""
     menu = tuning["menu"]
@@ -366,6 +396,7 @@ def _validate_quan_customers(b, tuning):
         raise BadInput("bếp và tay (hoặc hai bếp) cùng giữ món của một đơn")
     held = {}
     cids = set()
+    used_ids = set()  # v1.2: id cá thể đã có đơn giữ
     for c in b.get("customers", []):
         cid = c["id"]
         cids.add(cid)
@@ -396,12 +427,15 @@ def _validate_quan_customers(b, tuning):
             raise BadInput(f"customers.{cid}: khách eating cần eat_ticks_left >= 1")
         if "base_price" in c and dish_id in menu and c["base_price"] != menu[dish_id]["price"]:
             raise BadInput(f"customers.{cid}.base_price khác giá món")
-        if "reserved" in c:
+        if fresh_enabled(tuning):
+            reserved = {}  # v1.2: kiểm theo id ở _check_reserved_ids_v12 (cần kho cá thể)
+            _check_reserved_ids_v12(b, c, status, dish_id, menu, tuning, used_ids)
+        elif "reserved" in c:
             validate_items(c["reserved"])
             reserved = {k: v for k, v in c["reserved"].items() if v > 0}
         else:
             reserved = dict(menu[dish_id]["recipe"]) if status == "reserved" else {}
-        if status == "reserved" and reserved != menu[dish_id]["recipe"]:
+        if status == "reserved" and not fresh_enabled(tuning) and reserved != menu[dish_id]["recipe"]:
             raise BadInput(f"customers.{cid}.reserved khác công thức {dish_id}")
         if status != "reserved" and reserved:
             raise BadInput(f"customers.{cid}: chỉ đơn reserved mới được giữ nguyên liệu")
