@@ -17,9 +17,25 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 
 ```bash
 git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # Chạy toàn bộ 57 tests bằng 1 lệnh
+python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (WASD, E, Space, R)
 ```
+
+### Điều khiển & Phím bấm
+- **WASD / Phím mũi tên:** Di chuyển thuyền lặn (Gather: `[x, d]`) hoặc người phục vụ (Quán: `[x, z]`).
+- **E / Phím bấm Tương tác (`interact`):** Cập bến (Gather), Bật bếp nấu / Bưng món / Phục vụ bàn (Quán).
+- **Space (`catch`):** Bắt cá dưới nước khi nằm trong bán kính tương tác (Gather).
+- **R:** Reset / Bắt đầu lại ca.
+
+### Cách tính điểm
+- Điểm tổng kết: `Điểm = Tiền tích lũy (nghìn VNĐ) + Uy tín (sao) × 100`.
+- Ca ngày (Gather): Thu hoạch bông súng, điên điển, cá linh, cá lóc mang về bến bảo toàn nguyên liệu cho ca tối.
+- Ca tối (Quán): Khách vào bàn, gọi món ngẫu nhiên theo kho khả dụng, tính tiền + tip 20% khi phục vụ nhanh, trừ 0.5 uy tín nếu khách bỏ về.
+
+## Sáng tạo của nhóm
+- **Giao diện sinh động (`chonoi/web/index.html`):** Thiết kế hiệu ứng sóng nước miệt vườn sông nước Cửu Long, khói bốc nghi ngút từ bếp B1, thông báo nổi tiền thưởng/tip và âm hưởng chợ nổi miền Tây.
+- **Bảo toàn Test Contract:** Toàn bộ hiệu ứng hiển thị chỉ chạy ở tầng presentation (frontend HTML5 canvas), tầng mô phỏng lõi (`chonoi/sim/`) và chế độ headless hoàn toàn độc lập, đảm bảo **100% tính tất định byte-by-byte** (SHA-256 match tuyệt đối).
+
 
 Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
 
