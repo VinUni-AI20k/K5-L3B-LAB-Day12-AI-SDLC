@@ -13,6 +13,11 @@ from chonoi.runner import Session
 
 T = load_contract()["tuning"]
 Q = T["quan"]
+# Contract v1.1 có 2 bếp và 4 bàn; test lát 3 kiểm từng luật trên bố cục P1 (bếp B1, bàn T1) để kết quả không đổi
+# theo số bàn. Test theo bố cục 4 bàn nằm ở phần việc quán của Phase 2 (P2-05).
+LAYOUT_P1 = copy.deepcopy(T)
+LAYOUT_P1["quan"]["stoves"] = [s for s in Q["stoves"] if s["id"] == "B1"]
+LAYOUT_P1["quan"]["tables"] = [tb for tb in Q["tables"] if tb["id"] == "T1"]
 HZ = T["tick_hz"]
 FIRST = Q["first_customer_tick"]
 EVERY = round(Q["customer_interval_s"] * HZ)
@@ -20,12 +25,12 @@ PATIENCE = round(Q["patience_s"] * HZ)
 
 
 def tuning_with_tables(*extra):
-    t = copy.deepcopy(T)
+    t = copy.deepcopy(LAYOUT_P1)
     t["quan"]["tables"] = t["quan"]["tables"] + [{"id": i, "pos": pos} for i, pos in extra]
     return t
 
 
-def run(scenario, stock=None, ticks=1, tuning=T):
+def run(scenario, stock=None, ticks=1, tuning=LAYOUT_P1):
     sess = Session("quan", tuning, scenario, 1, inventory=stock)
     player = InputPlayer([])
     rows = []
