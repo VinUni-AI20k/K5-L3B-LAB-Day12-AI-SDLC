@@ -182,7 +182,7 @@ class DayShop(unittest.TestCase):
 
     def test_contract_version_and_commands(self):
         c = contract_all()
-        self.assertIn(c["contract_version"], ("1.1", "1.2"))   # P3 nâng lên 1.2; số chuẩn P2 vẫn phải đúng
+        self.assertIn(c["contract_version"], ("1.1", "1.2", "1.3"))   # P3 lên 1.2, P4 lên 1.3; số chuẩn P2 vẫn phải đúng
         for key in ("build_cmd", "run_cmd", "headless_cmd"):
             self.assertTrue(c[key])
 

@@ -262,7 +262,7 @@ class Day(unittest.TestCase):
         """--days chỉ từ 1 đến 5 và chỉ với mode day."""
         with Workdir() as w:
             out = w.path("o.jsonl")
-            for bad in ("0", "6", "x"):
+            for bad in ("0", "11", "x"):   # Phase 4 (soak 10 Ngày): --days hợp lệ là 1..10, nên 6 không còn sai
                 self.assertEqual(run_headless("--mode", "day", "--days", bad, "--seed", "1", "--ticks", "0", "--out", out)[0],
                                  2, bad)
             self.assertEqual(run_headless("--mode", "gather", "--days", "2", "--seed", "1", "--ticks", "0", "--out", out)[0], 2)

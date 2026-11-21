@@ -23,9 +23,13 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
+    if c.get("contract_version") == "1.3":
+        for key in ("bench_cmd", "soak_cmd"):
+            if not isinstance(c.get(key), str) or not c[key].strip():
+                raise BadInput(f"contract v1.3 cần khai báo {key}")
     validate_tuning(c.get("tuning"))
     if "tuning" in c and isinstance(c["tuning"], dict):
-        c["tuning"]["contract_version"] = c.get("contract_version", "1.2")
+        c["tuning"]["contract_version"] = c.get("contract_version", "1.3")
     return c
 
 

@@ -34,7 +34,7 @@ def _int(name):
 def main(argv=None) -> int:
     p = _Parser(prog="chonoi.headless")
     p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])
-    p.add_argument("--days", type=_int("days"), help="số ngày 1..5 (chỉ mode day)")
+    p.add_argument("--days", type=_int("days"), help="số ngày 1..10 (chỉ mode day)")
     p.add_argument("--seed", required=True, type=_int("seed"))
     p.add_argument("--ticks", required=True, type=_int("ticks"))
     p.add_argument("--out", required=True)
@@ -47,8 +47,8 @@ def main(argv=None) -> int:
     try:
         if a.ticks < 0:
             raise BadInput("--ticks phải >= 0")
-        if a.mode == "day" and a.days is not None and not 1 <= a.days <= 5:
-            raise BadInput("--days phải trong [1, 5]")
+        if a.mode == "day" and a.days is not None and not 1 <= a.days <= 10:
+            raise BadInput("--days phải trong [1, 10]")
         if a.mode != "day" and a.days is not None:
             raise BadInput("--days chỉ dùng với --mode day")
         days = a.days if a.days is not None else 5
@@ -67,7 +67,7 @@ def main(argv=None) -> int:
         tuning = contract["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
         frames = load_frames(a.inputs)
-        version = contract.get("contract_version", "1.2")
+        version = contract.get("contract_version", "1.3")
         inventory = read_inventory(a.inventory, version=version) if a.inventory else None
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")

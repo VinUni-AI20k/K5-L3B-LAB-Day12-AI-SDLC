@@ -15,11 +15,21 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 
 ## Bắt đầu nhanh
 
+Yêu cầu: Python 3.10 trở lên; không cần thư viện ngoài.
+
 ```bash
 git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode day                                   # chơi thử trọn vòng ngày (tùy chọn)
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v         # test
+python3 -m chonoi.live --mode day                                   # chơi thử trọn vòng ngày
 ```
+
+Điều khiển: WASD/mũi tên di chuyển, E tương tác, Space bắt cá, Esc/P tạm dừng, C bật/tắt tương phản cao; trong Shop dùng 1/2 để mua, Enter để đóng. Thủy quái, oxy thấp và khách sắp hết kiên nhẫn có cảnh báo chữ/biểu tượng.
+
+Headless: `python3 -m chonoi.headless --mode day --days 5 --seed 1 --ticks 111000 --out day.jsonl`.
+
+Benchmark: `python3 -m chonoi.benchmark --seed 42 --duration 30 --out bench.json`.
+
+Soak 10 ngày: `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json`.
 
 ## Tự do sáng tạo
 

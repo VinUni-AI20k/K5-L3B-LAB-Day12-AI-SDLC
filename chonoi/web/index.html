@@ -523,6 +523,8 @@ function drawQuan(w, h) {
   if (fsq) text(`Độ tươi kho: TB ${fsq.avg.toFixed(0)} · thấp nhất ${fsq.min.toFixed(0)}` + (fsq.spoiled ? ` · ✕ ươn ${fsq.spoiled}` : ""), 14, 110, { size: 18, color: fsq.spoiled ? "#ff8a80" : "#ffe082", hcColor: fsq.spoiled ? "#ff8a80" : "#fff" });
   const reservations = snap.reservations || [];
   if (reservations.length) text("Đặt trước: " + reservations.map((r) => r.id + " " + r.table_id + " " + dishName(r.dish_id) + " · " + r.state + (r.arrival_tick ? " @" + r.arrival_tick : "")).join(" | "), 14, 136, { size: 17, color: "#ffe0a3" });
+  const urgent = orders.filter((c) => c.state !== "eating" && c.patience_ticks_left !== undefined && c.patience_ticks_left < patMax * 0.25);
+  if (urgent.length) text("⚠ KHÁCH SẮP GIẬN: " + urgent.map((c) => c.table_id).join(", "), 14, 160, { size: 18, color: ui.hc ? "#ffff00" : "#ff8a80" });
   const handTxt = snap.hand ? (typeof snap.hand === "string" ? snap.hand : dishName(snap.hand.dish_id)) : "tay trống";
   text("Đang cầm: " + handTxt, w - 14, 60, { size: 18, align: "right", color: "#ffe082" });
   const orders = snap.customers || [];
@@ -572,6 +574,7 @@ function drawMenu(w, h) {
   ctx.fillStyle = g; ctx.fillRect(0, h * 0.55, w, h * 0.45);
   text("Quán Ăn Chợ Nổi", w / 2, h * 0.28, { size: 56, align: "center", color: "#ffe0a3" });
   text("Út Sen lặn bắt cá buổi sáng, mở quán phục vụ khách buổi tối", w / 2, h * 0.28 + 44, { size: 22, align: "center", color: "#cfd8dc" });
+  text("C: bật/tắt tương phản cao", w / 2, h * 0.28 + 78, { size: 18, align: "center", color: ui.hc ? "#ffff00" : "#cfd8dc" });
   button(w / 2 - 120, h * 0.5, 240, 56, "Chơi (Enter)", play);
   button(w / 2 - 120, h * 0.5 + 76, 240, 56, "Thoát", quit);
   button(w / 2 - 170, h * 0.5 + 152, 340, 48, "Tương phản cao: " + (ui.hc ? "BẬT" : "tắt") + " (C)", toggleHc);
@@ -677,6 +680,7 @@ function frame(ts) {
   } else {
     text(offline ? "Không kết nối được máy chủ…" : "Đang tải…", w / 2, h / 2, { align: "center", size: 20 });
   }
+  if (ui.hc) text("TƯƠNG PHẢN CAO · C TẮT", w - 14, 58, { size: 18, align: "right", color: "#ffff00" });
 }
 requestAnimationFrame(frame);
 </script>

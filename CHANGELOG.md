@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0] - Phase 4: benchmark, soak và truy cập
+
+### Added
+- Lệnh benchmark đo thông lượng cảnh gather và xuất JSON đúng năm trường P4.
+- Lệnh soak chạy một tiến trình day từ 1–10 ngày; kế hoạch D1–D5 lặp ở ngày 6–10.
+- HUD cảnh báo oxy thấp, thủy quái, khách sắp giận; phím H bật/tắt tương phản cao.
+
 ## [1.2.0] - Phase 3: Change Request "Mùa Nước Nổi"
 
 ### Breaking Changes

@@ -20,3 +20,15 @@ Mã AC do nhóm tự đặt. Chỉ ghi kết quả đã chạy thật; ô nào c
 - Chưa đạt: clone sạch 3 lệnh, soak 10 Ngày, `bench_cmd`/`soak_cmd` trong contract.
 - Điều cần làm tiếp: (1) Integrator khai `bench_cmd`, `soak_cmd` và đổi `contract_version` 1.3; (2) kiểm clone sạch trên macOS hoặc Linux và ghi 3 lệnh vào README; (3) soak 10 Ngày (`soak_cmd`).
 - Giới hạn bằng chứng: benchmark đo trên Windows với Chrome, không phải macOS/Linux như đề yêu cầu; ảnh UI dựng từ snapshot giả, không phải mô phỏng thật.
+
+## Công cụ headless của nhóm (Bảo, `lat 34 phase 4` trên main)
+
+Các công cụ này do Bảo viết, không nằm trong bản đo ở trên. Mục này chỉ ghi trạng thái, chưa chạy trong bản này.
+
+| AC | Cách kiểm chứng | Bằng chứng | Kết quả |
+|---|---|---|---|
+| AC-P4-10 Contract v1.3 khai `bench_cmd` và `soak_cmd` | `tests/test_phase4_tools.py::test_contract_declares_phase4_commands` | `game.contract.json` | Đã khai; chưa chạy test này trong bản này |
+| AC-P4-11 Soak 10 Ngày (`python3 -m chonoi.soak --seed 7 --days 10`) | `chonoi/soak.py`, `tests/test_phase4_tools.py` | chưa có `soak.json` | Chưa chạy |
+| AC-P4-12 Benchmark headless xuất năm trường (thông lượng tick, không đo FPS) | `chonoi/benchmark.py` | chưa có artifact | Chưa chạy. Khác với `chonoi/bench.py` (đo khung hình có render) |
+
+Lưu ý: `chonoi.benchmark` và `bench_cmd` trong contract hiện trỏ tới bản headless. PHASE4.md yêu cầu benchmark có render, nên nhóm cần quyết định `bench_cmd` nào là chính thức.
