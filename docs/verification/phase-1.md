@@ -17,5 +17,5 @@ Kiểm chứng mới nhất được thực hiện sau khi hòa nhập `origin/m
 
 - Full suite sau cập nhật: 225 tests, tất cả pass; bộ xác minh đạt 9/9 bước, gồm headless deterministic cho Gather/Quán; [log](../proof/phase-1/verify-run.txt).
 - Root contract v1.3 được chuyển vào tuning; file inventory count bị từ chối theo schema v1.3. Test legacy chỉ dùng version 1.1 tường minh.
-- `inventory.json` cục bộ được bảo toàn nguyên byte trong lúc kiểm thử; đây là dữ liệu người dùng, không nằm trong diff.
+- Theo xác nhận của người dùng, `inventory.json` đã chuyển sang schema Item v1.3; số lượng từng loại được giữ nguyên, cấp ID ổn định `I1`–`I33`, độ tươi khởi tạo 100.
 - Ticket PRD-0/Test Contract gốc không có trong checkout. Kết quả kỹ thuật không thay cho xác nhận PO/giảng viên các semantics chưa có nguồn chuẩn.
