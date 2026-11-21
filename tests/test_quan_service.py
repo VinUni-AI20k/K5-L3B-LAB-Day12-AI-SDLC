@@ -1,5 +1,7 @@
 import unittest
 
+from helpers import tuning_v11
+
 from chonoi.contract import load_contract
 from chonoi.inputs import LiveInputs
 from chonoi.runner import Session
@@ -7,7 +9,7 @@ from chonoi.runner import Session
 
 class QuanService(unittest.TestCase):
     def setUp(self):
-        self.tuning = load_contract()["tuning"]
+        self.tuning = tuning_v11()  # v1.2 [THAY THẾ] giá niêm yết + kho đếm; v1.2 ở test_quan_v12_stock.py
 
     def test_reserved_order_is_cooked_then_picked_and_served(self):
         scenario = {

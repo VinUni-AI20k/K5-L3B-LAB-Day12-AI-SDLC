@@ -4,7 +4,7 @@ import copy
 import os
 import unittest
 
-from helpers import Workdir, read_jsonl, run_headless, snapshots, write_json
+from helpers import hold_items, kinds_of, counts_of, Workdir, read_jsonl, run_headless, snapshots, write_json
 from chonoi.contract import load_contract
 from chonoi.day import DaySession
 from chonoi.inputs import InputPlayer
@@ -58,7 +58,7 @@ class MonsterIntegration(unittest.TestCase):
     def test_monster_faint_hands_empty_stock_to_day_quan(self):
         with Workdir() as w:
             scenario = {"gather": {"player": {"pos": [60, 24], "hp": 1},
-                                   "hold": ["ca_loc", "bong_sung"], "random_fish": False}}
+                                   "hold": hold_items("ca_loc", "bong_sung"), "random_fish": False}}
             code, err, out = self.run_case(w, "day", scenario, ticks=1)
             self.assertEqual(code, 0, err)
             rows = read_jsonl(out)
@@ -66,8 +66,8 @@ class MonsterIntegration(unittest.TestCase):
             self.assertEqual(names[-4:], ["monster_hit", "faint", "gather_end", "phase_start"])
             lost = {r["name"]: r["data"]["lost"] for r in rows
                     if r["type"] == "event" and r["name"] in ("monster_hit", "faint")}
-            self.assertEqual(lost, {"monster_hit": ["bong_sung"], "faint": ["ca_loc"]})
-            self.assertEqual(snapshots(rows)[-1]["stock"], {})
+            self.assertEqual({k: kinds_of(v) for k, v in lost.items()}, {"monster_hit": ["bong_sung"], "faint": ["ca_loc"]})
+            self.assertEqual(snapshots(rows)[-1]["stock"], [])  # v1.2: kho rỗng []
 
     def test_day_monster_loss_v12_individuals(self):
         tuning = load_contract()["tuning"]

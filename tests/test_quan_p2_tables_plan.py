@@ -12,9 +12,9 @@ from chonoi.inputs import InputState
 from chonoi.rng import Streams
 from chonoi.sim.quan import QuanSim
 
-from helpers import Workdir, events, read_jsonl, run_headless, write_json
+from helpers import hold_items, kinds_of, counts_of, tuning_v11, Workdir, events, read_jsonl, run_headless, write_json
 
-TUNING = load_contract()["tuning"]
+TUNING = tuning_v11()  # v1.2 [THAY THẾ] kho đếm: giữ nhánh v1.1, luật v1.2 ở test_quan_v12_stock.py
 Q = TUNING["quan"]
 MENU = TUNING["menu"]
 PLAN = {p["day"]: p for p in TUNING["day_plan"]}
@@ -79,7 +79,7 @@ class FourTables(unittest.TestCase):
 
     def test_four_tables_through_headless_snapshot(self):
         with Workdir() as w:
-            inv = write_json(w.path("kho.json"), {"items": plenty()})
+            inv = write_json(w.path("kho.json"), {"items": hold_items(*[k for k, n in plenty().items() for _ in range(n)])})  # v1.2
             out = w.path("o.jsonl")
             code, err = run_headless("--mode", "quan", "--seed", "5", "--ticks", str(FIRST + 3 * INTERVAL),
                                      "--inventory", inv, "--out", out)
@@ -187,21 +187,21 @@ class DayModeIntegration(unittest.TestCase):
 
     def test_day1_customer_only_orders_plan_dish(self):
         # kho mang về đủ cá kèo nướng (ngoài kế hoạch D1) và 1 suất gỏi (trong kế hoạch) -> khách gọi gỏi
-        sc = {"gather": {"hold": ["ca_keo", "ca_keo", "bong_sung", "bong_sung"], "random_fish": False}}
+        sc = {"gather": {"hold": hold_items("ca_keo", "ca_keo", "bong_sung", "bong_sung"), "random_fish": False}}
         code, err, rows = self._run(sc, 1 + FIRST)
         self.assertEqual(code, 0, err)
         arr = events(rows, "customer_arrived")
         self.assertEqual([(e["phase"], e["day"], e["data"]["dish_id"]) for e in arr], [("quan", 1, "goi_bong_sung")])
 
     def test_day1_no_dish_when_only_off_plan_cookable(self):
-        sc = {"gather": {"hold": ["ca_keo", "ca_keo"], "random_fish": False}}
+        sc = {"gather": {"hold": hold_items("ca_keo", "ca_keo"), "random_fish": False}}
         code, err, rows = self._run(sc, 1 + FIRST)
         self.assertEqual(code, 0, err)
         self.assertEqual([e["data"] for e in events(rows, "no_dish")], [{}])
         self.assertEqual(events(rows, "customer_arrived"), [])
 
     def test_day_fixture_customer_off_plan_exit_2(self):
-        sc = {"gather": {"hold": ["ca_keo", "ca_keo"], "random_fish": False},
+        sc = {"gather": {"hold": hold_items("ca_keo", "ca_keo"), "random_fish": False},
               "quan": {"customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_keo_nuong"}]}}
         code, err, _ = self._run(sc, 5)
         self.assertEqual(code, 2, err)

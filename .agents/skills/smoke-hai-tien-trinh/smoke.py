@@ -14,12 +14,15 @@ import tempfile
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 EXPECTED = {"bong_sung": 2, "ca_loc": 1}
-BAD_INVENTORIES = {
-    "so_am": {"items": {"ca_loc": -1}},
-    "kind_la": {"items": {"ca_tra": 1}},
-    "so_thuc": {"items": {"ca_loc": 1.5}},
-    "khoa_goc_la": {"items": {}, "money": 0},
+BAD_INVENTORIES = {  # v1.2 (TICKET-03): kho cá thể; kho đếm cũ cũng phải mã 2
+    "kho_dem_v11": {"items": {"ca_loc": 1}},
+    "kind_la": {"items": [{"id": "I1", "kind": "ca_tra", "fresh": 50}]},
+    "id_trung": {"items": [{"id": "I1", "kind": "ca_loc", "fresh": 50}, {"id": "I1", "kind": "ca_loc", "fresh": 40}]},
+    "fresh_ngoai_mien": {"items": [{"id": "I1", "kind": "ca_loc", "fresh": 100.5}]},
+    "khoa_goc_la": {"items": [], "money": 0},
 }
+DOCK_HOLD = [{"id": "I1", "kind": "ca_linh", "fresh": 100}, {"id": "I2", "kind": "bong_sung", "fresh": 100},
+             {"id": "I3", "kind": "ca_loc", "fresh": 100}]
 
 
 def headless_cmd():
@@ -58,7 +61,17 @@ def main():
     w = tempfile.mkdtemp(prefix="smoke-p1-")
     p = lambda name: os.path.join(w, name)  # noqa: E731
     try:
-        write_json(p("dock.json"), {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"]}})
+        # 0. ngưỡng ươn (fixture TICKET-03): fresh 30, một bước không input -> spoiled ở tick 1
+        write_json(p("spoil.json"), {"gather": {"hold": [{"id": "I1", "kind": "ca_linh", "fresh": 30}],
+                                                "random_fish": False, "monsters": []}})
+        code, err = run("--mode", "gather", "--seed", "1", "--scenario", p("spoil.json"), "--ticks", "1",
+                        "--out", p("spoil.jsonl"))
+        ev = [r for r in read_jsonl(p("spoil.jsonl")) if r.get("type") == "event"] if code == 0 else []
+        want = [{"type": "event", "tick": 1, "phase": "gather", "name": "spoiled",
+                 "data": {"item_id": "I1", "kind": "ca_linh", "location": "hold"}}]
+        check("fresh 30 -> spoiled đúng tick 1", ev == want, f"mã={code} ev={ev} {err}")
+
+        write_json(p("dock.json"), {"gather": {"hold": DOCK_HOLD, "random_fish": False, "monsters": []}})
         write_json(p("dock-inputs.json"), {"frames": [{"tick": 0, "interact": True}]})
 
         # 1-2. gather cập bến, ghi kho
@@ -73,17 +86,27 @@ def main():
         if os.path.exists(p("kho.json")):
             with open(p("kho.json"), encoding="utf-8") as f:
                 kho = json.load(f)
-        check("kho.json đúng {bong_sung:2, ca_loc:1}", kho == {"items": EXPECTED}, f"kho={kho}")
+        items = (kho or {}).get("items")
+        after_one = 100 - 0.5 / 60  # hao giỏ ở bước gather duy nhất
+        ok = (isinstance(items, list) and [(i["id"], i["kind"]) for i in items] ==
+              [("I1", "ca_linh"), ("I2", "bong_sung"), ("I3", "ca_loc")]
+              and all(abs(i["fresh"] - after_one) < 1e-9 for i in items))
+        check("kho.json mảng cá thể sắp id, fresh sau 1 bước hao", ok, f"kho={kho}")
         ge = [r for r in rows if r.get("type") == "event" and r.get("name") == "gather_end"]
-        check("kho.json khớp gather_end.inventory", len(ge) == 1 and ge[0]["data"].get("inventory") == kho,
-              f"{len(ge)} gather_end")
+        gi = ge[0]["data"]["inventory"]["items"] if len(ge) == 1 else []
+        check("kho.json khớp gather_end.inventory (id/kind, fresh ±0.01)",
+              ok and [(i["id"], i["kind"]) for i in gi] == [(i["id"], i["kind"]) for i in items]
+              and all(abs(a["fresh"] - b["fresh"]) <= 0.01 for a, b in zip(gi, items)), f"{len(ge)} gather_end")
 
         # 3. quan đọc kho
         code, err = run("--mode", "quan", "--seed", "42", "--inventory", p("kho.json"),
                         "--ticks", "0", "--out", p("quan.jsonl"))
         snap = read_jsonl(p("quan.jsonl"))[0] if code == 0 else {}
-        check("quan snapshot tick 0 có stock đúng", snap.get("tick") == 0 and snap.get("stock") == EXPECTED,
-              f"mã={code} stock={snap.get('stock')} {err}")
+        st = snap.get("stock") or []
+        check("quan snapshot tick 0: đúng id, kind, độ tươi như file",
+              snap.get("tick") == 0 and items is not None and [(i["id"], i["kind"]) for i in st] ==
+              [(i["id"], i["kind"]) for i in items] and all(abs(a["fresh"] - b["fresh"]) <= 0.01 for a, b in zip(st, items)),
+              f"mã={code} stock={st} {err}")
 
         # 4. chạm --ticks trước khi xong -> không ghi kho
         code, err = run("--mode", "gather", "--seed", "42", "--ticks", "5",

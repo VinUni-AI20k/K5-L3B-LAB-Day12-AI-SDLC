@@ -65,3 +65,33 @@ class Workdir:
 
     def path(self, name):
         return os.path.join(self._d.name, name)
+
+
+def tuning_v11():
+    """Tuning bỏ khối freshness -> sim chạy nhánh v1.1 (kho đếm, giữ theo lượng).
+
+    Dùng cho test in-process của luật v1.0/v1.1 mà TICKET-03 đã [THAY THẾ] (kho đếm, giữ theo lượng, giá niêm
+    yết); luật v1.2 tương ứng kiểm ở test_quan_v12_stock.py, test_gather_v12.py, test_day_v12.py.
+    """
+    from chonoi.contract import load_contract
+    t = load_contract()["tuning"]
+    t.pop("freshness", None)
+    return t
+
+
+def hold_items(*kinds, start=1, fresh=100):
+    """v1.2 (CHANGELOG "Cập nhật fixture"): ["ca_loc", ...] -> [{"id": "I1", "kind": "ca_loc", "fresh": 100}, ...]."""
+    return [{"id": f"I{start + i}", "kind": k, "fresh": fresh} for i, k in enumerate(kinds)]
+
+
+def kinds_of(items):
+    """Mảng cá thể -> mảng kind theo đúng thứ tự (để so với kỳ vọng v1.1)."""
+    return [it["kind"] for it in items]
+
+
+def counts_of(items):
+    """Mảng cá thể -> dict đếm theo kind, sắp theo kind (để so với kỳ vọng kho đếm v1.1)."""
+    c = {}
+    for it in items:
+        c[it["kind"]] = c.get(it["kind"], 0) + 1
+    return {k: c[k] for k in sorted(c)}

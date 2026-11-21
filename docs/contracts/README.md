@@ -38,7 +38,8 @@
 
 ### Ví dụ hợp lệ
 
-- [`inventory.sample.json`](inventory.sample.json): `{"items":{"bong_sung":2,"ca_loc":1}}`
+- [`inventory.sample.json`](inventory.sample.json) (v1.2, kho cá thể, có một cá thể đã ươn `fresh` 29.5)
+- [`inventory.sample.v11.json`](inventory.sample.v11.json) (v1.1, kho đếm — v1.2 trả mã 2): `{"items":{"bong_sung":2,"ca_loc":1}}`
 - Kho rỗng: `{"items":{}}`
 
 Ví dụ **không hợp lệ** (mã 2): `{"items":{"ca_loc":-1}}`, `{"items":{"ca_tra":1}}`, `{"items":{"ca_loc":1.5}}`, `{"items":{}, "money":0}`.

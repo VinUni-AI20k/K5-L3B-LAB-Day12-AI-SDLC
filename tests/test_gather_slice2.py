@@ -8,7 +8,7 @@ import json
 import os
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import hold_items, kinds_of, counts_of, Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
 
 def tuning_gather():
@@ -47,7 +47,7 @@ class Harvest(unittest.TestCase):
             self.assertEqual(ev[0]["tick"], 1)
             self.assertEqual(ev[0]["data"], {"node_id": "N1", "kind": "bong_dien_dien", "amount": t["node_yield"]})
             s = snapshots(rows)[-1]
-            self.assertEqual(s["hold"], ["bong_dien_dien"] * t["node_yield"])
+            self.assertEqual(kinds_of(s["hold"]), ["bong_dien_dien"] * t["node_yield"])  # v1.2: mảng cá thể
             self.assertEqual(s["nodes"][0]["regrow_ticks"], int(round(t["regrow_s"] * 60)))
             self.assertFalse(s["nodes"][0]["ready"])
 
@@ -80,7 +80,7 @@ class Harvest(unittest.TestCase):
         cap = t["hold_capacity"]
         with Workdir() as w:
             code, err, rows = run_gather(w, {
-                "player": {"pos": [20, 0]}, "fish": [], "hold": ["ca_loc"] * cap,
+                "player": {"pos": [20, 0]}, "fish": [], "hold": hold_items(*["ca_loc"] * cap),
                 "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [21, 0]}],
             }, [{"tick": 0, "interact": True}])
             self.assertEqual(code, 0, err)
@@ -129,7 +129,7 @@ class Catch(unittest.TestCase):
             ev = events(rows, "fish_caught")
             self.assertEqual([e["data"] for e in ev], [{"fish_id": "F1", "kind": "ca_linh", "yield": y}])
             s = snapshots(rows)[-1]
-            self.assertEqual(s["hold"], ["ca_linh"] * y)
+            self.assertEqual(kinds_of(s["hold"]), ["ca_linh"] * y)  # v1.2: mảng cá thể
             self.assertEqual(s["fish"], [])
             self.assertEqual(s["player"]["catch_cd_ticks"], int(round(t["catch_cooldown_s"] * 60)))
 
@@ -176,7 +176,7 @@ class Catch(unittest.TestCase):
         free = y - 1
         with Workdir() as w:
             code, err, rows = run_gather(w, {
-                "player": {"pos": [20, 5]}, "nodes": [], "hold": ["bong_sung"] * (cap - free),
+                "player": {"pos": [20, 5]}, "nodes": [], "hold": hold_items(*["bong_sung"] * (cap - free)),
                 "fish": [{"id": "F1", "kind": "ca_linh", "pos": [20.5, 5]},
                          {"id": "F2", "kind": "ca_loc", "pos": [21.5, 5]}],
             }, [{"tick": 0, "catch": True}])
@@ -210,16 +210,21 @@ class EndAndInventory(unittest.TestCase):
         with Workdir() as w:
             inv = w.path("kho.json")
             code, err, rows = run_gather(w, {
-                "player": {"pos": [20, 0]}, "fish": [], "hold": ["ca_loc"], "time_left_ticks": 1,
+                "player": {"pos": [20, 0]}, "fish": [], "hold": hold_items("ca_loc"), "time_left_ticks": 1,
                 "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [21, 0]}],
             }, [{"tick": 0, "interact": True}], ticks=5, inventory_out=inv)
             self.assertEqual(code, 0, err)
             self.assertEqual(names(rows), ["gather", "gather_end"])
             end_ev = events(rows, "gather_end")[0]["data"]
-            self.assertEqual(end_ev, {"reason": "time", "inventory": {"items": {"bong_sung": 1, "ca_loc": 1}}})
+            self.assertEqual(end_ev["reason"], "time")  # v1.2: kho cá thể, so theo kind
+            self.assertEqual(counts_of(end_ev["inventory"]["items"]), {"bong_sung": 1, "ca_loc": 1})
             self.assertEqual(rows[-1]["reason"], "time")
-            with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), end_ev["inventory"])
+            with open(inv, encoding="utf-8") as f:  # v1.2: file đủ chính xác, JSONL làm tròn 3 chữ số (±0.01)
+                file_items = json.load(f)["items"]
+            ev_items = end_ev["inventory"]["items"]
+            self.assertEqual([(i["id"], i["kind"]) for i in file_items], [(i["id"], i["kind"]) for i in ev_items])
+            for a, b in zip(file_items, ev_items):
+                self.assertAlmostEqual(a["fresh"], b["fresh"], delta=0.01)
 
     def test_bat_ca_o_buoc_cuoi_duoi_nuoc_van_vao_kho(self):
         y = tuning_gather()["fish_yield"]["ca_loc"]
@@ -232,18 +237,22 @@ class EndAndInventory(unittest.TestCase):
             self.assertEqual(code, 0, err)
             self.assertEqual(names(rows), ["fish_caught", "gather_end"])
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"ca_loc": y}})
+                self.assertEqual(counts_of(json.load(f)["items"]), {"ca_loc": y})  # v1.2: kho cá thể
 
     def test_docked_ghi_kho_dung_noi_dung(self):
         t = tuning_gather()
         with Workdir() as w:
             inv = w.path("kho.json")
-            code, err, rows = run_gather(w, {"hold": ["bong_sung", "ca_linh", "bong_sung"]},
+            code, err, rows = run_gather(w, {"hold": hold_items("bong_sung", "ca_linh", "bong_sung")},
                                          [{"tick": 0, "interact": True}], ticks=10, inventory_out=inv)
             self.assertEqual(code, 0, err)
             self.assertEqual(rows[-1]["reason"], "docked")
-            with open(inv, "rb") as f:
-                self.assertEqual(f.read(), b'{"items":{"bong_sung":2,"ca_linh":1}}\n')
+            with open(inv, "rb") as f:  # v1.2: kho cá thể, sắp id, một dòng gọn
+                raw = f.read()
+            self.assertTrue(raw.startswith(b'{"items":[{"id":"I1","kind":"bong_sung","fresh":') and raw.endswith(b"]}\n"))
+            items = json.loads(raw)["items"]
+            self.assertEqual([(it["id"], it["kind"]) for it in items],
+                             [("I1", "bong_sung"), ("I2", "ca_linh"), ("I3", "bong_sung")])
             self.assertEqual(t["start_pos"], snapshots(rows)[0]["player"]["pos"])
 
     def test_cham_ticks_truoc_khi_xong_khong_ghi(self):
