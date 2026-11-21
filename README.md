@@ -24,6 +24,9 @@ Lệnh cuối in một địa chỉ (mặc định `http://127.0.0.1:8000/`); m�
 | P / Esc | tạm dừng / tiếp tục |
 | 1 / 2 / Enter | Shop: mua oxy / mua Máu / sang Ngày mới |
 | R / M | chơi lại / về menu |
+| H | bật/tắt tương phản cao (hoặc mở `http://127.0.0.1:8000/?hc=1`) |
+
+Khi chơi, băng cảnh báo hiện biểu tượng và chữ (không chỉ màu) lúc **oxy sắp hết**, **Cá Sấu ở gần** và **khách sắp giận**.
 
 Menu có ba chế độ: **Chơi theo Ngày** (Lặn → Quán → Shop, 1–5 Ngày), **chỉ buổi sáng** và **chỉ buổi tối**. Chạy thẳng một chế độ: `python3 -m chonoi.live --mode day --days 3`.
 
