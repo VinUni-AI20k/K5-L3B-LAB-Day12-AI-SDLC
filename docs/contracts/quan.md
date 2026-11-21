@@ -1,4 +1,4 @@
-# Hợp đồng quán (`quan`) — TV2 soạn theo PRD-0 mục D/E/F, TV3 đã duyệt và cài lát 4 theo đúng hợp đồng này; chờ TV1 (Integrator)
+# Hợp đồng quán (`quan`) — TV2 soạn theo PRD-0 mục D/E/F, chờ TV1 (Integrator) và TV3 duyệt
 
 > Nguồn: [`docs/prd/PRD-0.md`](../prd/PRD-0.md). Câu còn mở: [`docs/clarify.md`](../clarify.md) Q14–Q19. Đổi gì ở đây phải báo TV3.
 
@@ -27,15 +27,15 @@
 | `available_stock()` | cần kho khả dụng |
 | `add_reputation(delta)` | boa dương: `+tip_reputation` (đã kẹp min/max) |
 | `remove_customer(c)` | khách rời sau `paid`: tự nhả phần giữ, bỏ món của đơn trên bếp/tay |
-| `_settle_customers(events, closing)` | đã gộp: lát 4 `paid` (finished_eating / closing) + lát 3 rời bàn |
+| `_settle_customers` | chỗ `TODO(lát 4 — TV3)` cho `paid` (finished_eating / closing) |
 | `phase_tick`, `patience_max_ticks`, `to_ticks(s)` | tiện ích |
 
 ## Thứ tự một bước (`QuanSim.step`, PRD-0 F "Quán")
 
-1. phase_tick+1, timer ca−1, nấu + ready_ticks (`_tick_stoves`), ăn (`_tick_eating`) — lát 4, kiên nhẫn−1 (`_tick_patience`) — lát 3
-2. bếp theo id, nấu xong → ready, `dish_ready` (trong `_tick_stoves`, lát 4)
-3. di chuyển → tối đa một interact (`_interact`, lát 4): `cook_started` / `dish_picked` / `served`
-4. theo id bàn: khách ăn xong → `paid finished_eating`, hết ca khách đang ăn → `paid closing` (lát 4) · khách waiting hết kiên nhẫn → `customer_left patience` (uy tín +`left_reputation_delta`) · hết ca → `customer_left closing` (không trừ uy tín) → `quan_end`
+1. phase_tick+1, timer ca−1, *(TV3: nấu, ăn, ready_ticks)*, kiên nhẫn−1 (lát 3)
+2. *(TV3: bếp theo id, nấu xong → ready, `dish_ready`)*
+3. di chuyển → *(TV3: tối đa một interact: `cook_started` / `dish_picked` / `served`)*
+4. theo id bàn: *(TV3: `paid`)* · khách waiting hết kiên nhẫn → `customer_left patience` (uy tín +`left_reputation_delta`) · hết ca → `customer_left closing` (không trừ uy tín) → `quan_end`
 5. còn giờ: lượt khách → `customer_arrived` / `no_dish {}`
 
 ## Sự kiện lát 3

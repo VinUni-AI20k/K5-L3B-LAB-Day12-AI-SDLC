@@ -132,10 +132,8 @@ class QuanSim:
         return avail
 
     def add_reputation(self, delta):
-        """Cộng uy tín, kẹp [reputation_min, reputation_max]. Lát 4 dùng cho boa (tip_reputation).
-        Làm tròn 9 chữ số để nhiễu số thực (3.0 + 0.2 + ...) không làm sai floor() trong điểm."""
-        t = self.t
-        self.reputation = round(min(t["reputation_max"], max(t["reputation_min"], self.reputation + delta)), 9)
+        """Cộng uy tín, kẹp [reputation_min, reputation_max]. Lát 4 dùng cho boa (tip_reputation)."""
+        self.reputation = min(self.t["reputation_max"], max(self.t["reputation_min"], self.reputation + delta))
 
     def remove_customer(self, c):
         """Khách rời bàn: nhả phần giữ thô (xóa khách là nhả), bỏ món của đơn đang nấu / ready / trên tay.

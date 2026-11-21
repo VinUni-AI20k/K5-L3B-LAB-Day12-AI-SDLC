@@ -9,7 +9,7 @@
 | `gather` lát 1–2 (oxy, ngạt, Máu, giỏ, hái, bắt cá) + test | TV1 | hợp đồng | chưa |
 | `quan` lát 3 (khách, giữ chỗ, kiên nhẫn, `no_dish`, `customer_left`) + kiểm scenario mã 2 + test | TV2 | hợp đồng | **xong, đã đối chiếu PRD-0** (câu mở Q14–Q19 ở `docs/clarify.md`) |
 | `docs/prd/PRD-0.md`, `docs/clarify.md`, `docs/contracts/quan.md`, kế hoạch này | TV2 | — | xong |
-| `quan` lát 4 (bếp, bưng, phục vụ, trả tiền, boa, uy tín) + test tích hợp gather → quan | TV3 | cấu trúc khách ở `docs/contracts/quan.md` | xong trên nhánh `Manh` (đã gộp lát 3) |
+| `quan` lát 4 (bếp, bưng, phục vụ, trả tiền, boa, uy tín) + test tích hợp gather → quan | TV3 | cấu trúc khách ở `docs/contracts/quan.md` | chưa |
 | UI/HUD `chonoi/web/index.html`, standup, CHANGELOG/CREDITS | TV4 | snapshot trong hợp đồng | chưa |
 | Test AC hộp đen, ≥ 2 skill/hook, `docs/verification/phase-1.md`, `docs/proof/phase-1/` | TV5 | `TEAM.md` | chưa |
 
