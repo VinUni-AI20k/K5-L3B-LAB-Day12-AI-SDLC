@@ -230,3 +230,12 @@ def validate_tuning(t):
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
     _validate_day_plan_and_shop(t, menu)
+    fr = t.get("freshness")
+    if not isinstance(fr, dict):
+        raise BadInput("thiếu tuning.freshness ở contract v1.2")
+    _between("freshness.initial", fr.get("initial"), 1, 100)
+    if not _num(fr.get("gather_decay_per_s")) or fr["gather_decay_per_s"] <= 0:
+        raise BadInput("tuning.freshness.gather_decay_per_s phải > 0")
+    if not _num(fr.get("quan_decay_per_s")) or fr["quan_decay_per_s"] <= 0:
+        raise BadInput("tuning.freshness.quan_decay_per_s phải > 0")
+    _between("freshness.spoiled_below", fr.get("spoiled_below"), 0, fr["initial"] - 1)

@@ -3,12 +3,13 @@
 import json
 
 
-def _clean(v):
+def _clean(v, key=None):
     if isinstance(v, float):
-        r = round(v, 3)
+        digits = 6 if key == "fresh" else 3
+        r = round(v, digits)
         return 0.0 if r == 0 else r  # tránh -0.0
     if isinstance(v, dict):
-        return {k: _clean(x) for k, x in v.items()}
+        return {k: _clean(x, k) for k, x in v.items()}
     if isinstance(v, (list, tuple)):
         return [_clean(x) for x in v]
     return v

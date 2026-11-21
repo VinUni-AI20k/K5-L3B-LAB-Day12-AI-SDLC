@@ -8,7 +8,7 @@ import math
 
 from .errors import BadInput
 from .ids import id_key
-from .inventory import KINDS_V11, validate_items
+from .inventory import KINDS_V11, fresh_to_units, validate_items
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "monsters", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
@@ -188,8 +188,7 @@ def _validate_gather(b, tuning):
             raise BadInput("gather.time_left_ticks vượt thời lượng pha")
     if "hold" in b:
         h = b["hold"]
-        if not isinstance(h, list) or any(k not in KINDS_V11 for k in h):
-            raise BadInput("hold phải là mảng id nguyên liệu hợp lệ")
+        validate_items(h, KINDS_V11, spoiled_below=tuning["freshness"]["spoiled_below"])
         if len(h) > g["hold_capacity"]:
             raise BadInput("hold vượt sức chứa")
     p = b.get("player", {})
@@ -302,23 +301,32 @@ def _register_dish(name, dish, menu, slots):
     slots[order_id] = dish
 
 
-def _validate_reserved_map(name, r, kinds):
-    if not isinstance(r, dict):
-        raise BadInput(f"{name}.reserved phải là object")
-    out = {}
-    for k, v in r.items():
-        if not isinstance(k, str) or k not in kinds:
-            raise BadInput(f"{name}.reserved: nguyên liệu ngoài phạm vi {k!r}")
-        _pos_int(f"{name}.reserved[{k}]", v)
-        out[k] = v
+def _validate_reserved_ids(name, r):
+    if not isinstance(r, list):
+        raise BadInput(f"{name}.reserved phải là mảng id cá thể")
+    seen = set()
+    out = []
+    for iid in r:
+        if not isinstance(iid, str) or not iid:
+            raise BadInput(f"{name}.reserved: id nguyên liệu phải là chuỗi không rỗng")
+        if iid in seen:
+            raise BadInput(f"{name}.reserved: trùng id {iid!r}")
+        seen.add(iid)
+        out.append(iid)
     return out
 
 
 def validate_quan_state(b, tuning, stock_map=None):
-    """Trả danh sách khách đã chuẩn hóa và phần giữ chỗ suy ra từ công thức."""
+    """Trả danh sách khách đã chuẩn hóa và phần giữ chỗ (id cá thể v1.2) suy ra từ công thức.
+
+    `stock_map` là danh sách cá thể thô (từ --inventory hoặc quan.stock); None thì dùng b["stock"].
+    """
+    from collections import Counter
+
     qt = tuning["quan"]
     menu = tuning["menu"]
-    kinds = set(KINDS_V11)
+    spoil_th = float(tuning["freshness"]["spoiled_below"])
+    spoil_u = fresh_to_units(spoil_th, spoil_th)
     tick_hz = tuning["tick_hz"]
     dur_ticks = round(qt["duration_s"] * tick_hz)
     qb = qt["bounds"]
@@ -344,7 +352,10 @@ def validate_quan_state(b, tuning, stock_map=None):
             _check_ids(arr, b[arr])
 
     if stock_map is None and "stock" in b:
-        stock_map = validate_items(b["stock"])
+        stock_map = b["stock"]
+    norm_stock = None
+    if stock_map is not None:
+        norm_stock = validate_items(stock_map, kinds=KINDS_V11, spoiled_below=spoil_th)
 
     p = b.get("player", {})
     if not isinstance(p, dict) or set(p) - QUAN_PLAYER_KEYS:
@@ -403,7 +414,8 @@ def validate_quan_state(b, tuning, stock_map=None):
     }
     seen_tables = set()
     assigned_seen = set()
-    used_reserved = {}
+    explicit_reserved = []
+    seen_res_ids = set()
     need_auto_reserve = []
     customers = []
     for raw_customer in b.get("customers", []):
@@ -446,8 +458,8 @@ def validate_quan_state(b, tuning, stock_map=None):
                 raise BadInput(f"customers.{cid}: khách eating phải served và có eat_ticks_left > 0")
             if cid in slot_orders:
                 raise BadInput(f"customers.{cid}: khách eating không được còn món ở bếp/tay")
-            if "reserved" in c and c["reserved"] != {}:
-                raise BadInput(f"customers.{cid}: khách eating phải có reserved rỗng")
+            if "reserved" in c and c["reserved"] != []:
+                raise BadInput(f"customers.{cid}: khách eating phải có reserved rỗng []")
             if "base_price" not in c or "tip" not in c:
                 raise BadInput(f"customers.{cid}: khách eating phải chốt base_price và tip")
             _pos_int(f"customers.{cid}.base_price", c["base_price"])
@@ -468,24 +480,25 @@ def validate_quan_state(b, tuning, stock_map=None):
                 if c.get("base_price", dish["base_price"]) != dish["base_price"]:
                     raise BadInput(f"customers.{cid}: base_price không khớp món đã nấu")
                 c["base_price"] = dish["base_price"]
-                if "reserved" in c and c["reserved"] != {}:
-                    raise BadInput(f"customers.{cid}: đơn assigned phải có reserved rỗng")
+                if "reserved" in c and c["reserved"] != []:
+                    raise BadInput(f"customers.{cid}: đơn assigned phải có reserved rỗng []")
                 assigned_seen.add(cid)
             elif ostatus == "unfulfillable":
                 if cid in slot_orders:
                     raise BadInput(f"customers.{cid}: đơn unfulfillable không được có món ở bếp/tay")
-                if "reserved" in c and c["reserved"] != {}:
-                    raise BadInput(f"customers.{cid}: đơn unfulfillable phải có reserved rỗng")
+                if "reserved" in c and c["reserved"] != []:
+                    raise BadInput(f"customers.{cid}: đơn unfulfillable phải có reserved rỗng []")
             else:  # reserved
                 if cid in slot_orders:
                     raise BadInput(f"customers.{cid}: đơn reserved không được có món ở bếp/tay")
                 recipe = menu[did]["recipe"]
                 if "reserved" in c:
-                    res = _validate_reserved_map(f"customers.{cid}", c["reserved"], kinds)
-                    if res != recipe:
-                        raise BadInput(f"customers.{cid}: reserved khác công thức món {did}")
-                    for k, amt in res.items():
-                        used_reserved[k] = used_reserved.get(k, 0) + amt
+                    rids = _validate_reserved_ids(f"customers.{cid}", c["reserved"])
+                    for iid in rids:
+                        if iid in seen_res_ids:
+                            raise BadInput(f"dùng chung nguyên liệu giữ chỗ {iid!r}")
+                        seen_res_ids.add(iid)
+                    explicit_reserved.append((cid, did, rids))
                 else:
                     need_auto_reserve.append((otick, id_key(tid), cid, dict(recipe)))
 
@@ -494,17 +507,31 @@ def validate_quan_state(b, tuning, stock_map=None):
         raise BadInput(f"món trên bếp/tay không gắn với khách assigned: {sorted(orphan)}")
 
     resolved = {}
-    if stock_map is not None:
-        avail = dict(stock_map)
-        for k, amt in used_reserved.items():
-            if avail.get(k, 0) < amt:
-                raise BadInput(f"tổng giữ chỗ {k} vượt tồn kho")
-            avail[k] -= amt
+    if norm_stock is not None:
+        by_id = {it["id"]: it for it in norm_stock}
+        for cid, did, rids in explicit_reserved:
+            counts = Counter()
+            for iid in rids:
+                it = by_id.get(iid)
+                if it is None:
+                    raise BadInput(f"customers.{cid}: thiếu nguyên liệu {iid!r} trong kho")
+                if it["fresh_u"] < spoil_u:
+                    raise BadInput(f"customers.{cid}: không được giữ chỗ nguyên liệu đã ươn {iid!r}")
+                counts[it["kind"]] += 1
+            if dict(counts) != menu[did]["recipe"]:
+                raise BadInput(f"customers.{cid}: reserved khác công thức món {did}")
+        # Tự giữ chỗ: đơn cũ trước (order_tick, table_id); mỗi loại lấy cá thể tươi nhất, hòa thì id nhỏ hơn.
+        avail = [it for it in norm_stock if it["id"] not in seen_res_ids and it["fresh_u"] >= spoil_u]
         need_auto_reserve.sort(key=lambda item: (item[0], item[1]))
         for _, _, cid, recipe in need_auto_reserve:
-            for k, amt in recipe.items():
-                if avail.get(k, 0) < amt:
-                    raise BadInput(f"customers.{cid}: thiếu tồn kho {k} để giữ chỗ theo công thức")
-                avail[k] = avail.get(k, 0) - amt
-            resolved[cid] = recipe
+            picked = []
+            for k, amt in sorted(recipe.items()):
+                cands = sorted((it for it in avail if it["kind"] == k),
+                               key=lambda it: (-it["fresh_u"], id_key(it["id"])))
+                if len(cands) < amt:
+                    raise BadInput(f"customers.{cid}: thiếu tồn kho tươi {k} để giữ chỗ theo công thức")
+                chosen_ids = {it["id"] for it in cands[:amt]}
+                avail = [it for it in avail if it["id"] not in chosen_ids]
+                picked.extend(chosen_ids)
+            resolved[cid] = sorted(picked, key=id_key)
     return customers, resolved

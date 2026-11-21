@@ -218,9 +218,21 @@ function drawGather(w, h) {
     for (let i = 0; i < cap; i++) {
       const x0 = 14 + i * (sz + 4);
       ctx.fillStyle = "rgba(255,255,255,.12)"; ctx.fillRect(x0, y0, sz, sz);
-      if (snap.hold[i]) { ctx.fillStyle = kc(snap.hold[i]); ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6); }
+      if (snap.hold[i]) {
+        const it = snap.hold[i];
+        const kind = typeof it === "string" ? it : it.kind;
+        ctx.fillStyle = kc(kind);
+        ctx.fillRect(x0 + 3, y0 + 3, sz - 6, sz - 6);
+        if (typeof it === "object" && it.fresh !== undefined && it.fresh < 30) {
+          ctx.strokeStyle = "#ef5350"; ctx.lineWidth = 2; ctx.strokeRect(x0 + 1, y0 + 1, sz - 2, sz - 2);
+        }
+      }
     }
-    const names = {}; snap.hold.forEach((k) => (names[k] = (names[k] || 0) + 1));
+    const names = {};
+    snap.hold.forEach((it) => {
+      const k = typeof it === "string" ? it : it.kind;
+      names[k] = (names[k] || 0) + 1;
+    });
     text("Giỏ " + snap.hold.length + "/" + cap + "  " + Object.keys(names).map((k) => (KIND_NAME[k] || k) + "×" + names[k]).join(", "), 14, y0 + sz + 16, { size: 12, color: "#cfd8dc" });
   }
   text("WASD/mũi tên bơi · E hái / cập bến · Space bắt cá · R chơi lại", w - 10, h - 14, { size: 12, align: "right", color: "#9fb3c0" });
@@ -277,7 +289,17 @@ function drawQuan(w, h) {
   // HUD
   text("⏱ " + fmtTime(snap.time_left_ticks), 14, 28, { size: 20 });
   text(`Tiền ${snap.money ?? 0}k · uy tín ${(snap.reputation ?? 0).toFixed(1)} · điểm ${snap.score ?? 0}`, 110, 28, { size: 16 });
-  const stock = snap.stock ? Object.keys(snap.stock).map((k) => (KIND_NAME[k] || k) + "×" + snap.stock[k]).join(", ") : "";
+  let stock = "";
+  if (Array.isArray(snap.stock)) {
+    const cnt = {};
+    snap.stock.forEach((it) => {
+      const tag = (KIND_NAME[it.kind] || it.kind) + "(" + Math.round(it.fresh) + "%" + (it.fresh < 30 ? " ƯƠN" : "") + ")";
+      cnt[tag] = (cnt[tag] || 0) + 1;
+    });
+    stock = snap.stock.map((it) => `${KIND_NAME[it.kind] || it.kind} ${Math.round(it.fresh)}%${it.fresh < 30 ? " ƯƠN" : ""}`).join(", ");
+  } else if (snap.stock) {
+    stock = Object.keys(snap.stock).map((k) => (KIND_NAME[k] || k) + "×" + snap.stock[k]).join(", ");
+  }
   text("Kho: " + (stock || "(trống)"), 14, 52, { size: 13, color: "#cfd8dc" });
   text("WASD/mũi tên đi · E tương tác (bếp / bàn) · R chơi lại", w - 10, h - 14, { size: 12, align: "right", color: "#9fb3c0" });
 }

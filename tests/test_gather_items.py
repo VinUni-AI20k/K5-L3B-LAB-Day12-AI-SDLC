@@ -6,7 +6,7 @@ import unittest
 
 from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
-FULL = ["ca_loc"] * 12
+FULL = [{"id": f"I{i}", "kind": "ca_loc", "fresh": 100} for i in range(1, 13)]
 
 
 def run(w, scenario, inputs, ticks, inv_out=None):
@@ -31,7 +31,7 @@ class Harvest(unittest.TestCase):
             rows = run(w, {"player": {"pos": [20, 0]}, "nodes": nodes, "fish": []}, press("interact", 0, 2), 4)
             got = [e["data"]["node_id"] for e in events(rows, "gather")]
             self.assertEqual(got, ["N1", "N2"])
-            self.assertEqual(snapshots(rows)[-1]["hold"], ["bong_dien_dien", "bong_sung"])
+            self.assertEqual([it["kind"] for it in snapshots(rows)[-1]["hold"]], ["bong_dien_dien", "bong_sung"])
             regrow = {n["id"]: n["regrow_ticks"] for n in snapshots(rows)[-1]["nodes"]}
             self.assertGreater(regrow["N1"], 0)
 
@@ -70,7 +70,8 @@ class Catch(unittest.TestCase):
 
     def test_hold_full_no_cooldown_no_other_fish(self):
         with Workdir() as w:
-            rows = run(w, {"player": {"pos": [15, 5]}, "hold": ["ca_loc"] * 10, "nodes": [],
+            hold10 = [{"id": f"I{i}", "kind": "ca_loc", "fresh": 100} for i in range(1, 11)]
+            rows = run(w, {"player": {"pos": [15, 5]}, "hold": hold10, "nodes": [],
                            "fish": [{"id": "F1", "kind": "ca_linh", "pos": [15, 5]}, {"id": "F2", "kind": "ca_loc", "pos": [15, 6]}]},
                        press("catch", 0, 2), 4)
             full = events(rows, "hold_full")
@@ -83,17 +84,27 @@ class DockInventory(unittest.TestCase):
     def test_dock_writes_hold_as_inventory(self):
         with Workdir() as w:
             inv = w.path("kho.json")
-            rows = run(w, {"hold": ["ca_loc", "bong_sung", "bong_sung"]}, frames({"tick": 0, "interact": True}), 1, inv)
+            hold = [
+                {"id": "I1", "kind": "ca_loc", "fresh": 100},
+                {"id": "I2", "kind": "bong_sung", "fresh": 100},
+                {"id": "I3", "kind": "bong_sung", "fresh": 100},
+            ]
+            rows = run(w, {"hold": hold}, frames({"tick": 0, "interact": True}), 1, inv)
             end = events(rows, "gather_end")[0]["data"]
             self.assertEqual(end["reason"], "docked")
+            expected = {"items": [
+                {"id": "I1", "kind": "ca_loc", "fresh": 99.991667},
+                {"id": "I2", "kind": "bong_sung", "fresh": 99.991667},
+                {"id": "I3", "kind": "bong_sung", "fresh": 99.991667},
+            ]}
             with open(inv, encoding="utf-8") as f:
-                self.assertEqual(json.load(f), {"items": {"bong_sung": 2, "ca_loc": 1}})
-            self.assertEqual(end["inventory"], {"items": {"bong_sung": 2, "ca_loc": 1}})
+                self.assertEqual(json.load(f), expected)
+            self.assertEqual(end["inventory"], expected)
 
     def test_tick_limit_writes_no_inventory(self):
         with Workdir() as w:
             inv = w.path("kho.json")
-            run(w, {"hold": ["ca_loc"]}, frames(), 5, inv)
+            run(w, {"hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100}]}, frames(), 5, inv)
             self.assertFalse(os.path.exists(inv))
 
 

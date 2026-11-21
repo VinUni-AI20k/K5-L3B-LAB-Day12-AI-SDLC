@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 
 from ..ids import id_key, sort_by_id
-from ..inventory import hold_to_items
+from ..inventory import FRESH_SCALE, fresh_to_units, hold_to_items, serialize_item
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -80,7 +80,23 @@ class GatherSim:
         self.zero_oxy_ticks = int(p.get("zero_oxy_ticks", 0))
         self.invuln_ticks = int(p.get("invuln_ticks", 0))
         self.catch_cd_ticks = int(p.get("catch_cd_ticks", 0))
-        self.hold = list(scenario.get("hold", []))
+        self.hold = []
+        fr = tuning["freshness"]
+        self.spoil_th = float(fr["spoiled_below"])
+        self.spoil_u = fresh_to_units(self.spoil_th, self.spoil_th)
+        self.fresh_init_u = fresh_to_units(fr["initial"], self.spoil_th)
+        self.decay_u = int(round(float(fr["gather_decay_per_s"]) * FRESH_SCALE / self.tick_hz))
+        for it in scenario.get("hold", []):
+            if self.day == 1:
+                iid = it["id"]
+                ids.reserve(iid)
+            else:
+                iid = ids.new("I")
+            self.hold.append({
+                "id": iid,
+                "kind": it["kind"],
+                "fresh_u": fresh_to_units(it["fresh"], self.spoil_th),
+            })
         self.time_left_ticks = int(scenario.get("time_left_ticks", int(round(t["duration_s"] * self.tick_hz))))
         self.random_fish = bool(scenario.get("random_fish", True))
 
@@ -176,13 +192,18 @@ class GatherSim:
             })
 
     # --- giao diện cho runner -------------------------------------------------
-    def inventory_items(self) -> dict:
+    def inventory_items(self) -> list[dict]:
         return hold_to_items(self.hold)
 
     def _store_in_hold(self, kind, count) -> int:
         if count > self.t["hold_capacity"] - len(self.hold):
             return 0
-        self.hold.extend([kind] * count)
+        for _ in range(count):
+            self.hold.append({
+                "id": self.ids.new("I"),
+                "kind": kind,
+                "fresh_u": self.fresh_init_u,
+            })
         return count
 
     def snapshot(self) -> dict:
@@ -200,7 +221,7 @@ class GatherSim:
                 "catch_cd_ticks": self.catch_cd_ticks,
                 "at_surface": self._at_surface(),
             },
-            "hold": list(self.hold),
+            "hold": [serialize_item(it) for it in self.hold],
             "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [
@@ -253,6 +274,11 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        for it in sort_by_id(self.hold):
+            prev_u = it["fresh_u"]
+            it["fresh_u"] = max(0, prev_u - self.decay_u)
+            if prev_u >= self.spoil_u and it["fresh_u"] < self.spoil_u:
+                events.append(("spoiled", {"item_id": it["id"], "kind": it["kind"], "location": "hold"}))
 
         was_at_surface = self._at_surface()
         self._move(inp)
@@ -275,7 +301,7 @@ class GatherSim:
                 self.hp = max(0, self.hp - 1)
                 events.append(("choke", {"hp": self.hp}))
                 if self.hp == 0:
-                    lost = self.hold[::-1]
+                    lost = [serialize_item(it) for it in reversed(self.hold)]
                     self.hold = []
                     events.append(("faint", {"cause": "choke", "lost": lost, "hp": self.hp}))
                     self._finish("fainted", events)
@@ -443,7 +469,7 @@ class GatherSim:
         sp = species[hitter["kind"]]
         self.hp = max(0, self.hp - 1)
         drop_n = math.floor(len(self.hold) * float(mcfg["loss_ratio"]))
-        lost = [self.hold.pop() for _ in range(drop_n)]
+        lost = [serialize_item(self.hold.pop()) for _ in range(drop_n)]
         self.invuln_ticks = int(mcfg["invuln_ticks"])
 
         dx = hitter["pos"][0] - self.pos[0]
@@ -461,7 +487,7 @@ class GatherSim:
             "pos": [_r3(self.pos[0]), _r3(self.pos[1])],
         }))
         if self.hp == 0:
-            rem_lost = self.hold[::-1]
+            rem_lost = [serialize_item(it) for it in reversed(self.hold)]
             self.hold = []
             events.append(("faint", {"cause": "monster", "lost": rem_lost, "hp": 0}))
             self._finish("fainted", events)

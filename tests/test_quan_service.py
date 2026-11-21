@@ -1,4 +1,4 @@
-"""Kiểm thử phục vụ Quán theo PRD-0: nấu, nhặt, gần nhất không dự phòng, ăn, trả tiền, đóng ca."""
+"""Kiểm thử phục vụ Quán theo PRD-0 + kho cá thể v1.2."""
 
 import json
 import unittest
@@ -27,8 +27,12 @@ def _reserved_customer(cid="C1", table_id="T1", dish_id="ca_loc_nuong_trui", pat
         "patience_ticks_left": patience,
         "eat_ticks_left": 0,
         "order_status": "reserved",
-        "reserved": reserved if reserved is not None else {"ca_loc": 1},
+        "reserved": reserved if reserved is not None else ["I1"],
     }
+
+
+def _stock(*kinds):
+    return [{"id": f"I{i}", "kind": k, "fresh": 100} for i, k in enumerate(kinds, 1)]
 
 
 class QuanServiceTests(unittest.TestCase):
@@ -38,7 +42,7 @@ class QuanServiceTests(unittest.TestCase):
     def test_cook_countdown_ready_ticks_and_pickup_at_stove(self):
         sc = {
             "player": {"pos": [2, 8]},
-            "stock": {"ca_loc": 2},
+            "stock": _stock("ca_loc", "ca_loc"),
             "random_customers": False,
             "customers": [_reserved_customer()],
         }
@@ -49,11 +53,11 @@ class QuanServiceTests(unittest.TestCase):
             "stove_id": "B1",
             "order_id": "C1",
             "dish_id": "ca_loc_nuong_trui",
-            "items": ["ca_loc"],
+            "items": [{"id": "I1", "kind": "ca_loc", "fresh": 100}],
             "base_price": 60,
         }), ev1)
-        self.assertEqual(sim.stock, {"ca_loc": 1})
-        self.assertEqual(sim.customers[0]["reserved"], {})
+        self.assertEqual([it["id"] for it in sim.stock], ["I2"])
+        self.assertEqual(sim.customers[0]["reserved"], [])
         self.assertEqual(sim.customers[0]["order_status"], "assigned")
         self.assertEqual(sim.stoves[0]["state"], "cooking")
         self.assertEqual(sim.stoves[0]["dish"], {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60})
@@ -84,36 +88,33 @@ class QuanServiceTests(unittest.TestCase):
         self.assertIsNone(sim.stoves[0]["dish"])
 
     def test_nearest_interact_only_no_fallback_and_tie_stove_before_table(self):
-        # B1 closer (4,5) is idle while T1 (6.2,5) waits for hand -> nearest fails, no fallback
         payload = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
         sc = {
             "player": {"pos": [5.0, 5.0]},
-            "stock": {"ca_loc": 1},
+            "stock": _stock("ca_loc"),
             "random_customers": False,
             "hand": payload,
             "stoves": [{"id": "B1", "pos": [4.1, 5.0]}],
             "tables": [{"id": "T1", "pos": [6.2, 5.0]}],
             "customers": [{
                 "id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                "order_status": "assigned", "reserved": {},
+                "order_status": "assigned", "reserved": [],
             }],
         }
         sim = QuanSim(self.tuning, sc, Streams(1), IdAllocator())
         self.assertEqual(sim.step(_inp(interact=True)), [])
         self.assertEqual(sim.hand, payload)
 
-        # Equal distance: stove beats table -> picks/cooks stove instead of serving table
-        self.tuning["quan"]["tables"].append({"id": "T2", "pos": [6.0, 5.0]})
         sc_tie = {
             "player": {"pos": [5.0, 5.0]},
-            "stock": {"ca_loc": 2},
+            "stock": _stock("ca_loc", "ca_loc"),
             "random_customers": False,
             "hand": {"order_id": "C2", "dish_id": "goi_bong_sung", "base_price": 40},
             "stoves": [{"id": "B1", "pos": [4.0, 5.0]}],
             "tables": [{"id": "T1", "pos": [6.0, 5.0]}, {"id": "T2", "pos": [6.0, 5.0]}],
             "customers": [
                 _reserved_customer("C1", "T1"),
-                {"id": "C2", "table_id": "T2", "dish_id": "goi_bong_sung", "order_status": "assigned", "reserved": {}},
+                {"id": "C2", "table_id": "T2", "dish_id": "goi_bong_sung", "order_status": "assigned", "reserved": []},
             ],
         }
         sim_tie = QuanSim(self.tuning, sc_tie, Streams(1), IdAllocator())
@@ -121,15 +122,19 @@ class QuanServiceTests(unittest.TestCase):
         self.assertEqual([e[0] for e in ev_tie], ["cook_started"])
 
     def test_oldest_order_by_order_tick_then_table_id(self):
-        self.tuning["quan"]["tables"].extend([{"id": "T2", "pos": [13, 2]}, {"id": "T10", "pos": [13, 6]}])
+        self.tuning["quan"]["tables"] = [
+            {"id": "T1", "pos": [9, 2]},
+            {"id": "T2", "pos": [13, 2]},
+            {"id": "T10", "pos": [13, 6]},
+        ]
         sc = {
             "player": {"pos": [2, 8]},
             "random_customers": False,
-            "stock": {"ca_loc": 3},
+            "stock": _stock("ca_loc", "ca_loc", "ca_loc"),
             "customers": [
-                _reserved_customer("C1", "T10", order_tick=5, reserved={"ca_loc": 1}),
-                _reserved_customer("C2", "T2", order_tick=5, reserved={"ca_loc": 1}),
-                _reserved_customer("C3", "T1", order_tick=10, reserved={"ca_loc": 1}),
+                _reserved_customer("C1", "T10", order_tick=5, reserved=["I1"]),
+                _reserved_customer("C2", "T2", order_tick=5, reserved=["I2"]),
+                _reserved_customer("C3", "T1", order_tick=10, reserved=["I3"]),
             ],
         }
         sim = QuanSim(self.tuning, sc, Streams(1), IdAllocator())
@@ -144,7 +149,7 @@ class QuanServiceTests(unittest.TestCase):
             "reputation": 4.9,
             "customers": [{
                 "id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                "patience_ticks_left": 3000, "order_status": "assigned", "reserved": {},
+                "patience_ticks_left": 3000, "order_status": "assigned", "reserved": [],
             }],
         }
         sim = QuanSim(self.tuning, sc, Streams(1), IdAllocator())
@@ -189,7 +194,7 @@ class QuanServiceTests(unittest.TestCase):
             "reputation": 3.0,
             "customers": [{
                 "id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                "patience_ticks_left": 1, "order_status": "assigned", "reserved": {},
+                "patience_ticks_left": 1, "order_status": "assigned", "reserved": [],
             }],
         }
         sim = QuanSim(self.tuning, sc, Streams(1), IdAllocator())
@@ -213,17 +218,16 @@ class QuanServiceTests(unittest.TestCase):
         self.assertEqual(sim.reputation, 3.0)
 
     def test_closing_pays_newly_served_and_drops_waiting_without_rep_loss(self):
-        self.tuning["quan"]["tables"].append({"id": "T2", "pos": [13, 2]})
         sc = {
             "player": {"pos": [9, 2]},
             "random_customers": False,
             "hand": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60},
             "reputation": 3.0,
             "time_left_ticks": 1,
-            "stock": {"ca_loc": 1},
+            "stock": _stock("ca_loc"),
             "customers": [
                 {"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                 "patience_ticks_left": 3000, "order_status": "assigned", "reserved": {}},
+                 "patience_ticks_left": 3000, "order_status": "assigned", "reserved": []},
                 _reserved_customer("C2", "T2", patience=10),
             ],
         }
@@ -249,7 +253,7 @@ class QuanServiceTests(unittest.TestCase):
                     "patience_ticks_left": 2000,
                     "eat_ticks_left": 2,
                     "order_status": "served",
-                    "reserved": {},
+                    "reserved": [],
                     "base_price": 60,
                     "tip": 12,
                 }
