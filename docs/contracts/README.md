@@ -129,7 +129,7 @@ DayIntro → gather → EveningIntro → quan → DayResult → Shop → DayIntr
 | `day_plan` D5 | `lau_mam ×1, lau_ca_linh_dien_dien ×1, ca_loc_nuong_trui ×1` | `lau_mam ×3, canh_chua_ca_loc ×3` |
 | `gather.fish_initial` | Số `8` | Mảng 6 đàn cố định |
 | Khóa cá | `fish_speed`, `fish_turn_ticks`, `fish_max`, `fish_spawn_ticks`, `fish_spawn_clearance`, `fish_x`, `fish_depths`, `fish_spawn_x`, `fish_spawn_depths`, `fish_weights` | Một khối `fish_motion {speed, turn_every_ticks, max_turn_deg, min_depth}` (`max_turn_deg`, `min_depth` không có trong ticket) |
-| `gather.monsters` | `species.ca_sau {patrol_speed, chase_speed, detect_radius, exit_radius, depths, hit_radius, recoil_ticks, recoil_dist}`, `spawns[]` (M1, M2 từ Ngày 3), `invuln_ticks:90`, `loss_ratio:0.5` | Chỉ có `detect_radius`, `exit_radius`, `depths` |
+| `gather.monsters` | `species.ca_sau {patrol_speed, chase_speed, detect_radius, exit_radius, depths, hit_radius, recoil_ticks, recoil_dist}`, `spawns[]` (M1, M2 từ Ngày 3), `invuln_ticks:90`, `loss_ratio:0.5` | Đã khớp; M1 từ Ngày 1, M2 từ Ngày 3, scenario có thể thay danh sách |
 | `shop` | `{max_ticks, upgrades}` | Thiếu `max_ticks` (600) |
 
 Đã khớp: `contract_version:"1.1"`, 6 món trong `menu`, B1/B2, T1–T4, N1–N6, `fish_yield` đủ 3 loài, `shop.upgrades.oxygen/hp`.

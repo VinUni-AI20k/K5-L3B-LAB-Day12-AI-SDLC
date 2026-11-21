@@ -114,7 +114,7 @@ class DaySim:
 
         gather_tuning["gather"] = g
         gather_sc = self.scenario.get("gather", {}) if isinstance(self.scenario, dict) else {}
-        self.sub_sim = GatherSim(gather_tuning, gather_sc, self.streams, self.ids)
+        self.sub_sim = GatherSim(gather_tuning, gather_sc, self.streams, self.ids, day=self.day)
         self.phase = "gather"
         self.phase_tick = 0
 
@@ -211,7 +211,10 @@ class DaySim:
                 evs.append((e[0], e[1], "gather", self.day))
 
             if self.sub_sim.done or self.sub_sim.time_left_ticks <= 0:
-                self.stock = merge_items(self.stock, self.sub_sim.inventory_items())
+                if self.sub_sim.reason == "fainted":
+                    self.stock = {}
+                else:
+                    self.stock = merge_items(self.stock, self.sub_sim.inventory_items())
                 self._init_quan()
                 evs.append(("phase_start", {}, "quan", self.day))
 

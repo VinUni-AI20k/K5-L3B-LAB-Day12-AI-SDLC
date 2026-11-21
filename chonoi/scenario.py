@@ -10,7 +10,7 @@ import json
 from .errors import BadInput
 from .inventory import KINDS_P1, validate_items
 
-GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
+GATHER_KEYS = {"player", "hold", "nodes", "fish", "monsters", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {"pos", "vel", "heading_deg", "hp", "oxygen_ticks", "zero_oxy_ticks",
                       "invuln_ticks", "catch_cd_ticks"}
 NODE_KINDS = ("bong_dien_dien", "bong_sung")
@@ -169,6 +169,28 @@ def _validate_gather(b, tuning):
             raise BadInput(f"fish.{f['id']}: đàn cá phải ở dưới nước")
         if "heading_deg" in f and not _num(f["heading_deg"]):
             raise BadInput(f"fish.{f['id']}.heading_deg phải là số")
+    if "monsters" in b:
+        _check_ids("monsters", b["monsters"])
+        species_config = g.get("monsters", {}).get("species", {})
+        for monster in b["monsters"]:
+            extra = set(monster) - {"id", "species", "pos", "waypoints"}
+            if extra:
+                raise BadInput(f"monsters.{monster['id']}: trường lạ: {sorted(extra)}")
+            species = monster.get("species")
+            if species not in species_config:
+                raise BadInput(f"monsters.{monster['id']}.species không hợp lệ")
+            depths = species_config[species]["depths"]
+            if "pos" in monster:
+                _pos(f"monsters.{monster['id']}.pos", monster["pos"], bounds)
+                if not depths[0] <= monster["pos"][1] <= depths[1]:
+                    raise BadInput(f"monsters.{monster['id']}.pos nằm ngoài dải độ sâu của loài")
+            waypoints = monster.get("waypoints")
+            if not isinstance(waypoints, list) or len(waypoints) != 2:
+                raise BadInput(f"monsters.{monster['id']}.waypoints phải có đúng 2 điểm")
+            for index, waypoint in enumerate(waypoints):
+                _pos(f"monsters.{monster['id']}.waypoints[{index}]", waypoint, bounds)
+                if not depths[0] <= waypoint[1] <= depths[1]:
+                    raise BadInput(f"monsters.{monster['id']}.waypoints nằm ngoài dải độ sâu của loài")
 
 
 def _validate_quan(b, tuning):
