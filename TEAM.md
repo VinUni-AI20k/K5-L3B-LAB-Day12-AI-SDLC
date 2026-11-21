@@ -1,11 +1,11 @@
 # TEAM
 
-**Tên nhóm:** …  **Số người:** …  (khớp `team_size` trong `game.contract.json`)
+**Tên nhóm:** X  **Số người:** 4  (khớp `team_size` trong `game.contract.json`)
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
 | | | `sim/gather` | | |
-| | | `sim/quan` | | |
+| Đỗ Quốc Khánh | dqk2210 | `sim/quan` | | |
 | | | `client/ui` | | |
 | | | `qa` | | |
 
