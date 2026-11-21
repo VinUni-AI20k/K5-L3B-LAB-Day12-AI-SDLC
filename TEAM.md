@@ -59,11 +59,85 @@ Dùng [tests/](tests/), [ma trận Phase 1](docs/verification/phase-1.md) và [t
 
 ## Giao diện dùng chung
 
-- **Cấu hình và tất định.** Đọc số liệu từ [game.contract.json](game.contract.json) hoặc fixture hợp lệ. Dùng `Streams` cho ngẫu nhiên, `IdAllocator` để cấp ID và `ids.sort_by_id` để sắp danh sách thực thể. Luật chạy theo tick, độc lập với đồng hồ hệ thống. Tính năng sáng tạo phải tắt ở headless.
-- **Sim → runner → headless/live.** Headless và live dùng `runner.Session` với nhịp 60 tick/s. Sim nhận `step(InputState)`, đọc `move`, `pressed("interact")` và `pressed("catch")`, rồi trả danh sách `(name, data)` theo thứ tự xử lý. Input ở tick `k` tạo kết quả ở tick `k+1`. Headless ghi `snapshot()` ở tick 0, rồi event trước snapshot cùng tick, và kết thúc bằng dòng `end`. Giữ nguyên tên trường, payload và thứ tự theo Test Contract.
-- **Live ↔ UI.** UI đọc `GET /state` (snapshot + `meta` + `events`), gửi trạng thái phím qua `POST /input` với `move`, `interact`, `catch`, và gọi `POST /restart` để chơi lại. Tọa độ gather là `[x, d]` với `d` tăng xuống dưới. Tọa độ quan là `[x, z]`. Sim quyết định kết quả hành động, UI hiển thị kết quả đó.
-- **Gather → kho → quan.** `gather_end` mang `data.reason` và `data.inventory.items`. Runner ghi `--inventory-out` một lần bằng thay thế nguyên tử khi buổi gather kết thúc. File có dạng `{"items":{"bong_sung":2,"ca_loc":1}}`, dùng mã nguyên liệu hợp lệ và số nguyên không âm, bỏ lượng 0. Quan nhận `--inventory` hoặc `quan.stock` trong file scenario. Khi giới hạn tick tới trước `gather_end`, runner giữ nguyên file đích. Dùng [schema và kho mẫu](docs/contracts/README.md) để phát triển độc lập.
-- **Sự kiện và file chung.** Hai sim phát event với đúng `name`, `data` và thứ tự ở mục E–F. UI đọc phản hồi qua `/state`, QA đọc JSONL. Món ở bếp/tay dùng `{order_id,dish_id,base_price}`, `order_id` bằng ID khách. Điểm dùng `earned + reputation_multiplier × floor(reputation)`, tiền tính theo nghìn đồng. Integrator điều phối các thay đổi ở `runner`, `scenario`, `inputs`, `inventory`, CLI hoặc live adapter. Báo cả nhóm và ghi lý do trước khi sửa contract, payload, schema kho hoặc khung do giảng viên cấp.
+Các bảng dưới đây dùng cho Phase 1. Đối chiếu định dạng và hành vi với mục B–G của [Test Contract v1.0](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg#phase-1). Số liệu lấy từ [game.contract.json](game.contract.json) hoặc fixture hợp lệ.
+
+### API giữa các module
+
+| **Điểm nối** | **Chữ ký và trách nhiệm** |
+|---|---|
+| Runner → Gather | `GatherSim(tuning, scenario, streams, ids)`. `inventory_items()` trả map `kind → số lượng`. Runner bọc map trong `items` và ghi file. |
+| Runner → Quán | `QuanSim(tuning, scenario, streams, ids, inventory=None)`. `inventory` là map đã đọc từ `items`. `scenario` đã được bóc khối theo mode, nên bên trong sim đọc `scenario.get("stock")`. |
+| Cả hai sim → runner | `step(inp: InputState)` trả danh sách `(name, data)` theo thứ tự xảy ra. `snapshot()` trả các trường riêng của mode. Runner đọc `mode`, `phase`, `done`, `reason`, `time_left_ticks`, `money`, `earned`, `reputation`. |
+| Runner → headless/live | Cùng dùng `Session(mode, tuning, scenario, seed, inventory=None)`. `Session.step(inp)` gắn `type`, `tick`, `phase` cho event. `Session.snapshot()` ghép trường chung với trường riêng. |
+| Live → UI | `GET /state` trả snapshot kèm `meta` (tuning của mode), `events` (các event gần đây, có thể lặp giữa lần đọc), `finished` (boolean), `reason` và `error` (chuỗi hoặc `null`). UI lấy snapshot làm trạng thái hiện tại. |
+| UI → live | `POST /input` gửi object như `{"move":[0,1],"interact":false,"catch":true}`. Trường có mặt cập nhật trạng thái phím đang giữ. `POST /restart` với body rỗng bắt đầu lại cùng seed, scenario và kho đầu lượt. Hai POST trả `200 {"ok":true}` khi thành công. Payload `/input` sai kiểu trả `400 {"error":"…"}`. |
+
+`InputState.move` là vector đã chuẩn hóa. Hai thành phần trong `[-1,1]`; độ dài trên 1 được chuẩn hóa về 1. `pressed("interact")` và `pressed("catch")` báo cạnh nhấn `false → true`. E dùng cho cả hai mode, Space (`catch`) chỉ tác động trong gather, R chỉ gọi live restart.
+
+### Tên trường, ID và đơn vị
+
+- Dùng `snake_case` cho khóa JSON, tên event và giá trị enum. Giữ nguyên chính tả khi đi qua Python, HTTP, UI và fixture. Tên hiển thị có thể dịch ở UI. Dùng `id` trên thực thể và các khóa tham chiếu như `node_id`, `fish_id`, `stove_id`, `table_id`. `order_id` là ID của khách, còn `tables[].customer_id` trỏ đến `customers[].id`.
+- Giữ các ID preset `N1`…`N4`, `F1`…`F6`, `B1`, `T1`. Quy ước nhóm dùng họ `C` cho khách tự sinh, ví dụ `C1`. Nạp ID fixture vào `IdAllocator` trước khi cấp ID mới. Dùng `ids.sort_by_id` để sắp theo tiền tố, hậu tố số ASCII (vắng tính `-1`) và ID gốc. Ví dụ `F2` đứng trước `F10`. Giữ `hold` theo thứ tự nhặt và sắp mã món hoặc nguyên liệu theo thứ tự Unicode khi contract yêu cầu.
+- **Mã nguyên liệu** gồm `ca_loc`, `ca_linh`, `bong_dien_dien`, `bong_sung`. **Mã món** gồm `ca_loc_nuong_trui`, `goi_bong_sung`, `lau_ca_linh_dien_dien`. Đọc công thức bằng `tuning.menu[dish_id].recipe`.
+- Vị trí `pos` tính bằng mét và vận tốc `vel` tính bằng m/s. Gather dùng `[x,d]` với `d` dương hướng xuống và `heading_deg` là góc từ `+x`. Quán dùng `[x,z]` với `z` dương hướng bắc. Trường `*_ticks` hoặc `*_tick` dùng số nguyên; `*_s` trong tuning dùng giây và được quy đổi ở 60 Hz. Giữ độ chính xác khi tính toán, làm tròn tọa độ khi xuất JSONL đến 3 chữ số thập phân.
+- Tiền, giá, boa và điểm là số nguyên. Tiền tính theo nghìn đồng. `reputation` có thể có phần lẻ. `score = earned + reputation_multiplier × floor(reputation)`. Dùng `null` cho tham chiếu hoặc ô món đang trống, `[]` cho danh sách rỗng, `{}` cho map rỗng.
+
+### Snapshot và fixture dùng chung
+
+| **Phạm vi** | **Khóa và kiểu dữ liệu** |
+|---|---|
+| Snapshot chung | `type: "snapshot"`, `tick`, `sim_tick`, `phase_tick`, `mode`, `phase`, `state`, `time_left_ticks`, `money`, `earned`, `reputation`, `score`. Phase 1 dùng `gather` hoặc `quan` cho `mode` và `phase`. `state` là `playing` hoặc `finished`. |
+| Gather · `player` | `pos`, `vel`, `heading_deg`, `oxygen_ticks`, `oxygen_max_ticks`, `hp`, `hp_max`, `zero_oxy_ticks`, `catch_cd_ticks`, `at_surface` (boolean). |
+| Gather · thực thể | `hold` là mảng mã nguyên liệu, mới nhất ở cuối. `hold_count` và `hold_capacity` là số ô. `nodes[]` có `id`, `kind`, `pos`, `regrow_ticks`, `ready` (boolean, đúng khi `regrow_ticks == 0`). `fish[]` có `id`, `kind`, `pos`, `heading_deg`. |
+| Quán · người chơi và kho | `player` có `pos`, `vel`. `stock` là map tồn vật lý gồm cả phần đang giữ. `hand` là payload món hoặc `null`. HUD tính kho khả dụng theo từng `kind` bằng `stock` trừ tổng `customers[].reserved`, xem mã vắng là 0. |
+| Quán · bếp và bàn | `stoves[]` có `id`, `pos`, `state` (`idle`, `cooking`, `ready`), `dish` (payload món hoặc `null`), `cook_ticks_left`, `ready_ticks`. `tables[]` có `id`, `pos`, `customer_id` (ID khách hoặc `null`). |
+| Quán · `customers[]` | `id`, `table_id`, `dish_id`, `order_tick`, `state` (`waiting`, `eating`), `patience_ticks_left`, `eat_ticks_left`, `order_status` (`reserved`, `assigned`, `unfulfillable`, `served`), `reserved` (map `kind → số lượng`), `base_price`, `tip`. Chỉ liệt kê khách còn ngồi. `base_price` và `tip` phải có giá trị đã chốt khi khách đang ăn. |
+| Payload món ở `hand` và `stoves[].dish` | `{order_id, dish_id, base_price}`. `base_price` là giá món trước boa. |
+
+Fixture JSON có một khối gốc trùng mode, ví dụ `{"gather":{"hold":["ca_loc"],"random_fish":false}}`. `nodes`, `fish`, `customers` thay cả danh sách mặc định. `stoves` và `tables` cập nhật theo ID đã có. Hai cờ `random_fish:false` và `random_customers:false` tắt phần mặc định tương ứng và giữ các thực thể đã khai trong fixture. Các trường suy ra khi chạy như `hold_count`, `ready` và `customer_id` do sim tạo. Dùng mục D để kiểm giá trị mặc định và liên kết hợp lệ trước snapshot tick 0.
+
+### Sự kiện và dòng kết thúc
+
+Chung một dạng `{type: "event", tick, phase, name, data}`. Gather và Quán phát event, runner gắn thông tin của tick. QA đọc JSONL và UI dùng `events` trên live để hiển thị phản hồi.
+
+| **`name`** | **Trường trong `data`** |
+|---|---|
+| `dive`, `surface` | `pos` sau di chuyển. |
+| `oxygen_empty`, `choke` | `oxygen_ticks: 0` khi vừa cạn oxy, hoặc `hp` sau khi ngạt trừ Máu. |
+| `faint` | `cause: "choke"`, `lost` (mảng mã nguyên liệu theo LIFO), `hp: 0`. |
+| `gather`, `node_regrown` | `gather` có `node_id`, `kind`, `amount`. `node_regrown` chỉ có `node_id`. |
+| `fish_caught` | `fish_id`, `kind`, `yield` (số nguyên liệu lấy từ đàn). |
+| `hold_full` | `action` (`gather` hoặc `catch`), `node_id` hoặc `fish_id` theo hành động, `required`, `free`. |
+| `gather_end` | `reason` (`time`, `docked`, `fainted`), `inventory` (object có `items`). |
+| `customer_arrived`, `no_dish` | `customer_arrived` có `order_id`, `table_id`, `dish_id`. `no_dish` dùng object rỗng `{}`. |
+| `cook_started`, `dish_ready`, `dish_picked` | Cả ba có `stove_id`, `order_id`, `dish_id`. `cook_started` thêm `items` (mảng mã nguyên liệu, có lặp theo lượng, sắp theo mã) và `base_price`. |
+| `served` | `order_id`, `table_id`, `dish_id`, `patience_ticks_left`, `base_price`, `tip`. |
+| `paid` | `order_id`, `table_id`, `base_price`, `tip`, `amount`, `reason` (`finished_eating`, `closing`). |
+| `customer_left` | `order_id`, `table_id`, `reason` (`patience`, `closing`), `reputation`. |
+| `quan_end` | `reason: "time"`, `money`, `earned`, `shift_earned`, `reputation`. |
+
+```json
+{"type":"event","tick":1,"phase":"gather","name":"gather","data":{"node_id":"N1","kind":"bong_dien_dien","amount":1}}
+```
+
+Dòng cuối là `{type: "end", ticks, sim_tick, mode, state, reason, money, earned, reputation, score}`. `reason` lấy từ kết thúc gameplay nếu có, kể cả khi trùng bước cuối được cấp. Nếu chỉ chạm `--ticks`, dùng `reason: "tick_limit"` và `state: "playing"`.
+
+### Headless và file kho
+
+```text
+<headless_cmd> --mode gather|quan --seed <int> --ticks <N> --out <file.jsonl>
+  [--scenario <file.json>] [--inputs <file.json>] [--snapshot-every <N>]
+  [--inventory <file.json>] [--inventory-out <file.json>]
+```
+
+- File inputs có dạng `{"frames":[{"tick":0,"move":[0,1]},{"tick":30,"catch":true},{"tick":31,"catch":false}]}`. `tick` tăng nghiêm ngặt từ số nguyên không âm. Frame vắng trường thì giữ giá trị cũ. Mặc định `move` là `[0,0]` và hai nút là `false`.
+- Input tick `k` tạo event và trạng thái ở `k+1`. Headless ghi snapshot sau dựng fixture ở tick 0, ở bội số `--snapshot-every` (mặc định 10) và ở tick dừng. Mỗi tick tối đa một snapshot, event đứng trước snapshot cùng tick. `--ticks 0` chỉ dựng fixture. Mã thoát `0` là chạy thành công, `2` là đối số hoặc dữ liệu không hợp lệ, `1` là lỗi thực thi hoặc ghi. Lỗi dữ liệu xác định lúc khởi tạo được báo qua stderr trước khi ghi JSONL hoặc kho.
+- File kho JSON chỉ có khóa gốc `items`, ví dụ `{"items":{"bong_sung":2,"ca_loc":1}}`. Số lượng nguyên không âm, mã vắng tính 0, bên ghi bỏ lượng 0. Gather ghi `--inventory-out` một lần bằng thay thế nguyên tử sau `gather_end`; nội dung khớp `data.inventory`. Nếu chạm giới hạn bước trước khi kết thúc, file đích giữ nguyên. Quán nạp `--inventory` hoặc `quan.stock` trong fixture; khai cả hai trả mã 2. [Kho mẫu](docs/contracts/inventory.sample.json)
+- Seed, tham số và nội dung đầu vào giống nhau trên cùng bản chạy và máy phải cho JSONL UTF-8 và file kho giống từng byte. Dùng `Streams` theo mục đích, sắp ứng viên trước khi chọn, giữ thời gian thực ở live adapter và tắt tính năng sáng tạo ở headless.
+
+### Khi thay đổi giao diện
+
+Integrator phối hợp với module phát và module đọc trước khi sửa file chung (`runner`, `scenario`, `inputs`, `inventory`, CLI, live adapter). Ghi tên trường, kiểu, trường hợp rỗng, ví dụ payload và fixture xác nhận trong cùng PR. UI kiểm snapshot qua `/state`, QA kiểm payload và tick qua headless. Starter hiện cần bổ sung `quan.player.vel` để khớp bảng. `gather.player.invuln_ticks` là trường riêng của starter, UI và QA dựa vào các trường v1.0 ở trên.
 
 ## Thỏa thuận làm việc
 

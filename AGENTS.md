@@ -22,6 +22,7 @@
 
 ## Quy tắc làm việc với agent
 - Phase 1 dùng [spec trong TEAM.md](TEAM.md#phase-1) để xác định module, phần phụ thuộc và tiêu chí bàn giao. Đối chiếu luật và payload theo mục D–G của PRD-0.
+- Trước khi triển khai Sim, UI hoặc fixture, đọc [giao diện dùng chung](TEAM.md#giao-diện-dùng-chung) để dùng đúng API, tên trường và payload. Báo Integrator khi starter lệch mục B–G của Test Contract.
 - Mỗi agent một việc rõ ràng (một lát). Cho agent đọc PRD/ticket đúng phase và hợp đồng kho trước.
 - Agent làm xong phải chạy test và ghi kết quả vào mô tả commit hoặc `docs/proof/`; người đọc lại thay đổi trước khi đẩy.
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
