@@ -11,9 +11,9 @@ test_serve_then_paid_with_tip (test_quan_lat4.Lat4.test_serve_then_paid_with_tip
 test_wrong_dish_not_served (test_quan_lat4.Lat4.test_wrong_dish_not_served) ... ok
 
 ----------------------------------------------------------------------
-Ran 11 tests in 1.666s
+Ran 11 tests in 1.916s
 
 OK
-Ran 50 tests in 6.433s
+Ran 62 tests in 8.976s
 
 OK

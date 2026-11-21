@@ -10,6 +10,8 @@ Sự kiện (tick, name, data):
 Dòng end: money=72 earned=72 reputation=3.2 score=372 reason=tick_limit
 
 Tất định (sha256):
-  run1 dd34c37c3940218f7274d00b1c37abe3aeca4a3f1fac3800894c883215dfb878
-  run2 dd34c37c3940218f7274d00b1c37abe3aeca4a3f1fac3800894c883215dfb878
+  run1 5869a016b8475578764d91fdeede9ee8e0196f3b4a37c726d56f91631421f779
+  run2 5869a016b8475578764d91fdeede9ee8e0196f3b4a37c726d56f91631421f779
   giống nhau: True
+
+Chạy lại trên nhánh dev (sau khi gộp Lát 3 + QA fix _cook_plan, 691101b): sự kiện và dòng end không đổi; sha256 đổi vì Lát 3 nay giảm patience_ticks_left của khách waiting (lúc served ở tick 496 còn ~86% >= 50% nên vẫn có boa).
