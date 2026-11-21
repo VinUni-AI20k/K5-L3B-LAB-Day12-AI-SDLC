@@ -64,6 +64,34 @@ class LiveServerTest(unittest.TestCase):
 
 
 class LiveInventoryPersistenceTest(unittest.TestCase):
+    def test_day_does_not_double_existing_inventory_on_handoff(self):
+        tuning = load_contract()["tuning"]
+        with tempfile.TemporaryDirectory() as d:
+            inventory_path = os.path.join(d, "inventory.json")
+            with open(inventory_path, "w", encoding="utf-8") as f:
+                json.dump({"items": {"ca_linh": 12, "ca_loc": 2}}, f)
+            scenario = {
+                "gather": {"hold": [], "random_fish": False, "time_left_ticks": 1},
+                "quan": {"random_customers": False},
+            }
+            game = LiveGame(
+                "day",
+                tuning,
+                scenario,
+                1,
+                inventory={"ca_linh": 12, "ca_loc": 2},
+                inventory_out=inventory_path,
+            )
+            game._tick_once()
+            snapshot = json.loads(game.state_json())
+            self.assertEqual(snapshot["phase"], "quan")
+            self.assertEqual(snapshot["stock"], {"ca_linh": 12, "ca_loc": 2})
+            with open(inventory_path, encoding="utf-8") as f:
+                self.assertEqual(
+                    json.load(f),
+                    {"items": {"ca_linh": 12, "ca_loc": 2}},
+                )
+
     def test_default_inventory_file_is_loaded_by_quan_and_day(self):
         with tempfile.TemporaryDirectory() as d:
             old_cwd = os.getcwd()
@@ -155,10 +183,32 @@ class DayFlowTest(unittest.TestCase):
         self.assertEqual(snapshot["mode"], "day")
         self.assertEqual(snapshot["phase"], "quan")
         self.assertEqual(session.sim.inventory, {"ca_loc": 1})
+        self.assertEqual(snapshot["stock"], {})
 
         session.sim.quan.pos = [2, 8]
         cook_events = session.step(InputState((0, 0), {"interact": True}, {"interact"}))
         self.assertIn("cook_started", [row["name"] for row in cook_events])
+
+    def test_day_inventory_appears_when_no_customer_reservation(self):
+        tuning = load_contract()["tuning"]
+        day = Session(
+            "day",
+            tuning,
+            {
+                "gather": {
+                    "hold": [],
+                    "random_fish": False,
+                    "time_left_ticks": 1,
+                },
+                "quan": {"random_customers": False},
+            },
+            1,
+            inventory={"ca_linh": 12, "ca_loc": 2},
+        )
+        day.step(InputState((0, 0), {}, set()))
+        snapshot = day.snapshot()
+        self.assertEqual(snapshot["phase"], "quan")
+        self.assertEqual(snapshot["stock"], {"ca_linh": 12, "ca_loc": 2})
 
 
 if __name__ == "__main__":

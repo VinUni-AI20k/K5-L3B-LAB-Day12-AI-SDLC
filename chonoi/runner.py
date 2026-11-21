@@ -84,8 +84,10 @@ class Session:
 
     def write_inventory_if_done(self, inventory_out, inventory_base=None):
         """Persist the run's held items on top of the inventory present at run start."""
-        if self.mode in ("gather", "day") and self.sim.done and inventory_out:
+        if self.mode == "gather" and self.sim.done and inventory_out:
             write_inventory(inventory_out, merge_items(inventory_base or {}, self.sim.inventory_items()))
+        elif self.mode == "day" and self.sim.done and inventory_out:
+            write_inventory(inventory_out, self.sim.inventory_items())
 
 
 def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None):
@@ -101,8 +103,9 @@ def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, i
             rows = sess.step(inp)
             if mode in ("gather", "day") and inventory_out:
                 if any(row["name"] in {"gather", "fish_caught", "faint", "gather_end"} for row in rows):
-                    write_inventory(inventory_out,
-                                    merge_items(inventory_base, sess.sim.inventory_items()))
+                    items = (sess.sim.inventory_items() if mode == "day"
+                             else merge_items(inventory_base, sess.sim.inventory_items()))
+                    write_inventory(inventory_out, items)
             for row in rows:
                 w.write(row)
             if sess.tick % snapshot_every == 0 or sess.done:

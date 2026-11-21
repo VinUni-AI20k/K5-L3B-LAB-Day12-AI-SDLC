@@ -126,8 +126,9 @@ class LiveGame:
             inventory_events = {"gather", "fish_caught", "faint", "gather_end"}
             if any(row["name"] in inventory_events for row in self.events[-RECENT_EVENTS:]
                    if row["tick"] == s.tick):
-                write_inventory(self.inventory_out,
-                                merge_items(self.inventory_base, s.sim.inventory_items()))
+                items = (s.sim.inventory_items() if self.mode == "day"
+                         else merge_items(self.inventory_base, s.sim.inventory_items()))
+                write_inventory(self.inventory_out, items)
         if s.done and not self._saved:
             self._saved = True
             if self.inventory_out:
