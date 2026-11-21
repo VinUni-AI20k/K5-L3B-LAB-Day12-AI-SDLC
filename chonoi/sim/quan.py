@@ -11,6 +11,8 @@ Cấu trúc khách: PRD-0 mục D + docs/contracts/README.md mục 4 (order_id =
    "order_status","reserved","base_price","tip"}
   state: waiting -> eating; order_status: reserved (lát 3) -> assigned -> served (lát 4); unfulfillable (fixture).
 Kho khả dụng = tồn (`stock`) − tổng `reserved` của mọi khách (xem `available()`).
+Phase 2 (lát 3): `menu_filter` = id món trong day_plan[day].dishes (--mode day) — lọc kế hoạch TRƯỚC kho khả dụng;
+  None = quán độc lập dùng cả menu. money/earned/reputation đầu ca do runner day truyền vào.
 """
 
 import math
@@ -28,10 +30,19 @@ class QuanSim:
     mode = "quan"
     phase = "quan"
 
-    def __init__(self, tuning, scenario, streams, ids, inventory=None):
+    def __init__(self, tuning, scenario, streams, ids, inventory=None, menu_filter=None,
+                 money=0, earned=0, reputation=None):
+        """menu_filter: id món trong day_plan[day].dishes (chỉ dùng ở --mode day; None = quán độc lập, đủ menu).
+        money/earned/reputation: trạng thái xuyên Ngày do runner day truyền vào (hợp đồng mục 5.3)."""
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
+        self.plan_dishes = None if menu_filter is None else sorted(set(menu_filter))
+        if self.plan_dishes is not None:
+            from ..errors import BadInput
+            unknown = [d for d in self.plan_dishes if d not in self.menu]
+            if unknown:
+                raise BadInput(f"day_plan có món ngoài menu: {unknown}")
         self.rng = streams
         self.ids = ids
         p = scenario.get("player", {})
@@ -43,7 +54,9 @@ class QuanSim:
         self.stock = dict(inventory if inventory is not None else scenario.get("stock", {}))
         self.hand = scenario.get("hand")
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * 60)))
-        self.reputation = scenario.get("reputation", t["reputation_initial"])
+        if reputation is None:
+            reputation = scenario.get("reputation", t["reputation_initial"])
+        self.reputation = reputation
         self.stoves = [dict(s, state=s.get("state", "idle"), dish=s.get("dish"),
                             cook_ticks_left=s.get("cook_ticks_left", 0), ready_ticks=s.get("ready_ticks", 0))
                        for s in self._merge(t["stoves"], scenario.get("stoves", []))]
@@ -60,8 +73,9 @@ class QuanSim:
             ids.reserve(c["id"])
         self.customers = [self._customer_from_fixture(c) for c in sort_by_id(fixture)]
         self._check_reserved_fits_stock()
-        self.money = 0
-        self.earned = 0
+        self._check_plan_fixture()
+        self.money = money
+        self.earned = earned
         self.shift_earned = 0
         self.done = False
         self.reason = None
@@ -103,6 +117,19 @@ class QuanSim:
             if need[k] > self.stock.get(k, 0):
                 raise BadInput(f"khách giữ chỗ {need[k]} {k} nhưng kho chỉ có {self.stock.get(k, 0)}")
 
+    def _check_plan_fixture(self):
+        """TICKET-02 mục 4.3: trong day, khách/bếp/tay dựng sẵn phải thuộc món trong kế hoạch -> sai thì mã 2."""
+        if self.plan_dishes is None:
+            return
+        from ..errors import BadInput
+        dishes = [("customers." + c["id"], c["dish_id"]) for c in self.customers]
+        dishes += [("stoves." + s["id"], s["dish"].get("dish_id")) for s in self.stoves if isinstance(s.get("dish"), dict)]
+        if isinstance(self.hand, dict):
+            dishes.append(("hand", self.hand.get("dish_id")))
+        for name, dish_id in dishes:
+            if dish_id not in self.plan_dishes:
+                raise BadInput(f"{name}: món {dish_id!r} không thuộc kế hoạch Ngày {self.plan_dishes}")
+
     # ---------- kho khả dụng / giữ chỗ ----------
 
     def _reserved_total(self) -> dict:
@@ -118,8 +145,11 @@ class QuanSim:
         return {k: max(0, self.stock.get(k, 0) - res.get(k, 0)) for k in set(self.stock) | set(res)}
 
     def _cookable_dishes(self) -> list:
+        """Ứng viên chọn món, theo id món (mã Unicode). Trong day: lọc theo kế hoạch TRƯỚC, rồi mới lọc
+        theo kho khả dụng (TICKET-02 mục 4.5). Không giới hạn số suất: đủ nguyên liệu là gọi tiếp được."""
+        candidates = sorted(self.menu) if self.plan_dishes is None else self.plan_dishes
         avail = self.available()
-        return [d for d in sorted(self.menu)
+        return [d for d in candidates
                 if all(avail.get(k, 0) >= n for k, n in self.menu[d]["recipe"].items())]
 
     # ---------- uy tín / rời quán (dùng chung với lát 4) ----------
