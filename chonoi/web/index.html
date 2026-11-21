@@ -18,6 +18,8 @@
   #touch-down { grid-column: 2; grid-row: 2; }
   #touch-right { grid-column: 3; grid-row: 2; }
   #touch-interact, #touch-catch { height: 58px; }
+  body.mode-quan #touch-catch { display: none; }
+  body.mode-quan #action-pad { grid-template-columns: 58px; }
   #connection { position: fixed; top: 12px; right: 12px; z-index: 30; display: none; padding: 7px 10px; border-radius: 999px; background: #b94a45; color: #fff; font-weight: 700; }
   @media (pointer: coarse) { #touch-controls { display: flex; } }
 </style>
@@ -141,7 +143,21 @@ async function poll() {
   try {
     const r = await fetch("/state", { cache: "no-store" });
     if (!r.ok) throw new Error("HTTP " + r.status);
-    snap = await r.json();
+    const nextSnap = await r.json();
+    const previousMode = snap && snap.mode;
+    const modeChanged = previousMode && previousMode !== nextSnap.mode;
+    if (modeChanged) {
+      down.clear();
+      queue = [];
+      lastSent = "";
+      lastEventSignature = "";
+    }
+    snap = nextSnap;
+    document.body.classList.toggle("mode-quan", snap.mode === "quan");
+    if (modeChanged) {
+      pushInput();
+      pushNotification(snap.mode === "quan" ? "Buổi sáng kết thúc · bắt đầu mở quán" : "Bắt đầu lại buổi sáng");
+    }
     updateNotifications();
     offline = false;
   } catch (e) { offline = true; }
