@@ -11,6 +11,9 @@ buy_failed funds; lệnh không hỗ trợ (kể cả mở rộng chưa bật) -
 vào `upgrades` (đã mua); DaySim chép sang `active_upgrades` khi dựng Ngày kế.
 """
 
+from ..ids import sort_by_id
+from ..inventory import item_out
+
 
 class ShopSim:
     phase = "shop"
@@ -19,7 +22,9 @@ class ShopSim:
         self.cfg = tuning["shop"]
         self.money = money
         self.upgrades = upgrades  # dict dùng chung với DaySim (cấp đã mua)
-        self.stock = dict(stock or {})  # kho dư từ ca tối, chỉ để hiển thị; bị bỏ khi sang Ngày mới
+        # v1.2: kho dư từ ca tối là mảng cá thể {id,kind,units}; chỉ hiển thị, KHÔNG hao tươi ở Shop;
+        # bị bỏ khi sang Ngày mới
+        self.stock = sort_by_id([dict(it) for it in (stock or [])])
         self.time_left_ticks = int(self.cfg["max_ticks"])
         self.phase_tick = 0
         self.done = False
@@ -61,4 +66,4 @@ class ShopSim:
         events.append(("shop_end", {"reason": reason}))
 
     def snapshot(self):
-        return {"stock": {k: self.stock[k] for k in sorted(self.stock) if self.stock[k] > 0}}
+        return {"stock": [item_out(it) for it in self.stock]}

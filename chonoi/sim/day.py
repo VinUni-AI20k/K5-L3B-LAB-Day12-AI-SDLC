@@ -143,12 +143,17 @@ class DaySim:
             kw["oxygen_max_s"] = oxy
         if "hp_max" in params:
             kw["hp_max"] = hp
+        if "reissue_hold_ids" in params:
+            # v1.2: Ngày đầu giữ id mẫu gather.hold; Ngày kế cấp id mới theo thứ tự mảng, kind/fresh ban đầu
+            kw["reissue_hold_ids"] = self.day > 1
         g = GatherSim(t, copy.deepcopy(self.tpl_gather), self.streams, self.ids, **kw)
         g.money, g.earned, g.reputation = self.money, self.earned, self.reputation
         return g
 
     def _open_quan(self, out):
-        stock = self.cur.inventory_items()  # bàn giao trong bộ nhớ, schema kho đếm (rỗng nếu ngất)
+        # v1.2: bàn giao trong bộ nhớ CÙNG tick gather_end (không hao thêm), mảng cá thể giữ id/độ tươi
+        # (kể cả hàng ươn; rỗng nếu ngất). Quán chạy gameplay từ bước sau.
+        stock = [dict(it) for it in self.cur.inventory_items()]
         try:
             q = QuanSim(self.tuning, copy.deepcopy(self.tpl_quan), self.streams, self.ids, inventory=stock,
                         menu_filter=list(self.plans[self.day]["dishes"]), reputation=self.reputation,
@@ -159,7 +164,7 @@ class DaySim:
         self._emit(out, [("phase_start", {})])
 
     def _open_shop(self, out):
-        leftover = {k: v for k, v in self.cur.stock.items() if v > 0}
+        leftover = self.cur.stock  # v1.2: mảng cá thể (kể cả hàng ươn), Shop không hao tươi
         self.phase = "shop"
         self.cur = ShopSim(self.tuning, self.money, self.upgrades, stock=leftover)
         self._emit(out, [("phase_start", {})])
