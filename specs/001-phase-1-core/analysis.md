@@ -21,3 +21,8 @@
 **Metrics**: 26 FR · 23 AC · 37 task · CRITICAL 0 · HIGH 1 · MEDIUM 4 · LOW 2 · `[NEEDS CLARIFICATION]` còn lại 0.
 
 **Kết luận**: Không có CRITICAL → có thể bắt đầu implement; nhưng A1 phải được PO xử lý sớm (sai giả định quan = trượt test ẩn ở mọi phase).
+
+## Cập nhật 2026-11-21 theo TICKET-02
+- A1 giảm còn MEDIUM: boa floor, bếp chọn đơn theo `order_tick` rồi id bàn, ngạt reset khi oxy > 0 / mặt nước, lịch 120 + 900·k, đóng ca — đã xác nhận bởi TICKET-02. Còn GIẢ ĐỊNH: thứ tự bước quán, `data` event v1.0, cá bị bắt bị loại.
+- A2 đóng (lịch 120 + 900·k). A4 đóng một nửa (nhặt tất cả hoặc không: xác nhận; cá bị loại: GIẢ ĐỊNH).
+- Thêm AC-P1-24 (`order_tick`), AC-P1-21 mở rộng (đóng ca). Code lõi P1 vẫn CHƯA viết (`chonoi/sim/*.py` còn `TODO(nhóm)`) → xem `specs/002-day-loop/tasks.md` nhóm P0.

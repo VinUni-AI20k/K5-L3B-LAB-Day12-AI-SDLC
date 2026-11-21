@@ -10,7 +10,7 @@
 
 - [ ] T001 [qa] (TV1) Sửa `team_size` = 6 trong `game.contract.json` (người được phép sửa file chung)
 - [ ] T002 [P] [qa] (TV1) Chốt `docs/contracts/` từ `specs/001-phase-1-core/contracts/events.md` + `sim-ui.md` (tên sự kiện, `data`, trường snapshot — đang là GIẢ ĐỊNH, Q-D)
-- [ ] T003 [P] [qa] (TV6) PO đối chiếu `GIẢ ĐỊNH` #12–#21 trong `docs/clarify.md` + Q-A…Q-F (`docs/research/phase-1.md` mục 7) với PRD-0; sửa spec nếu khác
+- [ ] T003 [P] [qa] (TV6) [XONG một phần — TICKET-02 đã trả lời] PO đối chiếu `GIẢ ĐỊNH` #12–#21 trong `docs/clarify.md` + Q-A…Q-F (`docs/research/phase-1.md` mục 7) với PRD-0; sửa spec nếu khác
 
 ## Phase 2: Foundational (chặn mọi story)
 
@@ -24,13 +24,13 @@
 
 - [ ] T007 [US1] [sim/gather] (TV1) `_update_zone(was_surface)` → `dive`/`surface` {pos} — `chonoi/sim/gather.py`
 - [ ] T008 [US1] [sim/gather] (TV1) `_update_oxygen()` theo d cuối bước, kẹp, `oxygen_empty` — `chonoi/sim/gather.py`
-- [ ] T009 [US1] [sim/gather] (TV1) Ngạt (`zero_oxy_ticks`, `choke` {hp}, reset ở mặt nước) + ngất (`faint`, `hold=[]`, `_finish("fainted")`, return) — `chonoi/sim/gather.py`
+- [ ] T009 [US1] [sim/gather] (TV1) Ngạt (`zero_oxy_ticks` tính cả bước chạm 0, `choke` {hp}, reset khi oxy > 0 hoặc lên mặt nước — đã xác nhận bởi TICKET-02) + ngất (`faint`, `hold=[]`, `_finish("fainted")`, return) — `chonoi/sim/gather.py`
 - [ ] T010 [P] [US1] [qa] (TV5) Test AC-P1-01…05 — `tests/test_p1_rules.py`
 
 ## Phase 4: US2 — Hái, bắt cá, giỏ LIFO (P1)
 
 - [ ] T011 [US2] [sim/gather] (TV2) `_try_gather()`: chỉ mặt nước, nút `ready` gần nhất, `gather` {node_id, kind, count} / `hold_full`, đặt `regrow_ticks` — `chonoi/sim/gather.py`
-- [ ] T012 [US2] [sim/gather] (TV2) `_try_catch()`: chỉ dưới nước + cd 0, `fish_caught` {fish_id, kind, count} / `hold_full`, đặt hồi chiêu khi thành công, cá không biến mất — `chonoi/sim/gather.py`
+- [ ] T012 [US2] [sim/gather] (TV2) `_try_catch()`: chỉ dưới nước + cd 0, `fish_caught` {fish_id, kind, count} / `hold_full`, đặt hồi chiêu khi thành công, đàn bị bắt bị loại (GIẢ ĐỊNH clarify #14) — `chonoi/sim/gather.py`
 - [ ] T013 [P] [US2] [qa] (TV5) Test AC-P1-06…10 — `tests/test_p1_rules.py`
 
 ## Phase 5: US3 — Kết thúc buổi sáng, ghi kho (P1)
@@ -41,7 +41,7 @@
 ## Phase 6: US4 — Khách, kiên nhẫn, uy tín (P1)
 
 - [ ] T016 [US4] [sim/quan] (TV3) `_cookable()` = món nấu được từ kho − giữ chỗ (sắp id) — `chonoi/sim/quan.py`
-- [ ] T017 [US4] [sim/quan] (TV3) `_spawn_if_due()`: lịch `first_customer_tick + k·interval`, bàn trống id nhỏ, chọn món qua `self.rng.get("quan_order")`, `IdAllocator`, `customer_arrived` / `no_dish` / bỏ lượt khi hết bàn — `chonoi/sim/quan.py`
+- [ ] T017 [US4] [sim/quan] (TV3) `_spawn_if_due()`: lịch `120 + 900·k` (đã xác nhận bởi TICKET-02), bàn trống id nhỏ, ghi `order_tick`, chọn món qua `self.rng.get("quan_order")`, `IdAllocator`, `customer_arrived` / `no_dish` / bỏ lượt khi hết bàn — `chonoi/sim/quan.py`
 - [ ] T018 [US4] [sim/quan] (TV3) Kiên nhẫn giảm khi `waiting`; về 0 → `customer_left`, uy tín += delta (kẹp), nhả giữ chỗ chưa nấu — `chonoi/sim/quan.py`
 - [ ] T019 [US4] [sim/quan] (TV3) Kiểm mâu thuẫn scenario mức luật (giữ chỗ vượt kho, `eating` thiếu price/tip, `hand` không phải món) → `BadInput` trong `QuanSim.__init__` (không sửa `scenario.py` nếu nhóm chưa đồng ý) — `chonoi/sim/quan.py`
 - [ ] T020 [P] [US4] [qa] (TV5) Test AC-P1-14, 15, 16, 23 — `tests/test_p1_rules.py`
@@ -49,10 +49,10 @@
 ## Phase 7: US5 — Nấu, bưng, phục vụ, tiền, boa (P1)
 
 - [ ] T021 [US5] [sim/quan] (TV4) `_tick_stoves()`: cooking → `dish_ready` — `chonoi/sim/quan.py`
-- [ ] T022 [US5] [sim/quan] (TV4) `_interact()`: ứng viên hợp lệ trong `interact_radius`, khóa `(dist, bếp=0/bàn=1, id)`, tối đa một hành động: `cook_started` (trừ kho, gắn `customer_id`) / `dish_picked` / `served` — `chonoi/sim/quan.py`
-- [ ] T023 [US5] [sim/quan] (TV4) Ăn xong → `paid` {price, tip}; boa `round(price·tip_rate)` khi tỉ lệ kiên nhẫn lúc served ≥ `tip_min_patience_ratio`, uy tín += `tip_reputation`; cộng `money/earned/shift_earned`; xóa khách — `chonoi/sim/quan.py`
-- [ ] T024 [US5] [sim/quan] (TV4) Ghép thứ tự bước FR-022 trong `step()`; `quan_end` dùng `shift_earned` — `chonoi/sim/quan.py`
-- [ ] T025 [P] [US5] [qa] (TV5) Test AC-P1-17…21 — `tests/test_p1_rules.py`
+- [ ] T022 [US5] [sim/quan] (TV4) `_interact()`: ứng viên hợp lệ trong `interact_radius`, khóa `(dist, bếp=0/bàn=1, id)`, tối đa một hành động: `cook_started` cho đơn reserved cũ nhất theo `order_tick` rồi id bàn (trừ kho, gắn `customer_id`) / `dish_picked` / `served` — `chonoi/sim/quan.py`
+- [ ] T023 [US5] [sim/quan] (TV4) Ăn xong → `paid` {price, tip}; boa `floor(price·tip_rate)` (đã xác nhận bởi TICKET-02) khi tỉ lệ kiên nhẫn lúc served ≥ `tip_min_patience_ratio`, uy tín += `tip_reputation`; cộng `money/earned/shift_earned`; xóa khách — `chonoi/sim/quan.py`
+- [ ] T024 [US5] [sim/quan] (TV4) Ghép thứ tự bước FR-022 trong `step()`; đóng ca (khách ăn trả ngay, khách chờ rời không trừ uy tín, dọn giữ chỗ) rồi `quan_end` dùng `shift_earned` — `chonoi/sim/quan.py`
+- [ ] T025 [P] [US5] [qa] (TV5) Test AC-P1-17…21, AC-P1-24 — `tests/test_p1_rules.py`
 
 ## Phase 8: US6 — Nối ngày + tất định (P1)
 

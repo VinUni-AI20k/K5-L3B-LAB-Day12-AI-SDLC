@@ -28,7 +28,7 @@ Viết luật Phase 1 trong khung Python có sẵn: `GatherSim.step` (oxy, ngạ
 | II. Deterministic | ĐẠT — chọn món qua `self.rng.get("quan_order")`; duyệt theo `sort_by_id` |
 | III. Headless-First | ĐẠT — mọi AC kiểm qua `chonoi.headless`; không có sáng tạo ở P1 |
 | IV. Test-First & Evidence | ĐẠT — mỗi AC có task test (TV5) + ma trận `docs/verification/phase-1.md` |
-| V. No Invented Requirements | CÓ ĐIỀU KIỆN — luật quan và thứ tự bước là `GIẢ ĐỊNH` (PRD-0 không đọc được); đã ghi `docs/clarify.md`, không còn `[NEEDS CLARIFICATION]` trong spec. PO cần xác nhận trước khi tag |
+| V. No Invented Requirements | ĐẠT phần lớn — số chuẩn đã xác nhận bởi TICKET-02 (boa floor, `order_tick`, ngạt, lịch 120+900k, đóng ca); còn GIẢ ĐỊNH: `data` event v1.0, thứ tự bước quán, cá bị bắt bị loại |
 | VI. Small Slices | ĐẠT — 4 lát luật (TV1–TV4), mỗi lát một nhóm hàm riêng |
 
 Re-check sau thiết kế: không vi phạm mới.

@@ -13,7 +13,7 @@ Dòng JSONL: `{"type":"event","tick":k+1,"phase":..,"name":..,"data":{..}}` — 
 | `faint` | `{}` | hp = 0 (ngay sau `choke`) |
 | `gather` | `{node_id, kind, count}` | hái thành công |
 | `fish_caught` | `{fish_id, kind, count}` | bắt thành công |
-| `hold_full` | `{source_id}` | không đủ chỗ cho lượt nhặt |
+| `hold_full` | `{kind}` (theo `docs/contracts/` của TV1) | không đủ chỗ cho lượt nhặt |
 | `gather_end` | `{reason, inventory:{items}}` | docked / time / fainted (đã có) |
 
 ## quan
