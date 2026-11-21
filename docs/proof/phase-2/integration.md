@@ -33,6 +33,8 @@ python3 -m chonoi.headless --mode quan --seed 42 --ticks 0 --inventory $inventor
 
 ## Kiểm chứng trên nhánh quán Phase 2
 
+- Regression toàn bộ suite trên nhánh quán `2090b6e`: 48/48 đạt trong 10,446 giây, chạy bằng `python3 -m unittest discover -s tests -v` với `PYTHONPATH=tests;.`. Kết quả gồm hai ca QA Phase 1. Ba ca QA Phase 2 trong PR #7 chờ chạy trên bản tích hợp.
+
 - Bản kiểm thử: `origin/codex/quan-phase-2` tại `2090b6e`.
 - Môi trường: Windows PowerShell, Python 3.11.9.
 - Kết quả: 14/14 test đạt trong 0,901 giây, gồm 12 ca quán và 2 ca bàn giao kho.

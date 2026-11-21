@@ -7,6 +7,6 @@
 | Vòng ngày và kế hoạch D1–D5 | Smoke `day --days 1`, kiểm tra chuyển pha, kế hoạch và `days_completed` khi Shop đóng | — | Chưa chạy trên v1.1. |
 | Pause | Kiểm tra đồng hồ và bộ đếm đứng yên khi pause; gameplay tiếp tục ngay ở bước resume | [Test pause](../../tests/test_qa_phase2.py) | Baseline tại `cb04f1e`: CLI trả mã 2 vì frame 0 có trường `pause` chưa được hỗ trợ. Chưa kiểm chứng hành vi pause/resume. |
 | Số liệu chuẩn, cá, Cá Sấu | Đối chiếu manifest và chạy fixture biên cho cá, Cá Sấu | — | Chưa chạy trên v1.1. |
-| Regression Phase 1 | Chạy lại suite, ghi lý do cho từng assertion cần đổi theo v1.1 | — | Chưa chạy trên bản tích hợp v1.1. |
+| Regression Phase 1 | Chạy toàn bộ suite có sẵn trên nhánh quán, gồm smoke Phase 1 và hai ca QA Phase 1 | [Bằng chứng regression](../proof/phase-2/integration.md#kiểm-chứng-trên-nhánh-quán-phase-2) | 48/48 đạt trên `2090b6e`. Chờ chạy lại trên bản tích hợp Phase 2. |
 | Cá Sấu — Chạm làm ngất ở 1 Máu | Kiểm tra `monster_hit → faint → gather_end` trong cùng tick, hai lượt rơi đồ theo LIFO và kho rỗng | [Test Cá Sấu](../../tests/test_qa_phase2.py) | Baseline tại `093237e` trả mã 2 vì chưa hỗ trợ `gather.monsters`. Chưa kiểm chứng luật va chạm và ngất. |
 | Quán mở rộng — 2 bếp, 4 bàn và 6 món | Chạy suite quán, gồm snapshot, món mới, thứ tự nhận đơn, lọc món theo kế hoạch và dọn ca | [Kết quả trên nhánh quán](../proof/phase-2/integration.md#kiểm-chứng-trên-nhánh-quán-phase-2) | 12/12 ca quán đạt trên `2090b6e`. Chờ kiểm lại trên bản tích hợp. |
