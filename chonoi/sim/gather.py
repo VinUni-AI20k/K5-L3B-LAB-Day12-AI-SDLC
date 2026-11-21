@@ -51,6 +51,7 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
+        self.depth_warned = False  # sáng tạo: cảnh báo khi vừa vượt qua ngưỡng áp suất dòng sâu (d > 18)
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         # nút và đàn cá: scenario THAY THẾ danh sách mặc định; random_fish=false tắt cá mặc định
@@ -115,6 +116,15 @@ class GatherSim:
             events.append(("dive", {"pos": list(self.pos)}))
         elif not was_surface and is_surface:
             events.append(("surface", {"pos": list(self.pos)}))
+
+        # Sáng tạo (Cơ chế Áp suất dòng sâu Mekong):
+        # Khi lặn sâu d > 18.0 (vùng phù sa đáy vực), phát cảnh báo depth_warning lần đầu tiên
+        in_depth_zone = self.pos[1] > 18.0
+        if in_depth_zone and not self.depth_warned:
+            self.depth_warned = True
+            events.append(("depth_warning", {"pos": list(self.pos), "depth": round(self.pos[1], 3)}))
+        elif not in_depth_zone:
+            self.depth_warned = False
 
         # 2b. quản lý dưỡng khí oxy & ngạt nước
         if is_surface:
