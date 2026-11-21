@@ -1,9 +1,11 @@
 """Unit test của khung PYTHON trong starter (ids, inputs, Session). Nếu nhóm thay bằng ngôn ngữ khác, XÓA file này
 (và viết unit test tương đương bằng ngôn ngữ của nhóm); test hộp đen test_smoke_p1.py vẫn dùng nguyên."""
 
+import copy
 import unittest
 
 from chonoi.errors import BadInput
+from chonoi.headless import main as headless_main
 from chonoi.ids import IdAllocator, id_key, sort_by_id
 from chonoi.contract import load_contract
 from chonoi.inputs import InputPlayer, LiveInputs, load_frames
@@ -13,6 +15,44 @@ from helpers import hold_items, kinds_of, counts_of, Workdir, frames, write_json
 
 
 class Units(unittest.TestCase):
+    def test_burn_extension_requires_matching_contract_setting(self):
+        contract = load_contract()
+        mismatches = []
+
+        extension_disabled = copy.deepcopy(contract)
+        extension_disabled["extensions"] = []
+        mismatches.append(extension_disabled)
+
+        setting_disabled = copy.deepcopy(contract)
+        setting_disabled["tuning"]["quan"]["burn_s"] = None
+        mismatches.append(setting_disabled)
+
+        with Workdir() as w:
+            for i, invalid in enumerate(mismatches):
+                with self.subTest(case=i), self.assertRaises(BadInput):
+                    load_contract(write_json(w.path(f"contract-{i}.json"), invalid))
+
+    def test_headless_runs_declared_burn_extension(self):
+        # Mở rộng có mã trong Test Contract được chấm qua headless_cmd -> không được tắt ở headless.
+        # Món chín sẵn 1199 tick: tick 1 -> 1200 (vẫn bưng được), tick 2 -> 1201 > 1200 thì cháy.
+        self.assertIn("burn", load_contract()["extensions"])
+        sc = {"quan": {"random_customers": False, "player": {"pos": [12, 5]}, "stock": [],
+                       "stoves": [{"id": "B1", "state": "ready", "ready_ticks": 1199,
+                                   "dish": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}}],
+                       "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                                      "order_status": "assigned", "reserved": []}]}}
+        with Workdir() as w:
+            out = w.path("out.jsonl")
+            result = headless_main(["--mode", "quan", "--seed", "1", "--ticks", "3", "--out", out,
+                                    "--scenario", write_json(w.path("sc.json"), sc)])
+            self.assertEqual(result, 0)
+            import json
+            with open(out, encoding="utf-8") as f:
+                burnt = [r for r in map(json.loads, f) if r.get("name") == "dish_burnt"]
+        self.assertEqual([(r["tick"], r["data"]) for r in burnt],
+                         [(2, {"stove_id": "B1", "order_id": "C1", "dish_id": "ca_loc_nuong_trui",
+                               "order_status": "unfulfillable"})])
+
     def test_id_sorting(self):
         self.assertEqual([e["id"] for e in sort_by_id([{"id": "F10"}, {"id": "F2"}, {"id": "B1"}])], ["B1", "F2", "F10"])
         self.assertLess(id_key("F2"), id_key("F10"))

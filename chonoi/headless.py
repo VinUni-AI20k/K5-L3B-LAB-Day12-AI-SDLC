@@ -65,7 +65,7 @@ def main(argv=None) -> int:
         if len(set(paths)) != len(paths):
             raise BadInput("các đường dẫn đầu vào/đầu ra phải khác nhau")
         contract = load_contract()
-        tuning = contract["tuning"]
+        tuning = contract["tuning"]  # mở rộng khai trong `extensions` (vd. burn) PHẢI chạy ở headless để chấm
         scenario = load_scenario(a.scenario, a.mode, tuning)
         frames = load_frames(a.inputs)
         inventory = read_inventory(a.inventory, v12=is_v12(tuning)) if a.inventory else None

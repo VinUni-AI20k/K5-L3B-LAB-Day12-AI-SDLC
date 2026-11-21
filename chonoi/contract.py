@@ -29,6 +29,11 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
+    extensions = c.get("extensions", [])
+    if (not isinstance(extensions, list)
+            or any(not isinstance(extension, str) for extension in extensions)
+            or len(set(extensions)) != len(extensions)):
+        raise BadInput("extensions phải là mảng mã mở rộng dạng chuỗi, không trùng")
     validate_tuning(c.get("tuning"))
     version = c.get("contract_version")
     if version not in ("1.1", "1.2", "1.3"):
@@ -39,6 +44,10 @@ def load_contract(path=DEFAULT_PATH) -> dict:
         for key in ("bench_cmd", "soak_cmd"):
             if not isinstance(c.get(key), str) or not c[key].strip():
                 raise BadInput(f"contract v1.3 cần {key} (chuỗi lệnh) ở gốc manifest")
+    burn_enabled = "burn" in extensions
+    burn_configured = c["tuning"]["quan"].get("burn_s") is not None
+    if burn_enabled != burn_configured:
+        raise BadInput('extensions có "burn" khi và chỉ khi tuning.quan.burn_s được đặt')
     return c
 
 

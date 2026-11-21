@@ -1,0 +1,22 @@
+Burn extension verification
+Branch: phase2-morong (main is an ancestor; includes PR #9 / v1.2)
+
+Targeted tests:
+  $env:PYTHONPATH='tests;.'; python -m unittest tests.test_quan_service -v
+  12 tests passed.
+
+Contract and headless tests:
+  $env:PYTHONPATH='tests;.'; python -m unittest tests.test_python_starter_units -v
+  9 tests passed.
+
+Full regression:
+  $env:PYTHONPATH='tests;.'; python -m unittest discover -s tests -v
+  212 tests passed, 4 skipped.
+
+Determinism:
+  $env:PYTHONIOENCODING='utf-8'; python .agents/skills/kiem-tat-dinh/kiem_tat_dinh.py
+  15/15 byte-identical pairs across seeds 1, 42, -7.
+
+Two-process smoke:
+  $env:PYTHONIOENCODING='utf-8'; python .agents/skills/smoke-hai-tien-trinh/smoke.py
+  12/12 checks passed.
