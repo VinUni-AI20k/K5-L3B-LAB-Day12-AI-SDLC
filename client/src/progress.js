@@ -27,13 +27,13 @@ export function freshSave() {
   // (bought levels only apply from the NEXT day: main.js calls activateUpgrades() when it builds a new day).
   // rep = reputation carried across days (null = contract reputation_initial); sold = dishes sold over the run.
   return { v: 1, day: 1, money: 0, totalEarned: 0, best: 0, up: { oxy: 0, cap: 0, fins: 0, net: 0, stove: 0, decor: 0, table2: 0, spear: 0 },
-    cu: { oxygen: 0, hp: 0 }, active: { oxygen: 0, hp: 0 }, rep: null, sold: {}, tips: 0, catalog: {}, history: [], hunt: {}, itemSeq: 0 }; // itemSeq: last freshness item id (I<n>, v1.2)
+    cu: { oxygen: 0, hp: 0 }, active: { oxygen: 0, hp: 0 }, rep: null, sold: {}, tips: 0, catalog: {}, history: [], hunt: {}, itemSeq: 0, pendingDelivery: [] }; // pendingDelivery: Chợ Chú Sáu purchases [{id, kind, fresh:100}] for the next evening // itemSeq: last freshness item id (I<n>, v1.2)
 }
 
 export let save = load() || freshSave();
 
 export function load() {
-  try { const raw = localStorage.getItem(KEY); if (!raw) return null; const s = JSON.parse(raw); if (s && s.v === 1) { const f = freshSave(); return { ...f, ...s, up: { ...f.up, ...s.up }, cu: { ...f.cu, ...s.cu }, active: { ...f.active, ...s.active }, sold: { ...s.sold }, hunt: { ...s.hunt } }; } } catch (e) {}
+  try { const raw = localStorage.getItem(KEY); if (!raw) return null; const s = JSON.parse(raw); if (s && s.v === 1) { const f = freshSave(); return { ...f, ...s, up: { ...f.up, ...s.up }, cu: { ...f.cu, ...s.cu }, active: { ...f.active, ...s.active }, sold: { ...s.sold }, hunt: { ...s.hunt }, pendingDelivery: Array.isArray(s.pendingDelivery) ? s.pendingDelivery : [] }; } } catch (e) {}
   return null;
 }
 // Demo mode (title-menu shortcuts): scenes still read stats()/recordCatch() but nothing is written to storage;

@@ -41,6 +41,7 @@ const MAP = {
   arrowleft: "left", a: "left", arrowright: "right", d: "right",
   arrowup: "up", w: "up", arrowdown: "down", s: "down",
   e: "interact", " ": "catch", shift: "sprint", enter: "confirm", escape: "back", m: "mute", r: "restart", p: "pause", c: "close",
+  n: "next", tab: "tab", // N = "Mở quán" on the menu board · Tab = switch Shop tabs
 };
 addEventListener("keydown", (e) => {
   const k = MAP[e.key.toLowerCase()];

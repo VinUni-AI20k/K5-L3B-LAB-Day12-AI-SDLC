@@ -97,6 +97,9 @@ export class QuanScene {
     const t = this.t, all = contract.tuning.menu;
     const allowed = Array.isArray(opts && opts.menu) ? opts.menu.filter((k) => all[k]) : Object.keys(all);
     this.menu = Object.fromEntries(allowed.map((k) => [k, all[k]]));
+    // opts.portions (menu board in EveningIntro): { dish: target } — once sold + open orders reach the target the dish
+    // is "Hết suất" and no new guest orders it (they pick another selected dish or go home as no_dish)
+    this.portions = opts && opts.portions && typeof opts.portions === "object" ? Object.fromEntries(Object.entries(opts.portions).filter(([k, n]) => this.menu[k] && Number.isFinite(+n)).map(([k, n]) => [k, Math.max(0, +n | 0)])) : null;
     this.p = { x: t.start_pos[0], z: t.start_pos[1], vx: 0, vz: 0, face: 1, walk: 0 };
     const counts = stock ? { ...stock } : { ca_loc: 3, ca_linh: 6, bong_sung: 4, bong_dien_dien: 3, ca_keo: 4, keo_neo: 1 }; // null = demo stock; {} = empty basket
     // v1.2 freshness: item-level stock { id, kind, fresh, spoiled, res } (res = id of the guest holding it). opts.items =
@@ -222,6 +225,9 @@ export class QuanScene {
     this.syncStock();
   }
   freeOK(key) { const r = this.menu[key].recipe; return Object.entries(r).every(([k, n]) => (this.stock[k] || 0) >= n); }
+  // portion target reached (sold + orders still open) → not offered to new guests any more
+  soldOut(key) { const tg = this.portions && this.portions[key]; if (tg == null) return false; return (this.sold[key] || 0) + this.customers.filter((c) => c.state === "waiting" && c.want === key).length >= tg; }
+  orderable(key) { return this.freeOK(key) && !this.soldOut(key); }
   resFor(key) { return this.customers.filter((c) => c.state === "waiting" && c.want === key && c.reserved).sort((a, b) => a.orderT - b.orderT || (a.table < b.table ? -1 : 1))[0] || null; }
   canCook(key) { return !!this.resFor(key) || this.freeOK(key); }
   release(cu) { if (!cu.reserved) return; for (const it of this.items) if (it.res === cu.id) it.res = null; cu.reserved = null; cu.resIds = null; this.syncStock(); }
@@ -246,7 +252,7 @@ export class QuanScene {
   spawnCustomer() {
     // first customer of a shift is always a regular (gentle start); later ones follow the day's weights
     const type = this.nextType && CUST_TYPES[this.nextType] ? this.nextType : this.custSeq === 0 ? "quen" : pickType(this.day);
-    const tb = this.freeTable(), anyDish = Object.keys(this.menu).some((k) => this.freeOK(k));
+    const tb = this.freeTable(), anyDish = Object.keys(this.menu).some((k) => this.orderable(k));
     if (!tb && anyDish && this.queue().length >= this.queueMax) return false; // gangway full: the sampan rows on by
     this.nextType = null;
     const cu = this.newGuest(type), ty = CUST_TYPES[type];
@@ -262,7 +268,7 @@ export class QuanScene {
   // a guest takes table tb and orders right away (the order reserves its ingredients, contract §1.3)
   seat(cu, tb, arriving) {
     cu.table = tb.id; cu.x = tb.pos[0]; cu.z = tb.pos[1];
-    const ty = CUST_TYPES[cu.type] || CUST_TYPES.quen, keys = Object.keys(this.menu).filter((k) => this.freeOK(k));
+    const ty = CUST_TYPES[cu.type] || CUST_TYPES.quen, keys = Object.keys(this.menu).filter((k) => this.orderable(k));
     if (cu.vis && cu.vis.phase === "stand") cu.vis.phase = "walk";
     if (!keys.length) { // no_dish: the guest still comes, reads the menu, says "Hết món rồi…" and goes home (no rep loss, counted as missed)
       cu.state = "nodish"; cu.nd = 2; cu.patience = 1; cu.patienceMax = 1; return;
@@ -544,7 +550,9 @@ export class QuanScene {
     this.score = this.money + 100 * Math.floor(this.rep);
     this.pushReview();
     this.result = { money: this.money, rep: this.rep, score: this.score, t: 0, stars: Math.floor(this.rep), served: this.served, left: this.left, day: this.day, tips: this.tips, sold: { ...this.sold }, rep0: this.rep0, closedEarly: !!this.closedEarly, missed: this.missed,
-      left_queue: this.left_queue, tipsCount: this.tipsCount, served_fast: this.fastCount, review: this.review };
+      left_queue: this.left_queue, tipsCount: this.tipsCount, served_fast: this.fastCount, review: this.review,
+      // leftover raw items (spoiled included) → main.js hands them to the Shop (Chợ Chú Sáu sells the usable ones)
+      leftover: this.items.map((it) => ({ id: it.id, kind: it.kind, fresh: it.fresh, spoiled: !!it.spoiled || it.fresh < this.fresh.spoiled_below })) };
     music("theme"); sfx("fanfare");
   }
   // one short guest review into the phone inbox (meta.pushMessage)
@@ -596,7 +604,8 @@ export class QuanScene {
     if (input.hit("close")) { this.requestClose(); if (this.ended) return; }
     if (this.confirmClose > 0) this.confirmClose -= dt;
     // no dish can be made for a NEW guest any more -> persistent banner + one short voice line
-    this.noDish = !Object.keys(this.menu).some((k) => this.freeOK(k));
+    this.noDish = !Object.keys(this.menu).some((k) => this.orderable(k));
+    this.allSoldOut = this.noDish && Object.keys(this.menu).some((k) => this.freeOK(k)); // stock left, but every portion target is met
     if (this.noDish && !this.noDishSaid) { this.noDishSaid = true; try { voiceLine("sen", "Hết nguyên liệu rồi Má ơi! Đóng quán sớm nghen?"); } catch (e) {} }
 
     // stoves
@@ -945,6 +954,15 @@ export class QuanScene {
     const qn = this.queue().length;
     if (qn || this.left_queue) { panel(80, 40, 96, 13, { fill: F, border: qn >= this.queueMax ? "#ffb36b" : HUD.dim, r: 5 }); txt("Hàng chờ " + qn + "/" + this.queueMax, 85, 49.5, { size: 7, color: "#9fd8ff", weight: 900 }); txt("Về " + this.left_queue, 171, 49.5, { size: 7, align: "right", color: this.left_queue ? "#ffb36b" : "#c9a88a", weight: 900 }); }
     if (this.missed || this.noDish) { panel(6, 56, 112, 13, { fill: F, border: HUD.dim, r: 5 }); txt("Khách về vì hết món: " + this.missed, 11, 65.5, { size: 7, color: "#ffb36b", weight: 900 }); }
+    // menu board targets: sold / target per selected dish, "Hết suất" once the target is met
+    if (this.portions) Object.keys(this.menu).forEach((k, i) => {
+      const tg = this.portions[k]; if (tg == null) return;
+      const y = 72 + i * 14, sold = this.sold[k] || 0, out = this.soldOut(k);
+      panel(6, y, 74, 13, { fill: F, border: out ? "#ff8a8a" : HUD.dim, r: 5 });
+      u.imageSmoothingEnabled = false; u.drawImage(dishIcon(k), 8, y + 1, 11, 11);
+      txt(`${sold}/${tg}`, 22, y + 9.5, { size: 7, color: out ? "#ffb0a0" : HUD.text, weight: 900 });
+      if (out) txt("Hết suất", 77, y + 9.5, { size: 7, align: "right", color: "#ff8a8a", weight: 900 });
+    });
     // money
     panel(6, 5, 70, 15, { fill: F, border: HUD.border, r: 6 });
     txt("🪙", 12, 16, { size: 9 }); txt(this.money + "k", 72, 16, { size: 11, align: "right", color: "#ffe14d", weight: 900 });
@@ -973,7 +991,7 @@ export class QuanScene {
       panel(b.x, b.y, b.w, b.h, { fill: armed ? "rgba(140,40,20,.95)" : "rgba(110,64,32,.95)", border: armed ? "#ffb36b" : "#3a2410", bw: 1.5, r: 4 });
       txt(armed ? "Nhấn lần nữa!" : "Đóng quán sớm (C)", b.x + b.w / 2, b.y + 10.5, { size: 7, align: "center", color: "#ffe9c4", weight: 900 });
       if (armed) { panel(W / 2 - 110, 52, 220, 16, { fill: "rgba(120,30,20,.92)", border: "#ffb36b", r: 6 }); txt("Nhấn C lần nữa để đóng quán", W / 2, 63, { size: 9, align: "center", color: "#fff", weight: 900 }); }
-      else if (this.noDish) { const a = 0.75 + 0.25 * Math.sin(time * 4); panel(W / 2 - 150, 52, 300, 16, { fill: `rgba(80,20,20,${0.9 * a})`, border: "#ff8a8a", r: 6 }); txt("Hết nguyên liệu — khách ghé rồi về · C: Đóng quán sớm", W / 2, 63, { size: 8, align: "center", color: "#ffe0d0", weight: 900 }); }
+      else if (this.noDish) { const a = 0.75 + 0.25 * Math.sin(time * 4); panel(W / 2 - 150, 52, 300, 16, { fill: `rgba(80,20,20,${0.9 * a})`, border: "#ff8a8a", r: 6 }); txt((this.allSoldOut ? "Hết suất — khách ghé rồi về" : "Hết nguyên liệu — khách ghé rồi về") + " · C: Đóng quán sớm", W / 2, 63, { size: 8, align: "center", color: "#ffe0d0", weight: 900 }); }
     }
     // hand indicator
     if (this.hand) { const s = "Đang bưng: " + dishName(this.hand.key), hw = Math.max(86, Math.ceil(measure(s, 7, 800)) + 10); panel(W - 6 - hw, 30, hw, 14, { fill: "rgba(70,30,12,.9)", border: "#ff8a3d", r: 6 }); txt(s, W - 1 - hw, 40, { size: 7, color: "#ffd0a0", weight: 800 }); }
