@@ -147,15 +147,8 @@ class Route(unittest.TestCase):
     def test_phuc_vu_svg_va_js(self):
         code, ctype, body = self.get("/assets/usen.svg")
         self.assertEqual((code, ctype), (200, "image/svg+xml"))
-<<<<<<< Updated upstream
         with open(os.path.join(ASSETS, "usen.svg"), "rb") as f:  # so theo byte: Git trên Windows có thể đổi LF thành CRLF
             self.assertEqual(body, f.read())
-=======
-        self.assertEqual(
-            body.decode("utf-8").replace("\r\n", "\n"),
-            read("chonoi", "web", "assets", "usen.svg").replace("\r\n", "\n"),
-        )
->>>>>>> Stashed changes
         code, ctype, _ = self.get("/assets/sfx.js")
         self.assertEqual(code, 200)
         self.assertTrue(ctype.startswith("text/javascript"))
