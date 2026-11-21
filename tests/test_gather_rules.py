@@ -101,6 +101,7 @@ class Choking(unittest.TestCase):
         sess, rows = run({"player": {"pos": [FAR, 5], "oxygen_ticks": 1, "hp": 1}, "hold": hold},
                          ticks=G["choke_interval_ticks"] + 50)
         self.assertEqual(sess.tick, G["choke_interval_ticks"])  # dừng ngay tại tick ngất
+        self.assertEqual(named(rows, "faint")[0]["data"]["lost"], hold[::-1])  # món nhặt sau rơi trước (LIFO)
         end = named(rows, "gather_end")[0]["data"]
         self.assertEqual(end, {"reason": "fainted", "inventory": {"items": {}}})
         self.assertEqual(sess.sim.inventory_items(), {})
