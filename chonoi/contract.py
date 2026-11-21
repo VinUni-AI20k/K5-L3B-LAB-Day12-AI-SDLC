@@ -149,3 +149,11 @@ def validate_tuning(t):
         price, cook = d.get("price"), d.get("cook_s")
         if isinstance(price, bool) or not isinstance(price, int) or price <= 0 or not _num(cook) or cook <= 0:
             raise BadInput(f"menu.{dish_id}: price (nguyên) và cook_s phải > 0")
+    freshness = t.get("freshness")
+    if freshness is not None:
+        if not isinstance(freshness, dict):
+            raise BadInput("tuning.freshness phải là object")
+        _between("freshness.initial", freshness.get("initial"), 0, 100)
+        _between("freshness.gather_decay_per_s", freshness.get("gather_decay_per_s"), 0, 100)
+        _between("freshness.quan_decay_per_s", freshness.get("quan_decay_per_s"), 0, 100)
+        _between("freshness.spoiled_below", freshness.get("spoiled_below"), 0, 100)

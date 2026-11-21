@@ -2,7 +2,7 @@
 
 | AC | Nội dung | Cách kiểm chứng | Bằng chứng (link `docs/proof/phase-3/...`) | Kết quả (đạt / chưa đạt — ghi trung thực) | Người |
 |---|---|---|---|---|---|
-| AC-P3-01 | v1.2: file kho đếm, sai schema, kind lạ, id trùng, fresh ngoài miền → mã 2 | test đơn vị + headless | — | chưa đạt (chờ adapter) | invzble-z |
+| AC-P3-01 | v1.2: file kho đếm, sai schema, kind lạ, id trùng, fresh ngoài miền → mã 2 | test đơn vị + headless | 7 unit tests trong `tests/test_p3_inventory.py` | đạt | invzble-z |
 | AC-P3-02 | Hàng mới fresh=100, hao 0.5/s ở giỏ, 0.25/s ở kho, kẹp 0, pause dừng hao, món chín không hao | test | — | chưa đạt (chờ gộp) | Dũng, Quốc |
 | AC-P3-03 | spoiled đúng 1 lần khi từ ≥ 30 xuống < 30, theo id, đúng location | scenario mẫu ticket | — | chưa đạt (chờ gộp) | Dũng, Quốc |
 | AC-P3-04 | Giữ theo id tươi nhất. Hàng giữ vừa ươn → nhả, giữ lại 1 lần, thiếu → unfulfillable | test | — | chưa đạt (chờ gộp) | Quoosc |

@@ -48,7 +48,11 @@ class DaySim:
 
         self.phase = "gather"
         self.phase_tick = 0
-        self.stock = dict(inventory) if inventory is not None else dict(self.scenario.get("stock", {}))
+        if inventory is not None:
+            self.stock = list(inventory) if isinstance(inventory, list) else dict(inventory)
+        else:
+            sc_stock = self.scenario.get("stock", {})
+            self.stock = list(sc_stock) if isinstance(sc_stock, list) else dict(sc_stock)
         self.shop_max_ticks = int(self.tuning.get("shop", {}).get("max_ticks", 600))
         self.shop_time_left_ticks = self.shop_max_ticks
 
@@ -124,7 +128,7 @@ class DaySim:
 
         quan_sc = dict(self.scenario.get("quan", {}) if isinstance(self.scenario, dict) else {})
         # Bàn giao kho trong bộ nhớ từ gather
-        quan_sc["stock"] = dict(self.stock)
+        quan_sc["stock"] = list(self.stock) if isinstance(self.stock, list) else dict(self.stock)
 
         self.sub_sim = QuanSim(
             self.tuning, quan_sc, self.streams, self.ids,
@@ -146,12 +150,14 @@ class DaySim:
             return self.sub_sim.time_left_ticks
         return self.shop_time_left_ticks
 
-    def inventory_items(self) -> dict:
+    def inventory_items(self):
         if self.phase == "gather" and self.sub_sim is not None:
             return self.sub_sim.inventory_items()
         elif self.phase == "quan" and self.sub_sim is not None:
+            if getattr(self.sub_sim, "items", None):
+                return list(self.sub_sim.items)
             return dict(self.sub_sim.stock)
-        return dict(self.stock)
+        return list(self.stock) if isinstance(self.stock, list) else dict(self.stock)
 
     def snapshot(self) -> dict:
         plan = self._get_current_plan()
@@ -228,7 +234,10 @@ class DaySim:
                 self.money += self.sub_sim.earned
                 self.earned += self.sub_sim.earned
                 self.reputation = self.sub_sim.reputation
-                self.stock = dict(self.sub_sim.stock)
+                if getattr(self.sub_sim, "items", None):
+                    self.stock = list(self.sub_sim.items)
+                else:
+                    self.stock = dict(self.sub_sim.stock)
                 self._init_shop()
                 evs.append(("phase_start", {}, "shop", self.day))
 

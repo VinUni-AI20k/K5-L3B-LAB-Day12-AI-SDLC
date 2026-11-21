@@ -25,24 +25,14 @@ from dataclasses import dataclass
 from fractions import Fraction
 
 from ..ids import sort_by_id
-from ..inventory import hold_to_items
+from ..inventory import Item, hold_to_items
 from .monsters import MonsterSystem
 from .ramp import ramp_velocity
 
 TICK = 60.0
 AXES = ("x", "d")
 
-
-@dataclass
-class _HoldItem:
-    """Kiểu tạm cho Gather trong lúc chờ Item của adapter kho."""
-
-    id: str
-    kind: str
-    fresh: Fraction
-
-    def snapshot(self):
-        return {"id": self.id, "kind": self.kind, "fresh": float(self.fresh)}
+_HoldItem = Item
 
 
 class GatherSim:
