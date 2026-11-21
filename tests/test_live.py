@@ -1,6 +1,9 @@
 """Test cửa sổ chơi trực tiếp (chonoi.live). Chỉ dành cho starter Python: nhóm đổi ngôn ngữ thì xóa file này."""
 
 import json
+from pathlib import Path
+import shutil
+import subprocess
 import time
 import unittest
 import urllib.error
@@ -24,6 +27,98 @@ def _post(url, obj):
     except urllib.error.HTTPError as e:
         e.close()
         return e.code
+
+
+@unittest.skipUnless(shutil.which("node"), "HUD JavaScript checks require Node.js")
+class LiveHudTest(unittest.TestCase):
+    """Execute the shipped client with a tiny DOM; no sim freshness dependency."""
+
+    def run_client(self, checks):
+        html = (Path(__file__).resolve().parents[1] / "chonoi/web/index.html").read_text()
+        script = html.split("<script>", 1)[1].split("</script>", 1)[0]
+        harness = r"""
+const assert = require('node:assert/strict');
+class Element {
+  constructor(){this.children=[];this.hidden=true;this.style={};this.textContent='';this.className='';this.classList={toggle(){}};}
+  append(...children){this.children.push(...children);}
+  replaceChildren(...children){this.children=children;this.textContent='';}
+  setAttribute(key,value){this[key]=value;}
+  getContext(){return {};}
+}
+const elements=new Map();
+const document={getElementById(id){if(!elements.has(id))elements.set(id,new Element());return elements.get(id);},
+  createElement(){return new Element();},querySelectorAll(){return [];},body:new Element()};
+const performance={now:()=>0};
+const addEventListener=()=>{}, requestAnimationFrame=()=>{}, setTimeout=()=>{};
+const fetch=()=>new Promise(()=>{});
+"""
+        result = subprocess.run(["node", "-e", harness + script + checks],
+                                text=True, capture_output=True, timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_individual_freshness_threshold_and_reserved_ids(self):
+        self.run_client(r"""
+const items=[{id:'I1',kind:'ca_loc',fresh:30},{id:'I2',kind:'ca_loc',fresh:29.996},
+  {id:'I3',kind:'bong_sung',fresh:97.5}];
+const original=JSON.stringify(items), parent=new Element();
+renderInventory(parent,items,[{reserved:['I1']}]);
+assert.equal(parent.children.length,3);
+assert.match(parent.children[0].children[0].textContent,/30.00%.*giữ chỗ/);
+assert.doesNotMatch(parent.children[0].className,/spoiled/);
+assert.match(parent.children[1].className,/spoiled/);
+assert.match(parent.children[1].children[0].textContent,/ươn/);
+assert.equal(parent.children[2].children[1].value,97.5);
+assert.equal(JSON.stringify(items),original);
+assert.deepEqual(availableStock({stock:items,customers:[{reserved:['I1']}]}),[items[2]]);
+""")
+
+    def test_legacy_and_missing_inventory_fields(self):
+        self.run_client(r"""
+assert.deepEqual(inventoryCounts(['ca_loc','ca_loc','bong_sung']),{ca_loc:2,bong_sung:1});
+assert.deepEqual(inventoryCounts(),{});
+const parent=new Element();renderInventory(parent,{ca_loc:2});
+assert.match(parent.children[0].children[0].textContent,/cá lóc ×2/);
+assert.equal(parent.children[0].children.length,1);
+renderInventory(parent,undefined);assert.equal(parent.textContent,'(trống)');
+assert.deepEqual(availableStock({stock:{ca_loc:3},customers:[{reserved:{ca_loc:2}},{}]}),{ca_loc:1});
+snap={mode:'gather'};updateFlow();updateInventoryHud();
+assert.equal(elements.get('flow').hidden,true);
+assert.equal(elements.get('inventory-title').textContent,'Giỏ 0');
+""")
+
+    def test_spoiled_event_before_another_event_is_not_skipped_or_repeated(self):
+        self.run_client(r"""
+snap={events:[{tick:1,name:'spoiled',data:{item_id:'I2',kind:'ca_loc',location:'hold'}},
+  {tick:1,name:'gather',data:{}}]};
+updateNotifications();assert.equal(notifications.length,2);
+assert.match(notifications[0].text,/I2.*ươn.*giỏ/);assert.equal(notifications[0].tone,'danger');
+updateNotifications();assert.equal(notifications.length,2);
+snap.events.push({tick:2,name:'spoiled',data:{item_id:'I3',kind:'bong_sung',location:'stock'}});
+updateNotifications();assert.equal(notifications.length,3);assert.match(notifications[2].text,/I3.*kho/);
+""")
+
+    def test_basket_and_instructions_have_separate_elements(self):
+        self.run_client(r"""
+snap={phase:'gather',screen:'playing',hold:[{id:'I1',kind:'ca_loc',fresh:88}],hold_capacity:12};
+updateInventoryHud();assert.equal(elements.get('inventory-title').textContent,'Giỏ 1/12');
+assert.match(elements.get('key-help').textContent,/Space bắt cá/);
+assert.match(elements.get('inventory-list').children[0].children[0].textContent,/88.00%/);
+snap={phase:'quan',screen:'playing',stock:[{id:'I2',kind:'ca_loc',fresh:29}],customers:[]};
+updateInventoryHud();assert.match(elements.get('inventory-title').textContent,/Kho 1.*trống/);
+assert.match(elements.get('inventory-list').children[0].className,/spoiled/);
+""")
+
+    def test_shop_individual_stock_and_legacy_count_stock(self):
+        self.run_client(r"""
+snap={phase:'shop',screen:'playing',day:1,money:0,earned:0,score:300,time_left_ticks:600,
+  shop:{upgrades:{}},stock:[{id:'I4',kind:'ca_linh',fresh:20}]};
+updateFlow();
+const lists=elements.get('flow-content').children.filter(el=>el.className==='inventory-list');
+assert.equal(lists.length,1);assert.match(lists[0].children[0].children[0].textContent,/I4.*ươn/);
+snap.stock={ca_loc:2};updateFlow();
+const legacy=elements.get('flow-content').children.find(el=>el.className==='inventory-list');
+assert.match(legacy.children[0].children[0].textContent,/cá lóc ×2/);
+""")
 
 
 class LiveServerTest(unittest.TestCase):
