@@ -1006,8 +1006,10 @@ export class QuanScene {
     if (cu.state === "eating") txt(Math.floor(time * 3) % 2 ? "😋" : "😊", x + 8, y - 26, { size: 9 });
     if (cu.state === "queue" && v.phase === "stand") { // own small patience bar while waiting for a table
       const fr = clamp(cu.qPat / (cu.qMax || QUEUE_PAT), 0, 1), bw = 12, by = y - 29;
-      R(c, x - bw / 2 - 1, by - 1, bw + 2, 4, "rgba(20,10,8,.8)"); R(c, x - bw / 2, by, Math.max(1, Math.round(bw * fr)), 2, fr < 0.3 ? "#ff5a5a" : fr < 0.6 ? "#ffd23a" : "#9fd8ff");
-      if (fr < 0.3 && Math.floor(time * 5) % 2) R(c, x + 8, by - 4, 1, 3, "#ff5a5a");
+      // same green → yellow → red scale as the patience ring (high-contrast via a11y.HC)
+      const low = hc("#ff3a3a", HC.danger), qc = fr < 0.3 ? low : fr < 0.6 ? hc("#ffd23a", HC.warn) : "#79c75a";
+      R(c, x - bw / 2 - 1, by - 1, bw + 2, 4, "rgba(20,10,8,.8)"); R(c, x - bw / 2, by, Math.max(1, Math.round(bw * fr)), 2, qc);
+      if (fr < 0.3 && Math.floor(time * 5) % 2) R(c, x + 8, by - 4, 1, 3, low);
     }
     if (cu.state === "nodish" && v.phase === "stand" && !this.menuOpen && !this.result) txt("Hết món rồi…", x, y - 32, { size: 7, align: "center", color: "#3a1410", weight: 900, stroke: "#fff6e8", sw: 3 });
   }
