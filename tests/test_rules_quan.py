@@ -78,10 +78,14 @@ class Khach(unittest.TestCase):
             self.assertEqual(at(rows, first)["customers"], [])
 
     def test_khach_03_no_free_table_skips_turn(self):
-        """Không còn bàn trống (T1 đã có khách fixture) thì bỏ lượt: không `customer_arrived`, không `no_dish`."""
+        """Không còn bàn trống thì bỏ lượt: không `customer_arrived`, không `no_dish`.
+        Lý do cập nhật test (v1.1, TICKET-02 mục 1.3): quán có 4 bàn T1–T4 nên fixture
+        phải chiếm đủ cả 4 bàn mới còn ý nghĩa 'hết bàn'; giữ chỗ phải khớp tồn kho."""
         first = tuning()["first_customer_tick"]
         with Workdir() as w:
-            sc = {"stock": {"ca_loc": 1}, "customers": [cust("C1", patience_ticks_left=first + 100)]}
+            sc = {"stock": {"ca_loc": 4},
+                  "customers": [cust(f"C{i}", table_id=f"T{i}", patience_ticks_left=first + 100)
+                                for i in range(1, 5)]}
             rows = run(w, sc, ticks=first)
             self.assertEqual(events(rows, "customer_arrived"), [])
             self.assertEqual(events(rows, "no_dish"), [])
