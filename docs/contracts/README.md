@@ -25,7 +25,7 @@ UI chỉ ĐỌC trạng thái và GỬI lệnh. UI không sửa trạng thái si
 **UI đọc** (cùng một dạng với dòng `snapshot` của headless và `GET /state` của `chonoi.live`):
 
 - Chung: `tick`, `mode` (`gather` hoặc `quan`), `state` (`playing` hoặc `finished`), `time_left_ticks`, `money`, `earned`, `reputation`, `score`.
-- `gather`: `player` (`pos` `[x, d]`, `vel`, `heading_deg`, `oxygen_ticks`, `oxygen_max_ticks`, `hp`, `hp_max`, `zero_oxy_ticks`, `invuln_ticks`, `catch_cd_ticks`, `at_surface`), `hold` (mảng, cuối mảng là món mới nhặt), `hold_count`, `hold_capacity`, `nodes` (`id`, `pos`, `kind`, `ready`, `regrow_ticks`), `fish` (`id`, `pos`, `kind`, `heading_deg`).
+- `gather`: `player` (`pos` `[x, d]`, `vel`, `heading_deg`, `oxygen_ticks`, `oxygen_max_ticks`, `hp`, `hp_max`, `zero_oxy_ticks`, `catch_cd_ticks`, `at_surface`), `hold` (mảng, cuối mảng là món mới nhặt), `hold_count`, `hold_capacity`, `nodes` (`id`, `pos`, `kind`, `ready`, `regrow_ticks`), `fish` (`id`, `pos`, `kind`, `heading_deg`).
 - `quan`: `player` (`pos` `[x, z]`), `stock`, `hand`, `stoves` (`id`, `pos`, `state`, `dish`, `cook_ticks_left`, `ready_ticks`), `tables` (`id`, `pos`, `customer_id`), `customers`.
 - Trường nào chưa có thì UI bỏ qua, không báo lỗi. Sim thêm trường mới thì không được đổi tên hoặc ý nghĩa trường cũ.
 
@@ -43,14 +43,14 @@ Mỗi sự kiện là một dòng JSONL `{"type":"event","tick":…,"phase":…,
 
 | Sự kiện | Chế độ | `data` | Phát | Nghe |
 |---|---|---|---|---|
-| `dive` | gather | vị trí lúc lặn | `sim/gather` | UI |
-| `surface` | gather | vị trí lúc nổi | `sim/gather` | UI |
-| `oxygen_empty` | gather | (trống) | `sim/gather` | UI |
+| `dive` | gather | `pos` lúc lặn | `sim/gather` | UI |
+| `surface` | gather | `pos` lúc nổi | `sim/gather` | UI |
+| `oxygen_empty` | gather | `oxygen_ticks` (luôn 0) | `sim/gather` | UI |
 | `choke` | gather | `hp` còn lại | `sim/gather` | UI |
-| `faint` | gather | (trống) | `sim/gather` | UI, QA |
-| `gather` | gather | `node_id`, nguyên liệu nhặt | `sim/gather` | UI, QA |
-| `hold_full` | gather | nguồn bị từ chối (nút hoặc cá) | `sim/gather` | UI |
-| `fish_caught` | gather | `fish_id`, loại cá | `sim/gather` | UI, QA |
+| `faint` | gather | `cause` (`choke`), `lost` (món rơi, mới nhặt trước), `hp` (0) | `sim/gather` | UI, QA |
+| `gather` | gather | `node_id`, `kind`, `amount` | `sim/gather` | UI, QA |
+| `hold_full` | gather | `action` (`gather` hoặc `catch`), `node_id` hoặc `fish_id`, `required`, `free` | `sim/gather` | UI |
+| `fish_caught` | gather | `fish_id`, `kind`, `yield` | `sim/gather` | UI, QA |
 | `node_regrown` | gather | `node_id` | `sim/gather` (khung đã có) | UI |
 | `gather_end` | gather | `reason` (`docked`, `fainted`, `time`), `inventory.items` | `sim/gather` (khung đã có) | `sim/quan`, QA |
 | `customer_left` | quan | `customer_id` | `sim/quan` | UI, QA |
@@ -62,8 +62,9 @@ Mỗi sự kiện là một dòng JSONL `{"type":"event","tick":…,"phase":…,
 | `paid` | quan | `customer_id`, tiền, boa | `sim/quan` | UI, QA |
 | `quan_end` | quan | `reason`, `money`, `earned`, `shift_earned`, `reputation` | `sim/quan` (khung đã có) | QA |
 
-Cột `data` là đề xuất ban đầu của Integrator để A, B, C thống nhất; chỉ `node_regrown`, `gather_end` và `quan_end` đã có trong khung. Chưa chốt: tên sự kiện khi khách đến quán (PRD-0 mục E chưa có trong repo, ghi vào `docs/clarify.md` và hỏi PO).
+Các sự kiện `gather` (từ `dive` đến `gather_end`) khớp code của P1-04 và P1-05 (PR #5), đã đối chiếu với PRD-0 mục D, E, F theo `docs/proof/phase-1/gather.md`. Cột `data` của các sự kiện `quan` vẫn là đề xuất ban đầu của Integrator để B thống nhất; chỉ `node_regrown`, `gather_end` và `quan_end` đã có trong khung. Chưa chốt: tên sự kiện khi khách đến quán (PRD-0 mục E chưa có trong repo, ghi vào `docs/clarify.md` và hỏi PO).
 
 ## Lịch sử đổi
 
 - Bản đầu do Integrator viết ở nhánh `p1-01-03-kickoff`, cần A, B, C đọc và đồng ý trước khi viết luật.
+- Cập nhật bảng sự kiện `gather` và bỏ `invuln_ticks` khỏi snapshot theo code của P1-04 và P1-05 (v1.0 không có `invuln_ticks`). Phase 2 (v1.1) thêm lại `invuln_ticks`, `attack_cd_ticks`, `monsters[]` và các sự kiện `monster_hit`, `fish_spawned`, `day_start`, `phase_start`, `paused`, `resumed`, `bought`, `buy_failed`, `shop_end`; cần quyết định chấp nhận hay từ chối `invuln_ticks` theo `contract_version`.
