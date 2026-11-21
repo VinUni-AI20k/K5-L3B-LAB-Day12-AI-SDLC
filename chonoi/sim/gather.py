@@ -63,7 +63,7 @@ class GatherSim:
         self.monsters = []
         self._monster_mod = _load_monster_module()
         if self._monster_mod is not None and ("monsters" in t or "monsters" in scenario):
-            self.monsters = self._monster_mod.init_monsters(self, scenario)
+            self.monsters = self._monster_mod.init_monsters(self, scenario, self.day)
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]

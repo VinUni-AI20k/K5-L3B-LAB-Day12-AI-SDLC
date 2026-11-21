@@ -76,7 +76,7 @@ def step_swim(sim):
         return
     speed = float(t["fish_speed"])
     step_dist = speed / sim.tick_hz
-    turn_ticks = int(t.get("fish_turn_ticks", 120))
+    turn_ticks = int(t["fish_turn_ticks"])
     x_lo, x_hi = float(t["fish_x"][0]), float(t["fish_x"][1])
     depths_map = t["fish_depths"]
     rng_turn = sim.rng.get("fish_turn")
@@ -104,10 +104,10 @@ def step_spawn(sim, events: list):
     t = sim.t
     if not sim.random_fish or not _has_v11_spawn_config(t):
         return
-    spawn_ticks = int(t.get("fish_spawn_ticks", 360))
+    spawn_ticks = int(t["fish_spawn_ticks"])
     if spawn_ticks <= 0 or sim.phase_tick <= 0 or sim.phase_tick % spawn_ticks != 0:
         return
-    fish_max = int(t.get("fish_max", 12))
+    fish_max = int(t["fish_max"])
     if len(sim.fish) >= fish_max:
         return
     school = _pick_and_create_school(sim, sim.fish)
@@ -125,7 +125,7 @@ def _pick_and_create_school(sim, existing_fish: list, occupied_pts=None):
     t = sim.t
     if not _has_v11_spawn_config(t):
         return None
-    clearance = float(t.get("fish_spawn_clearance", 1.0))
+    clearance = float(t["fish_spawn_clearance"])
     spawn_xs = [float(x) for x in t["fish_spawn_x"]]
     spawn_depths = t["fish_spawn_depths"]
     weights = t["fish_weights"]

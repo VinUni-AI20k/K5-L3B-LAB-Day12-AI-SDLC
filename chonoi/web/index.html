@@ -571,12 +571,15 @@ const KIND_INFO = {
   keo_neo:        { name: "Kèo nèo",    short: "Kèo nèo",   color: "#8fcf6b", accent: "#dcedc8", icon: "🌿" },
   rau_muong:      { name: "Rau muống",  short: "Rau muống", color: "#45b485", accent: "#b2dfdb", icon: "🥬" }
 };
-const CORE_MENU_IDS = ["ca_loc_nuong_trui", "goi_bong_sung", "lau_ca_linh_dien_dien"];
+const CORE_MENU_IDS = ["ca_loc_nuong_trui", "goi_bong_sung", "lau_ca_linh_dien_dien", "canh_chua_ca_loc", "ca_keo_nuong", "lau_mam"];
 const EXTRA_MENU_IDS = ["ca_keo_kho_to", "canh_chua_ca_ro_keo_neo", "rau_muong_xao"];
 const MENU_INFO = {
   ca_loc_nuong_trui:       { name: "Cá lóc nướng trui",      short: "Lóc nướng",     recipe: { ca_loc: 1 },                    cook_s: 6,  price: 60,  color: "#d9823b", icon: "🍢" },
   goi_bong_sung:           { name: "Gỏi bông súng",          short: "Gỏi súng",      recipe: { bong_sung: 2 },                 cook_s: 4,  price: 40,  color: "#ec7098", icon: "🥗" },
   lau_ca_linh_dien_dien:   { name: "Lẩu cá linh điên điển",  short: "Lẩu cá linh",   recipe: { ca_linh: 3, bong_dien_dien: 1 }, cook_s: 10, price: 120, color: "#f2b830", icon: "🍲" },
+  canh_chua_ca_loc:        { name: "Canh chua cá lóc điên điển", short: "Canh chua lóc", recipe: { ca_loc: 1, bong_dien_dien: 1 }, cook_s: 8, price: 90, color: "#8bc34a", icon: "🍜" },
+  ca_keo_nuong:            { name: "Cá kèo nướng muối ớt",   short: "Kèo nướng",     recipe: { ca_keo: 2 },                    cook_s: 6,  price: 70,  color: "#e67e22", icon: "🐟" },
+  lau_mam:                 { name: "Lẩu mắm miền Tây",       short: "Lẩu mắm",       recipe: { ca_linh: 2, ca_keo: 1, keo_neo: 1, bong_dien_dien: 1 }, cook_s: 12, price: 200, color: "#ab47bc", icon: "🥘" },
   ca_keo_kho_to:           { name: "Cá kèo kho tộ",          short: "Cá kèo kho",    recipe: { ca_keo: 2 },                    cook_s: 7,  price: 75,  color: "#c98542", icon: "🥘" },
   canh_chua_ca_ro_keo_neo: { name: "Canh chua cá rô kèo nèo",short: "Canh chua",     recipe: { ca_ro_dong: 1, keo_neo: 1 },    cook_s: 8,  price: 85,  color: "#7cb342", icon: "🍲" },
   rau_muong_xao:           { name: "Rau muống xào",          short: "Rau muống xào", recipe: { rau_muong: 2 },                 cook_s: 4,  price: 45,  color: "#43a047", icon: "🥬" }

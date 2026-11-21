@@ -24,7 +24,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
-from .inventory import KINDS_P1, read_inventory
+from .inventory import KINDS_P2, read_inventory
 from .runner import Session
 from .scenario import load_scenario
 
@@ -237,18 +237,31 @@ def main(argv=None) -> int:
         if a.inventory_out and a.mode != "gather":
             raise BadInput("--inventory-out chỉ dùng với gather")
         tuning = load_contract()["tuning"]
-        inventory_kinds = KINDS_P1
+        inventory_kinds = KINDS_P2
         if a.extra_content:
             with open(EXTRA_CONTENT_PATH, encoding="utf-8") as content_file:
                 extra = json.load(content_file)
             gather = tuning["gather"]
             extra_gather = extra["gather"]
-            gather["nodes"].extend(extra_gather["nodes"])
-            gather["fish_initial"].extend(extra_gather["fish_initial"])
+            existing_node_ids = {n["id"] for n in gather["nodes"]}
+            for node in extra_gather["nodes"]:
+                if node["id"] not in existing_node_ids:
+                    gather["nodes"].append(node)
+                    existing_node_ids.add(node["id"])
+            if isinstance(gather["fish_initial"], list):
+                gather["fish_initial"].extend(extra_gather["fish_initial"])
+            else:
+                for kind in extra_gather["fish_yield"]:
+                    gather.setdefault("fish_depths", {}).setdefault(kind, [6, 18])
+                    gather.setdefault("fish_spawn_depths", {}).setdefault(kind, [10, 16])
+                    gather.setdefault("fish_weights", {}).setdefault(kind, 0.15)
             gather["fish_yield"].update(extra_gather["fish_yield"])
             tuning["menu"].update(extra["menu"])
-            inventory_kinds += tuple(extra_gather["fish_yield"])
-            inventory_kinds += tuple(node["kind"] for node in extra_gather["nodes"])
+            inventory_kinds = tuple(dict.fromkeys(
+                inventory_kinds
+                + tuple(extra_gather["fish_yield"])
+                + tuple(node["kind"] for node in extra_gather["nodes"])
+            ))
         scenario = load_scenario(a.scenario, a.mode, tuning)
         inventory = read_inventory(a.inventory, inventory_kinds) if a.inventory else None
         if inventory is not None and "stock" in scenario:

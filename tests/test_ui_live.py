@@ -74,9 +74,13 @@ class LiveUiContractTest(unittest.TestCase):
         with open(EXTRA_CONTENT_PATH, encoding="utf-8") as f:
             extra = json.load(f)
         tuning["gather"]["nodes"].extend(extra["gather"]["nodes"])
-        tuning["gather"]["fish_initial"].extend(extra["gather"]["fish_initial"])
         tuning["gather"]["fish_yield"].update(extra["gather"]["fish_yield"])
-        g = LiveGame("gather", tuning, {}, seed=1)
+        scenario = {}
+        if isinstance(tuning["gather"]["fish_initial"], list):
+            tuning["gather"]["fish_initial"].extend(extra["gather"]["fish_initial"])
+        else:
+            scenario = {"fish": extra["gather"]["fish_initial"], "random_fish": False}
+        g = LiveGame("gather", tuning, scenario, seed=1)
         st = json.loads(g.state_json())
         node_kinds = {n["kind"] for n in st["nodes"]}
         fish_kinds = {f["kind"] for f in st["fish"]}
