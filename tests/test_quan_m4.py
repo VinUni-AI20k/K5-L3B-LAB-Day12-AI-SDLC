@@ -44,11 +44,11 @@ class QuanM4BlackBox(unittest.TestCase):
             self.assertEqual(code, 0, err)
             self.assertEqual(len(events(rows, "cook_started")), 1)
 
-            # 2) Vượt mép (3.51) -> không tương tác
+            # 2) Vượt mép (0.49 cách B1=[2, 8] 1.51m và xa B2=[5, 8] 4.51m theo v1.1) -> không tương tác
             code, err, rows = _run_quan(
                 w,
                 {
-                    "player": {"pos": [3.51, 8]},
+                    "player": {"pos": [0.49, 8]},
                     "stock": {"ca_loc": 1},
                     "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}],
                     "random_customers": False,
