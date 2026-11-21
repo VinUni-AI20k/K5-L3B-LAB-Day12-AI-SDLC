@@ -12,12 +12,13 @@ giá/tip...) — xem PRD-0 mục D và 'Mâu thuẫn -> mã 2'.
 
 from collections import Counter
 import json
+import math
 
 from .errors import BadInput
 from .ids import id_key
-from .inventory import KINDS_V11, validate_items
+from .inventory import KINDS_V11, validate_fresh_items, validate_items
 
-GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks"}
+GATHER_KEYS = {"player", "hold", "nodes", "fish", "monsters", "random_fish", "time_left_ticks"}
 GATHER_PLAYER_KEYS = {
     "pos", "vel", "heading_deg", "hp", "oxygen_ticks",
     "zero_oxy_ticks", "catch_cd_ticks", "invuln_ticks",
@@ -176,6 +177,8 @@ def _validate_gather(b, tuning):
     for arr in ("nodes", "fish"):
         if arr in b:
             _check_ids(arr, b[arr])
+    if "monsters" in b:
+        _validate_monsters(b["monsters"], g)
     if "random_fish" in b and not isinstance(b["random_fish"], bool):
         raise BadInput("random_fish phải là boolean")
     if "hold" in b:
@@ -233,6 +236,42 @@ def _validate_gather(b, tuning):
             raise BadInput(f"fish.{f['id']}.heading_deg phải là số")
 
 
+def _validate_monsters(monsters, gather_tuning):
+    # Mảng tường minh thay preset; [] dùng để dựng fixture không có cá sấu.
+    _check_ids("gather.monsters", monsters)
+    species = gather_tuning.get("monsters", {}).get("species", {})
+    allowed = {"id", "kind", "pos", "waypoints", "target_idx", "state", "state_ticks_left", "recoil_dir"}
+    for monster in monsters:
+        name = f"gather.monsters.{monster['id']}"
+        kind = monster.get("kind")
+        if set(monster) - allowed or not isinstance(kind, str) or kind not in species:
+            raise BadInput(f"{name}: trường hoặc loài thủy quái không hợp lệ")
+        bounds = {"x": gather_tuning["bounds"]["x"], "d": species[kind]["depths"]}
+        _pos(f"{name}.pos", monster.get("pos"), bounds)
+        waypoints = monster.get("waypoints")
+        if not isinstance(waypoints, list) or len(waypoints) != 2:
+            raise BadInput(f"{name}.waypoints cần hai tọa độ")
+        for idx, point in enumerate(waypoints):
+            _pos(f"{name}.waypoints[{idx}]", point, bounds)
+
+        target = monster.get("target_idx", 1)
+        if isinstance(target, bool) or not isinstance(target, int) or target not in (0, 1):
+            raise BadInput(f"{name}.target_idx phải là 0 hoặc 1")
+        state = monster.get("state", "patrol")
+        if state not in ("patrol", "chase", "recoil"):
+            raise BadInput(f"{name}.state không hợp lệ")
+        ticks = monster.get("state_ticks_left", 0)
+        _nonneg_int(f"{name}.state_ticks_left", ticks)
+        direction = monster.get("recoil_dir")
+        if state == "recoil":
+            if (ticks == 0 or not isinstance(direction, list) or len(direction) != 2
+                    or not all(_num(component) and -1 <= component <= 1 for component in direction)
+                    or not math.isclose(math.hypot(*direction), 1.0, abs_tol=1e-9)):
+                raise BadInput(f"{name}: recoil cần timer dương và recoil_dir là vector đơn vị")
+        elif direction is not None:
+            raise BadInput(f"{name}.recoil_dir phải là null ngoài trạng thái recoil")
+
+
 def _validate_quan(b, tuning):
     for arr in ("stoves", "tables", "customers"):
         if arr in b:
@@ -284,13 +323,7 @@ def _validate_quan(b, tuning):
 
 
 def _validate_fresh_items(name, items):
-    _check_ids(name, items)
-    for item in items:
-        if set(item) != {"id", "kind", "fresh"} or item["kind"] not in KINDS_V11:
-            raise BadInput(f"{name}.{item['id']}: cần đúng id, kind và fresh")
-        fresh = item["fresh"]
-        if not _num(fresh) or not 0 <= fresh <= 100:
-            raise BadInput(f"{name}.{item['id']}.fresh phải trong [0, 100]")
+    validate_fresh_items(items, name=name)
 
 
 def _reservation_fields(customer, menu):

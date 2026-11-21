@@ -1,4 +1,4 @@
-"""Đọc game.contract.json và kiểm dải hợp lệ của tuning P1 (PRD mục 13.2, Test Contract)."""
+"""Đọc game.contract.json và kiểm cấu hình Test Contract."""
 
 import json
 import os
@@ -23,7 +23,9 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    if not isinstance(c, dict):
+        raise BadInput("game.contract.json phải là object")
+    validate_tuning(c.get("tuning"), c.get("contract_version"))
     return c
 
 
@@ -112,9 +114,31 @@ def _validate_gather(g):
         raise BadInput("tuning.gather.fish_initial phải là số nguyên (v1.1) hoặc danh sách 6 đàn (v1.0)")
 
 
-def validate_tuning(t):
+def _validate_freshness(t):
+    fields = {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}
+    freshness = t.get("freshness")
+    if not isinstance(freshness, dict) or set(freshness) != fields:
+        raise BadInput(f"tuning.freshness cần đúng các khóa {sorted(fields)}")
+
+    # Miền chuẩn của fresh là [0, 100]; hai tốc độ được đọc từ manifest.
+    _int_between("tick_hz", t.get("tick_hz"), 60, 60)
+    _between("freshness.initial", freshness["initial"], 0, 100)
+    _between("freshness.spoiled_below", freshness["spoiled_below"], 0, freshness["initial"])
+    for key in ("gather_decay_per_s", "quan_decay_per_s"):
+        rate = freshness[key]
+        if not _num(rate) or not 0 < rate < float("inf"):
+            raise BadInput(f"tuning.freshness.{key} phải là số hữu hạn dương")
+
+
+def validate_tuning(t, contract_version=None):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
+    if contract_version in ("1.2", "1.3"):
+        _validate_freshness(t)
+    elif "freshness" in t:
+        if contract_version is not None:
+            raise BadInput("tuning.freshness yêu cầu contract_version từ 1.2")
+        _validate_freshness(t)
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
