@@ -42,7 +42,8 @@ class Contract(unittest.TestCase):
             for key in ("oxygen_ticks", "hp", "oxygen_max_ticks", "hp_max", "at_surface"):
                 self.assertIn(key, s["player"])
             self.assertEqual(s["hold_capacity"], tuning_gather()["hold_capacity"])
-            self.assertEqual(len(s["fish"]), 6)
+            # đổi ở P2: v1.1 chốt fish_initial = 8 đàn đầu ca (trước đây danh sách 6 đàn của Phase 1)
+            self.assertEqual(len(s["fish"]), tuning_gather()["fish_initial"])
             self.assertTrue(all(n["pos"][1] == 0 for n in s["nodes"]))
 
     def test_con_02_deterministic_bytes(self):
@@ -62,15 +63,18 @@ class Contract(unittest.TestCase):
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", bad, "--out", out)[0], 2)
             self.assertFalse(os.path.exists(out), "lỗi đầu vào phải thoát TRƯỚC khi ghi đầu ra")
             self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "-1", "--out", out)[0], 2)
-            for button in ("jump", "attack"):  # nút lạ / của phase sau
+            # đổi ở P2: `attack` là nút hợp lệ của v1.1 (mở rộng chưa bật -> bỏ qua), chỉ còn nút lạ thật sự
+            for button in ("jump", "fly"):
                 unk = write_json(w.path("unk.json"), frames({"tick": 0, button: True}))
                 self.assertEqual(run_headless("--mode", "gather", "--seed", "1", "--ticks", "10", "--inputs", unk, "--out", out)[0], 2, button)
             self.assertFalse(os.path.exists(out))
 
     def test_con_03_old_and_future_modes_rejected(self):
+        """Đổi ở P2: `day` có từ v1.1 nên không còn bị từ chối; mode cũ `river` và --days ngoài day vẫn mã 2."""
         with Workdir() as w:
             out = w.path("o.jsonl")
-            for mode in ("river", "day"):
+            self.assertEqual(run_headless("--mode", "gather", "--days", "1", "--seed", "1", "--ticks", "0", "--out", out)[0], 2)
+            for mode in ("river",):
                 self.assertEqual(run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out)[0], 2, mode)
             self.assertFalse(os.path.exists(out))
             old = write_json(w.path("old.json"), {"river": {"hold": []}})

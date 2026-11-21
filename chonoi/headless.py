@@ -1,4 +1,5 @@
-"""Điểm vào headless: python3 -m chonoi.headless --mode gather --seed 1 --ticks 600 --out out.jsonl
+"""Điểm vào headless: python3 -m chonoi.headless --mode gather|quan|day --seed 1 --ticks 600 --out out.jsonl
+  [--days N] (chỉ với day, 1..5, mặc định 1)
 
 Mã thoát: 0 bình thường; 2 tham số/đầu vào sai (kiểm TRƯỚC khi ghi đầu ra); 1 lỗi chạy/ghi.
 """
@@ -34,6 +35,7 @@ def _int(name):
 def main(argv=None) -> int:
     p = _Parser(prog="chonoi.headless")
     p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])  # `day` có từ v1.1
+    p.add_argument("--days", type=_int("days"))
     p.add_argument("--seed", required=True, type=_int("seed"))
     p.add_argument("--ticks", required=True, type=_int("ticks"))
     p.add_argument("--out", required=True)
@@ -44,8 +46,11 @@ def main(argv=None) -> int:
     p.add_argument("--snapshot-every", dest="snapshot_every", type=_int("snapshot-every"), default=10)
     a = p.parse_args(argv)
     try:
-        if a.mode == "day":
-            raise BadInput("--mode day chưa hỗ trợ ở contract v1.0 (có từ v1.1)")
+        if a.days is not None and a.mode != "day":
+            raise BadInput("--days chỉ dùng với --mode day")
+        days = 1 if a.days is None else a.days
+        if not 1 <= days <= 5:
+            raise BadInput("--days phải là số nguyên từ 1 đến 5")
         if a.ticks < 0:
             raise BadInput("--ticks phải >= 0")
         if a.snapshot_every <= 0:
@@ -61,9 +66,9 @@ def main(argv=None) -> int:
             raise BadInput("các đường dẫn đầu vào/đầu ra phải khác nhau")
         contract = load_contract()
         tuning = contract["tuning"]
-        scenario = load_scenario(a.scenario, a.mode, tuning)
+        scenario = load_scenario(a.scenario, a.mode, tuning, days)
         frames = load_frames(a.inputs)
-        inventory = read_inventory(a.inventory) if a.inventory else None
+        inventory = read_inventory(a.inventory) if a.inventory else None  # schema kho đếm, 6 loại (v1.1)
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
     except BadInput as e:
@@ -71,9 +76,11 @@ def main(argv=None) -> int:
         return 2
     try:
         run(a.mode, tuning, scenario, a.seed, frames, a.ticks, a.out, a.snapshot_every,
-            inventory=inventory, inventory_out=a.inventory_out)
-    except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim
+            inventory=inventory, inventory_out=a.inventory_out, days=days)
+    except BadInput as e:  # lỗi mức luật phát hiện lúc dựng sim (day: cả lúc mở quán với kho thực)
         sys.stderr.write(f"đầu vào sai: {e}\n")
+        if os.path.exists(a.out):
+            os.unlink(a.out)  # không để lại đầu ra dở dang khi fixture mâu thuẫn
         return 2
     except OSError as e:
         sys.stderr.write(f"lỗi ghi: {e}\n")

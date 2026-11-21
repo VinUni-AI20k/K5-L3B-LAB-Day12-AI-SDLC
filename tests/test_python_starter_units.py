@@ -44,10 +44,15 @@ class Units(unittest.TestCase):
                 load_frames(write_json(w.path("i.json"), frames({"tick": 0, "move": [2, 0]})))
 
     def test_catch_is_a_v10_button_and_attack_is_not(self):
+        """Đổi ở P2 (Test Contract v1.1 mục 4.2): `attack` là nút boolean hợp lệ của mở rộng Lao — sai pha /
+        chưa bật thì BỎ QUA chứ không còn là mã 2. Nút thật sự lạ (`jump`) và attack sai kiểu vẫn mã 2."""
         with Workdir() as w:
             load_frames(write_json(w.path("i.json"), frames({"tick": 0, "catch": True})))
+            load_frames(write_json(w.path("a.json"), frames({"tick": 0, "attack": True, "pause": True})))
             with self.assertRaises(BadInput):
-                load_frames(write_json(w.path("j.json"), frames({"tick": 0, "attack": True})))
+                load_frames(write_json(w.path("j.json"), frames({"tick": 0, "jump": True})))
+            with self.assertRaises(BadInput):
+                load_frames(write_json(w.path("k.json"), frames({"tick": 0, "attack": 1})))
 
     def test_live_inputs_keep_fast_tap_edge(self):
         li = LiveInputs()
