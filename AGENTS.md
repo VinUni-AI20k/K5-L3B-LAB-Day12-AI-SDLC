@@ -13,6 +13,13 @@
 - **Số liệu chỉ đọc từ `game.contract.json` / dữ liệu**, không hard-code trong luật.
 - Mọi số ngẫu nhiên đi qua `Streams` (`chonoi/rng.py`); không dùng `random` toàn cục, không dùng đồng hồ hệ thống.
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.
+- **File khung đã sửa cho v1.1 (TV6, lát 4 — T240–T245, T248)**, lý do: Test Contract v1.1 bắt buộc `--mode day`, nút mới và pause, khung cũ chặn trước khi tới sim:
+  - `headless.py`: `--mode day`, `--days` 1–5 (mã 2 khi sai / dùng với mode khác / kèm `--inventory*`); contract thiếu `tuning.day_plan`/`tuning.shop` → mã 2 "chờ TV1"; biến môi trường `CHONOI_CONTRACT` chỉ để test trỏ contract fixture (`tests/fixtures/contract-v1.1-day.json`).
+  - `inputs.py`: nút `pause`, `shop_done`, `attack`, `photo` + chuỗi `buy` (chỉ tại frame khai báo); bộ nút chọn theo `contract_version` (v1.0 vẫn từ chối `attack` như P1 → test cũ không vỡ trước khi TV1 nâng contract).
+  - `runner.py`: tách `tick`/`sim_tick`/`phase_tick`; pause là lớp bọc chung ở `Session.step` cho cả 3 mode (`paused`/`resumed`, `state:"paused"`); vỏ event `day`, snapshot đổi pha, `end.days_completed`; sự kiện tick 0 của day ghi trước snapshot tick 0.
+  - `scenario.py`: khối `day {money,earned,reputation,upgrades,day_plan}`, `gather.monsters[]`, `fish[].age_ticks`; cấm `quan.stock`/`quan.reputation` khi chạy day.
+  - `live.py`: `--mode day`, `set_input` nhận `pause`/`shop_done`/`buy`, `meta` theo pha + `menu`, `day_plan`, `shop`, `upgrades`; snapshot thêm `paused`.
+  - Mới: `chonoi/sim/day.py` (DaySim), `chonoi/sim/shop.py` (ShopSim). Gọi GatherSim/QuanSim qua giao diện hiện có; ngữ cảnh Ngày tạm truyền bằng bản sao tuning (cấp oxy/Máu, lọc menu theo kế hoạch, spawns theo `from_day`) tới khi có T246/T230.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).

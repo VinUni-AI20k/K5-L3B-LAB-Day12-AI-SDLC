@@ -43,13 +43,13 @@
 
 ## Lát (4) — TV6 (+TV5): mode day, Shop, pause, sự kiện đổi pha
 
-- [ ] T240 [US4] [sim/day] (TV6) `chonoi/headless.py`: nhận `--mode day`, `--days` 1–5 (mặc định 1), mã 2 khi sai / dùng với mode khác / kèm `--inventory*` — file khung
-- [ ] T241 [P] [US4] [sim/day] (TV6) `chonoi/inputs.py`: nút `pause`, `shop_done` (bool, cạnh lên), `attack`/`photo` (bool, bỏ qua khi chưa bật mở rộng), `buy` (chuỗi, chỉ tại frame khai báo, không kế thừa) — file khung
-- [ ] T242 [P] [US4] [sim/day] (TV6) `chonoi/scenario.py`: khối `day {money,earned,reputation,upgrades,day_plan}`, `gather.monsters[]`, `fish[].age_ticks`, `player.invuln_ticks`; cấm `quan.stock`/`quan.reputation` trong `day`; `0 ≤ money ≤ earned` — file khung
-- [ ] T243 [US4] [sim/day] (TV6) `chonoi/sim/day.py` + `runner.py`: `DaySession`, `day_start → day_plan → phase_start(gather)`, `gather_end → phase_start(quan)` cùng tick (kho bộ nhớ, ngất → rỗng), `quan_end → phase_start(shop)`, snapshot đổi pha `phase_tick:0`, snapshot có `day, day_plan, upgrades, active_upgrades`, vỏ event thêm `"day":N`, `end.days_completed`, `reason:"days_complete"`
-- [ ] T244 [US4] [sim/day] (TV6) `chonoi/sim/shop.py`: `buy` trước `shop_done`, `bought`/`buy_failed{funds,max_level,unknown}`, 600 tick hoạt động → `shop_end(time)`, `shop_done` → `shop_end(done)`; đóng → `days_completed+1`, dựng Ngày kế, chép `upgrades → active_upgrades`, hồi oxy/Máu theo cấp, giỏ mới, bỏ kho dư
-- [ ] T245 [US4] [sim/day] (TV6, pair TV5) Pause trong `runner.py` (lớp bọc chung để gather/quan độc lập cũng pause): tách `tick`/`sim_tick`/`phase_tick`; `paused`/`resumed`; timer kể cả Shop đứng yên; snapshot `state:"paused"`
-- [ ] T248 [P] [US4] [sim/day] (TV6) `chonoi/live.py` (file khung): `--mode day`, `set_input` nhận `pause`/`shop_done`/`buy`, `meta` theo pha + `menu`, `day_plan`, `shop` — để UI Cursor chạy được
+- [x] T240 [US4] [sim/day] (TV6) `chonoi/headless.py`: nhận `--mode day`, `--days` 1–5 (mặc định 1), mã 2 khi sai / dùng với mode khác / kèm `--inventory*` — file khung
+- [x] T241 [P] [US4] [sim/day] (TV6) `chonoi/inputs.py`: nút `pause`, `shop_done` (bool, cạnh lên), `attack`/`photo` (bool, bỏ qua khi chưa bật mở rộng), `buy` (chuỗi, chỉ tại frame khai báo, không kế thừa) — file khung
+- [x] T242 [P] [US4] [sim/day] (TV6) `chonoi/scenario.py`: khối `day {money,earned,reputation,upgrades,day_plan}`, `gather.monsters[]`, `fish[].age_ticks`, `player.invuln_ticks`; cấm `quan.stock`/`quan.reputation` trong `day`; `0 ≤ money ≤ earned` — file khung
+- [x] T243 [US4] [sim/day] (TV6) `chonoi/sim/day.py` + `runner.py`: `DaySession`, `day_start → day_plan → phase_start(gather)`, `gather_end → phase_start(quan)` cùng tick (kho bộ nhớ, ngất → rỗng), `quan_end → phase_start(shop)`, snapshot đổi pha `phase_tick:0`, snapshot có `day, day_plan, upgrades, active_upgrades`, vỏ event thêm `"day":N`, `end.days_completed`, `reason:"days_complete"`
+- [x] T244 [US4] [sim/day] (TV6) `chonoi/sim/shop.py`: `buy` trước `shop_done`, `bought`/`buy_failed{funds,max_level,unknown}`, 600 tick hoạt động → `shop_end(time)`, `shop_done` → `shop_end(done)`; đóng → `days_completed+1`, dựng Ngày kế, chép `upgrades → active_upgrades`, hồi oxy/Máu theo cấp, giỏ mới, bỏ kho dư
+- [x] T245 [US4] [sim/day] (TV6, pair TV5) Pause trong `runner.py` (lớp bọc chung để gather/quan độc lập cũng pause): tách `tick`/`sim_tick`/`phase_tick`; `paused`/`resumed`; timer kể cả Shop đứng yên; snapshot `state:"paused"`
+- [x] T248 [P] [US4] [sim/day] (TV6) `chonoi/live.py` (file khung): `--mode day`, `set_input` nhận `pause`/`shop_done`/`buy`, `meta` theo pha + `menu`, `day_plan`, `shop` — để UI Cursor chạy được
 - [ ] T246 [P] [US4] [sim/gather] (TV2) `GatherSim`/`QuanSim` nhận ngữ cảnh Ngày: `oxygen_max`, `hp_max` theo `active_upgrades`; M2 từ Ngày 3
 - [ ] T247 [P] [US4] [qa] (TV5) Test AC-P2-15, 18–28
 
