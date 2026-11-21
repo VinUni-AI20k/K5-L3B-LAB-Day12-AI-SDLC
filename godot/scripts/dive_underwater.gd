@@ -7,7 +7,9 @@ var cam: Camera3D
 var env: Environment
 var diver_root: Node3D
 var diver_visual: Node3D
-var diver_anim: AnimationPlayer
+var diver_skeleton: Skeleton3D
+var bone_map: Dictionary = {}
+var bone_rest_rot: Dictionary = {}
 var hud_label: Label
 
 var diver_pos := Vector2(18.0, 6.0) # [x, d]
@@ -200,12 +202,12 @@ func _build_underwater_cliffs_and_seabed() -> void:
 		pile.rotation_degrees = Vector3(rng.randf_range(-2.0, 2.0), 0.0, rng.randf_range(-2.0, 2.0))
 		add_child(pile)
 
-	# Mossy river-bank terraces & boulders only in the lower/background depths (clean underwater view)
+	# Mossy river-bank terraces & boulders anchored at the seabed (no mid-water floating rocks)
 	for i in range(16):
 		var rx := -4.0 + i * 6.8 + rng.randf_range(-1.2, 1.2)
-		var ry := rng.randf_range(-29.5, -16.0)
-		var rz := rng.randf_range(-17.0, -9.5)
-		var rs := rng.randf_range(2.0, 3.8)
+		var ry := rng.randf_range(-29.8, -26.2)
+		var rz := rng.randf_range(-17.0, -8.5)
+		var rs := rng.randf_range(2.2, 4.0)
 		var rock_id := "boulder_mossy" if i % 2 == 0 else "cliff_block"
 		_asset("underwater", rock_id, Vector3(rx, ry, rz), Vector3(rs, rs * rng.randf_range(0.6, 0.95), rs), Vector3(rng.randf_range(-6.0, 6.0), rng.randf_range(-180.0, 180.0), rng.randf_range(-6.0, 6.0)))
 
@@ -233,24 +235,24 @@ func _build_underwater_cliffs_and_seabed() -> void:
 
 
 func _build_light_shafts_and_bubbles() -> void:
-	# Angled glowing god-ray quads descending from water surface
+	# Soft angled sunlight shafts spanning cleanly from surface to seabed
 	for i in range(9):
 		var ray := MeshInstance3D.new()
 		var qm := QuadMesh.new()
-		qm.size = Vector2(rng.randf_range(3.5, 6.5), rng.randf_range(18.0, 26.0))
+		qm.size = Vector2(rng.randf_range(4.0, 7.0), 34.0)
 		ray.mesh = qm
 		var rmat := StandardMaterial3D.new()
-		rmat.albedo_color = Color(1.0, 0.88, 0.52, 0.12)
+		rmat.albedo_color = Color(1.0, 0.90, 0.56, 0.055)
 		rmat.emission_enabled = true
-		rmat.emission = Color(0.95, 0.82, 0.44)
-		rmat.emission_energy_multiplier = 0.75
+		rmat.emission = Color(0.95, 0.84, 0.48)
+		rmat.emission_energy_multiplier = 0.45
 		rmat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		rmat.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
 		rmat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		rmat.cull_mode = BaseMaterial3D.CULL_DISABLED
 		rmat.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_DISABLED
 		ray.material_override = rmat
-		ray.position = Vector3(6.0 + i * 11.5, -10.0, rng.randf_range(-9.0, -3.0))
+		ray.position = Vector3(6.0 + i * 11.5, -15.5, rng.randf_range(-9.0, -4.0))
 		ray.rotation_degrees = Vector3(0.0, 0.0, -14.0)
 		add_child(ray)
 		ray_nodes.append({"node": ray, "phase": rng.randf_range(0.0, TAU), "base_x": ray.position.x})
@@ -316,13 +318,67 @@ func _make_mat(hex: String, rough := 0.72) -> StandardMaterial3D:
 	return m
 
 
+func _find_skeleton(node: Node) -> Skeleton3D:
+	if node is Skeleton3D:
+		return node
+	for child in node.get_children():
+		var found := _find_skeleton(child)
+		if found != null:
+			return found
+	return null
+
+
+func _cache_swim_bones(skel: Skeleton3D) -> void:
+	skel.reset_bone_poses()
+	for i in range(skel.get_bone_count()):
+		var bname := skel.get_bone_name(i).to_lower()
+		var is_left := bname.contains("left") or bname.ends_with(".l") or bname.ends_with("_l")
+		var is_right := bname.contains("right") or bname.ends_with(".r") or bname.ends_with("_r")
+		if bname.contains("head"):
+			bone_map["head"] = i
+		elif bname.contains("spine") and not bone_map.has("spine"):
+			bone_map["spine"] = i
+		elif (bname.contains("upperarm") or bname.contains("shoulder_arm") or (bname.contains("arm") and not bname.contains("fore") and not bname.contains("lower"))):
+			if is_left and not bone_map.has("uarm_l"):
+				bone_map["uarm_l"] = i
+			elif is_right and not bone_map.has("uarm_r"):
+				bone_map["uarm_r"] = i
+		elif bname.contains("lowerarm") or bname.contains("forearm"):
+			if is_left and not bone_map.has("larm_l"):
+				bone_map["larm_l"] = i
+			elif is_right and not bone_map.has("larm_r"):
+				bone_map["larm_r"] = i
+		elif bname.contains("upperleg") or bname.contains("thigh"):
+			if is_left and not bone_map.has("uleg_l"):
+				bone_map["uleg_l"] = i
+			elif is_right and not bone_map.has("uleg_r"):
+				bone_map["uleg_r"] = i
+		elif bname.contains("lowerleg") or bname.contains("shin") or bname.contains("calf"):
+			if is_left and not bone_map.has("lleg_l"):
+				bone_map["lleg_l"] = i
+			elif is_right and not bone_map.has("lleg_r"):
+				bone_map["lleg_r"] = i
+	for key in bone_map.keys():
+		var idx: int = bone_map[key]
+		bone_rest_rot[key] = skel.get_bone_pose_rotation(idx)
+
+
+func _set_bone_euler(key: String, deg: Vector3) -> void:
+	if not bone_map.has(key) or not is_instance_valid(diver_skeleton):
+		return
+	var idx: int = bone_map[key]
+	var base_q: Quaternion = bone_rest_rot[key]
+	var delta_q := Quaternion.from_euler(Vector3(deg_to_rad(deg.x), deg_to_rad(deg.y), deg_to_rad(deg.z)))
+	diver_skeleton.set_bone_pose_rotation(idx, base_q * delta_q)
+
+
 func _build_diver() -> void:
 	diver_root = Node3D.new()
 	diver_root.name = "DiverUtSen"
 	diver_root.position = Vector3(diver_pos.x, -diver_pos.y, 0.0)
 	add_child(diver_root)
 
-	# Real 3D rigged & animated Quaternius girl character (ut_sen_girl.glb) in swimming posture
+	# Petite 3D young girl Ut Sen (Quaternius CC0) with procedural skeletal swimming animation
 	diver_visual = Node3D.new()
 	diver_root.add_child(diver_visual)
 
@@ -330,38 +386,33 @@ func _build_diver() -> void:
 	pose_pivot.rotation_degrees = Vector3(0.0, 90.0, 0.0)
 	diver_visual.add_child(pose_pivot)
 
-	var girl := _asset("characters", "ut_sen_girl", Vector3(0.0, -0.25, -0.85), Vector3.ONE * 0.42, Vector3(76.0, 0.0, 0.0), pose_pivot)
+	var girl := _asset("characters", "ut_sen_girl", Vector3(0.0, -0.15, -0.52), Vector3(0.28, 0.25, 0.28), Vector3(82.0, 0.0, 0.0), pose_pivot)
 	if girl != null:
 		var ap := girl.find_child("AnimationPlayer", true, false)
 		if ap is AnimationPlayer:
-			diver_anim = ap
-			for anim_name in diver_anim.get_animation_list():
-				var anim := diver_anim.get_animation(anim_name)
-				if anim != null:
-					anim.loop_mode = Animation.LOOP_LINEAR
-			if diver_anim.has_animation("Female_Walk"):
-				diver_anim.play("Female_Walk")
-			elif diver_anim.get_animation_list().size() > 0:
-				diver_anim.play(diver_anim.get_animation_list()[0])
+			ap.stop()
+		diver_skeleton = _find_skeleton(girl)
+		if diver_skeleton != null:
+			_cache_swim_bones(diver_skeleton)
 
-	# Woven bamboo basket strapped lightly on her back
+	# Compact woven bamboo fish basket tucked neatly on her back
 	var basket := MeshInstance3D.new()
 	var bkm := CylinderMesh.new()
-	bkm.top_radius = 0.16
-	bkm.bottom_radius = 0.20
-	bkm.height = 0.38
+	bkm.top_radius = 0.11
+	bkm.bottom_radius = 0.14
+	bkm.height = 0.25
 	bkm.material = _make_mat("#c9994a", 0.82)
 	basket.mesh = bkm
-	basket.position = Vector3(-0.08, 0.32, 0.0)
+	basket.position = Vector3(-0.04, 0.20, 0.0)
 	basket.rotation_degrees = Vector3(0.0, 0.0, 82.0)
 	diver_visual.add_child(basket)
 
 	# Gentle warm dive-lamp light on diver
 	var lamp := OmniLight3D.new()
 	lamp.light_color = Color("#ffe8b3")
-	lamp.light_energy = 0.75
-	lamp.omni_range = 8.0
-	lamp.position = Vector3(0.8, 0.2, 1.2)
+	lamp.light_energy = 0.70
+	lamp.omni_range = 7.5
+	lamp.position = Vector3(0.6, 0.15, 1.0)
 	diver_visual.add_child(lamp)
 
 
@@ -443,13 +494,30 @@ func _physics_process(delta: float) -> void:
 	diver_visual.rotation_degrees.y = lerpf(diver_visual.rotation_degrees.y, target_yaw, delta * 10.0)
 	diver_visual.rotation_degrees.z = lerpf(diver_visual.rotation_degrees.z, target_tilt if facing_right else -target_tilt, delta * 8.0)
 
-	# Drive skeletal swimming animation smoothly based on movement speed
-	if is_instance_valid(diver_anim):
+	# Real underwater breaststroke + flutter-kick skeletal swimming motion
+	if is_instance_valid(diver_skeleton):
 		var moving := diver_vel.length() > 0.5
-		var target_anim := "Female_Run" if moving else "Female_Walk"
-		if diver_anim.has_animation(target_anim) and diver_anim.current_animation != target_anim:
-			diver_anim.play(target_anim, 0.2)
-		diver_anim.speed_scale = 1.15 if moving else 0.55
+		var freq := 6.5 if moving else 2.6
+		var phase := time_acc * freq
+		var kick_amp := 20.0 if moving else 9.0
+		var stroke_amp := 38.0 if moving else 16.0
+		var kick := sin(phase) * kick_amp
+		var sweep := sin(phase * 0.65) * stroke_amp
+		var reach := cos(phase * 0.65) * (stroke_amp * 0.55)
+		# Head tilted slightly up to look forward along swim direction
+		_set_bone_euler("head", Vector3(-34.0, 0.0, 0.0))
+		# Gentle spine undulation
+		_set_bone_euler("spine", Vector3(sin(phase) * 5.0, 0.0, 0.0))
+		# Breaststroke arms: reaching forward and sweeping outward-back
+		_set_bone_euler("uarm_l", Vector3(-115.0 + reach, 0.0, 32.0 + sweep))
+		_set_bone_euler("uarm_r", Vector3(-115.0 + reach, 0.0, -32.0 - sweep))
+		_set_bone_euler("larm_l", Vector3(-25.0 - absf(sweep) * 0.35, 0.0, 0.0))
+		_set_bone_euler("larm_r", Vector3(-25.0 - absf(sweep) * 0.35, 0.0, 0.0))
+		# Straight-ish flutter kick (not running knee bend!)
+		_set_bone_euler("uleg_l", Vector3(kick, 0.0, 4.0))
+		_set_bone_euler("uleg_r", Vector3(-kick, 0.0, -4.0))
+		_set_bone_euler("lleg_l", Vector3(10.0 + maxf(0.0, kick * 0.45), 0.0, 0.0))
+		_set_bone_euler("lleg_r", Vector3(10.0 + maxf(0.0, -kick * 0.45), 0.0, 0.0))
 
 	# Smooth Dave-the-Diver depth fog color shift from sunlit shallow to deep abyss
 	var depth_t := clampf(diver_pos.y / 28.0, 0.0, 1.0)
