@@ -41,11 +41,22 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
             data = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
-    if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
-        raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
-    if set(data) - {mode}:
-        raise BadInput(f"khối sai mode: chạy --mode {mode} chỉ nhận khối '{mode}'")
-    block = data.get(mode, {})
+    allowed_modes = {"day", "gather", "quan"} if mode == "day" else {mode}
+    if not isinstance(data, dict) or set(data) - allowed_modes:
+        raise BadInput(f"khối scenario không hợp lệ cho mode {mode}")
+    if mode == "day":
+        day = data.get("day", {})
+        if not isinstance(day, dict) or set(day) - {"money", "earned", "reputation", "upgrades", "day_plan"}:
+            raise BadInput("khối day không hợp lệ")
+        gather = _scenario_block(data.get("gather", {}), "gather", tuning, validate=False)
+        quan = _scenario_block(data.get("quan", {}), "quan", tuning)
+        if {"stock", "reputation"} & quan.keys():
+            raise BadInput("day không nhận quan.stock hoặc quan.reputation")
+        return {"day": day, "gather": gather, "quan": quan}
+    return _scenario_block(data.get(mode, {}), mode, tuning)
+
+
+def _scenario_block(block, mode, tuning, *, validate=True):
     if not isinstance(block, dict):
         raise BadInput(f"khối {mode} phải là object")
     allowed = GATHER_KEYS if mode == "gather" else QUAN_KEYS
@@ -58,7 +69,8 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
         if isinstance(t, bool) or not isinstance(t, int) or not (1 <= t <= dur):
             raise BadInput(f"time_left_ticks phải là số nguyên trong [1, {dur}]")
     if mode == "gather":
-        _validate_gather(block, tuning)
+        if validate:
+            _validate_gather(block, tuning)
     else:
         _validate_quan(block, tuning)
     return block
