@@ -127,6 +127,76 @@ class InventoryPhase3Tests(unittest.TestCase):
         merged = merge_items(i1, i2)
         self.assertEqual([it.id for it in merged], ["I1", "I2", "I10"])
 
+    def test_day_handoff_individual_items_and_id_continuity(self):
+        """AC-P3-08: Bàn giao kho cá thể giữa các ngày và IdAllocator không đụng độ."""
+        from chonoi.contract import load_contract
+        from chonoi.inputs import InputState
+        from chonoi.runner import Session
+
+        contract = load_contract()
+        tuning = dict(contract["tuning"])
+        tuning["contract_version"] = "1.2"
+
+        scenario = {
+            "day": {"days": 2},
+            "gather": {
+                "player": {"pos": [12, 0]},
+                "hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100}],
+                "nodes": [],
+                "fish": [],
+                "random_fish": False,
+                "time_left_ticks": 1,
+            },
+            "quan": {
+                "customers": [],
+                "random_customers": False,
+                "time_left_ticks": 1,
+            },
+        }
+
+        sess = Session("day", tuning, scenario, seed=1, days=2)
+        # Bắt đầu Day 1
+        snap0 = sess.snapshot()
+        self.assertEqual(snap0["day"], 1)
+        self.assertEqual(snap0["phase"], "gather")
+
+        # Step tick 0 -> kết thúc gather, chuyển sang quan
+        evs0 = sess.step(InputState((0, 0), {}, set()))
+        self.assertEqual(sess.sim.phase, "quan")
+        # Kho ở quan nhận bàn giao cá thể
+        self.assertTrue(any(it["id"] == "I1" for it in sess.sim.inventory_items()))
+
+        # Step tick 1 -> kết thúc quan, chuyển sang shop
+        evs1 = sess.step(InputState((0, 0), {}, set()))
+        self.assertEqual(sess.sim.phase, "shop")
+
+        # Rút ngắn shop để sang Day 2
+        sess.sim.shop_time_left_ticks = 1
+        evs2 = sess.step(InputState((0, 0), {}, set()))
+        self.assertEqual(sess.sim.day, 2)
+        self.assertEqual(sess.sim.phase, "gather")
+
+        # Kiểm tra IdAllocator cấp id mới không đụng độ I1 (xuyên ngày)
+        new_id = sess.sim.ids.new("I")
+        self.assertNotEqual(new_id, "I1")
+        self.assertEqual(new_id, "I2")
+
+        # Kho dư bị bỏ sau Shop theo hợp đồng
+        self.assertEqual(sess.sim.stock, {})
+
+    def test_day_headless_smoke_two_days(self):
+        """AC-P3-08: Headless --mode day --days 2 --ticks 600 chạy trơn tru."""
+        with Workdir() as w:
+            out_file = w.path("day_smoke.jsonl")
+            code, err = run_headless("--mode", "day", "--days", "2", "--seed", "1", "--ticks", "600", "--out", out_file)
+            self.assertEqual(code, 0, f"Headless thất bại: {err}")
+            self.assertTrue(os.path.exists(out_file))
+            rows = read_jsonl(out_file)
+            self.assertTrue(len(rows) > 0)
+            self.assertEqual(rows[0]["type"], "snapshot")
+            self.assertEqual(rows[0]["mode"], "day")
+            self.assertEqual(rows[-1]["type"], "end")
+
 
 if __name__ == "__main__":
     unittest.main()
