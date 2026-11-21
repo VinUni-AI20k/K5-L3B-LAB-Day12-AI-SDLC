@@ -14,6 +14,10 @@
 - Bằng chứng theo phase: `bash docs/proof/phase-1|2|3/run_proof.sh` (ghi đè file trong `docs/proof/`);
   Phase 4 là `docs/proof/phase-4/{bench,soak}.json` tạo bằng hai lệnh trên.
 - Kiểm danh sách thành viên: `python3 tools/check_team.py`
+- Bảng xếp hạng (mở rộng P4): `python3 -m chonoi.headless --mode day --days 5 --seed 7 --ticks 120000 --out w.jsonl --leaderboard lb.json --player-name A`
+  rồi `python3 -m chonoi.live --mode gather --export-leaderboard top.json --leaderboard lb.json`
+- Kiểm UI mở rộng (phụ đề + xếp hạng GUI, cần Chrome + node ≥ 22, server 8099 đang chạy):
+  `node docs/proof/phase-4/ext/ui_check.mjs <thư-mục-ra> "http://127.0.0.1:8099/client/index.html?debug"`
 - Bản chơi GUI (`client/`, sáng tạo của nhóm): chạy `python3 -m http.server 8099` ở **gốc repo**, mở
   `http://127.0.0.1:8099/client/`. Không chạy server trong `client/` (client đọc `../game.contract.json`),
   không dùng cổng 8000 (`chonoi.live` mặc định chiếm).

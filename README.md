@@ -41,6 +41,7 @@ Rồi mở **http://127.0.0.1:8099/client/index.html** (Ctrl+C trong terminal đ
 | Esc / P | Tạm dừng / cài đặt |
 | M | Tắt/bật tiếng |
 | H | Chế độ tương phản cao (lưu lại giữa các lần chơi) |
+| U | Phụ đề âm thanh (lưu lại; tự bật khi tắt tiếng bằng M) |
 
 Màn hình gợi ý phím luôn hiện ở đáy HUD. Video mở đầu: lần bấm đầu bật tiếng, sau đó phím/chuột bất kỳ hoặc nút "Bỏ qua" để vào màn hình tiêu đề.
 
@@ -55,6 +56,29 @@ bash tools/package.sh                                                           
 ```
 
 Lệnh chuẩn đọc từ `game.contract.json`: `headless_cmd`, `bench_cmd`, `soak_cmd`. Cửa sổ khung của starter vẫn chạy được: `python3 -m chonoi.live --mode gather`.
+
+### Mở rộng Phase 4 (TICKET-04 mục 3)
+
+**Bảng xếp hạng cục bộ.** Top 10 bền vững, sắp điểm giảm dần, hòa điểm thì mục ghi trước đứng trước.
+
+```bash
+# ghi đúng một mục khi lượt day chuẩn đủ 5 Ngày (không --scenario, reason "days_complete")
+python3 -m chonoi.headless --mode day --days 5 --seed 7 --ticks 120000 --out week.jsonl --leaderboard lb.json --player-name "Út Sen"
+# <run_cmd> --export-leaderboard: xuất {"entries":[{"name","score","days_completed","seed"}]}
+python3 -m chonoi.live --mode gather --export-leaderboard top.json --leaderboard lb.json
+```
+
+- Thiếu một trong hai cờ `--leaderboard` / `--player-name`, hoặc dùng với `gather`/`quan` → mã 2, không ghi đầu ra. Store hỏng hoặc tên rỗng → mã 2.
+- Thiếu `--leaderboard` khi export → đọc `leaderboard.json` ở gốc repo (đã gitignore); store chưa có → `{"entries":[]}`.
+- JSONL không đổi khi có cờ xếp hạng. Soak (`tools/soak.py`) không ghi xếp hạng.
+- Bản GUI: sau "Tổng kết mùa nước nổi" người chơi gõ tên và thấy top 10 (lưu trong trình duyệt, cùng luật xếp hạng). Lượt demo không ghi.
+
+**Phụ đề SFX.** Bấm **U** (hoặc mục "Phụ đề âm thanh" trong menu tạm dừng). Phụ đề tự bật khi tắt tiếng bằng **M**.
+Các âm thanh mang thông tin đều có chữ: *[Cá Sấu gầm — đang đến gần]*, *[Cá Sấu cắn]*, *[tim đập nhanh — oxy sắp hết]*, *[ngạt nước]*,
+*[chuông — khách mới tới]*, *[khách T1 càu nhàu — sắp giận]*, *[khách giận dỗi bỏ đi]*, *[tiếng tiền rơi]*… Tiếng click menu không có phụ đề.
+Ở chế độ tương phản cao phụ đề có nền đen, viền trắng, chữ vàng.
+
+Bằng chứng: `tests/test_leaderboard_p4.py` (17 test), [`docs/proof/phase-4/ext/`](docs/proof/phase-4/ext/) (log CLI, ảnh chụp, script `ui_check.mjs`), ma trận ở [`docs/verification/phase-4.md`](docs/verification/phase-4.md).
 
 ### Sáng tạo của nhóm
 Bản GUI `client/` (không bắt buộc, tắt hoàn toàn ở headless): video mở đầu, nhà bè ban đêm với bảng thực đơn và nhân viên, Bà Tư và việc vặt, điện thoại, Chợ Chú Sáu, săn cá có máu, Cá Sấu và boss Cá Tra Dầu, địa hình đáy sông + dòng nước, nhạc tổng hợp bằng WebAudio, chế độ tương phản cao.

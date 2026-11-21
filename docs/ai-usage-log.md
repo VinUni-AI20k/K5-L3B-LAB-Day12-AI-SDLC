@@ -28,3 +28,8 @@
 ## Cao Duy Minh (`workcaominh-gif`) — báo cáo cuối
 - Nhờ Claude Code soạn nháp phần đóng góp của mình trong `docs/retro.md` (mục "Đóng góp từng người") và phản tư `docs/members/workcaominh-gif.md`, dựa trên `git log`, tag và báo cáo các phase. Đã đọc lại, sửa cho đúng việc mình làm; chỉ điền dòng của mình, không viết hộ thành viên khác.
 
+## Sau Release — Claude Code · Claude Opus 5.5 — Mở rộng: bảng xếp hạng + phụ đề SFX
+- Việc: `chonoi/leaderboard.py`; cờ `--leaderboard/--player-name` ở `chonoi/headless.py`; `--export-leaderboard` ở `chonoi/live.py` (file khung — ghi trong CHANGELOG); `tests/test_leaderboard_p4.py` (17 test); client `captions.js` (phím U, tự bật khi tắt tiếng, phụ đề theo ngữ cảnh ở lặn/quán), `leaderboard.js` + nhập tên/top 10 ở `Summary`; script `docs/proof/phase-4/ext/ui_check.mjs` điều khiển Chrome headless qua CDP.
+- Kiểm: `pre-push-check` → unittest 187 OK, headless exit 0, 31 file JS OK; `ui_check.mjs` → không lỗi console, đủ trạng thái kỳ vọng (xem `docs/verification/phase-4.md` AC-P4-X01..X09).
+- AI sai: (1) bản đầu nhập tên ở màn tổng kết để phím H/T vẫn chạy như phím tắt → gõ "Tester" sẽ bật tương phản cao và mở điện thoại; phát hiện khi đọc lại vòng `frame()` trong `main.js`, thêm cờ `scene.typing` rồi kiểm lại bằng `ui_check.mjs` (`chonoi.hc` không đổi, `overlay:false`). (2) Lệnh `pkill -f "http.server 8099"` tự khớp với chính shell đang chạy nó nên giết luôn lệnh sau; chạy lại không dùng pkill. (3) Test đầu tiên để mở file không đóng (ResourceWarning) — sửa bằng helper `_text`.
+- Người thực hiện: `Sz3RO` (thêm vào `TEAM.md` ở commit `docs(team)` ngay sau).

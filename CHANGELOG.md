@@ -2,6 +2,18 @@
 
 Mỗi phase một mục; mới nhất ở trên. Mã phiên bản hợp đồng nằm trong `game.contract.json` (`contract_version`).
 
+## [Chưa phát hành] Mở rộng Phase 4 (TICKET-04 mục 3)
+### Thêm
+- Bảng xếp hạng cục bộ: `chonoi/leaderboard.py` (top 10, điểm giảm dần, hòa giữ thứ tự ghi, ghi nguyên tử).
+  Headless `--mode day` nhận cặp `--leaderboard <store> --player-name <name>`; ghi một mục khi đủ 5 Ngày chuẩn.
+  `<run_cmd> --export-leaderboard <out> [--leaderboard <store>]` (`chonoi.live`). JSONL không đổi.
+- Bản GUI: nhập tên + bảng top 10 sau màn tổng kết 5 Ngày (`client/src/leaderboard.js`, localStorage `chonoi.lb`).
+- Phụ đề SFX ở bản GUI (`client/src/captions.js`): phím **U**, mục trong menu tạm dừng, tự bật khi tắt tiếng;
+  phụ đề riêng cho ba cảnh báo (Cá Sấu gần, oxy sắp hết, khách sắp giận) và các lần bị thương.
+- `tests/test_leaderboard_p4.py` (17 test); bằng chứng `docs/proof/phase-4/ext/`.
+### Lưu ý khung
+- Sửa `chonoi/live.py` (khung giảng viên): `--mode` không còn bắt buộc khi chỉ `--export-leaderboard`, vì `run_cmd` trỏ vào đây.
+
 ## [v1.0.0] Phase 4 — Release (Test Contract v1.3, TICKET-04)
 ### Hợp đồng
 - `contract_version` 1.3; thêm khóa gốc `bench_cmd` (`python3 tools/bench.py`) và `soak_cmd` (`python3 tools/soak.py`).
