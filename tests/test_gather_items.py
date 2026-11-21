@@ -55,7 +55,8 @@ class Catch(unittest.TestCase):
 
     def test_tie_by_id_and_cooldown(self):
         with Workdir() as w:
-            rows = run(w, {"player": {"pos": [15, 5]}, "nodes": [], "fish": self.FISH}, press("catch", 0, 2, 29, 31), 40)
+            rows = run(w, {"player": {"pos": [15, 5]}, "nodes": [], "fish": self.FISH, "random_fish": False},
+                       press("catch", 0, 2, 29, 31), 40)
             caught = [(e["tick"], e["data"]) for e in events(rows, "fish_caught")]
             # F1 ở tick 1; ấn ở tick 2 và 29 còn hồi chiêu (30 tick); ấn ở 31 bắt F5
             self.assertEqual(caught, [(1, {"fish_id": "F1", "kind": "ca_linh", "yield": 3}),

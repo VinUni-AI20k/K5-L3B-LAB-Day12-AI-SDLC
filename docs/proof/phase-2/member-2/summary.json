@@ -1,0 +1,40 @@
+{
+  "tests_run": 78,
+  "deterministic_gather_bytes": true,
+  "team_check": {
+    "exit_code": 1,
+    "output": "KIỂM TRA DANH SÁCH THÀNH VIÊN KHÔNG ĐẠT:\n  - thành viên #6: GitHub handle chưa điền hoặc không hợp lệ ('<github-handle-6>')"
+  },
+  "runs": {
+    "gather": {
+      "sha256": "caee0db5f6093fb8e505c25135f11d931980249959fab66169bc5cc185cb4668",
+      "end": {
+        "type": "end",
+        "ticks": 600,
+        "sim_tick": 600,
+        "mode": "gather",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      }
+    },
+    "quan": {
+      "sha256": "eb26adeb7d9feb2d222c2fb25339d8892fec1a24bab53fa02c6235dec3459052",
+      "end": {
+        "type": "end",
+        "ticks": 600,
+        "sim_tick": 600,
+        "mode": "quan",
+        "state": "playing",
+        "reason": "tick_limit",
+        "money": 0,
+        "earned": 0,
+        "reputation": 3.0,
+        "score": 300
+      }
+    }
+  }
+}

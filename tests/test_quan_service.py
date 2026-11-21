@@ -85,6 +85,7 @@ class QuanServiceTests(unittest.TestCase):
 
     def test_serve_eat_paid_with_tip_and_reputation_cap(self):
         sc = {
+            "random_customers": False,
             "player": {"pos": [9, 2]},
             "hand": "ca_loc_nuong_trui",
             "stock": {"ca_loc": 1},
