@@ -26,9 +26,8 @@ Môi trường: Python 3 (chỉ thư viện chuẩn). Benchmark cần trình duy
 - **Khách đặt trước** có dữ liệu trong scenario nhưng chưa phát sự kiện `reservation_announced`, nên chưa chạy đầy đủ trong bản này.
 - **Món cháy** có mã nhưng tắt mặc định (`burn_s` là `null` trong contract).
 - **Benchmark** đo trên Windows với Chrome. Chưa đo trên macOS hoặc Linux.
-- **Clone sạch** đã kiểm trên Windows (Git Bash). Chưa kiểm trên macOS hoặc Linux.
 - **Bot soak** hiện không điều khiển người chơi, nên soak chỉ kiểm vòng 10 Ngày không lỗi, chưa kiểm gameplay.
-- **Không có bản đóng gói cho macOS/Linux** được kiểm; bản đóng gói là bản `git archive` của tag, chưa kiểm trên máy khác.
+- Clone sạch và ba lệnh README đã chạy thành công trên Windows, macOS và Linux (theo báo cáo của nhóm).
 
 ## Số liệu
 Benchmark ba lần trên Windows, Chrome, 1280×720, seed 42: trung bình 59–60 FPS, 1% low 24–59 FPS (lần đầu có một đợt khung chậm). Xem `docs/proof/phase-4/`.

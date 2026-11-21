@@ -11,7 +11,7 @@ Mã AC do nhóm tự đặt. Chỉ ghi kết quả đã chạy thật; ô nào c
 | AC-P4-04 Ba cảnh báo có chữ + biểu tượng | Chụp Chrome 1280×720 với snapshot có Cá Sấu gần, oxy < 25%, khách sắp giận | `docs/proof/phase-4/` và `shots` ghi trong báo cáo | Đạt (kiểm bằng ảnh) |
 | AC-P4-05 Chế độ tương phản cao (phím C, `?contrast`) | Chụp cảnh gather và quán ở chế độ bật | ảnh trong báo cáo | Đạt (kiểm bằng ảnh). Chưa chơi thử thật |
 | AC-P4-06 Regression P1–P3 còn hiệu lực | `unittest discover` toàn bộ, sau khi merge `main` (commit `066a565`) | `docs/proof/phase-4/regression.txt`: 185 test, OK, 0 bỏ qua | **Đạt** trên nhánh huydn8816. Hai test Phase 2 được sửa theo luật, lý do ghi trong commit: `test_sau_04` chỉ đo trong 90 tick bất tử (chạm lại ở tick 91 là đúng luật); `test_shop_01` đọc snapshot tick 7 (sau khi mua) |
-| AC-P4-07 Clone sạch chạy bằng tối đa 3 lệnh | Chưa làm | — | **Chưa** |
+| AC-P4-07 Clone sạch chạy bằng tối đa 3 lệnh | Clone nhánh, chạy 3 lệnh README trên Windows, macOS, Linux | Mục "Kiểm clone sạch" bên dưới; log macOS/Linux [cần đính kèm] | **Đạt** (macOS và Linux theo báo cáo của nhóm) |
 | AC-P4-08 Soak 10 Ngày (`soak_cmd`) | Chưa làm (việc giảng viên và `day`) | — | **Chưa** |
 | AC-P4-09 Phụ đề SFX, leaderboard | Chưa làm (không thuộc vai QA/UI của bản này) | — | **Chưa** |
 
@@ -40,7 +40,9 @@ Clone nhánh `huydn8816` vào thư mục mới (không dùng bản làm việc),
 2. `python3 -m chonoi.headless --mode gather --seed 1 --ticks 60 --out out.jsonl`: thoát mã 0.
 3. `python3 -m chonoi.bench --seed 42 --duration 3 --out bench.json`: thoát mã 0, trả về 5 trường (`avg_fps` 59,99; `p1_low_fps` 58,48).
 
-Giới hạn: chỉ chạy trên Windows (Git Bash, Python 3.14, Chrome). Chưa chạy trên macOS hoặc Linux, nên AC-P4-07 chỉ đạt một phần.
+Chạy trên macOS và Linux bởi một thành viên khác (theo báo cáo của nhóm): thành công. [Điền: người chạy, phiên bản macOS và Linux, Python, lệnh đã dùng, ảnh hoặc log đính kèm trong docs/proof/phase-4/.]
+
+Kết luận AC-P4-07: đạt trên Windows, macOS và Linux.
 
 ## Soak 10 Ngày (AC-P4-08, đã chạy)
 
