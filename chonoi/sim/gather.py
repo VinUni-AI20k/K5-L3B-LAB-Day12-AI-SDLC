@@ -6,17 +6,10 @@ Mặt cắt dòng sông nhìn NGANG: vị trí `[x, d]` (x sang phải, `d` đ�
 Đã làm sẵn để smoke test chạy được: bơi + tăng/giảm tốc, chặn mép (d không âm), đồng hồ và hết giờ,
 cập bến (`interact` trong vùng bến -> `gather_end` reason `docked`), xuất kho, snapshot đầy đủ trường gather.
 
-Nhóm viết tiếp (đúng thứ tự một bước trong PRD mục 13.8, "Gather"):
-  TODO(nhóm, lát 1): bơi + oxy + biên + giỏ
-      - oxy: dưới nước (d > surface_depth) trừ 1 tick/tick, mặt nước hồi oxygen_refill_per_tick, kẹp [0, max]
-      - ngạt: oxy = 0 và đang dưới nước -> đếm zero_oxy_ticks, đủ choke_interval_ticks thì -1 Máu (choke)
-      - Máu về 0 -> ngất (faint, gather_end reason `fainted`, mất toàn bộ giỏ, kho rỗng)
-      - sự kiện dive / surface / oxygen_empty / choke / faint
-      - giỏ: thứ tự nhặt (LIFO), sức chứa hold_capacity
-  TODO(nhóm, lát 2): hái + bắt cá + cập bến + kho
-      - hái nút ở mặt nước (gather, hold_full), nút mọc lại (node_regrown đã có phần đếm ngược)
-      - bắt đàn cá bằng `catch` (fish_caught, hold_full, hồi chiêu catch_cd_ticks, chỉ khi dưới nước)
-      - cập bến xét TRƯỚC hái (đã có); ghi kho đúng một lần do runner lo
+Phân chia lát:
+  - Lát 1 (file này): oxy, ngạt, Máu, ngất, dive/surface, giỏ LIFO (`_add_to_hold`). ĐÃ XONG.
+  - Lát 2 (`gather_harvest.py`): hái nút, bắt cá. File này đã nối sẵn lời gọi,
+    lát 2 KHÔNG cần sửa file này.
 Các tính năng của phase sau chưa nằm trong khung này.
 """
 
@@ -24,6 +17,7 @@ import math
 
 from ..ids import sort_by_id
 from ..inventory import hold_to_items
+from . import gather_harvest as harvest
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -118,12 +112,10 @@ class GatherSim:
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
-            #   Thêm vào giỏ qua self._add_to_hold(kind, n, events) (đã phát hold_full khi đầy).
+            harvest.try_gather(self, events)  # lát 2: gather_harvest.py
         # 5. bắt cá
         if inp.pressed("catch"):
-            pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
+            harvest.try_catch(self, events)  # lát 2: gather_harvest.py
         # 6. hết giờ
         if self.time_left_ticks <= 0:
             self._finish("time", events)

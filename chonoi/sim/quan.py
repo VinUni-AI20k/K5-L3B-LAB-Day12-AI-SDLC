@@ -1,13 +1,16 @@
 """Buổi tối — Mở Quán. KHUNG: đi lại, chặn biên, đồng hồ, kho nạp từ file/scenario.
 
-Nhóm viết tiếp (PRD-0 mục F, Quán):
-  TODO(nhóm, lát 3): khách đến theo lịch, chọn món nấu được, giữ chỗ nguyên liệu, kiên nhẫn,
-                     bỏ đi (customer_left), no_dish, vòng đời khách.
-  TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
-                     ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
+Phân chia lát:
+  - Lát 3 (`quan_customers.py`): khách đến theo lịch, chọn món nấu được, giữ chỗ
+    nguyên liệu, kiên nhẫn, bỏ đi (customer_left), no_dish. Schema khách: docs/contracts/customer.md.
+  - Lát 4 (`quan_service.py` + file này): interact bếp/bàn (cook_started, dish_ready,
+    dish_picked, served), ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
+  Chỉ người làm lát 4 sửa file này (thứ tự gọi trong step); lát 3 KHÔNG cần sửa file này.
 """
 
 from ..ids import sort_by_id
+from . import quan_customers as customers
+from . import quan_service as service
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -72,10 +75,13 @@ class QuanSim:
     def step(self, inp):
         events = []
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # TODO(nhóm): giảm kiên nhẫn / nấu / ăn; bếp chín -> ready; xử lý khách theo thứ tự PRD-0 mục F.
+        # Thứ tự tạm theo khung; lát 4 chỉnh lại đúng PRD-0 mục F khi đề mở.
+        service.tick_service(self, events)      # lát 4: bếp nấu -> dish_ready, khách ăn xong -> paid
+        customers.tick_customers(self, events)  # lát 3: giảm kiên nhẫn, customer_left
         self._move(inp)
-        # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
-        # TODO(nhóm): khách mới theo lịch (first_customer_tick, customer_interval_s), no_dish.
+        if inp.pressed("interact"):
+            service.interact(self, events)      # lát 4: tối đa MỘT interact (khoảng cách, bếp trước bàn, id)
+        customers.spawn_customers(self, events)  # lát 3: khách mới theo lịch, chọn món, giữ chỗ, no_dish
         if self.time_left_ticks <= 0:
             self.done = True
             self.reason = "time"

@@ -1,4 +1,4 @@
-"""Gather lát 1 (@justapea25): dive/surface, oxy, ngạt, Máu, ngất, giỏ LIFO.
+"""Gather lát 1: dive/surface, oxy, ngạt, Máu, ngất, giỏ LIFO.
 
 Phần lớn là test hộp đen qua headless; riêng helper `_add_to_hold` test trực tiếp trên GatherSim.
 """
