@@ -47,3 +47,8 @@ python3 -m unittest -v tests.test_quan tests.test_smoke_p1.Integration.test_inv_
 - Snapshot quán có 2 bếp và 4 bàn. Các ca thứ tự nhận đơn, món mới, lọc món theo kế hoạch Ngày trong quán và dọn ca đều đạt.
 - Quán đọc đúng kho tại tick 0. Khi gather dừng do giới hạn tick trước khi kết thúc, file kho đích giữ nguyên.
 - Kết quả thuộc nhánh quán tại `2090b6e`. Chờ chạy lại trên bản tích hợp Phase 2.
+
+## Bàn giao nguyên liệu mới tại `9f4c078`
+
+- **Gather → quán:** Dùng seed 42, `gather.hold=["ca_keo","ca_keo","keo_neo"]`, `random_fish:false` và `interact:true` ở input tick 0. Gather trả mã 2 với lỗi `hold phải là mảng id nguyên liệu hợp lệ`. Luồng dừng ở bước kiểm tra fixture gather.
+- **Quán độc lập:** Nạp trực tiếp `{"items":{"ca_keo":2,"keo_neo":1}}` bằng `--inventory`, chạy với seed 42 và `--ticks 0`. Snapshot tick 0 có `stock: {"ca_keo":2,"keo_neo":1}`. Kết quả: đạt.
