@@ -22,7 +22,7 @@ Các tính năng của phase sau chưa nằm trong khung này.
 
 import math
 
-from ..ids import sort_by_id
+from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
 from .ramp import ramp_velocity
 
@@ -117,8 +117,7 @@ class GatherSim:
             if self._in_dock():
                 self._finish("docked", events)
                 return events
-            # TODO(nhóm, lát 2): chỉ khi ở mặt nước: hái nút `ready` gần nhất trong interact_radius
-            #   (id nhỏ khi bằng nhau): gather / hold_full; đặt regrow_ticks cho nút.
+            self._harvest(events)
         # 4. bắt cá
         if inp.pressed("catch"):
             pass  # TODO(nhóm, lát 2): chỉ khi catch_cd_ticks == 0 và dưới nước: fish_caught / hold_full.
@@ -126,6 +125,27 @@ class GatherSim:
         if self.time_left_ticks <= 0:
             self._finish("time", events)
         return events
+
+    # --- lát 2: hái + bắt cá ------------------------------------------------------
+    def _nearest(self, items, radius):
+        """Phần tử gần nhất trong bán kính (tính cả đúng mép), hòa theo id; None nếu không có."""
+        cands = [e for e in items if math.dist(self.pos, e["pos"]) <= radius]
+        return min(cands, key=lambda e: (math.dist(self.pos, e["pos"]), id_key(e["id"])), default=None)
+
+    def _harvest(self, events):
+        if not self._at_surface():
+            return
+        node = self._nearest([n for n in self.nodes if n["regrow_ticks"] == 0], self.t["interact_radius"])
+        if node is None:
+            return
+        amount = self.t["node_yield"]
+        free = self.t["hold_capacity"] - len(self.hold)
+        if free < amount:
+            events.append(("hold_full", {"action": "gather", "node_id": node["id"], "required": amount, "free": free}))
+            return
+        self.hold += [node["kind"]] * amount
+        node["regrow_ticks"] = int(round(self.t["regrow_s"] * TICK))
+        events.append(("gather", {"node_id": node["id"], "kind": node["kind"], "amount": amount}))
 
     # --- tiện ích ---------------------------------------------------------------
     def _at_surface(self) -> bool:
