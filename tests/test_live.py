@@ -1,6 +1,8 @@
 """Test cửa sổ chơi trực tiếp (chonoi.live). Chỉ dành cho starter Python: nhóm đổi ngôn ngữ thì xóa file này."""
 
 import json
+import os
+import tempfile
 import time
 import unittest
 import urllib.error
@@ -56,6 +58,31 @@ class LiveServerTest(unittest.TestCase):
             server.stop()
         self.assertFalse(server.game._thread.is_alive())
         self.assertFalse(server._thread.is_alive())
+
+
+class LiveInventoryPersistenceTest(unittest.TestCase):
+    def test_gather_writes_inventory_immediately(self):
+        tuning = load_contract()["tuning"]
+        with tempfile.TemporaryDirectory() as d:
+            inventory_path = os.path.join(d, "inventory.json")
+            with open(inventory_path, "w", encoding="utf-8") as f:
+                json.dump({"items": {"ca_loc": 2}}, f)
+            scenario = {
+                "player": {"pos": [12, 0]},
+                "nodes": [{"id": "N1", "kind": "bong_sung", "pos": [12, 0]}],
+                "random_fish": False,
+            }
+            game = LiveGame("gather", tuning, scenario, 1, inventory_out=inventory_path)
+            game.inputs.set(interact=True)
+            game._tick_once()
+            with open(inventory_path, encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {"items": {"bong_sung": 1, "ca_loc": 2}})
+
+            game.restart()
+            game.inputs.set(interact=True)
+            game._tick_once()
+            with open(inventory_path, encoding="utf-8") as f:
+                self.assertEqual(json.load(f), {"items": {"bong_sung": 2, "ca_loc": 2}})
 
 
 if __name__ == "__main__":
