@@ -1,0 +1,46 @@
+Lệnh: PYTHONPATH=tests:. python -m unittest discover -s tests -p test_quan_lat4.py -v
+Burn được kiểm thử bằng tuning riêng, CHƯA bật trong manifest.
+
+test_bep_khong_tuong_tac_duoc_khong_duoc_chuyen_sang_ban (test_quan_lat4.Cooking.test_bep_khong_tuong_tac_duoc_khong_duoc_chuyen_sang_ban) ... ok
+test_cook_started_tru_kho_theo_phan_giu (test_quan_lat4.Cooking.test_cook_started_tru_kho_theo_phan_giu) ... ok
+test_dish_ready_dung_tick_khong_tang_tuoi_ngay_moi_chin (test_quan_lat4.Cooking.test_dish_ready_dung_tick_khong_tang_tuoi_ngay_moi_chin) ... ok
+test_oldest_order_then_table_id (test_quan_lat4.Cooking.test_oldest_order_then_table_id) ... ok
+test_ac_p2_05_4_ban_khi_hoa_khoang_cach_chon_id (test_quan_lat4.Phase2Acceptance.test_ac_p2_05_4_ban_khi_hoa_khoang_cach_chon_id)
+AC-P2-05: hai ban cung khoang cach, giao mon cho ban id nho. ... ok
+test_ac_p2_05_chon_bep_truoc_ban_va_id_khi_hoa (test_quan_lat4.Phase2Acceptance.test_ac_p2_05_chon_bep_truoc_ban_va_id_khi_hoa)
+AC-P2-05: hoa khoang cach -> bep truoc ban, giua 2 bep -> id nho. ... ok
+test_ac_p2_05_sau_mon_tu_cong_thuc_va_gia_trong_menu (test_quan_lat4.Phase2Acceptance.test_ac_p2_05_sau_mon_tu_cong_thuc_va_gia_trong_menu)
+AC-P2-05: 6 mon, cong thuc + gia + so tick nau lay tu menu, khong hardcode. ... ok
+test_ac_p2_06_tien_va_uy_tin_carry_shift_earned_reset (test_quan_lat4.Phase2Acceptance.test_ac_p2_06_tien_va_uy_tin_carry_shift_earned_reset)
+AC-P2-06: money/earned/reputation qua ca; shift_earned chi cua ca hien tai. ... ok
+test_ac_p2_08_snapshot_hud_quan_du_du_lieu (test_quan_lat4.Phase2Acceptance.test_ac_p2_08_snapshot_hud_quan_du_du_lieu)
+AC-P2-08: Lat 4 ban giao state cho HUD; KHONG chung minh UI ve dat 18px. ... ok
+test_ac_p2_12_dung_1200_tick_bung_duoc_1201_moi_chay (test_quan_lat4.Phase2Acceptance.test_ac_p2_12_dung_1200_tick_bung_duoc_1201_moi_chay)
+AC-P2-12: ngay 1200 khong chay; vuot 1200 phat dish_burnt. ... ok
+test_ac_p2_12_hai_bep_chay_cung_tick_giu_lai_co_han (test_quan_lat4.Phase2Acceptance.test_ac_p2_12_hai_bep_chay_cung_tick_giu_lai_co_han)
+AC-P2-12: 2 bep chay theo id, chi 1 don du nguyen lieu de re-reserve. ... ok
+test_burn_chi_khi_vuot_nguong_va_thu_giu_lai (test_quan_lat4.Phase2Compatibility.test_burn_chi_khi_vuot_nguong_va_thu_giu_lai) ... ok
+test_dong_thoi_hai_mon_chin_theo_id_bep (test_quan_lat4.Phase2Compatibility.test_dong_thoi_hai_mon_chin_theo_id_bep) ... ok
+test_hai_bep_hai_ban_lay_don_cu_nhat_va_toi_gan_nhat (test_quan_lat4.Phase2Compatibility.test_hai_bep_hai_ban_lay_don_cu_nhat_va_toi_gan_nhat) ... ok
+test_no_burn_in_core_even_after_long_ready (test_quan_lat4.Phase2Compatibility.test_no_burn_in_core_even_after_long_ready) ... ok
+test_bad_scenario_exit_2 (test_quan_lat4.ScenarioValidation.test_bad_scenario_exit_2) ... ok
+test_headless_chuoi_nau_bung_phuc_vu_thanh_toan_va_tat_dinh (test_quan_lat4.ScenarioValidation.test_headless_chuoi_nau_bung_phuc_vu_thanh_toan_va_tat_dinh) ... ok
+test_headless_full_payment_event (test_quan_lat4.ScenarioValidation.test_headless_full_payment_event) ... ok
+test_valid_cooking_ready_hand_and_eating_fixtures (test_quan_lat4.ScenarioValidation.test_valid_cooking_ready_hand_and_eating_fixtures) ... ok
+test_an_xong_pay_va_nang_uy_tin (test_quan_lat4.ServingPayment.test_an_xong_pay_va_nang_uy_tin) ... ok
+test_boa_bang_0_neu_ki_nhan_qua_thap (test_quan_lat4.ServingPayment.test_boa_bang_0_neu_ki_nhan_qua_thap) ... ok
+test_dong_ca_thanh_toan_khach_dang_an (test_quan_lat4.ServingPayment.test_dong_ca_thanh_toan_khach_dang_an) ... ok
+test_phuc_vu_dung_tick_het_ca_duoc_tra_ngay (test_quan_lat4.ServingPayment.test_phuc_vu_dung_tick_het_ca_duoc_tra_ngay) ... ok
+test_served_giu_boa_theo_kien_nhan_sau_buoc_1 (test_quan_lat4.ServingPayment.test_served_giu_boa_theo_kien_nhan_sau_buoc_1) ... ok
+
+----------------------------------------------------------------------
+Ran 24 tests in 10.962s
+
+OK
+
+Hồi quy toàn repo (Linux / Python 3.13.5):
+Lệnh: PYTHONPATH=tests:. python -m unittest discover -s tests -v
+---------------------------------------------------------------------
+Ran 172 tests in 164.120s
+
+OK
