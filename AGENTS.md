@@ -20,6 +20,8 @@
 - Sắp danh sách thực thể bằng `ids.sort_by_id`; cấp id bằng `IdAllocator`.
 
 ## Nên tránh
+- **Mỗi người chỉ sửa file mình giữ** (bảng phân file trong `docs/plan/phase-<n>.md`). File dùng chung (`chonoi/jsonl.py`, `game.contract.json`, `chonoi/inventory.py`, `docs/*.md` của người khác) thì báo kênh nhóm trước, một người sửa, người kia rebase. Lý do: P3 hai PR cùng sửa `jsonl.py` → gộp ra `NameError`, 121 test đỏ; merge P2 đè ghi chép P1.
+- Trước khi merge `dev` → `main`: `git diff main dev -- docs/` để không đè ghi chép.
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).
 - Không làm hỏng nhánh chính: trước khi đẩy, chạy test.
 - Không bịa yêu cầu: chỗ mơ hồ thì ghi `docs/clarify.md` và hỏi PO.
