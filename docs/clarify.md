@@ -16,3 +16,5 @@
 | 9 | 2026-11-21 0:18 | Không có bàn trống khi tới lịch khách? | Bỏ lượt, không phát sự kiện. Có bàn mà không món nào đủ → `no_dish` `{}`. | chốt — PRD-0 F | PO |
 | 10 | 2026-11-21 0:20 | `burn_s = null` nghĩa là gì? | Món chín không cháy; `ready_ticks` là tuổi món trên bếp, chỉ tăng cho món đã ready từ đầu bước. | chốt — PRD-0 A, F | PO |
 | 11 | 2026-11-21 0:20 | Uy tín kẹp thế nào, boa làm tròn ra sao? | Kẹp `[reputation_min, reputation_max]`. Boa = `floor(base_price × tip_rate)` nếu tỷ lệ kiên nhẫn còn lại sau bước 1 ≥ `tip_min_patience_ratio`, không thì 0; boa dương cộng `tip_reputation` khi thu tiền. | chốt — PRD-0 F | PO |
+| 12 | 2026-11-21 10:28 | Id khách (cũng là `order_id`) đặt theo mẫu nào? | Tiền tố `C` cộng số thứ tự cấp qua `IdAllocator`: `C1`, `C2`… Khách luôn dùng `order_id` trùng id khách. | chốt — PO quyết (PRD-0 không nói) | PO |
+| 13 | 2026-11-21 10:28 | Scenario không khai `reserved` mà kho không đủ nguyên liệu cho đơn có sẵn thì sao? | Coi là input lỗi: thoát mã 2, **không** tự chuyển đơn sang `unfulfillable`. | chốt — PO quyết (PRD-0 không nói) | PO |
