@@ -58,6 +58,8 @@ def try_catch(sim, events):
     """
     if sim.catch_cd_ticks > 0 or sim._at_surface():
         return
+    if getattr(sim, "net", None):
+        return _net_catch(sim, events)
     fish = _nearest(sim, sim.fish, float(sim.t["catch_radius"]))
     if fish is None:
         return
@@ -67,3 +69,21 @@ def try_catch(sim, events):
     sim.fish.remove(fish)
     sim.catch_cd_ticks = int(round(sim.t["catch_cooldown_s"] * TICK))
     events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": count}))
+
+
+def _net_catch(sim, events):
+    """Mở rộng net (cấp ≥ 1): duyệt đàn trong catch_radius của vợt theo id, bắt tối đa max_schools đàn.
+    Đàn thiếu chỗ phát hold_full và ở lại, được xét đàn kế. Có đàn bắt thành công mới đặt hồi."""
+    radius, limit = float(sim.net["catch_radius"]), int(sim.net["max_schools"])
+    caught = 0
+    for fish in sort_by_id([f for f in sim.fish if math.dist(sim.pos, f["pos"]) <= radius]):
+        if caught >= limit:
+            break
+        count = int(sim.t["fish_yield"][fish["kind"]])
+        if not sim._add_to_hold(fish["kind"], count, events, {"action": "catch", "fish_id": fish["id"]}):
+            continue
+        sim.fish.remove(fish)
+        caught += 1
+        events.append(("fish_caught", {"fish_id": fish["id"], "kind": fish["kind"], "yield": count}))
+    if caught:
+        sim.catch_cd_ticks = int(round(sim.t["catch_cooldown_s"] * TICK))
