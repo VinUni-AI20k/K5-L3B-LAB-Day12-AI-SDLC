@@ -9,12 +9,12 @@
   - UI không phải chờ sim: Shop, pause và `day` làm bằng mock theo trường snapshot đã chốt.
   - Script kiểm chứng tự thêm shim `python3`, nên máy Windows không còn báo fail giả (mã 9009).
 - Điều tệ:
-  - Lõi v1.1 chưa xong: `contract_version` còn `"1.0"`, chưa có `sim/day.py` (vòng ngày, Shop) và `sim/monsters.py` (Cá Sấu). Vì vậy chưa gắn được tag `phase-2`, còn Phase 3 và Phase 4 thì bị nợ dồn (bàn giao trong `day`, soak).
+  - Lõi v1.1 xong muộn: số chuẩn v1.1 mới vào main ở `b85711d` (sau khi dựng nháp này). Vẫn chưa có `sim/day.py` (vòng ngày, Shop) và `sim/monsters.py` (Cá Sấu). Vì vậy chưa gắn được tag `phase-2`, còn Phase 3 và Phase 4 thì bị nợ dồn (bàn giao trong `day`, soak).
   - Đường găng dồn vào một người (Integrator vừa giữ số chuẩn vừa làm `day.py`).
   - Gộp muộn nên nhiều lần phải merge `main` và giải xung đột (`sim/quan.py`, `ai-usage-log.md`, `standup.md`).
   - Chưa review chéo: cả 7 PR đã gộp (#1–#7) đều không có review nào trên GitHub, dù thỏa thuận là người dự phòng review.
   - `docs/contracts/README.md` vẫn là template, giao diện chuyển pha chỉ nằm trong `docs/plan/phase-2.md`.
-- 1 hành động cho Phase 3: **trả nợ v1.1 trước khi bật v1.2.** Bào đẩy số chuẩn v1.1 cùng adapter trước phút 12. Kiên (đã xong 3b) pair với Bào làm `day.py`. Người nhận: **invzble-z**. Minh kiểm lại ở standup phút 20.
+- 1 hành động cho Phase 3: **trả nợ Phase 2 trước khi bật v1.2.** Số chuẩn v1.1 đã có (`b85711d`). Bào đẩy adapter kho cá thể trước phút 12. Kiên (đã xong 3b) pair với Bào làm `day.py`. Người nhận: **invzble-z**. Minh kiểm lại ở standup phút 20.
 
 ## Phase 4 (cuối)
 - Rà lại hành động Phase 2: đã làm chưa? vì sao?
