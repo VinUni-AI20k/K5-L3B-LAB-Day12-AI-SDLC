@@ -590,10 +590,10 @@
     }
 
     function currentInput() {
-      const mode = snap ? snap.mode : "gather";
+      const phase = simPhase() || (snap && snap.mode);
       const dx = (down.has("r") ? 1 : 0) - (down.has("l") ? 1 : 0);
       let dy = (down.has("d") ? 1 : 0) - (down.has("u") ? 1 : 0);
-      if (mode === "quan") dy = -dy;
+      if (phase === "quan") dy = -dy;
       const body = { move: [dx, dy], interact: down.has("interact"), catch: down.has("catch") };
       if (paused) body.pause = true;
       return body;
@@ -2051,7 +2051,8 @@
         } else if (!snap) {
           text(offline ? "Không có kết nối…" : "Đang tải dữ liệu…", w / 2, h / 2, { align: "center", size: 24 });
         } else {
-          if (snap.mode === "quan") drawQuan(w, h); else drawGather(w, h);
+          if ((simPhase() || snap.mode) === "quan") drawQuan(w, h);
+          else drawGather(w, h);
           eventLog(w, h);
           overlay(w, h);
         }
