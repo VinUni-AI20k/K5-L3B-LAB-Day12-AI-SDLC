@@ -138,8 +138,6 @@ def read_inventory(path: str, kinds=KINDS_P1, version=None):
     ver = version if version is not None else get_contract_version()
     if version in ("1.2", "1.3") or (version is None and ver in ("1.2", "1.3")):
         if not isinstance(data["items"], list):
-            if version is None and isinstance(data["items"], dict):
-                return validate_items(data["items"], kinds)
             raise BadInput(f"file kho v{ver} phải là mảng cá thể")
         return validate_item_objects(data["items"], kinds)
     else:
@@ -170,7 +168,7 @@ def merge_items(*collections):
     """Sum item counts across inventories and return keys in stable order, or merge individual item lists."""
     if not collections:
         return {}
-    has_list = any(isinstance(c, list) for c in collections if c)
+    has_list = any(isinstance(c, list) for c in collections)
     if has_list:
         merged = []
         for c in collections:

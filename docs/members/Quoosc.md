@@ -1,15 +1,21 @@
-# Phạm Trấn Quốc — Quoosc (bản nháp factual)
+# Phạm Trấn Quốc — Quoosc · MSSV 2A202604113
 
-Q3 Phase 1: đóng góp logic khách, giữ chỗ, kiên nhẫn, test và [bằng chứng](../proof/phase-1/q3/README.md); review và ghi nhận món mồ côi Q4.
+## Phase 1
 
-Q3 Phase 2: bổ sung menu_filter, order_tick và test; PR #8 đã merge. Review Q4 và ghi Q4-F1; kiểm sau merge trên main `63f850e`, kết quả và giới hạn tại [proof](../proof/phase-2/q3/postmerge-baseline-63f850e.txt).
+Đóng góp logic Q3 customer, reservation, patience, validation và replay; bổ sung contract/headless coverage. Bằng chứng: [Q3 Phase 1](../proof/phase-1/q3/README.md), [verification mới](../verification/phase-1.md). Các semantics không có ticket gốc vẫn cần PO xác nhận.
 
-Quốc cần tự xác nhận và bổ sung phản tư, trải nghiệm, bài học cá nhân trước khi nộp.
+## Phase 2
 
-Q3 Phase 2: triển khai `no_dish` theo quyết định PO #11 trên nhánh `Quoosc`; kiểm chứng fixture bàn trống/bàn đầy, kho thiếu/filter rỗng, không backlog và không tăng ID. Xem [proof](../proof/phase-2/q3/no-dish.txt).
+Hoàn tất kỹ thuật DaySim/Runner integration Q3: empty menu plan, reputation qua ca/ngày, active `sim_tick` khi pause, stock handoff và regression `no_dish`. Thêm Q4-F1 orphan-dish reuse regression/fix; chờ ttkien0710 review module. [Verification](../verification/phase-2.md).
 
-Phase 3: triển khai decay kho Quán bằng `Fraction`, reservation nguyên liệu cá thể theo ID tươi nhất, phát `spoiled`, nhả và thử giữ lại một lần. Test độc lập và giới hạn schema ghi trong [Spec Kit](../../specs/002-p3-q3-freshness/handoff.md).
+## Phase 3
 
-Phase 4: viết CLI Soak dựa trên DaySim thật; chạy 10 ngày seed 7 hai lần, không crash và replay trùng gameplay fields. Số liệu thật cùng giới hạn chiến lược bot ở [proof](../proof/phase-4/soak-run.txt). Quốc cần tự xác nhận hai phần phản tư cá nhân về AI và điều học được.
+Triển khai freshness bằng Fraction, reservation ID vật lý, spoil/retry và idempotent consume/release. Tích hợp contract root v1.3 qua gather → file inventory → Quan và Day, giữ freshness/ID; full regression 216 tests. `unfulfillable` payload còn chờ PO/Integrator, và UI v1.3 chưa có review mới. [Spec handoff](../../specs/002-p3-q3-freshness/handoff.md).
 
-Commits: [Q3 customer/freshness](https://github.com/invzble-z/K5-L3B-DAY12-AI-SDLC-NhomF7/commit/4a89104), [Soak](https://github.com/invzble-z/K5-L3B-DAY12-AI-SDLC-NhomF7/commit/4b38c16).
+## Phase 4
+
+Viết CLI soak dựa trên DaySim thật. Hai lần chạy seed 7 đạt 10/10 ngày, 0 crash và gameplay fields trùng. Bot fast-dock không thu hoạch nên earned=0 trong proof; không xem đó là đánh giá economy/strategy. [Proof](../proof/phase-4/soak-run.txt).
+
+## Handoff
+
+Full test, headless Day 1/3 và soak evidence hiện có; xem [Phase 1–4 verification](../verification/). QA/Integrator review, Q4 owner review, schema `unfulfillable`, UI v1.3, release và phần tự phản tư cá nhân vẫn cần người phụ trách xác nhận.

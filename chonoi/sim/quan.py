@@ -60,6 +60,7 @@ class QuanSim:
         self.freshness_decay = None
         self.spoiled_below = None
         freshness = tuning.get("freshness")
+        self.freshness = dict(freshness) if freshness else None
         if self.items and not freshness:
             raise BadInput("kho cá thể cần cấu hình freshness")
         if self.items:
@@ -190,9 +191,15 @@ class QuanSim:
     def snapshot(self) -> dict:
         occupied = {c["table_id"]: c["id"] for c in self.customers}
         available = self._available_stock()
+        if self.items:
+            held_ids = self._reserved_item_ids()
+            stock_snapshot = [item.snapshot() for item in self.items if item.id not in held_ids]
+        else:
+            stock_snapshot = {kind: available[kind] for kind in sorted(available)}
         return {
             "player": {"pos": self.pos},
-            "stock": {k: available[k] for k in sorted(available)},
+            "stock": stock_snapshot,
+            **({"freshness": self.freshness} if self.freshness else {}),
             "hand": self.hand,
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
@@ -603,6 +610,9 @@ class QuanSim:
                     if c["table_id"] == obj["id"] and c["state"] in ("waiting", "ordered"):
                         if c["dish_id"] != self.hand:
                             continue
+                        # Serving a reusable orphan dish does not consume the waiting
+                        # customer's reserved ingredients; release those IDs/counts.
+                        self._release_reservation(c["id"])
                         c["state"] = "eating"
                         c["eat_ticks_left"] = int(round(self.t["eat_s"] * self.tick_hz))
                         p_left = c.get("patience_ticks_left", c.get("patience_ticks", 0))

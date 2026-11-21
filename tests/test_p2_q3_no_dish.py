@@ -25,7 +25,7 @@ class NoDishTests(unittest.TestCase):
         ]
 
     def sim(self, scenario=None, menu_filter=None):
-        return QuanSim(self.tuning, scenario or {}, Streams(17), IdAllocator(), menu_filter)
+        return QuanSim(self.tuning, scenario or {}, Streams(17), IdAllocator(), menu_filter=menu_filter)
 
     def test_free_table_with_empty_stock_emits_one_no_dish_at_each_due_turn(self):
         sim = self.sim({"stock": {}})
@@ -45,6 +45,21 @@ class NoDishTests(unittest.TestCase):
                 events = self.run_ticks(sim, 2)
                 self.assertEqual([name for _, name, _ in events if name in ("no_dish", "customer_arrived")],
                                  ["no_dish"])
+
+    def test_empty_filter_blocks_cookable_stock_and_emits_no_dish(self):
+        sim = self.sim({"stock": {"ca_loc": 5, "bong_sung": 10}}, menu_filter=[])
+        events = self.run_ticks(sim, 2)
+        self.assertEqual([name for _, name, _ in events
+                          if name in ("no_dish", "customer_arrived")], ["no_dish"])
+        self.assertEqual(sim.planned_dishes, frozenset())
+
+    def test_single_and_multiple_filters_are_preserved(self):
+        single = self.sim({"stock": {"ca_loc": 5}}, menu_filter=["ca_loc_nuong_trui"])
+        multiple = self.sim({"stock": {"ca_loc": 5, "bong_sung": 10}},
+                            menu_filter=["ca_loc_nuong_trui", "goi_bong_sung"])
+        self.assertEqual(single.planned_dishes, frozenset({"ca_loc_nuong_trui"}))
+        self.assertEqual(multiple.planned_dishes,
+                         frozenset({"ca_loc_nuong_trui", "goi_bong_sung"}))
 
     def test_full_tables_drop_due_turn_without_no_dish(self):
         customers = [

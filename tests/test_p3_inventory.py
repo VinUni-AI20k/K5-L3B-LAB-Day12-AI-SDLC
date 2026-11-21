@@ -135,7 +135,6 @@ class InventoryPhase3Tests(unittest.TestCase):
 
         contract = load_contract()
         tuning = dict(contract["tuning"])
-        tuning["contract_version"] = "1.2"
 
         scenario = {
             "day": {"days": 2},
@@ -181,8 +180,9 @@ class InventoryPhase3Tests(unittest.TestCase):
         self.assertNotEqual(new_id, "I1")
         self.assertEqual(new_id, "I2")
 
-        # Kho dư bị bỏ sau Shop theo hợp đồng
-        self.assertEqual(sess.sim.stock, {})
+        # Item còn lại được chuyển sang Gather ngày kế tiếp đúng một lần.
+        self.assertEqual([item["id"] for item in sess.sim.gather.inventory_items()], ["I1"])
+        self.assertEqual(sess.sim.stock, [])
 
     def test_day_headless_smoke_two_days(self):
         """AC-P3-08: Headless --mode day --days 2 --ticks 600 chạy trơn tru."""

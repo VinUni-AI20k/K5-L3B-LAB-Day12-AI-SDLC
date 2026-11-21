@@ -35,3 +35,10 @@
   - Bổ sung `LICENSE` tại gốc repo.
   - Soạn thảo Release Notes toàn diện: [`docs/release-notes-v1.0.0.md`](docs/release-notes-v1.0.0.md).
   - Đóng gói ZIP `cho-noi-v1.0.0.zip`, gắn tag `phase-4` và tạo GitHub Release v1.0.0.
+
+## Cập nhật proof Q3 của Quoosc trên nhánh hiện tại
+
+- Soak mới nhất: [run 1](../proof/phase-4/soak-q3-run1.json), [run 2](../proof/phase-4/soak-q3-run2.json); cả hai seed 7 đạt 10/10 ngày, 0 crash, gameplay fields trùng. `earned=0` là kết quả bot fast-dock không thu hoạch.
+- Hồi quy hiện tại: 216 tests OK, exit 0; [full log](../proof/phase-4/q3-full-regression.txt). Phase 1 verifier đạt 9/9 bước: [verify-run](../proof/phase-1/verify-run.txt).
+- DaySim headless Day 1 và 3: exit 0; Day 3 replay byte-identical: [log](../proof/phase-4/day-headless-run.txt).
+- AC-P4-03 có bằng chứng kỹ thuật mới; QA/Integrator review vẫn cần ghi nhận riêng.

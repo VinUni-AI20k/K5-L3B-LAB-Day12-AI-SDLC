@@ -1,15 +1,15 @@
 # Tasks Phase 2 Q3 — sau merge
 
-- [x] T01 DONE — đối chiếu nguồn, Git, baseline.
-- [x] T02 DONE — spec, đề xuất hợp đồng và test plan.
-- [x] T03 DONE — kiểm bốn bàn, lịch, chọn món, reservation.
-- [x] T04 DONE — menu_filter, order_tick và validation fixture; PR #8.
-- [x] T05 DONE — Q3, regression, headless; [log](../../docs/proof/phase-2/q3/postmerge-baseline-63f850e.txt).
-- [x] T06 DONE — review Q4 thật và bàn giao finding Q4-F1.
-- [ ] T07 PARTIAL — DaySim đã chạy thật; kho Gather→Quan, filter khác rỗng, reservation/release/consume, lịch 120+900k, reset ca, D1–D5 map và list, headless 1/3 ngày được kiểm. Còn lỗi interface thuộc Bào: plan rỗng thành `None`, reputation không được chuyển/giữ, và `sim_tick` tăng khi pause. Xem [test tích hợp](../../tests/test_p2_q3_day_integration.py) và [findings](../../docs/proof/phase-2/q3/day-findings.md).
-- [ ] T08 PARTIAL — Q3/Q4 và Phase 2–3 regression đạt; order priority, hai bếp, sáu món và reservation có test. Q4-F1 vẫn tái hiện trên HEAD `5b79199`; chính sách món mồ côi chưa được PO/Kiên duyệt.
-- [x] T09a DONE — theo PO #11, `no_dish {}` phát đúng một lần ở mỗi lượt đến hạn khi còn bàn nhưng không có món khả thi; bàn đầy không phát event; không có backlog/ID cấp/đóng ca. [Test](../../tests/test_p2_q3_no_dish.py), [proof](../../docs/proof/phase-2/q3/no-dish.txt).
-- [ ] T09b PARTIAL — manifest `day_plan` là mapping, tài liệu đề xuất mảng và D2–D5 khác; ticket gốc không có trong checkout. Tên event/state vẫn cần PO/Integrator đối chiếu nguồn chính thức.
-- [ ] T10 PARTIAL — kỹ thuật đã có test và proof. QA review chính thức của Minh/reviewer chưa được ghi nhận; Quốc cần tự xác nhận phản tư.
+- [x] T01 DONE — đối chiếu Git và baseline sau khi pull main mới.
+- [x] T02 DONE — spec, contract proposal và test plan.
+- [x] T03 DONE — customer scheduling, table, menu selection, reservation.
+- [x] T04 DONE — menu_filter, order_tick và scenario validation.
+- [x] T05 DONE — Q3 regression và headless.
+- [x] T06 DONE — review Q4 và ghi finding Q4-F1.
+- [x] T07 DONE — sửa DaySim/Runner empty plan, reputation carry-over và active sim_tick khi pause; kiểm tra handoff kho cá thể qua ngày. Headless Day 1/3 exit 0, replay deterministic; [proof](../../docs/proof/phase-4/day-headless-run.txt).
+- [ ] T08 PARTIAL — Q4-F1 fix và integration regression đã có tại [test](../../tests/test_p2_q4_f1_reuse.py); chờ ttkien0710 review thay đổi module Q4.
+- [x] T09a DONE — `no_dish {}` theo PO #11, gồm filter rỗng/kho thiếu/bàn đầy/no backlog.
+- [x] T09b DONE kỹ thuật — xử lý `day_plan` map/list, plan rỗng và filter; đối chiếu ticket gốc/event-state vẫn cần Integrator khi có nguồn chuẩn.
+- [ ] T10 PARTIAL — unit/integration/regression/proof mới đều chạy đạt; QA review chính thức chưa được ghi nhận.
 
-Tổng: 6/10 DONE, 4 PARTIAL, 0 BLOCKED (60% DONE). PR merge và test tái hiện Q4-F1 không thay cho quyết định nghiệp vụ hoặc QA nghiệm thu.
+Các mục kỹ thuật Q3 đã hoàn tất. T08 chờ review owner Q4; T10 chờ QA/Integrator review. T09a là mục con của T09 nên không cộng riêng vào tổng task. Không tính việc chờ review thành phê duyệt. Xem [verification](../../docs/verification/phase-2.md).

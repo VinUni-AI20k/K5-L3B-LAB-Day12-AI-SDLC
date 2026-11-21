@@ -4,6 +4,7 @@ Example: ``python -m chonoi.soak --seed 7 --days 10 --out soak.json``.
 """
 
 import argparse
+from copy import deepcopy
 import json
 import math
 import sys
@@ -13,6 +14,32 @@ from .contract import load_contract
 from .errors import BadInput
 from .inputs import InputState
 from .runner import Session
+
+
+def _tuning_for_days(tuning, days):
+    """Copy tuning and expand the configured day-plan cycle for the requested run."""
+    expanded = deepcopy(tuning)
+    plans = expanded.get("day_plan")
+    if isinstance(plans, dict) and plans:
+        base = []
+        day = 1
+        while str(day) in plans or day in plans:
+            base.append(deepcopy(plans.get(str(day), plans.get(day))))
+            day += 1
+        if not base:
+            return expanded
+        expanded["day_plan"] = {
+            str(day): deepcopy(base[(day - 1) % len(base)]) for day in range(1, days + 1)
+        }
+    elif isinstance(plans, list) and plans:
+        by_day = {plan.get("day"): plan for plan in plans if isinstance(plan, dict)}
+        base = [deepcopy(by_day[day]) for day in range(1, max(by_day, default=0) + 1) if day in by_day]
+        if base:
+            expanded["day_plan"] = [
+                {**deepcopy(base[(day - 1) % len(base)]), "day": day}
+                for day in range(1, days + 1)
+            ]
+    return expanded
 
 
 def _integer(name, minimum=None):
@@ -27,10 +54,13 @@ def _integer(name, minimum=None):
     return parse
 
 
-def run_soak(seed, days, out_path, tuning=None):
+def run_soak(seed, days, out_path, tuning=None, scenario=None):
     """Run the real DaySim; optional tuning is only an injectable test seam."""
-    tuning = tuning if tuning is not None else load_contract()["tuning"]
-    session = Session("day", tuning, {"day": {"days": days}, "gather": {}, "quan": {}},
+    tuning = _tuning_for_days(tuning if tuning is not None else load_contract()["tuning"], days)
+    session_scenario = scenario if scenario is not None else {
+        "day": {"days": days}, "gather": {}, "quan": {}
+    }
+    session = Session("day", tuning, session_scenario,
                       seed=seed, days=days)
     sim = session.sim
     gather_triggered = set()
