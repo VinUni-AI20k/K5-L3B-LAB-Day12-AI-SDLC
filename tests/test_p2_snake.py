@@ -19,6 +19,16 @@ with open("game.contract.json", encoding="utf-8") as _f:
 T = CONTRACT["tuning"]
 RAN = T["gather"]["monsters"]["species"]["ran"]
 
+def items(*kinds, start=1):
+    """Fixture v1.2: cá thể I<start>, I<start+1>, ... fresh 100 theo thứ tự vào giỏ."""
+    return [{"id": f"I{start + i}", "kind": k, "fresh": 100} for i, k in enumerate(kinds)]
+
+
+def ik(lst):
+    """(id, kind) của danh sách cá thể public: so không phụ thuộc fresh (giỏ hao theo tick)."""
+    return [(x["id"], x["kind"]) for x in lst]
+
+
 
 def run(block, ticks):
     with Workdir() as w:
@@ -83,10 +93,11 @@ class Snake(unittest.TestCase):
         self.assertEqual(m_at(rows, 1)["state"], "patrol")
 
     def test_cham_va_recoil_dung_luat_chung(self):
-        rows = run({"player": {"pos": [72, 9]}, "hold": ["ca_loc", "bong_sung"],
+        rows = run({"player": {"pos": [72, 9]}, "hold": items("ca_loc", "bong_sung"),
                     "monsters": [{"id": "M3", "kind": "ran", "pos": [73, 9], "waypoints": [[73, 9], [73, 9]]}]}, 2)
         hits = events(rows, "monster_hit")
-        self.assertEqual([(h["tick"], h["data"]["monster_id"], h["data"]["lost"]) for h in hits], [(1, "M3", ["bong_sung"])])
+        self.assertEqual([(h["tick"], h["data"]["monster_id"], ik(h["data"]["lost"])) for h in hits],
+                         [(1, "M3", [("I2", "bong_sung")])])
         m = m_at(rows, 2)
         self.assertEqual((m["state"], m["recoil_dir"]), ("recoil", [1, 0]))
 

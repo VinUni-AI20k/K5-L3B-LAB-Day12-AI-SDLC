@@ -16,6 +16,16 @@ MON = G["monsters"]
 SAU = MON["species"]["ca_sau"]
 THR = SAU["depths"][0]  # ngưỡng độ sâu của loài (10)
 
+def items(*kinds, start=1):
+    """Fixture v1.2: cá thể I<start>, I<start+1>, ... fresh 100 theo thứ tự vào giỏ."""
+    return [{"id": f"I{start + i}", "kind": k, "fresh": 100} for i, k in enumerate(kinds)]
+
+
+def ik(lst):
+    """(id, kind) của danh sách cá thể public: so không phụ thuộc fresh (giỏ hao theo tick)."""
+    return [(x["id"], x["kind"]) for x in lst]
+
+
 
 def mon(mid="M1", pos=(51, 20), waypoints=None, **kw):
     pos = list(pos)
@@ -90,16 +100,17 @@ class Chase(unittest.TestCase):
 
 
 class Hit(unittest.TestCase):
-    HOLD = ["ca_loc", "bong_sung", "ca_linh", "keo_neo", "ca_keo"]
+    HOLD = items("ca_loc", "bong_sung", "ca_linh", "keo_neo", "ca_keo")  # v1.2: I1..I5
 
     def test_cham_mat_mau_rot_nua_gio_lifo_bat_tu_recoil(self):
         rows = run({"player": {"pos": [50, 20]}, "hold": self.HOLD, "monsters": [mon(pos=(51, 20))]}, 2)
         hits = events(rows, "monster_hit")
         self.assertEqual([h["tick"] for h in hits], [1])
-        self.assertEqual(hits[0]["data"], {"monster_id": "M1", "hp": G["hp_max"] - 1,
-                                           "lost": ["ca_keo", "keo_neo"], "pos": [50, 20]})
+        d = hits[0]["data"]
+        self.assertEqual((d["monster_id"], d["hp"], d["pos"]), ("M1", G["hp_max"] - 1, [50, 20]))
+        self.assertEqual(ik(d["lost"]), [("I5", "ca_keo"), ("I4", "keo_neo")])  # floor(5/2) = 2, LIFO
         s = snap(rows, 1)
-        self.assertEqual(s["hold"], self.HOLD[:3])
+        self.assertEqual(ik(s["hold"]), ik(self.HOLD[:3]))
         self.assertEqual(s["player"]["invuln_ticks"], MON["invuln_ticks"])
         m = m_at(rows, 1)
         self.assertEqual((m["state"], m["state_ticks_left"], m["recoil_dir"]), ("recoil", SAU["recoil_ticks"], [1, 0]))
@@ -144,12 +155,14 @@ class Hit(unittest.TestCase):
 
 class Faint(unittest.TestCase):
     def test_ngat_do_quai(self):
-        rows = run({"player": {"pos": [50, 20], "hp": 1}, "hold": ["ca_loc", "bong_sung", "ca_linh"],
+        rows = run({"player": {"pos": [50, 20], "hp": 1}, "hold": items("ca_loc", "bong_sung", "ca_linh"),
                     "monsters": [mon(pos=(51, 20))]}, 50)
         self.assertEqual([e["name"] for e in events(rows)], ["monster_hit", "faint", "gather_end"])
-        self.assertEqual(events(rows, "monster_hit")[0]["data"]["lost"], ["ca_linh"])
-        self.assertEqual(events(rows, "faint")[0]["data"], {"cause": "monster", "lost": ["bong_sung", "ca_loc"], "hp": 0})
-        self.assertEqual(events(rows, "gather_end")[0]["data"], {"reason": "fainted", "inventory": {"items": {}}})
+        self.assertEqual(ik(events(rows, "monster_hit")[0]["data"]["lost"]), [("I3", "ca_linh")])
+        faint = events(rows, "faint")[0]["data"]
+        self.assertEqual((faint["cause"], faint["hp"]), ("monster", 0))
+        self.assertEqual(ik(faint["lost"]), [("I2", "bong_sung"), ("I1", "ca_loc")])
+        self.assertEqual(events(rows, "gather_end")[0]["data"], {"reason": "fainted", "inventory": {"items": []}})
         self.assertEqual((rows[-1]["reason"], rows[-1]["ticks"]), ("fainted", 1))
 
     def test_ngat_xet_truoc_hit_cung_tick(self):
@@ -161,9 +174,9 @@ class Faint(unittest.TestCase):
 
     def test_ngat_xuyen_bat_tu_va_khong_rot_hang(self):
         rows = run({"player": {"pos": [20, 20], "invuln_ticks": 80, "oxygen_ticks": 0, "zero_oxy_ticks": 59},
-                    "hold": ["ca_loc"], "monsters": []}, 1)
+                    "hold": items("ca_loc"), "monsters": []}, 1)
         self.assertEqual([(e["name"], e["data"]) for e in events(rows)], [("choke", {"hp": G["hp_max"] - 1})])
-        self.assertEqual(snap(rows, 1)["hold"], ["ca_loc"])
+        self.assertEqual(ik(snap(rows, 1)["hold"]), [("I1", "ca_loc")])
 
 
 class Determinism(unittest.TestCase):
