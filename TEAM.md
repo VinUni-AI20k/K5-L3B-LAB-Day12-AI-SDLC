@@ -5,7 +5,7 @@
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
 | Le Quy Toan | ToanLee5433 | `sim/gather` |Integrator |  `sim/quan`|
-| Nguyễn Thành Nam | Ishodayo | `sim/quan` | PO| `sim/gather`|
+| Nguyễn Thành Nam | Ishodayo | `sim/quan` | — | `sim/gather`|
 | Dam Hong Thai | itsbra1vo | `client/ui` | Scrum/Release|`qa`|
 | Dư Văn Hùng| czx04 | `qa` |QA lead | `client/ui` |
 
