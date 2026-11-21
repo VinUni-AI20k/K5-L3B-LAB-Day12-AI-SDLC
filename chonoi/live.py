@@ -27,7 +27,7 @@ from urllib.parse import unquote
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
-from .inventory import merge_items, read_inventory, read_inventory_or_empty, write_inventory
+from .inventory import merge_items, read_inventory_for_mode, read_inventory_or_empty, write_inventory
 from .runner import Session
 from .scenario import load_scenario
 
@@ -289,12 +289,19 @@ def main(argv=None) -> int:
             raise BadInput("--inventory-out chỉ dùng với gather hoặc day")
         tuning = load_contract()["tuning"]
         scenario = load_scenario(a.scenario, a.mode, tuning)
-        inventory = read_inventory(a.inventory) if a.inventory else None
-        if inventory is not None and (
+        has_scenario_stock = (
             "stock" in scenario
-            or (a.mode == "day" and "stock" in scenario.get("quan", {}))
-        ):
-            raise BadInput("vừa có quan.stock vừa có --inventory")
+            if a.mode == "quan"
+            else a.mode == "day" and "stock" in scenario.get("quan", {})
+        )
+        if a.inventory is not None:
+            inventory = read_inventory_for_mode(a.mode, a.inventory)
+            if has_scenario_stock:
+                raise BadInput("vừa có quan.stock vừa có --inventory")
+        elif has_scenario_stock:
+            inventory = None
+        else:
+            inventory = read_inventory_for_mode(a.mode, None)
         game = LiveGame(a.mode, tuning, scenario, a.seed, inventory, a.inventory_out)
         server = LiveServer(game, a.host, a.port)
     except BadInput as e:

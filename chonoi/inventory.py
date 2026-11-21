@@ -45,6 +45,16 @@ def read_inventory_or_empty(path: str, kinds=KINDS_P1) -> dict:
     return read_inventory(path, kinds)
 
 
+def read_inventory_for_mode(mode: str, inventory_path=None, kinds=KINDS_P1):
+    """Nạp kho chỉ định hoặc inventory.json mặc định cho quan/day."""
+    path = inventory_path
+    if path is None and mode in ("quan", "day") and os.path.exists("inventory.json"):
+        path = "inventory.json"
+    if path is None:
+        return None
+    return read_inventory(path, kinds)
+
+
 def merge_items(*collections) -> dict:
     """Sum item counts across inventories and return keys in stable order."""
     totals = {}

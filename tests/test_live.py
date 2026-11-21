@@ -12,6 +12,7 @@ from chonoi.contract import load_contract
 from chonoi.live import LiveGame, LiveServer
 from chonoi.runner import Session
 from chonoi.inputs import InputState
+from chonoi.inventory import read_inventory_for_mode
 
 
 def _get(url):
@@ -63,6 +64,24 @@ class LiveServerTest(unittest.TestCase):
 
 
 class LiveInventoryPersistenceTest(unittest.TestCase):
+    def test_default_inventory_file_is_loaded_by_quan_and_day(self):
+        with tempfile.TemporaryDirectory() as d:
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(d)
+                with open("inventory.json", "w", encoding="utf-8") as f:
+                    json.dump({"items": {"ca_linh": 12, "ca_loc": 2}}, f)
+                self.assertEqual(
+                    read_inventory_for_mode("quan", None),
+                    {"ca_linh": 12, "ca_loc": 2},
+                )
+                self.assertEqual(
+                    read_inventory_for_mode("day", None),
+                    {"ca_linh": 12, "ca_loc": 2},
+                )
+            finally:
+                os.chdir(old_cwd)
+
     def test_gather_writes_inventory_immediately(self):
         tuning = load_contract()["tuning"]
         with tempfile.TemporaryDirectory() as d:
@@ -85,6 +104,18 @@ class LiveInventoryPersistenceTest(unittest.TestCase):
             game._tick_once()
             with open(inventory_path, encoding="utf-8") as f:
                 self.assertEqual(json.load(f), {"items": {"bong_sung": 2, "ca_loc": 2}})
+
+    def test_quan_live_snapshot_uses_inventory(self):
+        tuning = load_contract()["tuning"]
+        game = LiveGame(
+            "quan",
+            tuning,
+            {},
+            1,
+            inventory={"ca_linh": 12, "ca_loc": 2},
+        )
+        snapshot = json.loads(game.state_json())
+        self.assertEqual(snapshot["stock"], {"ca_linh": 12, "ca_loc": 2})
 
 
 class DayFlowTest(unittest.TestCase):
