@@ -226,7 +226,7 @@ class LiveServer:
 def main(argv=None) -> int:
     p = argparse.ArgumentParser(prog="chonoi.live", description="Chơi trực tiếp trên trình duyệt (starter).")
     p.add_argument("--mode", required=True, choices=["gather", "quan", "day"])
-    p.add_argument("--days", type=int, help="số ngày 1..5 (chỉ mode day)")
+    p.add_argument("--days", type=int, help="số ngày 1..10 (chỉ mode day)")
     p.add_argument("--seed", type=int, default=1)
     p.add_argument("--port", type=int, default=8000, help="0 = cổng ngẫu nhiên")
     p.add_argument("--host", default="127.0.0.1")
@@ -235,8 +235,8 @@ def main(argv=None) -> int:
     p.add_argument("--inventory-out", dest="inventory_out", help="chỉ với gather: ghi kho khi kết thúc buổi")
     a = p.parse_args(argv)
     try:
-        if a.mode == "day" and a.days is not None and not 1 <= a.days <= 5:
-            raise BadInput("--days phải trong [1, 5]")
+        if a.mode == "day" and a.days is not None and not 1 <= a.days <= 10:
+            raise BadInput("--days phải trong [1, 10]")
         if a.mode != "day" and a.days is not None:
             raise BadInput("--days chỉ dùng với --mode day")
         days = a.days if a.days is not None else 5

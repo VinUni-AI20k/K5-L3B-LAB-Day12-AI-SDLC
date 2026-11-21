@@ -61,16 +61,21 @@ class DaySim:
         return item
 
     def _plan_for_day(self, day):
+        plan_day = ((day - 1) % 5) + 1
         override = self.day_cfg.get("day_plan")
         if isinstance(override, list):
             item = next((p for p in override if p["day"] == day), None)
+            if item is None:
+                item = next((p for p in override if p["day"] == plan_day), None)
             if item is not None:
                 return self._complete_plan(copy.deepcopy(item), day)
         elif isinstance(override, dict):
             item = override.get(day, override.get(str(day)))
+            if item is None:
+                item = override.get(plan_day, override.get(str(plan_day)))
             if item is not None:
                 return self._complete_plan(copy.deepcopy(item), day)
-        item = next((p for p in self.tuning["day_plan"] if p["day"] == day), None)
+        item = next((p for p in self.tuning["day_plan"] if p["day"] == plan_day), None)
         if item is None:
             raise BadInput(f"không có kế hoạch cho Ngày {day}")
         return self._complete_plan(copy.deepcopy(item), day)

@@ -16,7 +16,7 @@
 /*
  * Client chơi trực tiếp. CHỈ ĐỌC snapshot từ GET /state và gửi phím qua POST /input.
  * Trường nào snapshot chưa có thì bỏ qua (luật tới đâu, hình hiện tới đó).
- * Phím: WASD / mũi tên = di chuyển · E = interact · Space = catch · Esc/P = tạm dừng · R = chơi lại.
+ * Phím: WASD / mũi tên = di chuyển · E = interact · Space = catch · Esc/P = tạm dừng · H = tương phản cao · R = chơi lại.
  * Shop: 1 = bình oxy · 2 = áo phao · Enter = xong. Thêm ?debug vào địa chỉ để hiện nhãn id và nhật ký sự kiện.
  *
  * Phase 2 (Phase2.md mục 2): menu chính, tạm dừng, HUD sáng/tối đủ mục, màn Ngày/Tối/Kết quả/Shop/Tổng kết.
@@ -37,6 +37,7 @@ const ui = {
   result: null,              // kết quả buổi tối chờ đóng
   stats: null, repStart: null, earnedStart: null,
   seen: new Set(), toast: null, quitNote: false, totalSold: {},
+  highContrast: false,
 };
 function resetUi() {
   ui.paused = false; ui.intro = null; ui.plan = null; ui.result = null;
@@ -99,6 +100,11 @@ function quit() { ui.quitNote = true; try { window.close(); } catch (e) { /* kh�
 function keyName(e) { return e.key.length === 1 ? e.key.toLowerCase() : e.key.toLowerCase(); }
 addEventListener("keydown", (e) => {
   const k = keyName(e);
+  if (!e.repeat && k === "h") {
+    ui.highContrast = !ui.highContrast;
+    cv.style.filter = ui.highContrast ? "contrast(1.5) saturate(.85)" : "none";
+    return;
+  }
   if (ui.screen === "menu") {
     if (!e.repeat && (k === "enter" || k === " ")) { e.preventDefault(); play(); }
     return;
@@ -372,10 +378,13 @@ function drawGather(w, h) {
   const warnR = sp.detect_radius || 10;
   const nearMon = p && mons.some((m) => dist2(p.pos, m.pos) <= warnR + 2);
   if (nearMon) {
-    ctx.strokeStyle = "rgba(171,71,188,.85)"; ctx.lineWidth = 10; ctx.strokeRect(5, 5, w - 10, h - 10);
-    pill("Thủy quái!", w / 2, top + 36, { size: 30, align: "center", color: "#e1bee7" });
+    ctx.strokeStyle = ui.highContrast ? "#ff00ff" : "rgba(171,71,188,.85)"; ctx.lineWidth = ui.highContrast ? 14 : 10; ctx.strokeRect(5, 5, w - 10, h - 10);
+    pill(ui.highContrast ? "⚠ THỦY QUÁI GẦN!" : "Thủy quái!", w / 2, top + 36, { size: 30, align: "center", color: ui.highContrast ? "#ffff00" : "#e1bee7" });
   }
-  if (p && underwater && p.oxygen_ticks === 0) pill("Hết hơi!", w / 2, top + (nearMon ? 84 : 36), { size: 30, align: "center", color: "#ff5252" });
+  if (p && underwater && p.oxygen_max_ticks && p.oxygen_ticks <= p.oxygen_max_ticks * 0.25) {
+    const empty = p.oxygen_ticks === 0;
+    pill(ui.highContrast ? (empty ? "⚠ HẾT OXY!" : "⚠ OXY SẮP HẾT!") : (empty ? "Hết hơi!" : "Oxy sắp hết!"), w / 2, top + (nearMon ? 84 : 36), { size: 30, align: "center", color: ui.highContrast ? "#ffff00" : "#ff5252" });
+  }
   // --- gợi ý hái / cập bến ---
   if (p) {
     let hint = "";
@@ -462,18 +471,20 @@ function drawQuan(w, h) {
   text("Kho khả dụng: " + (avail || "(trống)"), 14, 60, { size: 18, color: "#cfd8dc" });
   if (phys && phys !== avail) text("Tồn kho (gồm phần đã giữ): " + phys, 14, 86, { size: 18, color: "#9fb3c0" });
   if (Array.isArray(snap.stock) && snap.stock.length) text("Độ tươi kho: " + fmtFresh(snap.stock), 14, 110, { size: 18, color: "#ffe082" });
+  const orders = snap.customers || [];
   const reservations = snap.reservations || [];
   if (reservations.length) text("Đặt trước: " + reservations.map((r) => r.id + " " + r.table_id + " " + dishName(r.dish_id) + " · " + r.state + (r.arrival_tick ? " @" + r.arrival_tick : "")).join(" | "), 14, 136, { size: 17, color: "#ffe0a3" });
+  const urgent = orders.filter((c) => c.state !== "eating" && c.patience_ticks_left !== undefined && c.patience_ticks_left < patMax * 0.25);
+  if (urgent.length) text("⚠ KHÁCH SẮP GIẬN: " + urgent.map((c) => c.table_id).join(", "), 14, 160, { size: 18, color: ui.highContrast ? "#ffff00" : "#ff8a80" });
   const handTxt = snap.hand ? (typeof snap.hand === "string" ? snap.hand : dishName(snap.hand.dish_id)) : "tay trống";
   text("Đang cầm: " + handTxt, w - 14, 60, { size: 18, align: "right", color: "#ffe082" });
-  const orders = snap.customers || [];
   orders.forEach((c, i) => {
     const st = c.state === "eating" ? "đang ăn" : (ORDER_LABEL[c.order_status] || "chờ");
     const pat = c.state !== "eating" && c.patience_ticks_left !== undefined ? " · " + Math.ceil(c.patience_ticks_left / 60) + "s" : "";
     const low = c.patience_ticks_left !== undefined && c.state !== "eating" && c.patience_ticks_left < patMax * 0.25;
     text(`${c.table_id}: ${dishName(c.dish_id)} (${st})${pat}`, w - 14, 86 + i * 22, { size: 18, align: "right", color: low ? "#ff8a80" : "#e8eef2" });
   });
-  text("WASD đi · E tương tác (bếp / bàn) · Esc tạm dừng", w - 10, h - 12, { size: 18, align: "right", color: "#9fb3c0" });
+  text("WASD đi · E tương tác · Esc tạm dừng · H tương phản cao", w - 10, h - 12, { size: 18, align: "right", color: "#9fb3c0" });
 }
 
 // ----- cảnh SHOP -----
@@ -511,6 +522,7 @@ function drawMenu(w, h) {
   ctx.fillStyle = g; ctx.fillRect(0, h * 0.55, w, h * 0.45);
   text("Quán Ăn Chợ Nổi", w / 2, h * 0.28, { size: 56, align: "center", color: "#ffe0a3" });
   text("Út Sen lặn bắt cá buổi sáng, mở quán phục vụ khách buổi tối", w / 2, h * 0.28 + 44, { size: 22, align: "center", color: "#cfd8dc" });
+  text("H: bật/tắt tương phản cao", w / 2, h * 0.28 + 78, { size: 18, align: "center", color: ui.highContrast ? "#ffff00" : "#cfd8dc" });
   button(w / 2 - 120, h * 0.5, 240, 56, "Chơi (Enter)", play);
   button(w / 2 - 120, h * 0.5 + 76, 240, 56, "Thoát", quit);
   if (ui.quitNote) text("Bạn có thể đóng tab trình duyệt này.", w / 2, h * 0.5 + 170, { size: 20, align: "center", color: "#ffcc80" });
@@ -600,6 +612,7 @@ function frame() {
   } else {
     text(offline ? "Không kết nối được máy chủ…" : "Đang tải…", w / 2, h / 2, { align: "center", size: 20 });
   }
+  if (ui.highContrast) text("TƯƠNG PHẢN CAO · H TẮT", w - 14, 58, { size: 18, align: "right", color: "#ffff00" });
 }
 requestAnimationFrame(frame);
 </script>
