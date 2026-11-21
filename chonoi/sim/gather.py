@@ -136,7 +136,9 @@ class GatherSim:
                         self.hp = max(0, self.hp - 1)
                         events.append(("choke", {"hp": self.hp, "pos": list(self.pos)}))
                         if self.hp == 0:
-                            events.append(("faint", {"pos": list(self.pos)}))
+                            events.append(("faint", {
+                                "cause": "choke", "lost": list(reversed(self.hold)), "hp": self.hp,
+                            }))
                             self.hold.clear()
                             self._finish("fainted", events)
                             return events
