@@ -27,4 +27,6 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- [chonoi-sim](.agents/skills/chonoi-sim/SKILL.md) — sửa luật Gather hoặc Quán, thứ tự tick, sự kiện và kho.
+- [chonoi-headless](.agents/skills/chonoi-headless/SKILL.md) — kiểm thử Test Contract, tái hiện lỗi và ghi bằng chứng.
+- [chonoi-godot](.agents/skills/chonoi-godot/SKILL.md) — dựng scene 3D third-person, camera, HUD và nối với mô phỏng.
