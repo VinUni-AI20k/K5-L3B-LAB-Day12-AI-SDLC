@@ -343,7 +343,7 @@ func _overlay() -> void:
     var canvas := CanvasLayer.new()
     add_child(canvas)
     var hint := Label.new()
-    hint.text = "CHO NOI TAY NAM BO | PHOI CANH 3D | F1: SONG | F2: QUAN BE | CHUOT PHAI: XOAY | CUON: ZOOM"
+    hint.text = "CHO NOI TAY NAM BO | PHOI CANH 3D | F1: SONG | F2: QUAN BE | F3: LAN BAT CA 2.5D | CHUOT PHAI: XOAY | CUON: ZOOM"
     hint.position = Vector2(18, 15)
     hint.add_theme_color_override("font_color", Color("#fff1cb"))
     hint.add_theme_font_size_override("font_size", 16)
@@ -359,6 +359,7 @@ func _unhandled_input(ev: InputEvent) -> void:
     if ev is InputEventKey and ev.pressed and not ev.echo:
         if ev.keycode == KEY_F1: get_tree().change_scene_to_file("res://scenes/GatherRiver.tscn")
         if ev.keycode == KEY_F2: get_tree().change_scene_to_file("res://scenes/RestaurantNight.tscn")
+        if ev.keycode == KEY_F3: get_tree().change_scene_to_file("res://scenes/DiveUnderwater.tscn")
     elif ev is InputEventMouseButton:
         if ev.button_index == MOUSE_BUTTON_RIGHT: orbit = ev.pressed
         elif ev.pressed and ev.button_index == MOUSE_BUTTON_WHEEL_UP:

@@ -17,10 +17,16 @@ Liệt kê asset ngoài (nguồn, giấy phép) và công cụ hỗ trợ đã d
   - `flat_boat.glb`
 
 ### 3. Cá, Hoa Súng, Sen & Thủy sinh (`godot/assets/external/aquatic/`) — CC0 1.0 Universal
-- Nguồn: [3DAssets.dev](https://3dassets.dev/) (Quiet Lake Fishing, Swamp and Mangrove, Fresh Produce)
+- Nguồn: [3DAssets.dev](https://3dassets.dev/) (Quiet Lake Fishing, Swamp and Mangrove, Fresh Produce, Stylized Trees and Rocks Kit)
 - Giấy phép: **CC0 1.0 Universal**
 - Danh sách file (đã dequantize cho Godot 4.5.1):
-  - `fish_carp.glb`, `fish_perch.glb`, `fish_whole_raw.glb`, `lotus_clump.glb`, `lily_pads_blossom.glb`, `lily_pads_swamp.glb`
+  - `fish_carp.glb`, `fish_perch.glb`, `fish_whole_raw.glb`, `lotus_clump.glb`, `lily_pads_blossom.glb`, `lily_pads_swamp.glb`, `flower_yellow.glb`
+
+### 3b. Địa hình & Thủy sinh Dưới Lòng Sông (`godot/assets/external/underwater/`) — CC0 1.0 Universal
+- Nguồn: [3DAssets.dev](https://3dassets.dev/) (Coral Reef, Sunken City, Tropical Island Ecology, Stylized Trees and Rocks Kit, Primeval Frontier, Beach Surf & Paddle Kit)
+- Giấy phép: **CC0 1.0 Universal**
+- Danh sách file (đã dequantize cho Godot 4.5.1):
+  - `kelp_forest.glb`, `kelp_cluster.glb`, `seaweed_rock.glb`, `cliff_basalt.glb`, `cliff_block.glb`, `boulder_large.glb`, `boulder_mossy.glb`, `driftwood_rootball.glb`, `driftwood_log.glb`
 
 ### 4. Nhân vật 3D (`godot/assets/external/characters/`) — CC0 1.0 Universal
 - Nguồn: [3DAssets.dev](https://3dassets.dev/) (Low Poly Character Figures, Tidal Navigator)
