@@ -442,10 +442,10 @@ class GatherSim:
             rad = math.radians(f["heading_deg"])
             vx, vd = math.cos(rad), math.sin(rad)
             d_lo, d_hi = [float(v) for v in depths_map[f["kind"]]]
-            rem = speed / TICK
+            step_base = speed / TICK
 
-            nx, nvx = _reflect_1d(f["pos"][0], vx, rem, x_lo, x_hi)
-            nd, nvd = _reflect_1d(f["pos"][1], vd, rem, d_lo, d_hi)
+            nx, nvx = _reflect_1d(f["pos"][0], vx, step_base * abs(vx), x_lo, x_hi)
+            nd, nvd = _reflect_1d(f["pos"][1], vd, step_base * abs(vd), d_lo, d_hi)
 
             f["pos"] = [nx, nd]
             if (nvx, nvd) != (vx, vd):
