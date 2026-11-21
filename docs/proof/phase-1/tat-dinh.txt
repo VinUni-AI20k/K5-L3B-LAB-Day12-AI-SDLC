@@ -1,0 +1,14 @@
+ĐẠT  | seed    1 | gather-tu-do    | 412162 byte
+ĐẠT  | seed    1 | gather-inputs   | 104784 byte, kho {"items":{"bong_dien_dien":1,"ca_linh":3}}
+ĐẠT  | seed    1 | quan-kho-mau    | 227377 byte
+ĐẠT  | seed    1 | quan-khong-kho  | 145658 byte
+ĐẠT  | seed   42 | gather-tu-do    | 412162 byte
+ĐẠT  | seed   42 | gather-inputs   | 104784 byte, kho {"items":{"bong_dien_dien":1,"ca_linh":3}}
+ĐẠT  | seed   42 | quan-kho-mau    | 227730 byte
+ĐẠT  | seed   42 | quan-khong-kho  | 145658 byte
+ĐẠT  | seed   -7 | gather-tu-do    | 412162 byte
+ĐẠT  | seed   -7 | gather-inputs   | 104784 byte, kho {"items":{"bong_dien_dien":1,"ca_linh":3}}
+ĐẠT  | seed   -7 | quan-kho-mau    | 227730 byte
+ĐẠT  | seed   -7 | quan-khong-kho  | 145658 byte
+
+12/12 cặp giống từng byte · seeds [1, 42, -7] · 3600 tick

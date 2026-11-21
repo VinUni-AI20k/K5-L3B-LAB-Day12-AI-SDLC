@@ -100,7 +100,9 @@ def main():
         lines = [f"{'ĐẠT ' if ok else 'TRƯỢT'} | {name}" + (f" | {d}" if d and not ok else "")
                  for name, ok, d in results]
         passed = sum(ok for _, ok, _ in results)
-        lines.append(f"\n{passed}/{len(results)} mục đạt · headless_cmd: {' '.join(headless_cmd())}")
+        with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
+            declared = json.load(f)["headless_cmd"]
+        lines.append(f"\n{passed}/{len(results)} mục đạt · headless_cmd: {declared}")
         report = "\n".join(lines)
         print(report)
 
