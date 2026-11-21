@@ -40,6 +40,17 @@ def load_scenario(path, mode: str, tuning: dict) -> dict:
             data = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được scenario {path}: {e}")
+    if mode == "day":
+        if not isinstance(data, dict) or not set(data) <= {"day", "gather", "quan"}:
+            raise BadInput("scenario cho mode day chỉ được có các khối 'day', 'gather', 'quan'")
+        if "gather" in data:
+            _validate_gather(data["gather"], tuning)
+        if "quan" in data:
+            if "stock" in data["quan"] or "reputation" in data["quan"]:
+                raise BadInput("cấm quan.stock và quan.reputation khi chạy day")
+            _validate_quan(data["quan"], tuning)
+        return data
+
     if not isinstance(data, dict) or not set(data) <= {"gather", "quan"}:
         raise BadInput("scenario chỉ được có khối 'gather' hoặc 'quan'")
     if set(data) - {mode}:

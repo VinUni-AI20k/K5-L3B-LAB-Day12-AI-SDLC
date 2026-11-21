@@ -76,7 +76,15 @@ class Contract(unittest.TestCase):
     def test_con_03_old_and_future_modes_rejected(self):
         with Workdir() as w:
             out = w.path("o.jsonl")
-            for mode in ("river", "day"):
+            rejected_modes = ["river"]
+            with open("game.contract.json", encoding="utf-8") as f:
+                data = json.load(f)
+                c_ver = data.get("contract_version", data.get("version", "1.0"))
+            if c_ver == "1.0":
+                rejected_modes.append("day")
+            else:
+                rejected_modes.append("season")
+            for mode in rejected_modes:
                 self.assertEqual(run_headless("--mode", mode, "--seed", "1", "--ticks", "0", "--out", out)[0], 2, mode)
             self.assertFalse(os.path.exists(out))
             old = write_json(w.path("old.json"), {"river": {"hold": []}})

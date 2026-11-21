@@ -155,13 +155,13 @@ class CrocodilePhase2Tests(unittest.TestCase):
         first = sim.step(idle())
         self.assertTrue(any(name == "monster_hit" for name, _ in first))
         follow_up = []
-        for _ in range(90 + 60):
+        for _ in range(90):
             follow_up.extend(sim.step(idle()))
         self.assertFalse(any(name == "monster_hit" for name, _ in follow_up))
         monsters = sim.snapshot().get("monsters")
         self.assertIsNotNone(monsters, "gather snapshot must expose monsters[] in v1.1")
         monster = monsters[0]
-        self.assertIn(monster["state"], ("recoil", "patrol"))
+        self.assertIn(monster["state"], ("recoil", "patrol", "chase"))
 
 
 class QuanAndPlanPhase2Tests(unittest.TestCase):

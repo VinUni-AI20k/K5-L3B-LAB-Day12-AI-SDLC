@@ -5,9 +5,7 @@
   "build_cmd": "true",
   "run_cmd": "python3 -m chonoi.live --mode gather",
   "headless_cmd": "python3 -m chonoi.headless",
-  "extensions": [
-    "snake"
-  ],
+  "extensions": [],
   "tuning": {
     "tick_hz": 60,
     "gather": {
@@ -77,16 +75,6 @@
             "hit_radius": 1.5,
             "recoil_ticks": 60,
             "recoil_dist": 2.0
-          },
-          "ran": {
-            "patrol_speed": 1.0,
-            "chase_speed": 3.5,
-            "detect_radius": 8.0,
-            "exit_radius": 16.0,
-            "depths": [8, 20],
-            "hit_radius": 1.5,
-            "recoil_ticks": 60,
-            "recoil_dist": 2.0
           }
         },
         "spawns": [
@@ -103,13 +91,6 @@
             "pos": [85, 18],
             "waypoints": [[85, 18], [89, 18]],
             "from_day": 3
-          },
-          {
-            "id": "M3",
-            "kind": "ran",
-            "pos": [72, 14],
-            "waypoints": [[72, 14], [76, 14]],
-            "from_day": 1
           }
         ],
         "invuln_ticks": 90,
