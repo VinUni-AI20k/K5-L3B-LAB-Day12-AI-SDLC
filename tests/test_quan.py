@@ -1,9 +1,7 @@
 """Test hộp đen quan: chỉ run_headless, đọc JSONL; số liệu từ game.contract.json.
 
-Bật luật chờ (khung hiện tại dự kiến đỏ):
-    CHONOI_PENDING=1 PYTHONPATH=tests:. python3 -m unittest tests.test_quan -v
 @lat3: khách/giữ chỗ/kiên nhẫn; @lat4: bếp/bưng/phục vụ/thu tiền/hết ca.
-Xóa decorator tương ứng khi lát đã hoàn tất. Nguồn: contracts mục 1, 2.2, 3.2.
+Lát 3 & 4 đã xong (PR #3) nên hai decorator không còn bỏ qua test. Nguồn: contracts mục 1, 2.2, 3.2.
 """
 
 import json
@@ -13,8 +11,8 @@ import unittest
 
 from helpers import ROOT, Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
 
-lat3 = unittest.skipUnless(os.environ.get("CHONOI_PENDING"), "TODO(nhóm, lát 3): khách / giữ chỗ / kiên nhẫn")
-lat4 = unittest.skipUnless(os.environ.get("CHONOI_PENDING"), "TODO(nhóm, lát 4): bếp / phục vụ / tiền / uy tín")
+# Lát 3 & 4 đã hoàn thành (PR #3): không bỏ qua test
+lat3 = lat4 = lambda f: f
 with open(os.path.join(ROOT, "game.contract.json"), encoding="utf-8") as f:
     TUNING = json.load(f)["tuning"]
 Q, MENU, HZ = TUNING["quan"], TUNING["menu"], TUNING["tick_hz"]

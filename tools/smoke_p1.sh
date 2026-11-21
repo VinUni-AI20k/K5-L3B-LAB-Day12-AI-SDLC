@@ -4,6 +4,10 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 sha="$(git rev-parse --short HEAD)"
 out="docs/proof/phase-1/smoke-${sha}"
 # Không ghi đè bằng chứng đã có của cùng commit.
+if [[ -e "$out" ]]; then
+    echo "Đã có bằng chứng cho commit $sha ở $out — không ghi đè. Xóa thư mục đó nếu muốn chạy lại." >&2
+    exit 1
+fi
 mkdir "$out"
 summary="$out/summary.txt"
 printf 'sha: %s\ntime_utc: %s\n' "$(git rev-parse HEAD)" "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" > "$summary"
