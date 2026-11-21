@@ -77,12 +77,13 @@ class Units(unittest.TestCase):
         tuning = load_contract()["tuning"]
         scenario = {
             "stock": {"ca_loc": 1, "bong_sung": 2, "ca_linh": 3, "bong_dien_dien": 1},
+            "random_customers": False,
             "customers": [{
                 "id": "C1",
                 "table_id": "T1",
-                "dish": "ca_loc_nuong_trui",
+                "dish_id": "ca_loc_nuong_trui",
                 "state": "waiting",
-                "patience_ticks": 1,
+                "patience_ticks_left": 1,
                 "reserved": {"ca_loc": 1},
             }],
         }
@@ -92,8 +93,31 @@ class Units(unittest.TestCase):
         names = [row["name"] for row in rows]
         self.assertIn("customer_left", names)
         left = next(row for row in rows if row["name"] == "customer_left")
-        self.assertEqual(left["data"]["customer_id"], "C1")
+        self.assertEqual(left["data"]["order_id"], "C1")
         self.assertLess(s.snapshot()["reputation"], 3.0)
+
+    def test_quan_customer_spawn_and_no_dish(self):
+        tuning = load_contract()["tuning"]
+        first_tick = tuning["quan"]["first_customer_tick"]
+        s = Session("quan", tuning, {"stock": {"ca_loc": 1}}, 1)
+        li = LiveInputs()
+        all_events = []
+        for _ in range(first_tick):
+            all_events.extend(s.step(li.advance()))
+        arrived = [e for e in all_events if e["name"] == "customer_arrived"]
+        self.assertEqual(len(arrived), 1)
+        self.assertEqual(arrived[0]["data"]["dish_id"], "ca_loc_nuong_trui")
+        self.assertEqual(len(s.snapshot()["customers"]), 1)
+
+        s_empty = Session("quan", tuning, {"stock": {}}, 1)
+        empty_events = []
+        for _ in range(first_tick):
+            empty_events.extend(s_empty.step(li.advance()))
+        no_dish = [e for e in empty_events if e["name"] == "no_dish"]
+        self.assertEqual(len(no_dish), 1)
+        self.assertEqual(no_dish[0]["data"], {})
+        self.assertEqual(s_empty.snapshot()["customers"], [])
+        self.assertEqual(s_empty.snapshot()["reputation"], tuning["quan"]["reputation_initial"])
 
 
 if __name__ == "__main__":

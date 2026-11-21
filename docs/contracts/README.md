@@ -60,5 +60,5 @@ Mỗi dòng sự kiện có dạng: `{"type":"event","tick":<int>,"phase":"gathe
 | Tên sự kiện | Trạng thái | `data` / Ghi chú |
 |---|---|---|
 | `quan_end` | Đã có trong khung | `{"reason": "time", "money": ..., "earned": ..., "shift_earned": ..., "reputation": ...}` |
-| `customer_arrived`, `customer_left`, `no_dish` | Lát 3 (`nhungvo631-stack`) | `customer_arrived`: `customer_id`, `table_id`, `dish`, `reserved`; `customer_left`: `customer_id`, `table_id`, `reserved`, `reputation`; `no_dish`: `reason` (`no_cookable_dish` hoặc `no_free_table`). |
-| `cook_started`, `dish_ready`, `dish_picked`, `served`, `paid` | Lát 4 (`chur04`) | Chốt khóa `data` theo PRD-0 mục E, F (`docs/clarify.md` #6, #7) |
+| `customer_arrived`, `customer_left`, `no_dish` | Lát 3 (`nhungvo631-stack`) | `customer_arrived`: `order_id`, `table_id`, `dish_id`, `reserved`; `customer_left`: `order_id`, `table_id`, `reason`, `reputation`; `no_dish`: `{}` (khi có bàn trống nhưng không còn món đủ kho). |
+| `cook_started`, `dish_ready`, `dish_picked`, `served`, `paid` | Lát 4 (`chur04`) | `cook_started`/`dish_ready`/`dish_picked`: `stove_id`, `order_id`, `dish_id` (`cook_started` thêm `items`, `base_price`); `served`: `order_id`, `table_id`, `dish_id`, `patience_ticks_left`, `base_price`, `tip`; `paid`: `order_id`, `table_id`, `base_price`, `tip`, `amount`, `reason`. |
