@@ -1,12 +1,10 @@
-# Kế hoạch Phase 1 (≤ 1 trang)
+# Kế hoạch Phase 1–2 (TV3)
 
-- Mục tiêu: Bàn giao hai ca chơi được (gather + quan), HUD đọc được, smoke hai tiến trình theo Test Contract v1.0. TV3 xong lịch khách / reserved / kiên nhẫn / no_dish trước khi ghép TV4.
+## Phase 1
+- Mục tiêu: khách / reserved / spawn / no_dish; proof `docs/proof/phase-1/tv3-customers.md`.
 
-- Việc / người / phụ thuộc:
-  - TV1 · sinh tồn gather — độc lập; ghép TV2 vào `GatherSim.step`
-  - TV2 · hái / bắt / kho — độc lập bằng fixture; xuất kho thật trước phút 25
-  - **TV3 · khách + reserved** — dùng kho mẫu; API cho TV4 (`available_stock`, `release_and_cleanup`, spawn/patience); test `tests/test_quan_customers.py`; proof `docs/proof/phase-1/tv3-customers.md`
-  - TV4 · bếp / tiền — phụ thuộc helper TV3; sở hữu interact trong `QuanSim.step` (gọi interact trước patience leave)
-  - TV5 · HUD / QA / tag — đọc snapshot; smoke mục G
-
-- Rủi ro: đụng `quan.py` step với TV4 → chốt thứ tự mục F sớm; spawn dùng `phase_tick` sau tăng; RNG món chỉ qua `Streams.get("dish_pick")`.
+## Phase 2 (đang làm)
+- Mục tiêu: 6 món, B2/T2–T4, `day_plan` D1–D5, lọc món theo kế hoạch trong day; quán độc lập đủ menu.
+- Việc TV3: `game.contract.json` (menu/quan/day_plan/shop stub) · `chonoi/day_plan.py` · lọc trong `QuanSim._cookable_dishes` · test `tests/test_quan_plan_p2.py` · proof `docs/proof/phase-2/tv3-menu-plan.md`.
+- Phụ thuộc: TV4 gắn `--mode day` + gọi `plan_for_day`; TV5 đọc day_plan trên HUD.
+- Rủi ro: đổi số bàn làm test “bàn bận” phải chiếm cả 4 bàn; đụng contract với TV1/TV2 khi bump `1.1`.

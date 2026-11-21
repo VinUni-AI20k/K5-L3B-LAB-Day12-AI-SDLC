@@ -39,19 +39,21 @@ class QuanCustomers(unittest.TestCase):
         self.assertEqual(c["patience_ticks_left"], 3600)
 
     def test_busy_table_skips_spawn_without_event(self):
-        """Bàn bận ở tick spawn → bỏ lượt, không customer_arrived / no_dish."""
+        """Tất cả bàn bận ở tick spawn → bỏ lượt, không customer_arrived / no_dish."""
         with Workdir() as workdir:
+            customers = [
+                {"id": f"C{i}", "table_id": f"T{i}", "dish_id": "ca_loc_nuong_trui",
+                 "patience_ticks_left": 9999}
+                for i in range(1, 5)
+            ]
             rows = self.run_quan(workdir, {
-                "stock": {"ca_loc": 5, "bong_sung": 5, "ca_linh": 5, "bong_dien_dien": 5},
-                "customers": [{
-                    "id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                    "patience_ticks_left": 9999,
-                }],
+                "stock": {"ca_loc": 10, "bong_sung": 5, "ca_linh": 5, "bong_dien_dien": 5},
+                "customers": customers,
                 "time_left_ticks": 200,
             }, ticks=120)
         self.assertEqual(events(rows, "customer_arrived"), [])
         self.assertEqual(events(rows, "no_dish"), [])
-        self.assertEqual(len(snapshots(rows)[-1]["customers"]), 1)
+        self.assertEqual(len(snapshots(rows)[-1]["customers"]), 4)
 
     def test_no_dish_when_stock_insufficient(self):
         with Workdir() as workdir:
@@ -77,6 +79,7 @@ class QuanCustomers(unittest.TestCase):
         self.assertEqual(data["table_id"], "T1")
         self.assertIn(data["dish_id"], {
             "ca_loc_nuong_trui", "goi_bong_sung", "lau_ca_linh_dien_dien",
+            "canh_chua_ca_loc",
         })
 
         snap_at_spawn = next(s for s in snapshots(rows) if s["tick"] == 120)
@@ -86,6 +89,7 @@ class QuanCustomers(unittest.TestCase):
             "ca_loc_nuong_trui": {"ca_loc": 1},
             "goi_bong_sung": {"bong_sung": 2},
             "lau_ca_linh_dien_dien": {"bong_dien_dien": 1, "ca_linh": 3},
+            "canh_chua_ca_loc": {"bong_dien_dien": 1, "ca_loc": 1},
         }[data["dish_id"]]
         self.assertEqual(snap_at_spawn["customers"][0]["reserved"], recipe)
 

@@ -45,6 +45,9 @@ class QuanSim:
         self.random_customers = scenario.get("random_customers", True)
         self.customer_interval_ticks = round(t["customer_interval_s"] * self.hz)
         self.phase_tick = 0
+        # day_plan (một Ngày): lọc ID món khi chạy trong day; quán độc lập = cả menu.
+        plan = scenario.get("day_plan")
+        self.plan_dishes = dict(plan["dishes"]) if isinstance(plan, dict) and "dishes" in plan else None
         self.customers = []
         for fixture in scenario.get("customers", []):
             customer = self._load_customer(fixture)
@@ -57,7 +60,7 @@ class QuanSim:
         self.done = False
         self.reason = None
 
-    # --- TV3: kho khả dụng & lịch khách --------------------------------------
+    # --- TV3: kho khả dụng, kế hoạch ngày & lịch khách -----------------------
     def available_stock(self) -> dict:
         """Tồn vật lý trừ tổng reserved của mọi đơn còn ngồi."""
         avail = dict(self.stock)
@@ -66,6 +69,12 @@ class QuanSim:
                 avail[kind] = avail.get(kind, 0) - qty
         return avail
 
+    def _menu_pool(self) -> list:
+        """Quán độc lập: đủ 6 món. Trong day: chỉ ID thuộc day_plan (không giới hạn suất)."""
+        if self.plan_dishes is None:
+            return sorted(self.menu.keys())
+        return sorted(d for d in self.plan_dishes if d in self.menu)
+
     def _free_tables(self):
         occupied = {c["table_id"] for c in self.customers}
         return [tb for tb in sort_by_id(self.tables) if tb["id"] not in occupied]
@@ -73,7 +82,7 @@ class QuanSim:
     def _cookable_dishes(self) -> list:
         avail = self.available_stock()
         return [
-            dish_id for dish_id in sorted(self.menu.keys())
+            dish_id for dish_id in self._menu_pool()
             if all(avail.get(k, 0) >= qty for k, qty in self.menu[dish_id]["recipe"].items())
         ]
 

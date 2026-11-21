@@ -126,6 +126,7 @@ class DayCycle(unittest.TestCase):
     def test_invalid_day_data_and_inconsistent_real_stock(self):
         for scenario in (
             {"day": {"money": 200}}, {"day": {"money": 3, "earned": 2}},
+            {"day": {"day_plan": [{"day": 1, "dishes": {}}]}},
             {"day": {"upgrades": {"oxygen": 3}}}, {"quan": {"stock": {}}}, {"quan": {"reputation": 3}},
             {"day": {"day_plan": [{"day": 1, "dishes": {"ca_keo_nuong": 1}, "ingredients": {"ca_keo": 3}}]}},
             {"gather": {"time_left_ticks": 1}, "quan": {"customers": [

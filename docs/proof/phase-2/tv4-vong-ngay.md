@@ -21,3 +21,11 @@ python3 -m chonoi.headless --mode day --seed 42 --days 5 --ticks 111000 --out /t
 Lượt 1 ngày trả `days_complete` ở tick 22.200, `days_completed: 1`. Lượt 5 ngày trả `days_complete` ở tick 111.000, `days_completed: 5`. Đây là smoke phần vòng ngày trên cây làm việc. Cá và Cá Sấu Phase 2, bố trí thêm bếp/bàn và UI vòng ngày còn chờ tích hợp theo phân công.
 
 Regression Phase 1 vẫn kiểm mode và nút lạ trả mã 2. Smoke thay `day` và `attack` trong danh sách dữ liệu lạ vì v1.1 đã công nhận hai tên đó. [Test TV4](../../../tests/test_day_cycle.py)
+
+## Review tích hợp PR #11
+
+Đã ghép main có TV1–TV3, giữ cấu hình quái, cá bơi/sinh, 6 món và kế hoạch chuẩn. Dữ liệu Shop lấy từ TV4. Loại khai báo nguyên liệu trùng khi resolve conflict.
+
+Sửa load_day_plans dùng compute_ingredients của TV3 để từ chối kế hoạch rỗng và dùng chung quy tắc công thức. Ca regression thêm vào test_invalid_day_data_and_inconsistent_real_stock.
+
+Bản cuối chạy python -m unittest discover -s tests -v đạt 89/89 test. Log tại [pr11-integration.log](pr11-integration.log). Các ca TV4 xác nhận chuyển pha, ngất sang quán kho rỗng, cấp oxy/Máu ngày sau, mua đúng bước đóng Shop, pause và lỗi scenario. Phần UI vòng ngày và đo FPS cần kiểm chứng ở lát UI.

@@ -1,8 +1,8 @@
 """Vòng ngày v1.1. Các ca giữ luật chơi riêng và dùng chung tiền, uy tín."""
 
-from collections import Counter
 from copy import deepcopy
 
+from ..day_plan import compute_ingredients
 from ..errors import BadInput
 from ..ids import IdAllocator
 from ..scenario import _validate_gather
@@ -28,14 +28,7 @@ def load_day_plans(tuning, overrides):
     output = {}
     for day, plan in plans.items():
         dishes = plan.get("dishes")
-        if not isinstance(dishes, dict):
-            raise BadInput("day_plan cần map dishes")
-        ingredients = Counter()
-        for dish, count in dishes.items():
-            if dish not in menu or type(count) is not int or count <= 0:
-                raise BadInput(f"món hoặc số suất không hợp lệ ở Ngày {day}: {dish}")
-            for kind, qty in menu[dish]["recipe"].items():
-                ingredients[kind] += qty * count
+        ingredients = compute_ingredients(menu, dishes)
         if "ingredients" in plan:
             supplied = plan["ingredients"]
             if (not isinstance(supplied, dict) or any(type(n) is not int for n in supplied.values())
