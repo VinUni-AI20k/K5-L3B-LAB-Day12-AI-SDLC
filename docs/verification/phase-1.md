@@ -2,6 +2,7 @@
 
 | AC | Cách kiểm chứng | Bằng chứng (link `docs/proof/phase-1/...`) | Kết quả (đạt / chưa đạt — ghi trung thực) |
 |---|---|---|---|
+| TV1 · Bơi, lặn/nổi, oxy, ngạt (`choke`), ngất (`faint`), bỏ giỏ LIFO và xuất kho rỗng | `PYTHONPATH=tests;. python -m unittest tests/test_gather_survival.py -v` (3 ca headless theo PRD-0 mục F) | [tv1-gather-survival.md](../proof/phase-1/tv1-gather-survival.md) | đạt (3/3 test pass) |
 | TV2-1 · Hái nút ở mặt nước, ưu tiên bến, hòa ID, regrow | `PYTHONPATH=tests:. python3 -m unittest tests/test_gather_harvest.py -v` (`test_harvest_*`, `test_dock_priority_over_harvest`) | [tv2-gather.txt](../proof/phase-1/tv2-gather.txt) | đạt |
 | TV2-2 · Bắt cá dưới nước, cooldown, hòa ID, thiếu chỗ giữ nguyên cá & cooldown | `PYTHONPATH=tests:. python3 -m unittest tests/test_gather_harvest.py -v` (`test_catch_*`) | [tv2-gather.txt](../proof/phase-1/tv2-gather.txt) | đạt |
 | TV2-3 · Bước cuối hái/cập bến, `tick_limit` giữ nguyên kho, smoke 2 tiến trình | `test_last_tick_harvest_and_dock_edge_and_tick_limit_inventory` + smoke Mục G (`gather` → `catch.json` → `quan` tick 0) | [tv2-gather.txt](../proof/phase-1/tv2-gather.txt) | đạt |
