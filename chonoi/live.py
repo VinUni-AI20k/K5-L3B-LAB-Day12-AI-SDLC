@@ -26,7 +26,7 @@ import time
 import traceback
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
-from . import alerts
+from . import alerts, freshness_view
 from .contract import load_contract
 from .errors import BadInput
 from .inputs import LiveInputs
@@ -136,6 +136,9 @@ class LiveGame:
             snap["screen"] = "game"
             snap["meta"] = self._meta(snap)
             snap["alerts"] = alerts.compute(snap, self.tuning)  # AC-P4-04: chỉ có ở cửa sổ live
+            fresh = freshness_view.view(snap, self.tuning)  # P3-06: HUD độ tươi (None khi chưa có cá thể)
+            if fresh is not None:
+                snap["freshness_hud"] = fresh
             snap["fixed_mode"] = self.fixed_mode
             if self.mode == "day":
                 snap["days_total"] = self.days
