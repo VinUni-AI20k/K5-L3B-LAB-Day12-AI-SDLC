@@ -46,3 +46,6 @@
 | 40 | P3 (Spec Kit) | Tên trường trạng thái đơn (`reserved`/`unfulfillable`…) trong snapshot quán? | `CHỜ HỎI`. `GIẢ ĐỊNH`: `customers[].order_status`. | PO |
 | 41 | P3 (Spec Kit) | Ghi `fresh` vào file kho với độ chính xác nào? | `GIẢ ĐỊNH`: float đủ chữ số để đọc lại ra đúng giá trị nội bộ (đề: "đủ độ chính xác khi đọc lại để giữ giá trị và nhánh ở ngưỡng 30"). | PO + TV1 |
 | 42 | P3 (Spec Kit) | Nạp kho có id không dạng `I<n>` thì bộ cấp id tiếp tục từ đâu? | `CHỜ HỎI`. `GIẢ ĐỊNH`: max `n` trong các id dạng `I<n>` + 1. | PO + TV1 |
+| 43 | P2 (agent khung, T243) | Mode `day`: event tick 0 (`day_start`, `day_plan`, `phase_start`) ghi trước hay sau snapshot tick 0? | `GIẢ ĐỊNH` (PO duyệt tạm): event trước snapshot. `CHỜ HỎI`. | PO |
+| 44 | P2 (agent khung, T243) | `money`/`earned` của QuanSim là của ca hay tích lũy? | `GIẢ ĐỊNH` (PO duyệt tạm): của ca; cộng vào trạng thái Ngày khi `quan_end`. | PO |
+| 45 | P2 (agent khung, T243) | Mẫu `gather.hold` trong scenario `day` áp lại mỗi Ngày hay chỉ Ngày đầu? | `GIẢ ĐỊNH` (PO duyệt tạm): áp lại mỗi Ngày (TICKET-02 §4.3 "làm mẫu khởi tạo mỗi Ngày"); P3: Ngày kế cấp id mới theo thứ tự mảng (TICKET-03). | PO, theo đề |
