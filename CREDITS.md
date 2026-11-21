@@ -17,10 +17,16 @@ Liệt kê asset ngoài (nguồn, giấy phép) và công cụ hỗ trợ đã d
   - `flat_boat.glb`
 
 ### 3. Cá, Hoa Súng, Sen & Thủy sinh (`godot/assets/external/aquatic/`) — CC0 1.0 Universal
-- Nguồn: [3DAssets.dev](https://3dassets.dev/) (Quiet Lake Fishing, Swamp and Mangrove, Fresh Produce, Stylized Trees and Rocks Kit)
+- Nguồn: [3DAssets.dev](https://3dassets.dev/) & [Quaternius Animated Cute Fish Pack](https://quaternius.com/packs/cutefish.html) (via `codepawl/quaternius-glb`)
+- Giấy phép: **CC0 1.0 Universal**
+- Danh sách file:
+  - `fish_carp.glb`, `fish_perch.glb`, `fish_whole_raw.glb`, `fish_ca_keo.glb` (animated), `ca_ho.glb` (animated), `lotus_clump.glb`, `lily_pads_blossom.glb`, `lily_pads_swamp.glb`, `flower_yellow.glb`, `keo_neo.glb`
+
+### 3c. Thủy quái & Vũ khí Phase 2 (`godot/assets/external/monsters/`, `props/`) — CC0 1.0 Universal
+- Nguồn: [3DAssets.dev](https://3dassets.dev/) (Australian Outback Animals, Reptiles/Amphibians, Wipe Day Survival Island)
 - Giấy phép: **CC0 1.0 Universal**
 - Danh sách file (đã dequantize cho Godot 4.5.1):
-  - `fish_carp.glb`, `fish_perch.glb`, `fish_whole_raw.glb`, `lotus_clump.glb`, `lily_pads_blossom.glb`, `lily_pads_swamp.glb`, `flower_yellow.glb`
+  - `monsters/ca_sau.glb` (Cá Sấu Năm Chèo), `monsters/ran_ho_may.glb` (Rắn Hổ Mây), `props/wooden_spear.glb` (Lao xua)
 
 ### 3b. Địa hình & Thủy sinh Dưới Lòng Sông (`godot/assets/external/underwater/`) — CC0 1.0 Universal
 - Nguồn: [3DAssets.dev](https://3dassets.dev/) (Coral Reef, Sunken City, Tropical Island Ecology, Stylized Trees and Rocks Kit, Primeval Frontier, Beach Surf & Paddle Kit)

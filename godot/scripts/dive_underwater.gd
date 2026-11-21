@@ -34,6 +34,8 @@ const PRD_NODES := [
 	{"id": "N2", "kind": "bong_dien_dien", "pos": Vector2(28.0, 0.0)},
 	{"id": "N3", "kind": "bong_sung", "pos": Vector2(44.0, 0.0)},
 	{"id": "N4", "kind": "bong_sung", "pos": Vector2(60.0, 0.0)},
+	{"id": "N5", "kind": "keo_neo", "pos": Vector2(76.0, 0.0)},
+	{"id": "N6", "kind": "keo_neo", "pos": Vector2(90.0, 0.0)},
 ]
 
 const PRD_FISH := [
@@ -43,6 +45,9 @@ const PRD_FISH := [
 	{"id": "F4", "kind": "ca_loc", "pos": Vector2(60.0, 16.0)},
 	{"id": "F5", "kind": "ca_linh", "pos": Vector2(75.0, 5.0)},
 	{"id": "F6", "kind": "ca_loc", "pos": Vector2(90.0, 16.0)},
+	{"id": "F7", "kind": "ca_keo", "pos": Vector2(35.0, 24.0)},
+	{"id": "F8", "kind": "ca_keo", "pos": Vector2(72.0, 26.0)},
+	{"id": "H1", "kind": "ca_ho", "pos": Vector2(52.0, 18.0)},
 ]
 
 
@@ -279,36 +284,71 @@ func _build_light_shafts_and_bubbles() -> void:
 		bubble_nodes.append({"node": b, "speed": rng.randf_range(0.5, 1.5), "phase": rng.randf_range(0.0, TAU)})
 
 
+func _play_loop_anim(node: Node3D, preferred: String) -> void:
+	var ap := node.find_child("AnimationPlayer", true, false)
+	if ap is AnimationPlayer:
+		var player: AnimationPlayer = ap
+		for aname in player.get_animation_list():
+			var a: Animation = player.get_animation(aname)
+			if a != null:
+				a.loop_mode = Animation.LOOP_LINEAR
+		if player.has_animation(preferred):
+			player.play(preferred)
+		elif player.get_animation_list().size() > 0:
+			player.play(player.get_animation_list()[0])
+
+
 func _build_prd_nodes_and_fish() -> void:
-	# 4 PRD surface harvest nodes (N1, N2 bong_dien_dien yellow flowers; N3, N4 bong_sung lotus/lilies)
+	# 6 PRD Phase 2 surface harvest nodes (N1-N2 bong_dien_dien, N3-N4 bong_sung, N5-N6 keo_neo)
 	for n in PRD_NODES:
 		var p: Vector2 = n["pos"]
 		if n["kind"] == "bong_dien_dien":
 			_asset("aquatic", "flower_yellow", Vector3(p.x, 0.05, 0.0), Vector3.ONE * 1.6, Vector3(0.0, 20.0, 0.0))
 			_asset("aquatic", "lily_pads_swamp", Vector3(p.x, 0.02, -0.4), Vector3.ONE * 1.1, Vector3(0.0, 0.0, 0.0))
-		else:
+		elif n["kind"] == "bong_sung":
 			_asset("aquatic", "lily_pads_blossom", Vector3(p.x, 0.04, 0.0), Vector3.ONE * 1.5, Vector3(0.0, 0.0, 0.0))
 			_asset("aquatic", "lotus_clump", Vector3(p.x + 0.6, 0.04, -0.5), Vector3.ONE * 1.2, Vector3(0.0, 45.0, 0.0))
+		else:
+			_asset("aquatic", "keo_neo", Vector3(p.x, -0.05, 0.0), Vector3.ONE * 1.6, Vector3(0.0, 15.0, 0.0))
 
-	# 6 PRD fish schools at exact [x, d] depths (F1..F6)
+	# PRD Phase 2 fish schools (ca_linh, ca_loc, ca_keo, ca_ho)
 	for f in PRD_FISH:
 		var p: Vector2 = f["pos"]
-		var is_loc: bool = (f["kind"] == "ca_loc")
-		var count := 2 if is_loc else 4
+		var kind: String = f["kind"]
+		var count := 1 if kind == "ca_ho" else (2 if kind in ["ca_loc", "ca_keo"] else 4)
 		for k in range(count):
-			var offset := Vector3(rng.randf_range(-1.4, 1.4), rng.randf_range(-0.7, 0.7), rng.randf_range(-1.2, 0.8))
+			var offset := Vector3.ZERO if kind == "ca_ho" else Vector3(rng.randf_range(-1.4, 1.4), rng.randf_range(-0.7, 0.7), rng.randf_range(-1.2, 0.8))
 			var base_pos := Vector3(p.x, -p.y, 0.0) + offset
-			var f_id := "fish_carp" if is_loc else "fish_perch"
-			var sc := rng.randf_range(1.15, 1.45) if is_loc else rng.randf_range(0.85, 1.1)
+			var f_id := "fish_perch"
+			var sc := rng.randf_range(0.85, 1.1)
+			if kind == "ca_loc":
+				f_id = "fish_carp"
+				sc = rng.randf_range(1.15, 1.45)
+			elif kind == "ca_keo":
+				f_id = "fish_ca_keo"
+				sc = rng.randf_range(0.24, 0.30)
+			elif kind == "ca_ho":
+				f_id = "ca_ho"
+				sc = 0.52
 			var inst := _asset("aquatic", f_id, base_pos, Vector3.ONE * sc, Vector3(0.0, 90.0 if k % 2 == 0 else -90.0, 0.0))
 			if inst != null:
+				if kind in ["ca_keo", "ca_ho"]:
+					_play_loop_anim(inst, "Swimming_Normal")
 				fish_nodes.append({
 					"node": inst,
 					"origin": base_pos,
 					"phase": rng.randf_range(0.0, TAU),
-					"amp": rng.randf_range(0.5, 1.3),
-					"speed": rng.randf_range(1.0, 1.8),
+					"amp": rng.randf_range(0.7, 1.8) if kind != "ca_ho" else 3.0,
+					"speed": rng.randf_range(1.0, 1.6) if kind != "ca_ho" else 0.7,
 				})
+
+	# Phase 2 Monsters: Ca Sau Nam Cheo (M1 [60,24]..[64,24]) & Ran Ho May (M3 [72,14]..[76,14])
+	var croc := _asset("monsters", "ca_sau", Vector3(62.0, -24.0, 0.0), Vector3.ONE * 1.4, Vector3(0.0, 90.0, 0.0))
+	if croc != null:
+		fish_nodes.append({"node": croc, "origin": Vector3(62.0, -24.0, 0.0), "phase": 0.0, "amp": 2.5, "speed": 0.55})
+	var snake := _asset("monsters", "ran_ho_may", Vector3(74.0, -14.0, 0.0), Vector3.ONE * 1.5, Vector3(0.0, 90.0, 0.0))
+	if snake != null:
+		fish_nodes.append({"node": snake, "origin": Vector3(74.0, -14.0, 0.0), "phase": 1.2, "amp": 2.5, "speed": 0.85})
 
 
 func _make_mat(hex: String, rough := 0.72) -> StandardMaterial3D:
