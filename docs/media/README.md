@@ -25,7 +25,10 @@ Marketing screenshots (1280×720 PNG) and a short fast-play demo video, captured
 | `screenshots/19-hire-staff-dialog.png` | Bà Tư dialog → Thuê người: Bé Tí (chạy bàn) and Chú Bảy (phụ bếp) just hired |
 | `screenshots/20-decorated-raft.png` | Pre-open raft after the décor purchases: bảy màu lanterns, hoa sen tablecloths, giàn bông, sơn mài sign |
 | `screenshots/21-staff-working.png` | Service with staff: Chú Bảy cooking at a stove, Bé Tí carrying a dish while Út Sen serves |
-| `demo.mp4` | ~90 s fast playthrough (≈3×): title, intro, Ngày 1, dive, deep zone, Cá Sấu chase with the "Thủy quái!" warning, dock, dusk, pre-open + menu board, Thuê người (hire Bé Tí + Chú Bảy) and Trang trí quán (lanterns, tablecloth, flowers, sign) in Bà Tư's dialog, the decorated raft, "Mở quán", service rush with staff, serves and coins, early close → DayResult, night dock shop pop-up |
+| `screenshots/22-upgrades-shop.png` | Night dock, Chợ Chú Sáu "Nâng cấp" tab: Bình oxy bought, "có hiệu lực từ ngày mai" |
+| `screenshots/23-day2-deep-dive-upgraded.png` | Day 2 deep dive with the upgrades (O₂ 45 s, 4 Máu, Lao ×5): hunting a big cá lóc bông in the deep zone |
+| `screenshots/24-premium-dish-served.png` | Day-2 evening: Cá lóc bông hấp bầu (Đặc sản) served for +220k, trained Chú Bảy at the stove, Bé Tí on the floor |
+| `demo.mp4` | Two-day story (≈3×): title, intro, Ngày 1 dive (big haul), deep zone + Cá Sấu (demo dive), dusk, pre-open + menu board, Bà Tư: hire Bé Tí + Chú Bảy and decorate, the real Day-1 evening with staff (many serves, coins, tips, queue), early close → KẾT SỔ NGÀY 1, night market upgrades (Bình oxy, Áo phao, Mũi lao ×3, Chân vịt), train Chú Bảy ★★, hammock → Ngày 2 card → morning dock → deeper dive (big cá lóc bông speared, Cá Sấu fought and defeated for thịt cá sấu) → Day-2 evening with an Đặc sản dish |
 
 ## How it was made
 
@@ -42,13 +45,17 @@ that is already running; otherwise the script starts `python3 -m http.server` on
   in the cook menu, E), waits, picks it up (E), walks to that guest's table and serves (E). It never presses Esc outside
   a menu (Esc pauses the quán). Closing early is C twice within 3 s; the raft's closing panel then leads to the DayResult
   pop-up and the night dock (`go("night")` is no longer needed).
+- Two-day story: the Day-1 dive fills the basket off camera (7 cá lóc, cá linh, bông súng twice, bông điên điển) so
+  the real Day-1 quán runs a long evening with the bot and the hired staff. At the night dock the script drives the
+  shop pop-up (`__shopGo(id)`: Tab to "Nâng cấp", arrows, E) and Bà Tư's dialog (train Chú Bảy), sleeps in the hammock
+  and plays Day 2 with the upgrades. Setup values: wallet 2000k before hiring, 3000k before the night market. On both
+  campaign dives a capture-side guard only stops fainting (HP ≥ 1, O₂ ≥ 2 s); damage and the 45 s O₂ bar stay real.
 - One video run records in this order: title → demo dive `go("gather")` (deep zone, Cá Sấu chase + stun; recorded
   before `go("new")` because a new game resets the save; during this unsaved demo dive only, a capture-side guard keeps
   HP and O₂ topped up so the chase never ends in "Ngất xỉu") → the real campaign (intro → Ngày 1 → dive → dusk → pre-open →
-  Bà Tư dialog: hire + décor → Mở quán → the evening played off camera by the bot → early close → DayResult → night dock shop) → demo quán `go("quan")` (demo stock, so the service rush never
-  runs out; the staff and décor bought in the campaign carry into it, so Bé Tí and Chú Bảy work the rush). The
-  edit puts the segments back in story order. The hire / décor scenes drive Bà Tư's real dialog with arrow keys + E
-  (`__navGo(label)`); the only setup is a 2000k wallet (`progress.save.money`) so the purchases go through. Screenshots 09, 14, 19, 20 and 21 are written by this run
+  Bà Tư dialog: hire + décor → Mở quán → the evening with the bot and staff → early close → DayResult → night market upgrades → train → hammock) → Day 2
+  (morning dock → deeper dive → Day-2 evening). The edit puts the segments back in story order. The hire / décor scenes drive Bà Tư's real dialog with arrow keys + E
+  (`__navGo(label)`); the only setup is a 2000k wallet (`progress.save.money`) so the purchases go through. Screenshots 09, 14 and 19–24 are written by this run
   (`--video`); `--stills` writes the others.
 - Video: segments are recorded as JPEG frames, mostly 5–6 game frames per 30 fps video frame (≈2.5–3× speed; dialogue
   and pop-ups 2×, the croc chase 1.5×). Frames are converted with `scale=out_range=tv,format=yuv420p`. Caption cards are

@@ -88,6 +88,14 @@ const HELPERS = `(() => {
     if (nav.cur.sel !== i) { G().input.press(nav.cur.sel < i ? "down" : "up"); return "move"; }
     G().input.press("interact"); return "done";
   };
+  // ---- shop pop-up (shop_popup.js): Tab to "Nâng cấp", arrows to the card with this id, E = OK (one level)
+  window.__shopGo = (id) => {
+    const ov = sc().overlay; if (!ov || !ov.cards) return "none";
+    if (ov.tab !== 2) { G().input.press("tab"); return "move"; }
+    const i = ov.cards().findIndex((cd) => cd.id === id); if (i < 0) return "missing";
+    if (ov.sel !== i) { G().input.press(ov.sel < i ? "right" : "left"); return "move"; }
+    G().input.press("interact"); return "done";
+  };
   // ---- quán service bot: one decision per step from live state — cook what a seated guest ordered at a free stove
   // (cook menu: E, arrows to the dish's index in Object.keys(menu), E), wait, pick it up (E), carry it to that guest's
   // table, serve (E). Never presses Esc outside a menu (Esc = pause in the quán, which froze the old bot).
@@ -239,8 +247,9 @@ async function stills(base) {
 // the demo quán service (demo stock, so the rush never runs dry) AFTER the campaign night; ORDER below places them.
 // Speed: most segments advance 6 game frames per 30-fps video frame (≈3×); dialogue / pop-ups run slower to stay readable.
 // Also writes screenshots 09 (Cá Sấu warning, empty basket) and 14 (busy service) from the same runs.
-const ORDER = ["c-title", "title", "intro", "day", "c-dive", "dive", "c-deep", "deep", "croc", "dock", "dusk", "c-quan", "preopen", "c-manage", "hire", "decor", "decorated",
-  "service", "close", "c-night", "night", "c-end"];
+const ORDER = ["c-title", "title", "intro", "day", "c-dive", "dive", "c-deep", "deep", "croc", "dock", "dusk", "c-quan", "preopen",
+  "c-manage", "hire", "decor", "decorated", "service", "close", "c-night", "night", "train", "c-day2", "day2", "dawn", "c-dive2", "dive2",
+  "croc2", "dock2", "c-prem", "eve2", "c-end"];
 async function video(base) {
   const TMP = fs.mkdtempSync(path.join(os.tmpdir(), "chonoi-vid-"));
   fs.mkdirSync(SHOTS, { recursive: true });
@@ -293,9 +302,11 @@ async function video(base) {
     begin("day"); await rec(70, 2);
     card("c-dive", "Buổi sáng · Lặn sông", "Bắn lao bắt cá, hái bông, canh O₂");
     await c.ev(`__until((s, st) => st.mode === "gather", 2000); __run(150)`);
+    // capture-side safety only (both campaign dives): the diver never faints (HP ≥ 2, O₂ ≥ 3 s), so the basket is kept
+    await c.ev(`window.__bot = () => { const s = __chonoi.state.scene; if (__chonoi.state.mode === "gather" && s && s.hpMax && !s.result) { s.hp = Math.max(s.hp, 2); s.oxy = Math.max(s.oxy, 3); } }`);
     begin("dive");
     await swimRec(10, 5, 20, 6);
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 4; i++) {
       const ok = await c.ev(`(() => { const f = __fish("ca_loc", 20) || __fish(null, 20); if (!f) return false; window.__tf = f; return true; })()`);
       if (!ok) break;
       await rec(30, 4, `(() => { const s = __chonoi.state.scene, p = s.p, f = window.__tf; if (s.harp) return; const side = p.x <= f.x ? -1 : 1; const dx = f.x + side * 4 - p.x, dd = f.d - p.d;
@@ -305,16 +316,23 @@ async function video(base) {
       await c.ev(keysUp); await rec(8, 3);
       await c.ev(`(() => { const s = __chonoi.state.scene; if (s.oxy < 12) { __swim(s.p.x, 0, 400, 0.6, true); __run(150); } })()`);
     }
-    // off camera: top the basket up to 5 cá lóc so tonight's campaign quán has something to sell before the close
-    await c.ev(`(() => { for (let i = 0; i < 8; i++) { const s = __chonoi.state.scene; if ((s.hold || []).filter((k) => k === "ca_loc").length >= 5) break; const f = __fish("ca_loc", 20); if (!f) break; __hunt(f, 4); __reel(); __run(10); if (s.oxy < 12) { __swim(s.p.x, 0, 400, 0.6, true); __run(150); } } })()`);
+    // off camera: fill the basket for a long Day-1 evening — 7 cá lóc, 4 cá linh, bông súng twice (nodes regrow), bông điên điển
+    await c.ev(`(() => { const cnt = (k) => (__chonoi.state.scene.hold || []).filter((x) => x === k).length;
+      const live = () => { const s = __chonoi.state.scene; return __chonoi.state.mode === "gather" && s && s.p && !s.result && !s.ended && s.time > 45; };
+      try {
+        for (const [kind, want] of [["ca_loc", 7], ["ca_linh", 4]]) for (let i = 0; i < 12 && cnt(kind) < want && live(); i++) { const s = __chonoi.state.scene; if (s.oxy < 14) { __swim(s.p.x, 0, 400, 0.6, true); __run(200); } const f = __fish(kind, 20); if (!f) break; __hunt(f, 4); __reel(); __run(10); }
+        if (live()) { const s = __chonoi.state.scene; __swim(s.p.x, 0, 400, 0.6, true); __run(100); __flowers(2, "bong_dien_dien"); __flowers(2, "bong_sung"); }
+      } catch (e) { console.warn("haul", e); } })()`);
+    log("haul state", JSON.stringify(await c.ev(`({ mode: __chonoi.state.mode, t: __chonoi.state.scene.time | 0, oxy: __chonoi.state.scene.oxy | 0, hold: (__chonoi.state.scene.hold || []).join(",") })`)));
     await c.ev(`__swim(__chonoi.state.scene.p.x, 0, 400, 0.6, true); __swim(42, 0, 800, 0.6, true); __run(10)`);
-    await rec(12, 3); await c.ev(`__flowers(1)`); await rec(15, 3);
+    await rec(12, 3); await c.ev(`__flowers(2)`); await rec(15, 3);
+    log("day-1 haul", JSON.stringify(await c.ev(`(__chonoi.state.scene.hold || []).join(",")`)), "time", await c.ev(`__chonoi.state.scene.time | 0`));
     await swimRec(2, 0, 45, 6, true);
     await c.ev(`__swim(2, 0, 3000, 1, true)`);
-    begin("dock"); await c.ev(`__press("interact", 2)`); await rec(45, 3);
+    begin("dock"); await c.ev(`__press("interact", 2)`); await rec(45, 3); await c.ev(`window.__bot = null`);
     await c.ev(`__until((s) => s.result && s.result.t > 0.8, 400); __press("confirm", 2)`);
     begin("dusk"); await rec(120, 4);
-    card("c-quan", "Buổi tối · Mở quán", "Chọn món, nấu, bưng ra bàn");
+    card("c-quan", "Ngày 1 · Mở quán", "Chọn món, nấu, bưng ra bàn");
     await c.ev(`__until((s, st) => st.mode === "quan" && s.phase === "preopen", 6000); __run(60)`);
     begin("preopen");
     await rec(20, 4, `(() => { const s = __chonoi.state.scene, p = s.p; __key("ArrowUp", p.z < 8.1 ? "keydown" : "keyup"); __key("ArrowLeft", p.x > 6.0 ? "keydown" : "keyup"); __key("ArrowRight", p.x < 5.6 ? "keydown" : "keyup"); })()`);
@@ -354,45 +372,127 @@ async function video(base) {
     await rec(25, 4, `(() => { const s = __chonoi.state.scene, p = s.p; __key("ArrowDown", p.z > 4.5 ? "keydown" : "keyup"); __key("ArrowRight", p.x < 13.4 ? "keydown" : "keyup"); })()`);
     await c.ev(`["ArrowRight","ArrowDown"].forEach((k) => __key(k, "keyup")); __walk(13.6, 4.2, 300); __press("open", 2)`);
     await rec(12, 2); await c.ev(`__press("confirm", 2)`); await rec(20, 3);  // "Mở quán" confirm → bell
-    // the real campaign evening plays out off camera with the same bot (the Day-1 haul runs out fast), then a real early close
-    await c.ev(`window.__bot = __serveBot; __run(60 * 100); window.__bot = null; __releaseAll(); __run(20)`);
-    log("campaign quán", JSON.stringify(await c.ev(`(() => { const s = __chonoi.state.scene; return { served: s.served, money: s.money, tips: s.tips }; })()`)));
+    // ---- the real Day-1 evening on camera: Út Sen + Bé Tí + Chú Bảy, many serves, coins, tips, queue
+    await c.ev(`window.__bot = __serveBot; __until((s) => s.customers.some((c) => c.state === "waiting"), 1800)`);
+    begin("service");
+    let busyShot = false, staffShot = false;
+    for (let i = 0; i < 690; i++) {
+      if (i > 240 && await c.ev(`!!__chonoi.state.scene.noDish`)) break;    // stop before the "Hết nguyên liệu" banner
+      await rec(1, 6);
+      if (!staffShot && i % 2 === 0 && await c.ev(`(() => { const s = __chonoi.state.scene, w = s.staff.waiter, k = s.staff.cook; return !!(w && w.carry && k && s.stoves.some((v) => v.state === "cooking") && s.hand); })()`)) { staffShot = true; await still("21-staff-working"); }
+      if (!busyShot && i % 3 === 0 && await c.ev(`(() => { const s = __chonoi.state.scene; return s.served >= 4 && s.coins.length > 0 && !s.noDish && s.customers.filter((c) => c.state === "waiting" || c.state === "eating" || c.state === "queue").length >= 4; })()`)) { busyShot = true; await still("14-busy-service"); }
+    }
+    if (!busyShot) log("WARN 14-busy-service not taken");
+    if (!staffShot) log("WARN 21-staff-working not taken");
+    await c.ev(`__run(60 * 20); window.__bot = null; __releaseAll(); __run(20)`);
+    log("day-1 quán", JSON.stringify(await c.ev(`(() => { const s = __chonoi.state.scene; return { served: s.served, money: s.money, tips: s.tips, noDish: s.noDish, t: s.time | 0 }; })()`)));
     begin("close");
     await rec(10, 3); await c.ev(`__press("close", 4)`); await rec(8, 3); await c.ev(`__press("close", 2)`);
     // the 2nd C ends the shift: the raft's own closing panel first, any key after 0.8 s → DayResult pop-up (mode "result")
     if (await c.ev(`__until((s) => s.result && s.result.t > 0.85, 300)`) < 0) throw new Error("close did not end the shift");
     await rec(25, 3); await c.ev(`__press("confirm", 2)`);
     if (await c.ev(`__until((s, st) => st.mode === "result", 600)`) < 0) throw new Error("DayResult not reached");
-    await rec(145, 2);
-    card("c-night", "Đêm trên ghe", "Bán đồ dư, đặt hàng Chú Sáu cho ngày mai");
-    await c.ev(`__press("confirm", 2); __until((s, st) => st.mode === "hub" && s.p, 900); __run(30)`);
-    begin("night");
-    await rec(60, 4, `(() => { const s = __chonoi.state.scene, p = s.p; __key("ArrowRight", p.x < 14.2 ? "keydown" : "keyup"); })()`);
-    await c.ev(`__key("ArrowRight", "keyup"); __walk(14.6, 1.2, 300); __press("interact", 2)`);
-    await rec(145, 2);
-    if (!(await c.ev(`!!__chonoi.state.scene.menuOpen`))) log("WARN shop pop-up not open");
+    await rec(110, 2);
 
-    // ---- demo quán (demo stock) for the busy service rush
-    await c.ev(`(() => { const s = __chonoi.state.scene; let n = 0; while (s.menuOpen && n++ < 6) __press("back", 15); })(); __chonoi.go("quan"); __until((s, st) => st.mode === "quan" && s.p && s.phase === "open", 900)`);
-    await c.ev(`window.__bot = __serveBot; __until((s) => s.customers.some((c) => c.state === "waiting"), 2400); __run(60)`);
-    begin("service");
-    let busyShot = false, staffShot = false;
-    for (let i = 0; i < 560; i++) {
-      if (i > 150 && await c.ev(`!!__chonoi.state.scene.noDish`)) break;    // stop before the "Hết nguyên liệu" banner
-      await rec(1, 5);
-      if (!staffShot && i % 2 === 0 && await c.ev(`(() => { const s = __chonoi.state.scene, w = s.staff.waiter, k = s.staff.cook; return !!(w && w.carry && k && s.stoves.some((v) => v.state === "cooking") && s.hand); })()`)) { staffShot = true; await still("21-staff-working"); }
-      if (!busyShot && i % 3 === 0) {
-        const ok = await c.ev(`(() => { const s = __chonoi.state.scene; return s.served >= 3 && s.coins.length > 0 && !s.noDish && s.customers.filter((c) => c.state === "waiting" || c.state === "eating").length >= 3; })()`);
-        if (ok) { busyShot = true; await c.ev(`window.__bot = null; __releaseAll()`); await still("14-busy-service"); await c.ev(`window.__bot = __serveBot`); }
+    // ---- night market: Nâng cấp tab (setup: wallet 3000k so every purchase goes through), then train Chú Bảy, sleep
+    card("c-night", "Mua nâng cấp ở chợ đêm", "Bình oxy, áo phao, mũi lao, chân vịt — có hiệu lực từ ngày mai");
+    await c.ev(`__press("confirm", 2); __until((s, st) => st.mode === "hub" && s.p, 900); __chonoi.progress.save.money = 3000; __chonoi.progress.persist(); __run(30)`);
+    begin("night");
+    await rec(50, 4, `(() => { const s = __chonoi.state.scene, p = s.p; __key("ArrowRight", p.x < 14.2 ? "keydown" : "keyup"); })()`);
+    await c.ev(`__key("ArrowRight", "keyup"); __walk(14.6, 1.2, 300); __press("interact", 2)`);
+    await rec(30, 2);
+    if (!(await c.ev(`!!__chonoi.state.scene.menuOpen`))) log("WARN shop pop-up not open");
+    const shopRec = async (id, hold) => {
+      for (let t = 0; t < 30; t++) { const r = await c.ev(`__shopGo(${JSON.stringify(id)})`); await rec(3, 2); if (r === "done") break; if (r !== "move") { log("WARN shop", id, r); break; } }
+      await rec(hold, 2);
+    };
+    await shopRec("oxygen", 40); await still("22-upgrades-shop");
+    await shopRec("hp", 30);
+    await shopRec("spear", 26); await shopRec("spear", 14); await shopRec("spear", 26);
+    await shopRec("fins", 30);
+    log("upgrades", JSON.stringify(await c.ev(`({ cu: __chonoi.progress.save.cu, up: __chonoi.progress.save.up, money: __chonoi.progress.save.money })`)));
+    await c.ev(`__chonoi.input.press("back")`); await rec(10, 2);
+    begin("train");
+    await rec(40, 4, `(() => { const s = __chonoi.state.scene, p = s.p; __key("ArrowLeft", p.x > 2.0 ? "keydown" : "keyup"); })()`);
+    await c.ev(`__key("ArrowLeft", "keyup"); __walk(1.4, 1.2, 300, 0.25); __press("interact", 2)`);
+    await rec(20, 2);
+    await navRec("Thuê người", 8); await navRec("Chú Bảy", 4); await navRec("Đào tạo", 36);
+    log("staff", JSON.stringify(await c.ev(`__chonoi.meta.getStaff()`)));
+    await navBack(); await navBack(); await navRec("Thôi", 8);
+    await rec(30, 4, `(() => { const s = __chonoi.state.scene, p = s.p; __key("ArrowRight", p.x < 6.0 ? "keydown" : "keyup"); })()`);
+    await c.ev(`__key("ArrowRight", "keyup"); __walk(6.4, 1.2, 300, 0.25); __press("interact", 2)`);
+    await rec(15, 2); await c.ev(`__press("interact", 2)`); await rec(30, 3);       // hammock: E twice
+
+    // ---- Day 2: card (O₂ 45 s) → morning dock → ladder → deeper dive with the upgrades
+    card("c-day2", "Ngày 2 · Lặn sâu hơn", "O₂ 45 giây, mũi lao mạnh — xuống 55 m săn cá khổng lồ");
+    if (await c.ev(`__until((s, st) => st.mode === "intro", 900)`) < 0) log("WARN Day 2 card not reached");
+    begin("day2"); await rec(70, 2);
+    await c.ev(`__press("confirm", 2); __until((s, st) => st.mode === "hub" && s.p, 900); __run(20)`);
+    begin("dawn");
+    await rec(45, 4, `(() => { const s = __chonoi.state.scene, p = s.p; __key("ArrowRight", p.x < 7.8 ? "keydown" : "keyup"); __key("ArrowLeft", p.x > 8.6 ? "keydown" : "keyup"); })()`);
+    await c.ev(`${keysUp}; __walk(8.2, 1.2, 300, 0.25); __press("interact", 2)`);
+    if (await c.ev(`__until((s, st) => st.mode === "gather" && s.p, 900)`) < 0) log("WARN Day 2 dive not reached");
+    // capture-side safety only: the diver never faints on camera (HP ≥ 2, O₂ ≥ 3 s); the 45 s bar and hits stay visible
+    await c.ev(`window.__bot = () => { const s = __chonoi.state.scene; if (__chonoi.state.mode === "gather" && s && s.hpMax) { s.hp = Math.max(s.hp, 2); s.oxy = Math.max(s.oxy, 3); } }; __run(150)`);
+    log("day-2 dive", JSON.stringify(await c.ev(`(() => { const s = __chonoi.state.scene; return { oxyMax: s.oxyMax, hpMax: s.hpMax, big: s.deep.filter((f) => f.sp.id === "ca_loc_khong_lo").map((f) => [f.x | 0, f.d | 0]), crocs: s.crocs.map((m) => [m.x | 0, m.d | 0, m.hp]) }; })()`)));
+    const fight = async (pick, gap, maxF, k, done) => {
+      await c.ev(`window.__tgt = (${pick})(__chonoi.state.scene)`);
+      for (let i = 0; i < maxF; i++) {
+        await rec(1, k, `(() => { const s = __chonoi.state.scene, p = s.p, f = window.__tgt; if (!f) return; const set = (key, on) => __key(key, on ? "keydown" : "keyup");
+          const side = p.x <= f.x ? -1 : 1; const dx = f.x + side * ${gap} - p.x, dd = f.d - p.d;
+          if (Math.abs(dx) < 1.6 && Math.abs(dd) < 0.9) { set("ArrowUp", false); set("ArrowDown", false); set("ArrowRight", f.x > p.x); set("ArrowLeft", f.x < p.x); set("Shift", false); if (!s.harp) __chonoi.input.press("catch"); return; }
+          set("ArrowRight", dx > 0.4); set("ArrowLeft", dx < -0.4); set("ArrowDown", dd > 0.4); set("ArrowUp", dd < -0.4); set("Shift", Math.hypot(dx, dd) > 6); })()`);
+        if (await c.ev(`(() => { const f = window.__tgt; return !f || (${done})(f); })()`)) { await c.ev(keysUp); return true; }
       }
+      await c.ev(keysUp); return false;
+    };
+    card("c-dive2", "Vùng sâu 55 m", "Cá lóc khổng lồ ♥8 — và Cá Sấu Năm Chèo ♥24");
+    // target: the shallowest big snakehead (cá lóc bông ~36 m or khổng lồ ~55 m) — open water, reachable from above
+    await c.ev(`window.__big = __chonoi.state.scene.deep.filter((f) => !f.caught && (f.sp.id === "ca_loc_bong" || f.sp.id === "ca_loc_khong_lo")).sort((a, b) => a.d - b.d || a.x - b.x)[0]`);
+    const bigX = await c.ev(`window.__big ? window.__big.x : 40`), bigD = await c.ev(`window.__big ? window.__big.d : 36`);
+    await c.ev(`__swim(${bigX} - 6, 0.3, 1500, 1, true); __run(20)`);
+    begin("dive2");
+    await swimRec(bigX - 6, bigD, 50, 5, true);
+    const bigDead = await fight(`() => window.__big`, 4.5, 260, 3,
+      `(f) => f.caught || f.hooked`);
+    log("big fish", bigDead);
+    await rec(30, 3);
+    await still("23-day2-deep-dive-upgraded");
+    await c.ev(`__reel ? __reel(200) : 0; __swim(__chonoi.state.scene.p.x, 0, 900, 0.8, true); __run(120)`);
+    const crX = await c.ev(`(() => { const m = __chonoi.state.scene.crocs.find((m) => m.state !== "dead"); return m ? [m.x, m.d] : null; })()`);
+    if (crX) {
+      await c.ev(`__swim(${crX[0]} + 10, 0.3, 1500, 1, true); __swim(${crX[0]} + 10, ${crX[1]} - 3, 900, 1, true)`);
+      begin("croc2");
+      const crocDead = await fight(`(s) => s.crocs.find((m) => m.state !== "dead")`, 5, 320, 3, `(m) => m.state === "dead"`);
+      log("croc", crocDead, JSON.stringify(await c.ev(`__chonoi.state.scene.crocs.map((m) => [m.state, m.hp])`)));
+      await rec(30, 3);
     }
-    log("demo quán", JSON.stringify(await c.ev(`(() => { const s = __chonoi.state.scene; return { served: s.served, money: s.money, tips: s.tips, noDish: s.noDish }; })()`)));
+    await c.ev(`${keysUp}; __swim(__chonoi.state.scene.p.x, 0, 900, 0.8, true); __run(60); __flowers(2, "bong_sung"); __swim(2, 0, 3000, 1, true); __press("interact", 2); __until((s) => s.result && s.result.t > 0.8, 400)`);
+    begin("dock2"); await rec(40, 2);
+    log("day-2 haul", JSON.stringify(await c.ev(`(__chonoi.state.scene.hold || []).join(",")`)));
+    await c.ev(`window.__bot = null; __press("confirm", 2); __until((s, st) => st.mode === "quan" && s.phase === "preopen", 6000); __run(60)`);
+
+    // ---- Day-2 evening: Đặc sản on the board, a sộp guest orders it, Chú Bảy (★★) cooks
+    card("c-prem", "Đặc sản đêm nay", "Khách sộp gọi món đặc sản — Chú Bảy ★★ nấu nhanh");
+    begin("eve2");
+    await c.ev(`__walk(5.8, 8.2, 300); __press("interact", 2)`);
+    await rec(55, 2);
+    log("menu day 2", JSON.stringify(await c.ev(`Object.keys(__chonoi.state.scene.menu)`)), JSON.stringify(await c.ev(`__chonoi.state.scene.stock`)));
+    await c.ev(`__press("back", 10); __walk(13.6, 4.2, 300); __press("open", 6); __press("confirm", 20); window.__bot = __serveBot`);
+    const premNow = `(() => { const s = __chonoi.state.scene; return Object.keys(s.sold || {}).filter((k) => s.menu[k] && s.menu[k].premium).reduce((a, k) => a + s.sold[k], 0); })()`;
+    let premShot = false;
+    for (let i = 0; i < 420; i++) {
+      if (i > 150 && await c.ev(`!!__chonoi.state.scene.noDish`)) break;
+      await rec(1, 5);
+      if (!premShot && await c.ev(`${premNow} > 0 && __chonoi.state.scene.coins.length > 0`)) { premShot = true; await still("24-premium-dish-served"); await rec(45, 3); break; }
+    }
+    if (!premShot) log("WARN 24-premium-dish-served not taken");
+    log("day-2 quán", JSON.stringify(await c.ev(`(() => { const s = __chonoi.state.scene; return { served: s.served, money: s.money, sold: s.sold, cust: s.customers.map((c) => c.type + ":" + c.want + ":" + c.state).join(" ") }; })()`)));
     await c.ev(`window.__bot = null; __releaseAll()`);
-    if (!busyShot) log("WARN 14-busy-service not taken");
-    if (!staffShot) log("WARN 21-staff-working not taken");
     card("c-end", "Quán Ăn Chợ Nổi", "Nhóm 001 · Day 12 AI-SDLC");
   } finally { await c.close(); }
   segs.sort((a, b) => ORDER.indexOf(a.name) - ORDER.indexOf(b.name));
+  for (const sg of segs) if (!ORDER.includes(sg.name)) log("WARN segment not in ORDER", sg.name);
   return encode(segs, TMP);
 }
 
