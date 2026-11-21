@@ -25,6 +25,11 @@
   - `scenario.py`: `gather.hold`, `quan.stock`, `customers[].reserved` kiểm theo `menu_kinds(tuning["menu"])` (v1.0 giữ nguyên hành vi).
   - `headless.py`, `live.py`: `--inventory` đọc kho theo `menu_kinds` (1 dòng mỗi file; v1.0 không đổi).
   - `sim/quan.py` (luật của TV3): `QuanSim(..., plan_dishes=None)` — DaySim truyền kế hoạch Ngày qua `_kwargs_for`; `None` = như Phase 1.
+- **sim/scenario cho v1.2 (TV3, TICKET-03 Phase 3)**: `sim/quan.py` kho cá thể + hao tươi (nội bộ
+  `fresh_units` 240/điểm, quán −1 đơn vị/tick, spoiled theo id, giữ chỗ/thử giữ lại theo id cá thể);
+  `scenario.py`: `_validate_quan` nhận `quan.stock` mảng {id,kind,fresh} và `reserved` mảng id
+  (tồn tại, fresh ≥ spoiled_below, không dùng chung, đủ công thức; thiếu -> tự cấp tươi nhất,
+  mâu thuẫn -> mã 2). Kho đếm v1.0/v1.1 ở mode quan vẫn hợp lệ.
 
 ## Nên tránh
 - Không sửa `docs/contracts/`, `game.contract.json` (khóa contract) hoặc schema kho khi chưa báo cả nhóm (đổi hợp đồng ảnh hưởng mọi module).
