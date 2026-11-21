@@ -157,6 +157,7 @@ class GatherSim:
                     candidates.sort(key=lambda item: (item[0], id_key(item[1]["id"])))
                     fish = candidates[0][1]
                     yield_count = self.t["fish_yield"][fish["kind"]]
+                    yield_count = self.t["fish_yield"].get(fish["kind"], 1)
                     free_space = self.t["hold_capacity"] - len(self.hold)
                     if free_space >= yield_count:
                         self.hold.extend([fish["kind"]] * yield_count)

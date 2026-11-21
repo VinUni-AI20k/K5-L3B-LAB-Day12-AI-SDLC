@@ -12,7 +12,7 @@
 | AC-P1-M2-02: Giỏ LIFO (`hold_capacity`), cập bến (`docked`), hết giờ (`time`), xuất kho khớp `inventory.sample.json` | M2 | Unit test M2 (`M2.2`, `M2.4`) | [m2.md](../proof/phase-1/m2.md), [m2_catch.json](../proof/phase-1/m2_catch.json) | Đạt (khớp từng byte) |
 | AC-P1-M3-01: Khách đến theo lịch (`customer_arrived`, `no_dish`), giữ chỗ nguyên liệu (`reserved`), kiên nhẫn, rời đi (`customer_left`) | M3 | Unit test M3 (`M3.2`, `M3.4`) | *Chờ M3 nộp bằng chứng Đợt 4* | Chờ bàn giao M3 |
 | AC-P1-M4-01: `interact` bếp/bàn (`cook_started`, `dish_ready`, `dish_picked`, `served`), trả tiền (`paid`), boa, uy tín, `quan_end` | M4 | Unit test M4 (`M4.2`, `M4.4`) | *Chờ M4 nộp bằng chứng Đợt 4* | Chờ bàn giao M4 |
-| AC-P1-M5-01: Chơi thử được cả 2 buổi trên `chonoi.live`, HUD đọc được các chỉ số tối thiểu | M5 | Chạy `python3 -m chonoi.live --mode gather\|quan`, chụp màn hình | *Chờ M5 nộp ảnh Đợt 4* | Chờ bàn giao M5 |
+| AC-P1-M5-01: Chơi thử được cả 2 buổi trên `chonoi.live`, HUD đọc được các chỉ số tối thiểu | M5 | Chạy `python3 -m chonoi.live --mode gather\|quan`, test `test_live_m5.py` | [`docs/proof/phase-1/m5.md`](../proof/phase-1/m5.md), [`docs/ui-contract.md`](../ui-contract.md) | Đạt |
 | AC-P1-TEAM-01: `TEAM.md` đủ 6 thành viên, `team_size: 6`, `check_team.py` xanh, hợp đồng kho trong `docs/contracts/` | M6 | `python tools/check_team.py` | `TEAM.md`, `docs/contracts/README.md` | Đạt |
 
 ## Đánh giá ngắn (cập nhật hoàn chỉnh ở `M6.5` trước khi gắn tag `phase-1`)
