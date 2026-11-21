@@ -5,10 +5,11 @@ Nhóm viết tiếp (PRD-0 mục F, Quán):
                      ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
 """
 
+import math
 from collections import Counter
 
 from ..errors import BadInput
-from ..ids import sort_by_id
+from ..ids import id_key, sort_by_id
 from ..inventory import validate_items
 from .ramp import ramp_velocity
 
@@ -21,6 +22,8 @@ class QuanSim:
         t = tuning["quan"]
         self.t = t
         self.menu = tuning["menu"]
+        self.reputation_multiplier = tuning["score"]["reputation_multiplier"]
+        self.carry_limit = int(t.get("carry_limit", 1))
         self.rng = streams
         self.ids = ids
         self.tick_hz = tuning["tick_hz"]
@@ -94,10 +97,12 @@ class QuanSim:
         events = []
         self.phase_tick += 1
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
-        # TODO(nhóm, lát 4): cập nhật bộ đếm của bếp / khách đang ăn theo thứ tự PRD-0 mục F.
+        self._step_stoves(events)
+        # TODO(nhóm, lát 4): cập nhật khách đang ăn theo thứ tự PRD-0 mục F.
         self._update_patience(events)
         self._move(inp)
-        # TODO(nhóm): tối đa MỘT interact, chọn đối tượng theo (khoảng cách, bếp trước bàn, id).
+        if inp.pressed("interact"):
+            self._try_interact(events)
         table = self._arrival_table()
         if table is not None:
             self._seat_customer(table, events)
@@ -107,6 +112,115 @@ class QuanSim:
             events.append(("quan_end", {"reason": "time", "money": self.money, "earned": self.earned,
                                         "shift_earned": self.shift_earned, "reputation": self.reputation}))
         return events
+
+    @staticmethod
+    def _customer_dish(c):
+        return c.get("dish") or c.get("dish_id")
+
+    @staticmethod
+    def _customer_patience(c):
+        return c.get("patience_ticks", c.get("patience_ticks_left", 0))
+
+    def _has_stock_for(self, dish: str) -> bool:
+        recipe = self.menu.get(dish, {}).get("recipe", {})
+        return all(self.stock.get(k, 0) >= qty for k, qty in recipe.items())
+
+    def _consume_ingredients(self, customer: dict, dish: str):
+        for k, qty in self.menu[dish]["recipe"].items():
+            left = self.stock.get(k, 0) - qty
+            if left > 0:
+                self.stock[k] = left
+            else:
+                self.stock.pop(k, None)
+        customer["reserved"] = {}
+
+    def _next_order_for_stove(self):
+        in_flight: dict[str, int] = {}
+        if self.hand:
+            in_flight[self.hand] = in_flight.get(self.hand, 0) + 1
+        for st in self.stoves:
+            if st["state"] in ("cooking", "ready") and st.get("dish"):
+                d = st["dish"]
+                in_flight[d] = in_flight.get(d, 0) + 1
+        for c in sort_by_id(self.customers):
+            if c.get("state") in ("eating", "served"):
+                continue
+            d = self._customer_dish(c)
+            if not d or d not in self.menu:
+                continue
+            if in_flight.get(d, 0) > 0:
+                in_flight[d] -= 1
+                continue
+            if self._has_stock_for(d):
+                return c, d
+        return None
+
+    def _step_stoves(self, events: list):
+        for st in sort_by_id(self.stoves):
+            if st["state"] == "cooking":
+                st["cook_ticks_left"] = max(0, int(st["cook_ticks_left"]) - 1)
+                if st["cook_ticks_left"] <= 0:
+                    st["state"] = "ready"
+                    st["ready_ticks"] = 0
+                    events.append(("dish_ready", {"stove_id": st["id"], "dish": st["dish"]}))
+            elif st["state"] == "ready":
+                st["ready_ticks"] = int(st.get("ready_ticks", 0)) + 1
+
+    def _interact_stove(self, st: dict, events: list) -> bool:
+        if st["state"] == "ready" and self.hand is None and self.carry_limit >= 1:
+            dish = st["dish"]
+            self.hand = dish
+            st["state"] = "idle"
+            st["dish"] = None
+            st["cook_ticks_left"] = 0
+            st["ready_ticks"] = 0
+            events.append(("dish_picked", {"dish": dish}))
+            return True
+        if st["state"] == "idle":
+            order = self._next_order_for_stove()
+            if order is not None:
+                customer, dish = order
+                self._consume_ingredients(customer, dish)
+                st["state"] = "cooking"
+                st["dish"] = dish
+                st["cook_ticks_left"] = round(self.menu[dish]["cook_s"] * self.tick_hz)
+                st["ready_ticks"] = 0
+                events.append(("cook_started", {"stove_id": st["id"], "dish": dish}))
+                return True
+        return False
+
+    def _interact_table(self, tb: dict, events: list) -> bool:
+        return False
+
+    def _try_interact(self, events: list):
+        radius = float(self.t["interact_radius"])
+        candidates = []
+        for st in self.stoves:
+            d = math.dist(self.pos, st["pos"])
+            if d <= radius and (
+                (st["state"] == "ready" and self.hand is None and self.carry_limit >= 1)
+                or (st["state"] == "idle" and self._next_order_for_stove() is not None)
+            ):
+                candidates.append((d, 0, id_key(st["id"]), "stove", st))
+        for tb in self.tables:
+            d = math.dist(self.pos, tb["pos"])
+            if d <= radius and self.hand is not None:
+                for c in self.customers:
+                    if (
+                        c.get("table_id") == tb["id"]
+                        and c.get("state") not in ("eating", "served")
+                        and self._customer_dish(c) == self.hand
+                    ):
+                        candidates.append((d, 1, id_key(tb["id"]), "table", tb))
+                        break
+        if not candidates:
+            return
+        candidates.sort(key=lambda item: (item[0], item[1], item[2]))
+        _, _, _, kind, obj = candidates[0]
+        if kind == "stove":
+            self._interact_stove(obj, events)
+        else:
+            self._interact_table(obj, events)
 
     def _occupied_tables(self):
         return {c["table_id"]: c["id"] for c in self.customers}
