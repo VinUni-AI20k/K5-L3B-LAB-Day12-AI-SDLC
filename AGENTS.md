@@ -8,6 +8,7 @@
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 - Kiểm tra thành viên: `python3 tools/check_team.py`
 - Kiểm chứng Gather Core và tái tạo bằng chứng TV2: `python docs/proof/phase-1/member-2/verify.py` (Windows dùng `python`; máy khác có thể dùng `python3`).
+- Kiểm tra khách quán (TV4) trên PowerShell: `python -m unittest tests.test_quan_customers -v`. Fixture và lệnh headless ở `docs/verification/phase-2.md`.
 
 ## Cấu trúc & quy ước
 - (Starter Python là TÙY CHỌN; nhóm có thể dùng ngôn ngữ khác nếu giữ Test Contract.) Khung do giảng viên cấp: `chonoi/{headless,inputs,scenario,contract,rng,ids,jsonl,inventory,runner,live}.py` và `chonoi/web/`. Hạn chế sửa; nếu phải sửa thì báo cả nhóm và ghi lại lý do.
