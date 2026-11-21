@@ -62,7 +62,7 @@ Xem chi tiết hợp đồng tại [`docs/contracts/README.md`](docs/contracts/R
 
 Phần mở rộng hiển thị chỉ chạy ở client trình duyệt [`chonoi/web/index.html`](chonoi/web/index.html) (và route static `/assets/` trong [`chonoi/live.py`](chonoi/live.py)), hoàn toàn không tác động đến `chonoi.headless`:
 - Thay hình khối cá mặc định bằng sprite pixel art trong `assets/fish/` (`ca_loc`, `ca_linh`), giữ fallback hình khối khi ảnh chưa tải.
-- Bối cảnh miền Tây Nam Bộ: trời ánh hồng buổi sớm, bờ dừa nước, nước phù sa đậm dần theo độ sâu, Út Sen áo bà ba khăn rằn kính lặn, nhà bè buổi tối đèn dây vàng và khói bếp.
+- Nâng cấp giao diện & HUD sang phong cách **pixel art + animation 60 FPS**: bộ icon pixel offscreen (`PIXEL_ICON`), thanh đo chia đốt (`pixelBar`), nội suy mượt vị trí & thanh chỉ số, bóng đổ chữ pixel, popup sự kiện bay lên, bối cảnh sông ánh hồng/dừa nước/phù sa, Út Sen áo bà ba khăn rằn kính lặn, nhà bè đèn dây vàng & khói bếp.
 - HUD đọc trực tiếp `snapshot`: hiển thị **kho khả dụng** (đã trừ phần khách đang giữ chỗ), tên món tiếng Việt, cảnh báo sắp ngạt (`NGẠT`) và cảnh báo `GIỎ ĐẦY!`.
 - **Bằng chứng lõi vẫn đúng:** [`docs/proof/phase-1/unittest-output.txt`](docs/proof/phase-1/unittest-output.txt) (**60/60 test pass**, gồm toàn bộ `test_smoke_p1.py`, `test_gather_lat1.py`, `test_lat3_khach.py` và `test_e_qa_p1.py`) và [`docs/proof/phase-1/smoke-2proc-log.txt`](docs/proof/phase-1/smoke-2proc-log.txt) (`PASS`).
 

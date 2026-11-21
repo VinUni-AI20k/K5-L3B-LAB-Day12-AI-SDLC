@@ -1,4 +1,4 @@
-Commit: e2c3b9b
+Commit: 80de567
 Command 1: python -m chonoi.headless --mode gather --seed 42 --scenario docs/proof/phase-1/dock.json --inputs docs/proof/phase-1/dock-inputs.json --ticks 1 --out <temp>/gather.jsonl --inventory-out docs/proof/phase-1/catch.json
 Exit code 1: 0
 Command 2: python -m chonoi.headless --mode quan --seed 42 --inventory docs/proof/phase-1/catch.json --ticks 0 --out <temp>/quan.jsonl

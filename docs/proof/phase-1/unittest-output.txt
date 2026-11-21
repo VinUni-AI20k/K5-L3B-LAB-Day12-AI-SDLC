@@ -1,4 +1,4 @@
-Commit: e2c3b9b
+Commit: 80de567
 Command: PYTHONPATH=tests:. python -m unittest discover -s tests -v
 Exit code: 0
 
@@ -70,6 +70,6 @@ test_too_few_members (test_team_check.TeamCheck.test_too_few_members) ... ok
 test_wrong_size_duplicate_and_outsider (test_team_check.TeamCheck.test_wrong_size_duplicate_and_outsider) ... ok
 
 ----------------------------------------------------------------------
-Ran 60 tests in 28.832s
+Ran 60 tests in 34.880s
 
 OK
