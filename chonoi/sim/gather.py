@@ -21,6 +21,8 @@ Phase 2: cá bơi, đổi hướng và sinh đàn theo tuning Gather.
 """
 
 import math
+from dataclasses import dataclass
+from fractions import Fraction
 
 from ..ids import sort_by_id
 from ..inventory import hold_to_items
@@ -28,6 +30,18 @@ from .ramp import ramp_velocity
 
 TICK = 60.0
 AXES = ("x", "d")
+
+
+@dataclass
+class _HoldItem:
+    """Kiểu tạm cho Gather trong lúc chờ Item của adapter kho."""
+
+    id: str
+    kind: str
+    fresh: Fraction
+
+    def snapshot(self):
+        return {"id": self.id, "kind": self.kind, "fresh": float(self.fresh)}
 
 
 class GatherSim:
@@ -51,7 +65,17 @@ class GatherSim:
         self.zero_oxy_ticks = p.get("zero_oxy_ticks", 0)
         self.invuln_ticks = p.get("invuln_ticks", 0)
         self.catch_cd_ticks = p.get("catch_cd_ticks", 0)
+        self.individual_hold = tuning.get("contract_version") == "1.2"
         self.hold = list(scenario.get("hold", []))  # thứ tự nhặt, cuối mảng là mới nhất
+        if self.individual_hold:
+            freshness = tuning["freshness"]
+            self.initial_freshness = Fraction(str(freshness["initial"]))
+            self.freshness_decay = Fraction(str(freshness["gather_decay_per_s"])) / tuning["tick_hz"]
+            self.spoiled_below = Fraction(str(freshness["spoiled_below"]))
+            self.hold = [_HoldItem(item["id"], item["kind"], Fraction(str(item["fresh"])))
+                         for item in self.hold]
+            for item in self.hold:
+                ids.reserve(item.id)
         self.time_left_ticks = scenario.get("time_left_ticks", int(round(t["duration_s"] * TICK)))
         # Scenario thay thế danh sách mặc định. Fixture cá giữ vị trí cố định.
         src_nodes = scenario["nodes"] if "nodes" in scenario else t["nodes"]
@@ -93,7 +117,9 @@ class GatherSim:
         self.reason = None
 
     # --- giao diện cho runner -------------------------------------------------
-    def inventory_items(self) -> dict:
+    def inventory_items(self) -> dict | list:
+        if self.individual_hold:
+            return [item.snapshot() for item in sort_by_id(self.hold, key=lambda item: item.id)]
         return hold_to_items(self.hold)
 
     def snapshot(self) -> dict:
@@ -103,7 +129,8 @@ class GatherSim:
                        "hp": self.hp, "hp_max": self.t["hp_max"], "zero_oxy_ticks": self.zero_oxy_ticks,
                        "invuln_ticks": self.invuln_ticks, "catch_cd_ticks": self.catch_cd_ticks,
                        "at_surface": self._at_surface()},
-            "hold": self.hold, "hold_count": len(self.hold),
+            "hold": [item.snapshot() for item in self.hold] if self.individual_hold else self.hold,
+            "hold_count": len(self.hold),
             "hold_capacity": self.t["hold_capacity"],
             "nodes": [{"id": n["id"], "pos": n["pos"], "kind": n["kind"],
                        "ready": n["regrow_ticks"] == 0, "regrow_ticks": n["regrow_ticks"]}
@@ -126,6 +153,8 @@ class GatherSim:
                 n["regrow_ticks"] -= 1
                 if n["regrow_ticks"] == 0:
                     events.append(("node_regrown", {"node_id": n["id"]}))
+        if self.individual_hold:
+            self._age_hold(events)
         # 2. bơi + chặn mép
         was_surface = self._at_surface()
         self._move(inp)
@@ -232,11 +261,21 @@ class GatherSim:
         self.reason = reason
         events.append(("gather_end", {"reason": reason, "inventory": {"items": self.inventory_items()}}))
 
+    def _age_hold(self, events):
+        for item in sort_by_id(self.hold, key=lambda item: item.id):
+            before = item.fresh
+            item.fresh = max(Fraction(0), before - self.freshness_decay)
+            if item.fresh < self.spoiled_below <= before:
+                events.append(("spoiled", {"item_id": item.id, "kind": item.kind, "location": "hold"}))
+
     def _push_hold(self, kind, amount=1):
         room = self.t["hold_capacity"] - len(self.hold)
         accepted = min(max(0, room), amount)
-        for _ in range(accepted):
-            self.hold.append(kind)
+        if self.individual_hold:
+            self.hold.extend(_HoldItem(self.ids.new("I"), kind, self.initial_freshness)
+                             for _ in range(accepted))
+        else:
+            self.hold.extend([kind] * accepted)
         return accepted
 
     def _update_oxygen(self):

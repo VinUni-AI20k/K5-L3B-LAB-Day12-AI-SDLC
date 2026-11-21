@@ -5,6 +5,7 @@
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
 - Phase 2, lát cá: `python -m unittest tests.test_p2_fish -v`
+- Phase 3, giỏ và độ tươi: `python -m unittest tests.test_p3_gather -v`
 - Headless: `python3 -m chonoi.headless --mode gather|quan --seed 1 --ticks 600 --out out.jsonl`
 - Chơi thử trên trình duyệt: `python3 -m chonoi.live --mode gather|quan` (mở địa chỉ in ra; WASD, E, Space, R)
 
