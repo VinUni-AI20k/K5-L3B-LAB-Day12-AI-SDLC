@@ -4,6 +4,7 @@ import copy
 import unittest
 
 from chonoi.contract import load_contract
+from chonoi.freshness import UNITS_PER_POINT
 from chonoi.ids import IdAllocator
 from chonoi.inputs import InputPlayer
 from chonoi.rng import Streams
@@ -43,7 +44,7 @@ class FreshnessAndReservation(unittest.TestCase):
         adapted = QuanSim(TUNING, {}, Streams(4), IdAllocator(), inventory={"ca_loc": 1},
                           contract_version="1.2")
         self.assertEqual(adapted.stock[0]["kind"], "ca_loc")
-        self.assertEqual(adapted.stock[0]["fresh"], FRESH["fresh_max"] * FRESH["units_per_point"])
+        self.assertEqual(adapted.stock[0]["fresh"], FRESH["initial"] * UNITS_PER_POINT)
 
         scenario = {"random_customers": False, "player": {"pos": [9, 1.8]},
                     "hand": {"order_id": "K1", "dish_id": "ca_loc_nuong_trui", "base_price": 13},
@@ -62,11 +63,11 @@ class FreshnessAndReservation(unittest.TestCase):
         t = copy.deepcopy(TUNING)
         t["quan"]["tables"] += [{"id": "T2", "pos": [13, 2]}]
         s = sim(scenario, stocks, t)
-        self.assertEqual(s.stock[0]["fresh"], round(30.004 * FRESH["units_per_point"]))
+        self.assertEqual(s.stock[0]["fresh"], round(30.004 * UNITS_PER_POINT))
         events = step_many(s, 2)
         spoiled = [data["item_id"] for name, data in events if name == "spoiled"]
         self.assertEqual(spoiled, ["I2", "I10"])
-        self.assertEqual(s.stock[0]["fresh"], round(30.004 * FRESH["units_per_point"]) - 2)
+        self.assertEqual(s.stock[0]["fresh"], round(30.004 * UNITS_PER_POINT) - 2)
 
     def test_spoiled_orders_release_then_re_reserve_once_in_order(self):
         stocks = [item("I1", fresh=30.004), item("I2", fresh=30.004), item("I3", fresh=31)]
@@ -98,10 +99,10 @@ class FreshnessAndReservation(unittest.TestCase):
         inputs = InputPlayer([{"tick": 0, "interact": True}])
         rows = s.step(inputs.advance(0))
         event = next(data for name, data in rows if name == "cook_started")
-        decay = round(FRESH["decay_per_s"]["quan"] * FRESH["units_per_point"] / HZ)
-        fresh_units = sum(round(x["fresh"] * FRESH["units_per_point"]) - decay for x in stocks)
+        decay = round(FRESH["quan_decay_per_s"] * UNITS_PER_POINT / HZ)
+        fresh_units = sum(round(x["fresh"] * UNITS_PER_POINT) - decay for x in stocks)
         expected = TUNING["menu"]["canh_chua_ca_loc"]["price"] * fresh_units // (
-            100 * FRESH["units_per_point"] * len(stocks))
+            100 * UNITS_PER_POINT * len(stocks))
         self.assertEqual(event["base_price"], expected)
         self.assertEqual([(x["kind"], x["id"]) for x in event["items"]],
                          [("bong_dien_dien", "I2"), ("ca_loc", "I10")])

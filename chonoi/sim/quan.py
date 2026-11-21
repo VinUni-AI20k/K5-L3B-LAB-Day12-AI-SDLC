@@ -50,7 +50,7 @@ class QuanSim:
             isinstance(source_stock, list) or contract_version == "1.2")
         if self.itemized_stock:
             if isinstance(source_stock, dict):
-                source_stock = counts_to_individuals(source_stock, fresh=tuning["freshness"]["fresh_max"])
+                source_stock = counts_to_individuals(source_stock, fresh=tuning["freshness"]["initial"])
             self.stock = ItemizedStock(sort_by_id([{"id": item["id"], "kind": item["kind"],
                                                      "fresh": self.freshness.to_units(item["fresh"])}
                                                     for item in source_stock]))
@@ -282,9 +282,7 @@ class QuanSim:
                                key=lambda item: (item["kind"], id_key(item["id"])))
                 if len(items) != len(reserved_ids) or any(self.freshness.is_spoiled(i["fresh"]) for i in items):
                     return
-                total_units = sum(item["fresh"] for item in items)
-                divisor = 100 * self.freshness.units_per_point * len(items)
-                base_price = menu_item["price"] * total_units // divisor
+                base_price = self.freshness.dish_price(menu_item["price"], [item["fresh"] for item in items])
                 event_items = [{"id": item["id"], "kind": item["kind"],
                                 "fresh": self.freshness.to_points(item["fresh"])} for item in items]
                 self.stock = ItemizedStock(item for item in self.stock if item["id"] not in reserved_ids)
