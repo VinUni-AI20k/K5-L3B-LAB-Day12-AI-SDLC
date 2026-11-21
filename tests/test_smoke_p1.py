@@ -227,11 +227,10 @@ class Movement(unittest.TestCase):
 class Integration(unittest.TestCase):
     def test_inv_01_gather_writes_inventory_quan_reads_it(self):
         """Ví dụ smoke test trong PRD-0 mục G: cập bến ở tick 0, quán đọc kho đúng nội dung."""
-        with open("game.contract.json", encoding="utf-8") as f:
-            if json.load(f).get("contract_version", "1.0") >= "1.2":
-                self.skipTest("Kho đếm v1.0 được thay thế bởi kho cá thể v1.2 (Breaking Change)")
+        items = [{"id": f"I{i}", "kind": kind, "fresh": 100}
+                 for i, kind in enumerate(("ca_loc", "bong_sung", "bong_sung"), 1)]
         with Workdir() as w:
-            sc = write_json(w.path("sc.json"), {"gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"]}})
+            sc = write_json(w.path("sc.json"), {"gather": {"hold": items}})
             inp = write_json(w.path("in.json"), frames({"tick": 0, "interact": True}))
             inv = w.path("inv.json")
             code, err = run_headless("--mode", "gather", "--seed", "42", "--ticks", "1", "--scenario", sc,
@@ -239,14 +238,17 @@ class Integration(unittest.TestCase):
             self.assertEqual(code, 0, err)
             with open(inv, encoding="utf-8") as f:
                 saved = json.load(f)
-            self.assertEqual(saved, {"items": {"bong_sung": 2, "ca_loc": 1}})
+            self.assertEqual([(it["id"], it["kind"]) for it in saved["items"]],
+                             [(it["id"], it["kind"]) for it in items])
+            for item in saved["items"]:
+                self.assertAlmostEqual(item["fresh"], 100 - 0.5 / 60)
             end = events(read_jsonl(w.path("r.jsonl")), "gather_end")[0]["data"]
             self.assertEqual(end["reason"], "docked")
             self.assertEqual(end["inventory"], saved)
             code, err = run_headless("--mode", "quan", "--seed", "42", "--ticks", "0", "--inventory", inv,
                                      "--out", w.path("q.jsonl"))
             self.assertEqual(code, 0, err)
-            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], {"bong_sung": 2, "ca_loc": 1})
+            self.assertEqual(snapshots(read_jsonl(w.path("q.jsonl")))[0]["stock"], saved["items"])
 
     def test_inv_01_not_written_when_tick_limit_first(self):
         with Workdir() as w:

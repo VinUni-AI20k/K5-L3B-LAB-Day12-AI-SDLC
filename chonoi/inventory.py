@@ -74,6 +74,9 @@ def validate_items(items, kinds=KINDS_P1):
     raise BadInput("items phải là mảng cá thể hoặc object đếm")
 
 
+validate_stock = validate_items
+
+
 def read_inventory(path: str, kinds=KINDS_P1, contract_version=None):
     try:
         with open(path, encoding="utf-8") as f:
