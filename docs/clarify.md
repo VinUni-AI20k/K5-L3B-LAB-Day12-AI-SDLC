@@ -6,3 +6,7 @@
 | 2 | 2026-11-21 (P2) | Ticket-02 §3: nhóm 5 làm ≥ 1 mở rộng, nhóm 6 làm ≥ 2. Nhóm 7 người cần bao nhiêu mục? | Giả định: ≥ 2 mục (như nhóm 6), làm sau khi lõi xanh. Chờ giảng viên xác nhận. | PO |
 | 3 | 2026-11-21 (P2) | DayIntro (tự chuyển sau 4 s), EveningIntro, DayResult có nằm trong luồng sim/headless không? Ticket chỉ liệt kê `phase` ∈ gather/quan/shop. | Giả định: là màn hình của bản chơi. Client giữ đồng hồ đứng yên bằng nút `pause` trong lúc hiện intro; headless không có các màn này. | PO |
 | 4 | 2026-11-21 (P2) | HUD quán "kho khả dụng": `stock` trong snapshot đã trừ phần khách đang giữ (`reserved`) chưa? | Giả định: `stock` là kho khả dụng (đã trừ phần giữ). Lát 3 xác nhận khi chốt hợp đồng. | PO + Quoosc |
+
+## Draft for PO — Q3 D-01..D-09 (2026-11-21)
+
+The local checkout and the feature's source review contain no full Phase 1 PRD-0/Test Contract. Please confirm the authoritative source and resolve: (D-01) customer states/defaults and assigned/eating order link; (D-02) random_customers default and elapsed schedule boundary; (D-03) full-table retry/drop policy; (D-04) required RNG stream/selection; (D-05) stock/reservation snapshot and consume/release moments; (D-06) same-tick timer/interaction/end ordering; (D-07) customer_left payload and penalty owner; (D-08) no_dish event/terminal condition; (D-09) fixture and order/stove/hand cross-validation. Current implementation uses the explicit PROPOSED choices in docs/proof/phase-1/q3/README.md; they do not constitute official acceptance. Added as a task draft, not a PO decision.
