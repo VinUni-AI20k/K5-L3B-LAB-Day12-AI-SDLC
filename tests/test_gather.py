@@ -1,14 +1,48 @@
-"""Test luật buổi sáng (`gather`) — Lát 1: dive/surface, oxy, ngạt, ngất, giỏ."""
+"""Test luật buổi sáng (`gather`) — Lát 1 & Lát 2 (PRD-0) + Cá bơi/sinh (Phase 2 v1.1)."""
 
+import copy
 import json
+import math
 import unittest
 
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from chonoi.inputs import InputState
+from chonoi.runner import Session
+from helpers import Workdir, close, events, frames, read_jsonl, run_headless, snapshots, write_json
+
+
+def _load_tuning():
+    with open("game.contract.json", encoding="utf-8") as f:
+        return json.load(f)["tuning"]
 
 
 def _tuning_gather():
-    with open("game.contract.json", encoding="utf-8") as f:
-        return json.load(f)["tuning"]["gather"]
+    return _load_tuning()["gather"]
+
+
+def _v11_tuning():
+    tuning = copy.deepcopy(_load_tuning())
+    g = tuning["gather"]
+    g["fish_initial"] = 8
+    g["fish_speed"] = 1.5
+    g["fish_turn_ticks"] = 120
+    g["fish_max"] = 12
+    g["fish_spawn_ticks"] = 360
+    g["fish_spawn_clearance"] = 1.0
+    g["fish_x"] = [4, 96]
+    g["fish_depths"] = {"ca_linh": [3, 12], "ca_loc": [8, 20], "ca_keo": [22, 28]}
+    g["fish_spawn_x"] = [15, 30, 45, 60, 75, 90]
+    g["fish_spawn_depths"] = {"ca_linh": [5, 10], "ca_loc": [10, 16], "ca_keo": [24, 27]}
+    g["fish_weights"] = {"ca_linh": 0.4, "ca_loc": 0.3, "ca_keo": 0.3}
+    g["fish_yield"] = {"ca_linh": 3, "ca_loc": 1, "ca_keo": 2}
+    g["nodes"] = [
+        {"id": "N1", "kind": "bong_dien_dien", "pos": [12, 0]},
+        {"id": "N2", "kind": "bong_dien_dien", "pos": [28, 0]},
+        {"id": "N3", "kind": "bong_sung", "pos": [44, 0]},
+        {"id": "N4", "kind": "bong_sung", "pos": [60, 0]},
+        {"id": "N5", "kind": "keo_neo", "pos": [76, 0]},
+        {"id": "N6", "kind": "keo_neo", "pos": [90, 0]},
+    ]
+    return tuning
 
 
 class GatherSlice1Test(unittest.TestCase):
@@ -249,6 +283,91 @@ class GatherSlice2Test(unittest.TestCase):
             self.assertEqual(last_snap["hold"], ["ca_loc"] * (cap - 2))
             self.assertEqual(len(last_snap["fish"]), 2)
             self.assertEqual(last_snap["player"]["catch_cd_ticks"], 0)
+
+
+class GatherPhase2FishTest(unittest.TestCase):
+    def _idle(self):
+        return InputState((0.0, 0.0), {"interact": False, "catch": False}, set())
+
+    def test_v11_initial_8_schools_distinct_points_and_deterministic(self):
+        tuning = _v11_tuning()
+        s1 = Session("gather", tuning, {}, 42)
+        s2 = Session("gather", tuning, {}, 42)
+        f1 = s1.snapshot()["fish"]
+        f2 = s2.snapshot()["fish"]
+        self.assertEqual(len(f1), 8)
+        self.assertEqual(f1, f2)
+        pts = {tuple(f["pos"]) for f in f1}
+        self.assertEqual(len(pts), 8)
+        self.assertTrue(all(f["kind"] in ("ca_linh", "ca_loc", "ca_keo") for f in f1))
+
+    def test_v11_fish_swim_speed_reflection_corner_and_turn_at_120(self):
+        tuning = _v11_tuning()
+        # 1) Bơi ngang đúng 1.5 m/s trong 60 tick
+        sc = {"fish": [{"id": "F1", "kind": "ca_linh", "pos": [20, 6], "heading_deg": 0}], "random_fish": True}
+        s = Session("gather", tuning, sc, 7)
+        for _ in range(60):
+            s.step(self._idle())
+        pos = s.snapshot()["fish"][0]["pos"]
+        self.assertTrue(close(pos[0], 21.5, 0.01), pos)
+        self.assertTrue(close(pos[1], 6.0, 0.01), pos)
+
+        # 2) Phản xạ mép phải x=96 và đảo thành phần x
+        sc_edge = {"fish": [{"id": "F1", "kind": "ca_linh", "pos": [95.99, 6], "heading_deg": 0}], "random_fish": True}
+        s_edge = Session("gather", tuning, sc_edge, 7)
+        s_edge.step(self._idle())
+        f = s_edge.snapshot()["fish"][0]
+        self.assertTrue(close(f["pos"][0], 95.985, 1e-4), f)
+        self.assertTrue(close(f["heading_deg"], 180.0, 0.1), f)
+
+        # 3) Chạm góc (x=96, d=12) đảo cả hai thành phần (45° -> 225°)
+        sc_corner = {"fish": [{"id": "F1", "kind": "ca_linh", "pos": [95.99, 11.99], "heading_deg": 45}], "random_fish": True}
+        s_corner = Session("gather", tuning, sc_corner, 7)
+        s_corner.step(self._idle())
+        fc = s_corner.snapshot()["fish"][0]
+        self.assertLessEqual(fc["pos"][0], 96.0)
+        self.assertLessEqual(fc["pos"][1], 12.0)
+        self.assertTrue(close(fc["heading_deg"], 225.0, 0.1), fc)
+
+        # 4) Đổi hướng theo seed ở bước bơi thứ 120 (trước khi di chuyển)
+        sc_turn = {"fish": [{"id": "F1", "kind": "ca_loc", "pos": [50, 14], "heading_deg": 0, "age_ticks": 119}],
+                   "random_fish": True}
+        s_turn = Session("gather", tuning, sc_turn, 99)
+        s_turn.step(self._idle())
+        ft = s_turn.snapshot()["fish"][0]
+        self.assertNotAlmostEqual(ft["heading_deg"], 0.0, places=3)
+
+        # 5) random_fish: false -> cá fixture đứng yên, không bơi/sinh
+        sc_static = {"fish": [{"id": "F1", "kind": "ca_loc", "pos": [50, 14], "heading_deg": 0}], "random_fish": False}
+        s_static = Session("gather", tuning, sc_static, 7)
+        for _ in range(400):
+            s_static.step(self._idle())
+        self.assertEqual(s_static.snapshot()["fish"][0]["pos"], [50.0, 14.0])
+        self.assertEqual(len(s_static.snapshot()["fish"]), 1)
+
+    def test_v11_fish_spawn_schedule_cap_and_new_school_swims_next_tick(self):
+        tuning = _v11_tuning()
+        s = Session("gather", tuning, {}, 12)
+        spawn_events = []
+        for _ in range(360 * 6):
+            rows = s.step(self._idle())
+            for r in rows:
+                if r["name"] == "fish_spawned":
+                    spawn_events.append(r)
+        # Bắt đầu 8 đàn, trần 12 -> chỉ sinh tối đa 4 đàn ở tick 360, 720, 1080, 1440
+        self.assertEqual([e["tick"] for e in spawn_events], [360, 720, 1080, 1440])
+        self.assertEqual(len(s.snapshot()["fish"]), 12)
+
+        # Cá mới sinh tại tick 360 giữ nguyên vị trí ở tick 360 và bắt đầu bơi từ tick 361
+        s_one = Session("gather", tuning, {"fish": [], "random_fish": True}, 5)
+        for _ in range(360):
+            rows = s_one.step(self._idle())
+        ev = [r for r in rows if r["name"] == "fish_spawned"][0]
+        snap_360 = s_one.snapshot()["fish"][0]
+        self.assertEqual(snap_360["pos"], ev["data"]["pos"])
+        s_one.step(self._idle())
+        snap_361 = s_one.snapshot()["fish"][0]
+        self.assertNotEqual(snap_361["pos"], snap_360["pos"])
 
 
 if __name__ == "__main__":
