@@ -1,0 +1,24 @@
+## Smoke hộp đen (Test Contract G) — 2026-11-21 10:07 · commit f0a1906+dirty
+$ python3 -m chonoi.headless --mode gather --seed 42 --scenario docs/proof/phase-1/dock.json --inputs docs/proof/phase-1/dock-inputs.json --ticks 1 --out docs/proof/phase-1/smoke-gather.jsonl --inventory-out docs/proof/phase-1/catch.json
+exit=0
+$ cat docs/proof/phase-1/catch.json
+{"items":{"bong_sung":2,"ca_loc":1}}
+$ python3 -m chonoi.headless --mode quan --seed 42 --inventory docs/proof/phase-1/catch.json --ticks 0 --out docs/proof/phase-1/smoke-quan.jsonl
+exit=0
+quan snapshot tick 0 stock = {"bong_sung": 2, "ca_loc": 1}
+SMOKE OK
+
+## Lượt đầy đủ 10800 tick (preset, có điều khiển) — gather rồi quán qua file kho
+$ python3 -m chonoi.headless --mode gather --seed 7 --inputs docs/proof/phase-1/full-gather-inputs.json --ticks 10800 --out /var/folders/5v/rm619yyn52s4nd_sz61wfznc0000gn/T/tmp.JdwEbD6mPg/full-gather.jsonl --inventory-out docs/proof/phase-1/full-kho.json --snapshot-every 600
+exit=0
+$ cat docs/proof/phase-1/full-kho.json
+{"items":{"bong_dien_dien":1,"bong_sung":2,"ca_linh":6,"ca_loc":1}}
+$ python3 -m chonoi.headless --mode quan --seed 7 --inventory docs/proof/phase-1/full-kho.json --inputs docs/proof/phase-1/full-quan-inputs.json --ticks 10800 --out /var/folders/5v/rm619yyn52s4nd_sz61wfznc0000gn/T/tmp.JdwEbD6mPg/full-quan.jsonl --snapshot-every 600
+exit=0
+full-gather.jsonl rows: 21 events: {'dive': 3, 'fish_caught': 3, 'surface': 3, 'gather': 3, 'node_regrown': 2, 'gather_end': 1}
+end: {"type": "end", "ticks": 2168, "sim_tick": 2168, "mode": "gather", "state": "finished", "reason": "docked", "money": 0, "earned": 0, "reputation": 3.0, "score": 300}
+full-quan.jsonl rows: 45 events: {'customer_arrived': 3, 'cook_started': 3, 'dish_ready': 3, 'dish_picked': 3, 'served': 3, 'paid': 3, 'no_dish': 6, 'quan_end': 1}
+end: {"type": "end", "ticks": 10800, "sim_tick": 10800, "mode": "quan", "state": "finished", "reason": "time", "money": 264, "earned": 264, "reputation": 3.6, "score": 564}
+
+## Tất định: chạy lại gather cùng seed/input -> so byte
+BYTE-IDENTICAL OK

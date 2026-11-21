@@ -6,3 +6,12 @@
 3. **Danh sách sự kiện** — tên, `data`, ai phát, ai nghe (gather: `gather`, `node_regrown`, `hold_full`, `fish_caught`, `gather_end`...; quan: theo mục E của PRD-0).
 
 Khi đổi hợp đồng sau này: báo cả nhóm và ghi lại lý do (ADR hoặc ghi chú, tùy chọn).
+
+## Đã chốt (Phase 1)
+
+- **Bản chép Test Contract v1.0 + PRD Phase 1:** [`test-contract-v1.md`](test-contract-v1.md).
+- **File kho:** schema + ví dụ ở `README.md` mục "Hợp đồng kho"; file mẫu hợp lệ [`inventory.sample.json`](inventory.sample.json).
+- **sim ↔ UI:** UI chỉ đọc snapshot (trường mục E) và gửi `move`, `interact`, `catch` (mục C); không đọc trạng thái nội bộ khác.
+- **Sự kiện:** đúng bảng mục E. Ai phát: `chonoi/sim/gather.py` (dive, surface, oxygen_empty, choke, faint, gather,
+  node_regrown, hold_full, fish_caught, gather_end) và `chonoi/sim/quan.py` (customer_arrived, no_dish, cook_started,
+  dish_ready, dish_picked, served, paid, customer_left, quan_end). Ai nghe: runner (ghi JSONL), UI (toast/HUD).

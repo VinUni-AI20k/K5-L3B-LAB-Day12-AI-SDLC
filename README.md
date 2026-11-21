@@ -3,6 +3,48 @@
 > **Làm theo nhóm 4–6 người** · Dùng AI để xây game 2D qua **4 phase** trong **3 giờ**: Út Sen lặn bắt cá, hái rau trên mặt nước rồi tối mở quán phục vụ khách.
 > **Yêu cầu từng phase mở đúng mốc giờ tại lab board:** **[Chợ Nổi Lab](https://claude.ai/artifact/E35v787wSx2wDgPTNhMVDg)** (cần đăng nhập claude.ai; có trợ giảng AI cho từng phase).
 
+## Nhóm Nhom001 — Phase 1
+
+**Chạy từ clone sạch (macOS/Linux, Python ≥ 3.9, không cần cài thêm gì):**
+
+```bash
+git clone <fork-của-nhóm> && cd <fork-của-nhóm>
+PYTHONPATH=tests:. python3 -m unittest discover -s tests -v   # toàn bộ test (1 lệnh)
+python3 -m chonoi.live --mode gather                           # chơi thử trên trình duyệt (đổi --mode quan cho buổi tối)
+```
+
+Nối hai buổi qua file kho (hai tiến trình headless):
+
+```bash
+python3 -m chonoi.headless --mode gather --seed 1 --ticks 10800 --out gather.jsonl --inventory-out kho.json --inputs <inputs.json>
+python3 -m chonoi.headless --mode quan --seed 1 --ticks 10800 --out quan.jsonl --inventory kho.json --inputs <inputs.json>
+```
+
+**Điều khiển:** WASD / mũi tên bơi hoặc đi · **E** (`interact`): cập bến, hái bông ở mặt nước, nấu / bưng / phục vụ ·
+**Space** (`catch`): bắt đàn cá khi đang lặn · **R** chơi lại (cửa sổ `chonoi.live`).
+
+**Điểm:** `earned + 100 × floor(reputation)` (ở mọi snapshot và dòng `end`). `earned` là tiền món + boa thu được;
+boa = `floor(giá × 0.2)` khi khách còn ≥ 50% kiên nhẫn, mỗi lần boa +0.2 uy tín; khách bỏ đi −0.5 uy tín; uy tín kẹp [0, 5].
+
+**Bằng chứng Phase 1:** [`docs/verification/phase-1.md`](docs/verification/phase-1.md) · tái tạo: `bash docs/proof/phase-1/run_proof.sh`.
+
+### Hợp đồng kho (Lặn & Hái → Mở Quán)
+
+Schema (Test Contract mục G):
+
+```json
+{"type":"object","additionalProperties":false,"required":["items"],
+ "properties":{"items":{"type":"object","additionalProperties":false,
+   "properties":{"ca_loc":{"type":"integer","minimum":0},"ca_linh":{"type":"integer","minimum":0},
+                 "bong_dien_dien":{"type":"integer","minimum":0},"bong_sung":{"type":"integer","minimum":0}}}}}
+```
+
+Ví dụ hợp lệ ([`docs/contracts/inventory.sample.json`](docs/contracts/inventory.sample.json)): `{"items":{"bong_sung":2,"ca_loc":1}}` · kho rỗng: `{"items":{}}`.
+
+- `gather --inventory-out` ghi **một lần** khi có `gather_end` và khớp `inventory` trong event đó (ngất → kho rỗng);
+  chạm `--ticks` trước khi xong thì không ghi. Ghi file tạm rồi thay thế nguyên tử, bỏ khóa có lượng 0, sắp theo id.
+- `quan --inventory` từ chối sai schema / kind lạ / số âm (mã 2). Trần giỏ không áp lên kho quán.
+
 ## Bắt buộc (chỉ có thế)
 
 Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair, có hay không CI…). Cái bắt buộc:

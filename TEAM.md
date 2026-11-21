@@ -1,21 +1,20 @@
 # TEAM
 
-**Tên nhóm:** …  **Số người:** …  (khớp `team_size` trong `game.contract.json`)
+**Tên nhóm:** Nhom001  **Số người:** 3  (khớp `team_size` trong `game.contract.json`)
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
-| | | `sim/gather` | | |
-| | | `sim/quan` | | |
-| | | `client/ui` | | |
-| | | `qa` | | |
+| Cao Duy Minh | `workcaominh-gif` | `sim/gather` | Integrator (gắn tag) | `sim/quan` |
+| Duyet | `<handle-duyet>` | `sim/quan` | PO (hỏi giảng viên, `docs/clarify.md`) | `sim/gather` |
+| Nhat Minh | `<handle-nhatminh>` | `client/ui` + `qa` | QA lead / Release | `sim/quan` |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 
 ## Thỏa thuận làm việc nhóm (điền trong 15 phút kickoff, ≤ 10 dòng)
 
-- Kênh liên lạc: …
-- Khi bất đồng về thiết kế: … (ví dụ: nói 2 phút, không xong thì Integrator quyết và ghi lại lý do)
-- Khi ai đó trễ hoặc vướng quá 10 phút: … (ví dụ: nói ngay trong kênh, người dự phòng nhận việc)
-- Giờ standup giữa phase: …
-- Cách đọc code của nhau (tùy chọn): … (ví dụ: mỗi người đọc lát kế bên; PR hoặc xem trực tiếp)
-- Cách làm việc với Git: … (ví dụ: push thẳng nhánh chính / nhánh ngắn rồi gộp; thống nhất ai gắn tag)
+- Kênh liên lạc: Discord nhóm Nhom001
+- Khi bất đồng về thiết kế: nói 2 phút, không xong thì Integrator (Minh) quyết và ghi lý do vào `docs/adr/`
+- Khi ai đó trễ hoặc vướng quá 10 phút: báo ngay trong Discord, người dự phòng nhận việc
+- Giờ standup giữa phase: đầu mỗi phase (0:00, 1:00, 1:55, 2:30)
+- Cách đọc code của nhau: push nhánh ngắn, xem trực tiếp rồi gộp vào `main`
+- Cách làm việc với Git: nhánh ngắn theo module rồi gộp; Integrator (Minh) gắn tag phase-1…phase-4
