@@ -208,6 +208,7 @@ const canvas = $("world");
 const screen = canvas.getContext("2d", { alpha: false });
 const art = document.createElement("canvas");
 const ctx = art.getContext("2d", { alpha: false });
+const stamps = [];
 const labels = [];
 const itemNames = {
   ca_loc: "cá lóc", ca_linh: "cá linh", bong_sung: "bông súng", bong_dien_dien: "bông điên điển"
@@ -776,14 +777,16 @@ const tiles = {
 };
 const itemIcons = Object.fromEntries(Object.keys(itemColors).map(id => [id, tiles[id].toDataURL()]));
 function stamp(bitmap, x, y, angle = 0, facing = 1) {
-  const { a, d } = ctx.getTransform();
-  ctx.save();
-  ctx.setTransform(1, 0, 0, 1, Math.round(x * a), Math.round(y * d));
-  ctx.imageSmoothingEnabled = false;
-  ctx.rotate(angle);
-  ctx.scale(facing, 1);
-  ctx.drawImage(bitmap, -Math.floor(bitmap.width / 2), -Math.floor(bitmap.height / 2));
-  ctx.restore();
+  stamps.push({ bitmap, x, y, angle, facing });
+}
+function drawStamps(sx, sy, block) {
+  for (const { bitmap, x, y, angle, facing } of stamps) {
+    screen.setTransform(1, 0, 0, 1, Math.round(x * sx), Math.round(y * sy));
+    screen.rotate(angle);
+    screen.scale(facing, 1);
+    const width = bitmap.width * block, height = bitmap.height * block;
+    screen.drawImage(bitmap, -Math.floor(width / 2), -Math.floor(height / 2), width, height);
+  }
 }
 function unitSize(w) { return Math.max(.74, Math.min(1.22, w / 850)); }
 function project(bounds, axis, w, h, above, margin) {
@@ -805,11 +808,12 @@ function scatter(i, salt) {
   return n - Math.floor(n);
 }
 function ripples(w, top, bottom, count, color, salt) {
+  const cell = 1 / ctx.getTransform().d;
   for (let i = 0; i < count; i++) {
     const x = scatter(i, salt) * w;
     const y = top + scatter(i, salt + 1) * (bottom - top);
     const length = 5 + scatter(i, salt + 2) * w * .053;
-    path([[x, y], [x + length, y]], color, i % 5 === 0 ? 2 : 1);
+    rect(x, Math.round(y / cell) * cell, length, cell, color);
   }
 }
 function palm(x, y, size, mirror, color) {
@@ -817,12 +821,8 @@ function palm(x, y, size, mirror, color) {
     ctx.scale(mirror, 1);
     path([[-5, 1], [2, -27], [14, -56], [10, -56], [-4, -34], [-10, 1]], color);
     for (const [dx, dy] of [[-41, -7], [-37, -29], [-14, -41], [19, -37], [41, -20], [43, 3], [25, 17]]) {
-      ctx.beginPath();
-      ctx.moveTo(12, -55);
-      ctx.quadraticCurveTo(12 + dx * .45, -66 + dy * .34, 12 + dx, -55 + dy);
-      ctx.quadraticCurveTo(12 + dx * .27, -56 + dy * .65, 12, -55);
-      ctx.fillStyle = color;
-      ctx.fill();
+      path([[12, -55], [12 + dx * .28, -65 + dy * .28], [12 + dx * .60, -65 + dy * .70],
+        [12 + dx, -55 + dy], [12 + dx * .55, -58 + dy * .76], [12 + dx * .27, -55 + dy * .48]], color);
     }
   });
 }
@@ -875,9 +875,13 @@ function gatherLandscape(w, h, surface, floor) {
   for (const [x, scale, direction] of [[.04, 1.05, 1], [.09, .72, -1], [.18, .86, 1], [.22, .56, -1], [.49, .62, -1], [.83, .55, 1], [.91, .9, -1], [.97, 1.22, -1]]) {
     palm(w * x, surface - 1, art * scale, direction, "#35604c");
   }
-  bands(w, surface, h, ["#a4895a", "#947e55", "#817851", "#696d50", "#515c48", "#3e4c40"]);
-  for (const x of [.12, .28, .52, .78, .90]) {
-    path([[w * x, surface], [w * (x + .025), surface], [w * (x + .17), h], [w * (x + .10), h]], "#f6d2950b");
+  rect(0, surface, w, h - surface, gradient(surface, h,
+    [[0, "#ac8a58"], [.28, "#88784f"], [.63, "#556850"], [1, "#314a41"]]));
+  const rayEnd = surface + (h - surface) * .8;
+  const ray = gradient(surface, rayEnd, [[0, "#f8d79a23"], [1, "#f8d79a00"]]);
+  for (const x of [.12, .30, .53, .76, .90]) {
+    path([[w * x, surface], [w * (x + .018), surface],
+      [w * (x + .13), rayEnd], [w * (x + .095), rayEnd]], ray);
   }
   ripples(w, surface + 5, floor, 86, "#ffdb9b30", 17);
   ripples(w, surface + 1, surface + 29, 28, "#ffdfaa55", 27);
@@ -927,7 +931,7 @@ function paintFish(fish, x, y, size) {
   const bitmap = known(tiles, fish.kind) ?? tiles.ca_linh;
   stamp(bitmap, x, y, angle);
 }
-function drawGather(w, h, map) {
+function drawGather(w, h, map, spriteCellHeight) {
   const { at, top, height } = map;
   const m = snap.meta;
   const size = unitSize(w);
@@ -954,10 +958,12 @@ function drawGather(w, h, map) {
   if (position(p?.pos)) {
     const pt = at(p.pos);
     const heading = num(p.heading_deg) ? p.heading_deg * Math.PI / 180 : 0;
-    const facing = Math.cos(heading) < -.1 ? -1 : 1;
-    const tilt = p.at_surface ? 0 : Math.sin(heading) * facing * .38;
-    stamp(tiles.diver, pt[0], pt[1], tilt, facing);
-    label("Út Sen", pt[0], pt[1] + 31 * size);
+    const vertical = !p.at_surface && Math.abs(Math.sin(heading)) > Math.SQRT1_2;
+    const turn = vertical ? Math.sign(Math.sin(heading)) * Math.PI / 2 : 0;
+    const facing = !vertical && Math.cos(heading) < 0 ? -1 : 1;
+    stamp(tiles.diver, pt[0], pt[1], turn, facing);
+    const halfHeight = (vertical ? tiles.diver.width : tiles.diver.height) * spriteCellHeight / 2;
+    label("Út Sen", pt[0], pt[1] + halfHeight + 13);
   }
 }
 function lanternLine(a, b, count) {
@@ -1088,7 +1094,7 @@ function stovePaint(stove) {
     }
   }
 }
-function drawQuan(w, h, map) {
+function drawQuan(w, h, map, spriteCellHeight) {
   nightRiver(w, h, map);
   raft(map);
   const size = unitSize(w);
@@ -1127,7 +1133,7 @@ function drawQuan(w, h, map) {
     ellipse(x, y + 18 * size, 17 * size, 6 * size, "#49342e66");
     stamp(tiles.sen, x, y);
     if (snap.hand) sprite([x + 20 * size, y + 8 * size], .8 * size, () => bowl(0, 0, true));
-    label("Út Sen", x, y - Math.max(30, 34 * size));
+    label("Út Sen", x, y - tiles.sen.height * spriteCellHeight / 2 - 13);
   }
 }
 function draw() {
@@ -1137,22 +1143,26 @@ function draw() {
   const pixelWidth = Math.round(w * dpr), pixelHeight = Math.round(h * dpr);
   if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
   if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
-  // Art uses whole display-pixel blocks; the HUD and scene labels stay at full resolution.
-  const block = Math.max(1, Math.round(dpr * (w < 741 ? 2 : 3)));
+  // Finer scenery, whole-pixel sprites, and full-resolution labels share the same map.
+  const block = Math.max(1, Math.round(dpr * (w < 741 ? 1 : 2)));
+  const spriteBlock = Math.max(1, Math.round(dpr * (w < 741 ? 2 : 3)));
+  const spriteCellHeight = spriteBlock * h / pixelHeight;
   const artWidth = Math.ceil(pixelWidth / block), artHeight = Math.ceil(pixelHeight / block);
   if (art.width !== artWidth) art.width = artWidth;
   if (art.height !== artHeight) art.height = artHeight;
   ctx.setTransform(pixelWidth / w / block, 0, 0, pixelHeight / h / block, 0, 0);
+  stamps.length = 0;
   labels.length = 0;
   const gather = snap?.mode === "gather";
   const above = gather ? h * .28 : Math.max(62, h * .205);
   const map = project(snap?.meta?.bounds, gather ? "d" : "z", w, h, above, 26);
   if (!map) rect(0, 0, w, h, "#243b32");
-  else if (gather) drawGather(w, h, map);
-  else drawQuan(w, h, map);
+  else if (gather) drawGather(w, h, map, spriteCellHeight);
+  else drawQuan(w, h, map, spriteCellHeight);
   screen.setTransform(1, 0, 0, 1, 0, 0);
   screen.imageSmoothingEnabled = false;
   screen.drawImage(art, 0, 0, artWidth * block, artHeight * block);
+  drawStamps(pixelWidth / w, pixelHeight / h, spriteBlock);
   screen.setTransform(pixelWidth / w, 0, 0, pixelHeight / h, 0, 0);
   drawLabels(w, h);
 }
