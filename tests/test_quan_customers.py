@@ -1,6 +1,7 @@
 """Lát 3 (minhtriet061203): khách quán — lịch đến, chọn món, giữ chỗ, kiên nhẫn, uy tín, fixture.
 
 AC-P1-30..34 trong docs/plan/phase-1.md. Số liệu đọc từ game.contract.json, không hard-code.
+Tên sự kiện / trường khách theo docs/contracts/README.md mục 3–4 (order_id = id khách).
 """
 
 import copy
@@ -51,7 +52,8 @@ class Schedule(unittest.TestCase):
         arrived = [e for e in ev if e[1] == "customer_arrived"]
         self.assertEqual(len(arrived), 1)
         self.assertEqual(arrived[0][0], FIRST)
-        self.assertEqual(arrived[0][2]["customer_id"], "C1")
+        self.assertEqual(list(arrived[0][2]), ["order_id", "table_id", "dish_id"])
+        self.assertEqual(arrived[0][2]["order_id"], "C1")
         self.assertEqual(arrived[0][2]["table_id"], Q["tables"][0]["id"])
 
     def test_next_arrival_after_interval_and_smallest_free_table(self):
@@ -94,7 +96,7 @@ class DishChoice(unittest.TestCase):
     def test_no_dish_when_stock_empty(self):
         sim = make(inventory={"bong_sung": 1})
         ev = run_until(sim, FIRST)
-        self.assertEqual([(tk, n) for tk, n, _ in ev], [(FIRST, "no_dish")])
+        self.assertEqual(ev, [(FIRST, "no_dish", {})])
         self.assertEqual(sim.customers, [])
 
     def test_available_excludes_reserved(self):
@@ -104,7 +106,7 @@ class DishChoice(unittest.TestCase):
                     "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui"}]}, tuning=t)
         self.assertEqual(sim.available().get("ca_loc", 0), 0)
         ev = run_until(sim, FIRST)
-        self.assertEqual([(n, d.get("table_id")) for _, n, d in ev], [("no_dish", "T2")])
+        self.assertEqual([(n, d) for _, n, d in ev], [("no_dish", {})])
 
     def test_same_seed_same_choice_and_uniform_spread(self):
         stock = {"bong_sung": 2, "ca_loc": 1, "ca_linh": 3, "bong_dien_dien": 1}
@@ -127,23 +129,33 @@ class Reservation(unittest.TestCase):
         c = sim.customers[0]
         self.assertEqual(c["dish_id"], "lau_ca_linh_dien_dien")
         self.assertEqual(c["reserved"], TUNING["menu"]["lau_ca_linh_dien_dien"]["recipe"])
-        self.assertEqual(c["order_state"], "reserved")
-        self.assertEqual(c["base_price"], TUNING["menu"]["lau_ca_linh_dien_dien"]["price"])
+        self.assertEqual((c["order_status"], c["state"], c["order_tick"]), ("reserved", "waiting", FIRST))
+        self.assertEqual((c["base_price"], c["tip"], c["eat_ticks_left"]), (0, 0, 0), "lát 4 điền khi served")
         self.assertEqual(sim.stock, {"ca_linh": 3, "bong_dien_dien": 1}, "giữ chỗ không trừ tồn")
         self.assertEqual(sim.available(), {"ca_linh": 0, "bong_dien_dien": 0})
 
-    def test_leave_releases_reservation_and_drops_dish(self):
-        sim = make({"stock": {"ca_loc": 1}, "random_customers": False,
-                    "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
-                                   "order_id": "O7", "order_state": "carried", "patience_ticks_left": 1}],
-                    "hand": {"order_id": "O7", "dish_id": "ca_loc_nuong_trui"}})
-        sim.stoves[0].update(state="ready", dish="ca_loc_nuong_trui", order_id="O7")
+    def _assigned(self, **extra):
+        payload = {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}
+        sc = {"random_customers": False,
+              "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui",
+                             "order_status": "assigned", "patience_ticks_left": 1}]}
+        if extra.get("on") == "hand":
+            sc["hand"] = payload
+        else:
+            sc["stoves"] = [{"id": "B1", "state": "ready", "dish": payload}]
+        return make(sc)
+
+    def test_leave_drops_dish_in_hand(self):
+        sim = self._assigned(on="hand")
         ev = run_until(sim, 1)
         self.assertEqual([n for _, n, _ in ev], ["customer_left"])
         self.assertEqual(sim.customers, [])
         self.assertIsNone(sim.hand)
-        self.assertEqual(sim.stoves[0]["state"], "idle")
-        self.assertIsNone(sim.stoves[0]["dish"])
+
+    def test_leave_drops_dish_on_stove(self):
+        sim = self._assigned(on="stove")
+        run_until(sim, 1)
+        self.assertEqual((sim.stoves[0]["state"], sim.stoves[0]["dish"]), ("idle", None))
 
     def test_reserved_released_on_patience_leave(self):
         sim = make({"stock": {"ca_loc": 1}, "random_customers": False,
@@ -165,7 +177,9 @@ class Patience(unittest.TestCase):
         tk, d = left[0]
         self.assertEqual(tk, FIRST + PATIENCE)
         self.assertEqual(d["reason"], "patience")
-        self.assertEqual(d["customer_id"], "C1")
+        self.assertEqual(list(d), ["order_id", "table_id", "reason", "reputation"])
+        self.assertEqual((d["order_id"], d["table_id"]), ("C1", Q["tables"][0]["id"]))
+        self.assertEqual(d["reputation"], sim.reputation, "uy tín SAU khi cộng delta (clarify #3)")
         self.assertAlmostEqual(sim.reputation, Q["reputation_initial"] + Q["left_reputation_delta"])
 
     def test_patience_snapshot_countdown(self):
@@ -183,7 +197,7 @@ class Patience(unittest.TestCase):
     def test_eating_customer_does_not_lose_patience(self):
         sim = make({"stock": {}, "random_customers": False,
                     "customers": [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "state": "eating",
-                                   "patience_ticks_left": 1, "eat_ticks_left": 600, "price": 60, "tip": 12}]})
+                                   "patience_ticks_left": 1, "eat_ticks_left": 600, "base_price": 60, "tip": 12}]})
         self.assertEqual(run_until(sim, 5), [])
         self.assertEqual(sim.customers[0]["patience_ticks_left"], 1)
 
@@ -203,7 +217,7 @@ class Fixture(unittest.TestCase):
                     "customers": [{"id": "C4", "table_id": "T1", "dish_id": "lau_ca_linh_dien_dien",
                                    "patience_ticks_left": 100}]})
         c = sim.snapshot()["customers"][0]
-        self.assertEqual((c["id"], c["state"], c["order_state"], c["patience_ticks_left"]),
+        self.assertEqual((c["id"], c["state"], c["order_status"], c["patience_ticks_left"]),
                          ("C4", "waiting", "reserved", 100))
         self.assertEqual(c["reserved"], {"bong_dien_dien": 1, "ca_linh": 3})
         self.assertEqual(sim.snapshot()["tables"][0]["customer_id"], "C4")
@@ -224,11 +238,14 @@ class Fixture(unittest.TestCase):
             {"stock": {"ca_loc": 1}, "customers": [dict(base, patience_ticks_left=PATIENCE + 1)]},
             {"stock": {"ca_loc": 1}, "customers": [dict(base, reserved={"ca_loc": 2})]},     # giữ sai công thức
             {"stock": {"ca_loc": 1}, "customers": [dict(base, mood=1)]},                     # trường lạ
-            {"stock": {"ca_loc": 1}, "customers": [dict(base, state="eating")]},             # eating thiếu giá/tip
-            {"stock": {"ca_loc": 1}, "customers": [dict(base, price=60)]},                   # chờ mà có giá
-            {"stock": {"ca_loc": 1}, "customers": [dict(base, order_state="served")]},
-            {"stock": {"ca_loc": 2}, "customers": [dict(base, order_id="O1"),
-                                                   dict(base, id="C2", order_id="O1")]},    # (cùng bàn / trùng đơn)
+            {"customers": [dict(base, state="eating", eat_ticks_left=600)]},                 # eating thiếu giá/tip
+            {"customers": [dict(base, state="eating", eat_ticks_left=600, base_price=1, tip=0)]},  # giá sai
+            {"stock": {"ca_loc": 1}, "customers": [dict(base, base_price=60)]},              # chờ mà có giá
+            {"stock": {"ca_loc": 1}, "customers": [dict(base, order_status="served")]},      # chờ mà đã served
+            {"customers": [dict(base, order_status="assigned")]},                            # assigned không có món
+            {"customers": [dict(base, order_status="unfulfillable")],
+             "hand": {"order_id": "C1", "dish_id": "ca_loc_nuong_trui", "base_price": 60}},  # unfulfillable có món
+            {"stock": {"ca_loc": 1}, "customers": [dict(base, order_id="C1")]},              # trường cũ
             {"random_customers": "yes"},
         ]
         for block in bad:

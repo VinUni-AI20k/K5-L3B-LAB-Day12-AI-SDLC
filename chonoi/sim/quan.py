@@ -6,11 +6,10 @@ Nhóm viết tiếp (PRD-0 mục F, Quán):
   TODO(nhóm, lát 4): interact tại bếp/bàn (cook_started, dish_ready, dish_picked, served),
                      ăn xong trả tiền (paid), boa, uy tín, hết ca (quan_end).
 
-Cấu trúc khách (snapshot `customers[]`, chốt giữa lát 3 và lát 4):
-  id, table_id, state ("waiting" | "eating"), order_id, dish_id, base_price,
-  order_state ("reserved" -> "cooking" -> "ready" -> "carried"), patience_ticks_left,
-  reserved ({kind: n} — nguyên liệu đang giữ; rỗng khi bếp đã tiêu), arrived_tick.
-  Khách "eating" có thêm eat_ticks_left, price, tip (lát 4 điền khi served).
+Cấu trúc khách: theo docs/contracts/README.md mục 4 (order_id = id khách):
+  {"id","table_id","dish_id","order_tick","state","patience_ticks_left","eat_ticks_left",
+   "order_status","reserved","base_price","tip"}
+  state: waiting -> eating; order_status: reserved (lát 3) -> assigned -> served (lát 4); unfulfillable (fixture).
 Kho khả dụng = tồn (`stock`) − tổng `reserved` của mọi khách (xem `available()`).
 """
 
@@ -18,7 +17,9 @@ from ..ids import sort_by_id
 from .ramp import ramp_velocity
 
 TICK = 60.0
-RNG_CUSTOMER = "quan_customer"  # luồng RNG riêng cho việc chọn món của khách
+RNG_CUSTOMERS = "customers"  # luồng RNG riêng cho việc chọn món (clarify G1)
+CUSTOMER_FIELDS = ("id", "table_id", "dish_id", "order_tick", "state", "patience_ticks_left", "eat_ticks_left",
+                   "order_status", "reserved", "base_price", "tip")
 
 
 class QuanSim:
@@ -51,12 +52,10 @@ class QuanSim:
         self.customer_interval_ticks = max(1, int(round(t["customer_interval_s"] * 60)))
         self.patience_ticks = int(round(t["patience_s"] * 60))
         self.random_customers = scenario.get("random_customers", True)
-        # khách dựng sẵn từ scenario: giữ id, suy ra đơn + giữ chỗ
+        # khách dựng sẵn từ scenario: giữ id, suy ra giữ chỗ
         fixture = scenario.get("customers", [])
         for c in fixture:
             ids.reserve(c["id"])
-            if c.get("order_id"):
-                ids.reserve(c["order_id"])
         self.customers = [self._customer_from_fixture(c) for c in sort_by_id(fixture)]
         self._check_reserved_fits_stock()
         self.money = 0
@@ -77,26 +76,21 @@ class QuanSim:
 
     # ---------- khách: dựng từ scenario ----------
 
+    def _new_customer(self, cid, table_id, dish_id, order_tick):
+        return {"id": cid, "table_id": table_id, "dish_id": dish_id, "order_tick": order_tick,
+                "state": "waiting", "patience_ticks_left": self.patience_ticks, "eat_ticks_left": 0,
+                "order_status": "reserved", "reserved": dict(self.menu[dish_id]["recipe"]),
+                "base_price": 0, "tip": 0}
+
     def _customer_from_fixture(self, c):
-        dish = self.menu[c["dish_id"]]
-        state = c.get("state", "waiting")
-        order_state = c.get("order_state", "reserved" if state == "waiting" else "served")
-        reserved = dict(dish["recipe"]) if order_state == "reserved" else {}
-        cust = {
-            "id": c["id"],
-            "table_id": c["table_id"],
-            "state": state,
-            "order_id": c.get("order_id") or self.ids.new("O"),
-            "dish_id": c["dish_id"],
-            "base_price": dish["price"],
-            "order_state": order_state,
-            "patience_ticks_left": c.get("patience_ticks_left", self.patience_ticks),
-            "reserved": reserved,
-            "arrived_tick": c.get("arrived_tick", 0),
-        }
-        for k in ("eat_ticks_left", "price", "tip"):
+        cust = self._new_customer(c["id"], c["table_id"], c["dish_id"], c.get("order_tick", 0))
+        if c.get("state", "waiting") == "eating":
+            cust.update(state="eating", order_status="served")
+        for k in ("patience_ticks_left", "eat_ticks_left", "order_status", "base_price", "tip"):
             if k in c:
                 cust[k] = c[k]
+        if cust["order_status"] != "reserved":
+            cust["reserved"] = {}
         return cust
 
     def _check_reserved_fits_stock(self):
@@ -132,22 +126,22 @@ class QuanSim:
         lo, hi = self.t["reputation_min"], self.t["reputation_max"]
         self.reputation = round(min(hi, max(lo, self.reputation + delta)), 6)
 
-    def _drop_order(self, order_id):
-        """Bỏ món của đơn: bếp đang nấu/đã chín món đó về idle, tay đang bưng món đó thì bỏ."""
+    def _release(self, c):
+        """Hợp đồng mục 4: khách rời -> nhả phần giữ, bỏ món của đơn ở bếp (về idle) hoặc trên tay."""
+        c["reserved"] = {}
         for s in self.stoves:
-            if s.get("order_id") == order_id:
-                s.update(state="idle", dish=None, order_id=None, cook_ticks_left=0, ready_ticks=0)
-        if isinstance(self.hand, dict) and self.hand.get("order_id") == order_id:
+            if isinstance(s.get("dish"), dict) and s["dish"].get("order_id") == c["id"]:
+                s.update(state="idle", dish=None, cook_ticks_left=0, ready_ticks=0)
+        if isinstance(self.hand, dict) and self.hand.get("order_id") == c["id"]:
             self.hand = None
-
-    def _remove_customer(self, c, reason, events, rep_delta=0.0):
-        """Khách rời bàn: nhả giữ chỗ, bỏ món của đơn, phát customer_left, đổi uy tín."""
         self.customers = [x for x in self.customers if x["id"] != c["id"]]
-        self._drop_order(c["order_id"])
+
+    def _customer_left(self, c, reason, events, rep_delta=0.0):
+        """Khách rời: _release, đổi uy tín (kẹp), customer_left mang uy tín SAU khi đổi (clarify #3)."""
+        self._release(c)
         if rep_delta:
             self._add_reputation(rep_delta)
-        events.append(("customer_left", {"customer_id": c["id"], "table_id": c["table_id"],
-                                         "order_id": c["order_id"], "reason": reason,
+        events.append(("customer_left", {"order_id": c["id"], "table_id": c["table_id"], "reason": reason,
                                          "reputation": self.reputation}))
 
     # ---------- bước ----------
@@ -161,8 +155,8 @@ class QuanSim:
             "stoves": [{k: s.get(k) for k in ("id", "pos", "state", "dish", "cook_ticks_left", "ready_ticks")}
                        for s in self.stoves],
             "tables": [{"id": tb["id"], "pos": tb["pos"], "customer_id": occupied.get(tb["id"])} for tb in self.tables],
-            "customers": [dict(c, reserved={k: c["reserved"][k] for k in sorted(c["reserved"])})
-                          for c in sort_by_id(self.customers)],
+            "customers": [{k: ({i: c[k][i] for i in sorted(c[k])} if k == "reserved" else c[k])
+                           for k in CUSTOMER_FIELDS} for c in sort_by_id(self.customers)],
         }
 
     def step(self, inp):
@@ -186,11 +180,11 @@ class QuanSim:
     def _tick_patience(self, events):
         """Khách đang chờ mất 1 tick kiên nhẫn; về 0 -> customer_left patience, uy tín giảm."""
         for c in sort_by_id(self.customers):
-            if c["state"] != "waiting":
+            if c["state"] != "waiting":  # khách đang ăn không giảm kiên nhẫn (clarify #9)
                 continue
             c["patience_ticks_left"] = max(0, c["patience_ticks_left"] - 1)
             if c["patience_ticks_left"] == 0:
-                self._remove_customer(c, "patience", events, rep_delta=self.t["left_reputation_delta"])
+                self._customer_left(c, "patience", events, rep_delta=self.t["left_reputation_delta"])
 
     def _is_arrival_tick(self) -> bool:
         k = self.phase_tick - self.first_customer_tick
@@ -207,27 +201,12 @@ class QuanSim:
         table = free[0]
         options = self._cookable_dishes()
         if not options:
-            events.append(("no_dish", {"table_id": table["id"]}))
+            events.append(("no_dish", {}))
             return
-        dish_id = options[self.rng.get(RNG_CUSTOMER).randrange(len(options))]
-        dish = self.menu[dish_id]
-        c = {
-            "id": self.ids.new("C"),
-            "table_id": table["id"],
-            "state": "waiting",
-            "order_id": self.ids.new("O"),
-            "dish_id": dish_id,
-            "base_price": dish["price"],
-            "order_state": "reserved",
-            "patience_ticks_left": self.patience_ticks,
-            "reserved": dict(dish["recipe"]),
-            "arrived_tick": self.phase_tick,
-        }
+        dish_id = options[self.rng.get(RNG_CUSTOMERS).randrange(len(options))]
+        c = self._new_customer(self.ids.new("C"), table["id"], dish_id, self.phase_tick)
         self.customers.append(c)
-        events.append(("customer_arrived", {"customer_id": c["id"], "table_id": c["table_id"],
-                                            "order_id": c["order_id"], "dish_id": dish_id,
-                                            "base_price": c["base_price"],
-                                            "reserved": {k: c["reserved"][k] for k in sorted(c["reserved"])}}))
+        events.append(("customer_arrived", {"order_id": c["id"], "table_id": c["table_id"], "dish_id": dish_id}))
 
     def _move(self, inp):
         speed = self.t["walk_speed"]

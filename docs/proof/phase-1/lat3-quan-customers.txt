@@ -1,5 +1,5 @@
 # Lát 3 — PYTHONPATH=tests:. python3 -m unittest tests.test_quan_customers -v
-# 2026-11-21T03:15Z
+# (sau khi khớp docs/contracts/README.md mục 3–4)
 test_available_excludes_reserved (tests.test_quan_customers.DishChoice.test_available_excludes_reserved) ... ok
 test_no_dish_when_stock_empty (tests.test_quan_customers.DishChoice.test_no_dish_when_stock_empty) ... ok
 test_only_cookable_dish_is_chosen (tests.test_quan_customers.DishChoice.test_only_cookable_dish_is_chosen) ... ok
@@ -13,7 +13,8 @@ test_eating_customer_does_not_lose_patience (tests.test_quan_customers.Patience.
 test_patience_runs_out_after_full_patience (tests.test_quan_customers.Patience.test_patience_runs_out_after_full_patience) ... ok
 test_patience_snapshot_countdown (tests.test_quan_customers.Patience.test_patience_snapshot_countdown) ... ok
 test_reputation_clamped_at_min (tests.test_quan_customers.Patience.test_reputation_clamped_at_min) ... ok
-test_leave_releases_reservation_and_drops_dish (tests.test_quan_customers.Reservation.test_leave_releases_reservation_and_drops_dish) ... ok
+test_leave_drops_dish_in_hand (tests.test_quan_customers.Reservation.test_leave_drops_dish_in_hand) ... ok
+test_leave_drops_dish_on_stove (tests.test_quan_customers.Reservation.test_leave_drops_dish_on_stove) ... ok
 test_reserve_recipe_on_order (tests.test_quan_customers.Reservation.test_reserve_recipe_on_order) ... ok
 test_reserved_released_on_patience_leave (tests.test_quan_customers.Reservation.test_reserved_released_on_patience_leave) ... ok
 test_first_customer_at_first_customer_tick (tests.test_quan_customers.Schedule.test_first_customer_at_first_customer_tick) ... ok
@@ -23,22 +24,26 @@ test_random_customers_false_disables_schedule (tests.test_quan_customers.Schedul
 test_runs_through_headless_jsonl (tests.test_quan_customers.Schedule.test_runs_through_headless_jsonl) ... ok
 
 ----------------------------------------------------------------------
-Ran 21 tests in 1.445s
+Ran 22 tests in 2.060s
 
 OK
 
 # Toàn bộ: PYTHONPATH=tests:. python3 -m unittest discover -s tests
-Ran 53 tests in 6.326s
+Ran 54 tests in 7.363s
 
 OK
+
+# Skill nhóm
+10/10 mục đạt · headless_cmd: python3 -m chonoi.headless
+12/12 cặp giống từng byte · seeds [1, 42, -7] · 3600 tick
 
 # Tất định: quan seed 7, 10800 tick, kho {bong_sung:2, ca_loc:1}, chạy 2 lần -> cmp
 IDENTICAL
 
-# Sự kiện (trích q_a.jsonl)
-{"type":"event","tick":120,"phase":"quan","name":"customer_arrived","data":{"customer_id":"C1","table_id":"T1","order_id":"O1","dish_id":"ca_loc_nuong_trui","base_price":60,"reserved":{"ca_loc":1}}}
-{"type":"event","tick":3720,"phase":"quan","name":"customer_left","data":{"customer_id":"C1","table_id":"T1","order_id":"O1","reason":"patience","reputation":2.5}}
-{"type":"event","tick":3720,"phase":"quan","name":"customer_arrived","data":{"customer_id":"C2","table_id":"T1","order_id":"O2","dish_id":"goi_bong_sung","base_price":40,"reserved":{"bong_sung":2}}}
-{"type":"event","tick":7320,"phase":"quan","name":"customer_left","data":{"customer_id":"C2","table_id":"T1","order_id":"O2","reason":"patience","reputation":2.0}}
-{"type":"event","tick":7320,"phase":"quan","name":"customer_arrived","data":{"customer_id":"C3","table_id":"T1","order_id":"O3","dish_id":"goi_bong_sung","base_price":40,"reserved":{"bong_sung":2}}}
+# Sự kiện (trích)
+{"type":"event","tick":120,"phase":"quan","name":"customer_arrived","data":{"order_id":"C1","table_id":"T1","dish_id":"goi_bong_sung"}}
+{"type":"event","tick":3720,"phase":"quan","name":"customer_left","data":{"order_id":"C1","table_id":"T1","reason":"patience","reputation":2.5}}
+{"type":"event","tick":3720,"phase":"quan","name":"customer_arrived","data":{"order_id":"C2","table_id":"T1","dish_id":"ca_loc_nuong_trui"}}
+{"type":"event","tick":7320,"phase":"quan","name":"customer_left","data":{"order_id":"C2","table_id":"T1","reason":"patience","reputation":2.0}}
+{"type":"event","tick":7320,"phase":"quan","name":"customer_arrived","data":{"order_id":"C3","table_id":"T1","dish_id":"goi_bong_sung"}}
 {"type":"event","tick":10800,"phase":"quan","name":"quan_end","data":{"reason":"time","money":0,"earned":0,"shift_earned":0,"reputation":2.0}}
