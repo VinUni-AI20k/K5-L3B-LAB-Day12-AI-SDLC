@@ -53,3 +53,17 @@ A gom và nộp (P3-10). Phần của A đã được đối chiếu và cập n
 - **Rà hành động Phase 2:** Khi đổi kho ở Phase 3, phần Lặn và bàn giao được tách PR và có bằng chứng kiểm thử. Phần ghi chép cá nhân được bổ sung muộn hơn các PR tính năng.
 - **Điều tốt:** Hai PR giỏ cá thể và bàn giao gộp đúng thứ tự. Lần chạy thử P4-10 gửi phím qua Chrome, kiểm được cá bắt ở Lặn sang Quán, nấu và bán món rồi mua oxy và đóng Shop. [PR #45](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/45), [PR #46](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/46)
 - **Điều cần sửa:** Codex thử benchmark với `--seconds` theo kế hoạch nội bộ. Lương chạy lệnh đề, thấy `--duration` bị từ chối, rồi bổ sung cờ, 3 giây làm nóng và đo lại trước khi gộp. Lần sau tôi sẽ chạy đúng lệnh chấm như hộp đen trước khi mở PR. [Bản sửa P4-03](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/commit/e2a3b64)
+
+### TuHoAnh (B) — D soạn thay theo yêu cầu từ lịch sử PR, chờ B đọc và sửa
+
+- **Rà hành động Phase 2:** Hành động của B là luôn gộp `origin/main` và chạy đủ test trước mỗi PR. Chưa thành thói quen: nhánh P3-04 được đẩy mà chưa mở PR, D phải gộp `main` hộ và đổi tên khóa `freshness` cho khớp trước khi mở PR #49.
+- **Điều tốt:** P3-04 đủ luật quán v1.2 (hao kể cả hàng đang giữ, giữ chỗ theo id, nhả và giữ lại một lần, `unfulfillable`, giá theo độ tươi). B đọc Ticket-03 và báo đúng 4 khóa `freshness` và công thức giá, nhờ đó sửa được lỗi ở [#48](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/48). Hồ sơ đã đặt đúng tên `TuHoAnh.md`.
+- **Điều cần sửa:** Không mở PR sớm nên Sheet ghi Xong trước khi gộp; test lọt ba cách phá thử (đã bổ sung ở [#62](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/62)); payload `spoiled` của quán (`item_id, kind, location`) khác gather (`id, kind, fresh`) và chưa thống nhất; commit đứng tên `HoAnhTu245` trong khi `TEAM.md` ghi `TuHoAnh`.
+- **Số liệu:** 8 commit trên `main` (`HoAnhTu245` 7, `TuHoAnh` 1).
+
+### Cuongngucuteee (C) — D soạn thay theo yêu cầu từ lịch sử PR, chờ C đọc và sửa
+
+- **Rà hành động Phase 2:** Hành động của C là phá thử mỗi test luật mới và đẩy HUD độ tươi sớm. Đã làm: [#42](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/42) phá thử 9 cách (9 bị bắt), [#44](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/44) 9 cách (8 bị bắt, 1 là đột biến tương đương); HUD độ tươi gộp trước khi quán v1.2 xong.
+- **Điều tốt:** Mỗi PR có ảnh chụp trình duyệt thật làm bằng chứng và tìm ra lỗi mà test bỏ qua (lệnh mua bị ghi đè, nhãn HUD đè nhau). C làm thay P4-06 đóng gói ([#39](https://github.com/luongvh2510/K5-L3B-LAB-Day12-AI-SDLC-NgheAn/pull/39)) và nộp ghi chép đầy đủ từ sớm.
+- **Điều cần sửa:** Mã việc trên Sheet lệch 1 nên đặt nhầm tên hai PR; PR #44 xếp chồng trên #42 nên phải gộp đúng thứ tự; chưa chụp HUD với quán v1.2 thật và chưa bấm phím H thật (D đã làm: `docs/proof/phase-4/p4-08-hud-quan-v12.jpg` và `...-hc.jpg`).
+- **Số liệu:** 23 commit trên `main`.

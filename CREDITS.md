@@ -21,6 +21,7 @@ Chi tiết theo phase và theo người ở [`docs/ai-usage-log.md`](docs/ai-usa
 |---|---|---|
 | Claude Code (Anthropic; Sonnet và Opus) | luongvh2510, Cuongngucuteee | kế hoạch, contract, luật Cá Sấu, chế độ day, cửa sổ chơi, test, bằng chứng, đóng gói |
 | Gemini, Codex (VS Code) | TuHoAnh | luật quán và test |
+| Codex | NguyenDucNhat3006 | luật Lặn & Hái, cá bơi, Shop, độ tươi và bàn giao kho, benchmark, kịch bản demo |
 
 ## Nhóm NgheAn
 

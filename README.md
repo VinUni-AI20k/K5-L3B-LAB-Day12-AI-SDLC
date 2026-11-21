@@ -38,7 +38,7 @@ python3 -m chonoi.headless --mode day --days 1 --seed 1 --ticks 600 --out out.js
 python3 tools/check_determinism.py                                                # cùng seed, output giống từng byte
 ```
 
-Các lệnh khai trong [`game.contract.json`](game.contract.json) (`build_cmd`, `run_cmd`, `headless_cmd`). Chi tiết khung kỹ thuật: [`docs/STARTER.md`](docs/STARTER.md); hướng dẫn cho agent AI: [`AGENTS.md`](AGENTS.md).
+Các lệnh khai trong [`game.contract.json`](game.contract.json) (`build_cmd`, `run_cmd`, `headless_cmd`, `bench_cmd`, `soak_cmd`). Chi tiết khung kỹ thuật: [`docs/STARTER.md`](docs/STARTER.md); hướng dẫn cho agent AI: [`AGENTS.md`](AGENTS.md).
 
 Đo hiệu năng vẽ cảnh lặn (làm nóng 3 giây rồi đo 30 giây) bằng `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json`. Lệnh phát lại snapshot Gather và ghi số đo của bộ vẽ phần mềm Python ở 1280×720. FPS của giao diện trình duyệt cần đo riêng. Xem [cách đo và kết quả](docs/proof/phase-4/p4-03-bench.md).
 
@@ -52,7 +52,7 @@ Chạy thử độ bền 10 Ngày liền bằng `python3 -m chonoi.soak --seed 7
 
 ## Sáng tạo của nhóm
 
-Chưa có mở rộng ngoài đề tính tới bản này. Mọi mở rộng sau này phải tắt ở headless và ghi tại đây (việc P4-03).
+Chưa có mở rộng ngoài đề tính tới bản này. Mọi mở rộng sau này phải tắt ở headless và ghi tại đây (nhóm 4 người không bắt buộc làm mở rộng).
 
 ## Nhóm
 

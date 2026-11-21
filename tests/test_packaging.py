@@ -48,8 +48,8 @@ class Packaging(unittest.TestCase):
     def test_release_files_exist(self):
         self.assertIn("MIT License", read("LICENSE"))
         changelog = read("CHANGELOG.md")
-        self.assertIn("## [Unreleased]", changelog)
-        for phase in ("Phase 1", "Phase 2"):
+        self.assertIn("## [1.0.0]", changelog)  # P4-09: bản phát hành v1.0.0 thay mục [Unreleased]
+        for phase in ("Phase 1", "Phase 2", "Phase 3", "Phase 4"):
             self.assertIn(phase, changelog)
         credits = read("CREDITS.md")
         for section in ("Asset ngoài", "Công cụ AI"):
