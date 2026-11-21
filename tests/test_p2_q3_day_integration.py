@@ -82,6 +82,28 @@ class Q3DayIntegrationTests(unittest.TestCase):
         self.assertFalse(session.sim.quan._consume_reservation("C1"))
         self.assertEqual(session.sim.quan.stock, {})
 
+    def test_real_day_customer_schedule_uses_first_tick_and_interval_from_tuning(self):
+        self.one_dish_plan()
+        session = self.make_session(scenario={
+            "gather": {"time_left_ticks": 1, "hold": ["ca_loc", "ca_loc"],
+                       "nodes": [], "random_fish": False},
+            "quan": {"time_left_ticks": 1100, "random_customers": True},
+        })
+        session.step(state())
+        arrival_ticks = []
+        arrivals = []
+        for tick in range(1, 1021):
+            for row in session.step(state()):
+                if row["name"] == "customer_arrived":
+                    arrival_ticks.append(tick)
+                    arrivals.append(row["data"])
+        first = self.tuning["quan"]["first_customer_tick"]
+        interval = round(self.tuning["quan"]["customer_interval_s"] * self.tuning["tick_hz"])
+        self.assertEqual(arrival_ticks, [first, first + interval])
+        self.assertEqual([c["order_tick"] for c in session.snapshot()["customers"]], [first, first + interval])
+        self.assertEqual([a["table_id"] for a in arrivals], ["T1", "T2"])
+        self.assertEqual(len({a["customer_id"] for a in arrivals}), 2)
+
     def test_customer_leaving_releases_unconsumed_day_reservation_once(self):
         self.one_dish_plan()
         session = self.make_session(scenario={
@@ -102,6 +124,10 @@ class Q3DayIntegrationTests(unittest.TestCase):
         self.assertEqual(session.sim.quan.stock, {"ca_loc": 1})
         self.assertEqual(session.snapshot()["stock"], {"ca_loc": 1})
         self.assertIsNone(next(t for t in session.snapshot()["tables"] if t["id"] == "T1")["customer_id"])
+        for _ in range(9):
+            session.step(state())
+        self.assertEqual(session.sim.phase, "shop")
+        self.assertEqual(session.snapshot()["stock"], {"ca_loc": 1})
 
     def test_day_plan_payload_and_filter_do_not_mutate_contract_tuning(self):
         self.tuning["day_plan"] = {
@@ -164,6 +190,7 @@ class Q3DayIntegrationTests(unittest.TestCase):
 
         session.step(state())
         self.assertEqual(session.sim.phase, "quan")
+        self.assertEqual(session.sim.phase_tick, 0)
         self.assertEqual(session.sim.quan.elapsed_ticks, 0)
         self.assertEqual(session.sim.quan.customers, [])
         self.assertEqual(session.sim.quan._available_stock(), {"ca_loc": 1})
@@ -247,9 +274,15 @@ class Q3DayIntegrationTests(unittest.TestCase):
         session = self.make_session(scenario={
             "gather": {"time_left_ticks": 10, "nodes": [], "random_fish": False}
         })
-        session.step(state({"pause": True}, {"pause"}))
+        pause_events = session.step(state({"pause": True}, {"pause"}))
+        self.assertEqual([r["name"] for r in pause_events],
+                         ["day_start", "day_plan", "phase_start", "paused"])
+        phase_tick = session.sim.phase_tick
+        time_left = session.sim.time_left_ticks
         paused_sim_tick = session.snapshot()["sim_tick"]
-        session.step(state())
+        self.assertEqual(session.step(state()), [])
+        self.assertEqual(session.sim.phase_tick, phase_tick)
+        self.assertEqual(session.sim.time_left_ticks, time_left)
         self.assertEqual(session.snapshot()["sim_tick"], paused_sim_tick)
 
 
