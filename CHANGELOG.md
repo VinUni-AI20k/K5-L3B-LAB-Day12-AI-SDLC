@@ -20,6 +20,9 @@ Dự kiến phát hành thành **1.0.0** cùng tag `phase-4` (D gắn tag và t�
 - Ba cảnh báo có biểu tượng và chữ trong cửa sổ chơi: oxy sắp hết (và hết oxy), Cá Sấu gần, khách sắp giận; tính ở `chonoi/alerts.py` từ snapshot, chỉ có ở `chonoi.live` (trường `alerts`).
 - Chế độ tương phản cao: phím H hoặc `?hc=1`; nền đen, chữ trắng/vàng đậm, viền trắng quanh mọi hình.
 
+### Soak headless (Phase 4, P4-04)
+- `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json` chạy 10 Ngày liền trong một tiến trình bằng chế độ `day` (Ngày 6–10 lặp lại kế hoạch D1–D5) với một bot tất định, ghi `soak.json` (`days`, `days_completed`, `crashes`, `results`, `duration_s`). Không ghi bảng xếp hạng.
+
 ### Đóng gói (Phase 4, P4-05)
 - `README.md` của nhóm: chạy từ clone sạch bằng 3 lệnh, bảng phím, lệnh cho người phát triển. Hướng dẫn lab gốc chuyển sang `docs/LAB.md`.
 - `LICENSE` (MIT), `CREDITS.md` (asset, khung starter, công cụ AI), `CHANGELOG.md` này.

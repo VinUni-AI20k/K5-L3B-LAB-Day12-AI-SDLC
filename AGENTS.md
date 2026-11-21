@@ -4,6 +4,7 @@
 
 ## Lệnh
 - Test: `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v`
+- Soak 10 Ngày: `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json` (thoát 1 nếu sim ném lỗi)
 - Kiểm tất định: `python3 tools/check_determinism.py` (cùng seed, output giống từng byte)
 - Smoke Phase 1 (hộp đen, 27 mục): `python3 tools/smoke_phase1.py`; Phase 2: `python3 tools/smoke_phase2.py` (cả hai chạy contract 1.1 sinh từ `game.contract.json`); Phase 3, contract 1.2 và kho cá thể: `python3 tools/smoke_phase3.py`
 - Test hồi quy Phase 1-2 chạy headless với bản 1.1 (`run_headless` trong `tests/helpers.py`, biến `CHONOI_CONTRACT`); test 1.2 dùng `run_headless(..., v12=True)`.
