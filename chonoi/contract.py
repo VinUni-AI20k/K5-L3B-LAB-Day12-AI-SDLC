@@ -1,9 +1,10 @@
-"""Đọc game.contract.json và kiểm dải hợp lệ của tuning P1 (PRD mục 13.2, Test Contract)."""
+"""Đọc game.contract.json và kiểm dải hợp lệ của tuning (Test Contract v1.1)."""
 
 import json
 import os
 
 from .errors import BadInput
+from .inventory import FISH_KINDS, NODE_KINDS
 
 DEFAULT_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "game.contract.json")
 
@@ -23,8 +24,21 @@ def load_contract(path=DEFAULT_PATH) -> dict:
             c = json.load(f)
     except (OSError, ValueError) as e:
         raise BadInput(f"không đọc được {path}: {e}")
-    validate_tuning(c.get("tuning"))
+    exts = c.get("extensions", [])
+    if not isinstance(exts, list) or any(e not in EXTENSIONS for e in exts) or len(set(exts)) != len(exts):
+        raise BadInput(f"extensions phải là mảng mã không trùng thuộc {sorted(EXTENSIONS)}")
+    validate_tuning(c.get("tuning"), exts)
+    c["tuning"]["extensions"] = list(exts)  # để luật đọc qua tuning: "burn" in tuning["extensions"]
     return c
+
+
+EXTENSIONS = {"weapon", "net", "snake", "burn", "vendor", "ca_ho", "current", "reservations", "settings"}
+CORE_UPGRADES = ("oxygen", "hp")
+
+
+def enabled(tuning, code) -> bool:
+    """Mở rộng `code` có được khai trong manifest không (tắt thì luật lõi giữ nguyên)."""
+    return code in tuning.get("extensions", ())
 
 
 def _int_between(name, v, lo, hi):
@@ -74,8 +88,8 @@ def _validate_gather(g):
     if not _num(g.get("start_heading_deg")):
         raise BadInput("tuning.gather.start_heading_deg phải là số")
     fy = g.get("fish_yield")
-    if not isinstance(fy, dict) or not {"ca_linh", "ca_loc"} <= set(fy):
-        raise BadInput("tuning.gather.fish_yield phải có ca_linh và ca_loc")
+    if not isinstance(fy, dict) or set(fy) != set(FISH_KINDS):
+        raise BadInput(f"tuning.gather.fish_yield phải có đúng {FISH_KINDS}")
     for k, v in fy.items():
         _int_between(f"gather.fish_yield.{k}", v, 1, g["hold_capacity"])
     nodes = g.get("nodes")
@@ -86,36 +100,90 @@ def _validate_gather(g):
         if not isinstance(n, dict) or not isinstance(n.get("id"), str) or n["id"] in seen:
             raise BadInput("tuning.gather.nodes: mỗi nút cần id duy nhất")
         seen.add(n["id"])
-        if n.get("kind") not in ("bong_dien_dien", "bong_sung"):
-            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind phải là bong_dien_dien hoặc bong_sung")
+        if n.get("kind") not in NODE_KINDS:
+            raise BadInput(f"tuning.gather.nodes.{n['id']}: kind phải thuộc {NODE_KINDS}")
         kinds.add(n["kind"])
         _pos_in(f"gather.nodes.{n['id']}.pos", n.get("pos"), b, ("x", "d"))
         if n["pos"][1] != 0:
             raise BadInput(f"tuning.gather.nodes.{n['id']}: nút hái nằm ở mặt nước (d = 0)")
-    if kinds != {"bong_dien_dien", "bong_sung"}:
-        raise BadInput("tuning.gather.nodes phải có ít nhất một nút mỗi loại (bong_dien_dien, bong_sung)")
-    fish = g.get("fish_initial")
-    if not isinstance(fish, list) or len(fish) != 6:
-        raise BadInput("tuning.gather.fish_initial phải là danh sách đúng 6 đàn")
-    seen = set()
-    for f in fish:
-        if not isinstance(f, dict) or not isinstance(f.get("id"), str) or f["id"] in seen:
-            raise BadInput("tuning.gather.fish_initial: mỗi đàn cần id duy nhất")
-        seen.add(f["id"])
-        if f.get("kind") not in fy:
-            raise BadInput(f"tuning.gather.fish_initial.{f['id']}: kind phải thuộc fish_yield")
-        _pos_in(f"gather.fish_initial.{f['id']}.pos", f.get("pos"), b, ("x", "d"))
-        if f["pos"][1] <= g["surface_depth"]:
-            raise BadInput(f"tuning.gather.fish_initial.{f['id']}: đàn cá phải ở dưới nước")
+    if kinds != set(NODE_KINDS):
+        raise BadInput(f"tuning.gather.nodes phải có ít nhất một nút mỗi loại {NODE_KINDS}")
+    _int_between("gather.fish_initial", g.get("fish_initial"), 0, 30)
+    _int_between("gather.fish_max", g.get("fish_max"), g["fish_initial"], 30)
+    _between("gather.fish_speed", g.get("fish_speed"), 0, 10)
+    _int_between("gather.fish_turn_ticks", g.get("fish_turn_ticks"), 1, 100_000)
+    _int_between("gather.fish_spawn_ticks", g.get("fish_spawn_ticks"), 1, 100_000)
+    _between("gather.fish_spawn_clearance", g.get("fish_spawn_clearance"), 0, 100)
+    for key in ("fish_depths", "fish_spawn_depths", "fish_weights"):
+        if not isinstance(g.get(key), dict) or set(g[key]) != set(FISH_KINDS):
+            raise BadInput(f"tuning.gather.{key} phải có đúng {FISH_KINDS}")
+    if not isinstance(g.get("fish_spawn_x"), list) or not g["fish_spawn_x"]:
+        raise BadInput("tuning.gather.fish_spawn_x phải là mảng không rỗng")
+    m = g.get("monsters")
+    if not isinstance(m, dict) or not isinstance(m.get("species"), dict) or not isinstance(m.get("spawns"), list):
+        raise BadInput("tuning.gather.monsters phải có species và spawns")
+    for sp in m["spawns"]:
+        if sp.get("kind") not in m["species"]:
+            raise BadInput(f"tuning.gather.monsters.spawns.{sp.get('id')}: kind không có trong species")
+    _int_between("gather.monsters.invuln_ticks", m.get("invuln_ticks"), 0, 100_000)
+    _between("gather.monsters.loss_ratio", m.get("loss_ratio"), 0, 1)
 
 
-def validate_tuning(t):
+def _validate_day(t):
+    menu = t["menu"]
+    plans = t.get("day_plan")
+    if not isinstance(plans, list) or [p.get("day") for p in plans] != list(range(1, len(plans) + 1)):
+        raise BadInput("tuning.day_plan phải là mảng theo Ngày 1..N")
+    for p in plans:
+        need = {}
+        for dish, n in p.get("dishes", {}).items():
+            if dish not in menu:
+                raise BadInput(f"tuning.day_plan.{p['day']}: món lạ {dish}")
+            _int_between(f"day_plan.{p['day']}.dishes.{dish}", n, 1, 99)
+            for k, v in menu[dish]["recipe"].items():
+                need[k] = need.get(k, 0) + v * n
+        if p.get("ingredients") != need:
+            raise BadInput(f"tuning.day_plan.{p['day']}: ingredients khác tổng công thức × số suất")
+    shop = t.get("shop")
+    if not isinstance(shop, dict) or not isinstance(shop.get("upgrades"), dict):
+        raise BadInput("tuning.shop phải có max_ticks và upgrades")
+    _int_between("shop.max_ticks", shop.get("max_ticks"), 1, 100_000)
+    for uid, levels in shop["upgrades"].items():
+        if [lv.get("level") for lv in levels] != list(range(1, len(levels) + 1)):
+            raise BadInput(f"tuning.shop.upgrades.{uid}: level phải là 1..N")
+        for lv in levels:
+            _int_between(f"shop.upgrades.{uid}.price", lv.get("price"), 1, 1_000_000)
+
+
+def _validate_skills(sk):
+    """Khối `skills` (sáng tạo của nhóm, tắt mặc định) là tùy chọn; có thì phải hợp lệ."""
+    if sk is None:
+        return
+    if not isinstance(sk, dict) or not isinstance(sk.get("enabled"), bool):
+        raise BadInput("tuning.skills phải là object có enabled (boolean)")
+    _between("skills.net_radius", sk.get("net_radius"), 0.5, 20)
+    _int_between("skills.net_max_schools", sk.get("net_max_schools"), 1, 12)
+    _int_between("skills.net_extra_oxygen_ticks", sk.get("net_extra_oxygen_ticks"), 0, 10)
+    _between("skills.sprint_speed_mult", sk.get("sprint_speed_mult"), 1, 3)
+    _int_between("skills.sprint_extra_oxygen_ticks", sk.get("sprint_extra_oxygen_ticks"), 0, 10)
+
+
+def validate_tuning(t, exts=()):
     if not isinstance(t, dict):
         raise BadInput("thiếu khối tuning")
     g, q, menu = t.get("gather"), t.get("quan"), t.get("menu")
     if not isinstance(g, dict) or not isinstance(q, dict) or not isinstance(menu, dict):
         raise BadInput("tuning phải có gather, quan, menu")
     _validate_gather(g)
+    _validate_day(t)
+    _validate_skills(t.get("skills"))
+    fr = t.get("freshness")
+    if not isinstance(fr, dict) or set(fr) != {"initial", "gather_decay_per_s", "quan_decay_per_s", "spoiled_below"}:
+        raise BadInput("tuning.freshness phải có initial, gather_decay_per_s, quan_decay_per_s, spoiled_below")
+    _between("freshness.initial", fr["initial"], 0, 100)
+    _between("freshness.spoiled_below", fr["spoiled_below"], 0, 100)
+    _between("freshness.gather_decay_per_s", fr["gather_decay_per_s"], 0, 100)
+    _between("freshness.quan_decay_per_s", fr["quan_decay_per_s"], 0, 100)
     # Quán: dải hợp lệ P1 (PRD mục 13.2)
     _between("quan.duration_s", q.get("duration_s"), 60, 600)
     _bounds("quan", q.get("bounds"), ("x", "z"))
@@ -134,8 +202,17 @@ def validate_tuning(t):
         raise BadInput("quan.tip_min_patience_ratio phải thuộc (0, 1]")
     if not (_num(q.get("tip_reputation")) and q["tip_reputation"] > 0):
         raise BadInput("quan.tip_reputation phải > 0")
-    if q.get("burn_s") is not None:
-        raise BadInput("burn_s phải là null ở Phase 1")
+    if "burn" in exts:
+        _between("quan.burn_s", q.get("burn_s"), 0.1, 600)
+    elif q.get("burn_s") is not None:
+        raise BadInput("burn_s phải là null khi chưa bật mở rộng burn")
+    if "net" in exts:
+        levels = t.get("shop", {}).get("upgrades", {}).get("net")
+        if not isinstance(levels, list) or not levels:
+            raise BadInput("bật net cần shop.upgrades.net[] {level, price, catch_radius, max_schools}")
+        for lv in levels:
+            _between("shop.upgrades.net.catch_radius", lv.get("catch_radius"), 0.5, 20)
+            _int_between("shop.upgrades.net.max_schools", lv.get("max_schools"), 1, 12)
     # TODO(nhóm): bổ sung kiểm các khóa còn lại nếu muốn chặt hơn (bếp/bàn, uy tín, ...).
     for dish_id, d in menu.items():
         price, cook = d.get("price"), d.get("cook_s")

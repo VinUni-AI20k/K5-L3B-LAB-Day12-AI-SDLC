@@ -13,15 +13,66 @@ Cách làm việc kỹ thuật là **tự do** (push thẳng, nhánh + PR, pair,
 4. **Gắn tag** `phase-1` … `phase-4` đúng hạn; chạy được tại từng tag.
 5. **Ghi chép tối thiểu:** `docs/verification/phase-n.md`, `docs/clarify.md`, `docs/ai-usage-log.md`, `docs/retro.md`, `docs/members/<handle>.md`.
 
-## Bắt đầu nhanh
+## Chạy game (v1.0.0) — 3 lệnh từ clone sạch
+
+**Yêu cầu:** Python ≥ 3.10 (chỉ thư viện chuẩn, không cần `pip install`), trình duyệt hiện đại. macOS hoặc Linux.
 
 ```bash
-git clone <fork-của-nhóm> && cd <fork-của-nhóm>
-PYTHONPATH=tests:. python3 -m unittest discover -s tests -v        # smoke test
-python3 -m chonoi.live --mode gather                                # chơi thử trên trình duyệt (tùy chọn)
+git clone https://github.com/justapea25/K5-L3B-LAB-Day12-AI-SDLC-MATH.git
+cd K5-L3B-LAB-Day12-AI-SDLC-MATH
+python3 -m chonoi.live --mode day        # mở địa chỉ in ra (mặc định http://127.0.0.1:8000/)
 ```
 
-Game cần chế độ **headless** theo Test Contract (`python3 -m chonoi.headless --mode gather|quan …`) để được chạy và chấm tự động. **Công nghệ không ràng buộc**: khung Python trong `chonoi/` chỉ là gợi ý, chi tiết ở [`docs/STARTER.md`](docs/STARTER.md).
+Chơi vòng ngày (5 Ngày): Má Tư đọc món cần nấu → lặn hái → mở quán → Shop mua Bình oxy / Áo phao / Vợt. Chơi riêng một buổi: `--mode gather` hoặc `--mode quan`. Cổng khác: `--port 8765`.
+
+### Điều khiển
+
+| Phím | Buổi sáng (gather) | Buổi tối (quan) | Shop |
+|---|---|---|---|
+| WASD / mũi tên | Bơi ngang và lặn/nổi | Đi trong nhà bè | — |
+| E | Cập bến hoặc hái nút trên mặt nước | Nấu ở bếp, bưng món, phục vụ ở bàn | — |
+| Space | Bắt cá khi đang lặn | — | — |
+| 1 / 2 / 3 | — | — | Mua Bình oxy / Áo phao / Vợt hút cá |
+| Enter | — | — | Đóng Shop |
+| P / Esc | Tạm dừng | Tạm dừng | Tạm dừng |
+| H | Bật/tắt **tương phản cao** (hoặc mở với `?contrast=high`) | ← | ← |
+| R | Chơi lại | Chơi lại | Chơi lại |
+
+**Cảnh báo (Phase 4):** 🐊 *Thủy quái!* + viền tím khi Cá Sấu trong 10 m ở vùng sâu · 🫧 *Oxy sắp hết!* (< 25%) / *Hết hơi!* (oxy 0) · 😠 *Khách sắp giận!* (kiên nhẫn < 25%, kèm số bàn). Giỏ có thanh **độ tươi** từng món, hàng ươn bị gạch chéo đỏ.
+
+### Lệnh cho kiểm thử
+
+| Việc | Lệnh |
+|---|---|
+| Test (regression P1–P4) | `PYTHONPATH=tests:. python3 -m unittest discover -s tests -v` |
+| Headless một buổi | `python3 -m chonoi.headless --mode gather\|quan --seed 1 --ticks 600 --out out.jsonl` |
+| Headless vòng ngày | `python3 -m chonoi.headless --mode day --days 5 --seed 1 --ticks 120000 --out day.jsonl` |
+| Benchmark có render | `python3 -m chonoi.bench --seed 42 --duration 30 --out bench.json` |
+| Soak headless | `python3 -m chonoi.soak --seed 7 --days 10 --out soak.json` |
+
+Manifest: [`game.contract.json`](game.contract.json) (`contract_version: "1.3"`, `bench_cmd`, `soak_cmd`, `extensions`). Lịch sử theo phase: [`CHANGELOG.md`](CHANGELOG.md).
+
+Tài liệu nhóm Math: [Kế hoạch](docs/plan/) · [Ma trận kiểm chứng](docs/verification/) · [Bằng chứng](docs/proof/) · [Câu hỏi cho PO](docs/clarify.md) · [Hướng dẫn cho agent](AGENTS.md)
+
+### Cách tính điểm
+
+`score = earned + 100 × floor(reputation)`: `earned` là tổng tiền thu (nghìn đồng, gồm boa), `reputation` là uy tín 0–5 (bắt đầu 3.0; khách hết kiên nhẫn −0.5, khách boa +0.2). Từ v1.2 giá món = floor(giá niêm yết × độ tươi trung bình / 100).
+
+### Mở rộng đã làm
+
+| Mục | Mã `extensions` | Phase | Test / bằng chứng |
+|---|---|---|---|
+| Cháy món: món chín để quá 20 s thì cháy, nguyên liệu mất, giữ lại cho đơn hoặc `unfulfillable` | `burn` | 3 | [`tests/test_ext_burn_net.py`](tests/test_ext_burn_net.py) (`Burn`) |
+| Vợt hút cá: mua ở Shop, cấp 1 bắt tối đa 2 đàn trong 4 m, cấp 2 tối đa 3 đàn trong 6 m | `net` | 3 | [`tests/test_ext_burn_net.py`](tests/test_ext_burn_net.py) (`Net`), [`tests/test_extensions_manifest.py`](tests/test_extensions_manifest.py) |
+
+### Sáng tạo của nhóm
+
+| Ý tưởng | Phase | Tắt ở headless thế nào | Bằng chứng lõi vẫn đúng |
+|---|---|---|---|
+| HUD độ tươi: thanh màu dưới từng ô giỏ, gạch chéo hàng ươn, kho ghi độ tươi thấp nhất | 3 | Chỉ ở giao diện (`chonoi/web`), headless không đổi | Toàn bộ test headless xanh |
+| Chế độ tương phản cao lưu lựa chọn giữa các lần mở (localStorage) | 4 | Chỉ ở giao diện | Toàn bộ test headless xanh |
+| Chế độ demo "Má Tư đi chợ": `python3 -m chonoi.live --mode day --demo`, tối nào kho cũng có thêm đủ nguyên liệu theo kế hoạch để luôn có khách | 4 | Chỉ bật bằng cờ `--demo` của cửa sổ chơi; headless/`DaySession` mặc định tắt | Toàn bộ test headless xanh |
+| Màn Kết quả Ngày (trong Shop) và Tổng kết sau Ngày cuối: khách phục vụ/bỏ đi, tiền, boa, uy tín, món bán chạy | 4 | Số liệu tính ở cửa sổ chơi, không thêm vào JSONL | Toàn bộ test headless xanh |
 
 ## Tự do sáng tạo
 

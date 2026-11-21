@@ -44,10 +44,11 @@ class Units(unittest.TestCase):
                 load_frames(write_json(w.path("i.json"), frames({"tick": 0, "move": [2, 0]})))
 
     def test_catch_is_a_v10_button_and_attack_is_not(self):
+        # v1.1: attack/pause/shop_done/photo là nút hợp lệ (mở rộng tắt thì bỏ qua); nút lạ vẫn mã 2
         with Workdir() as w:
-            load_frames(write_json(w.path("i.json"), frames({"tick": 0, "catch": True})))
+            load_frames(write_json(w.path("i.json"), frames({"tick": 0, "catch": True, "attack": True})))
             with self.assertRaises(BadInput):
-                load_frames(write_json(w.path("j.json"), frames({"tick": 0, "attack": True})))
+                load_frames(write_json(w.path("j.json"), frames({"tick": 0, "jump": True})))
 
     def test_live_inputs_keep_fast_tap_edge(self):
         li = LiveInputs()
@@ -62,7 +63,7 @@ class Units(unittest.TestCase):
 
     def test_session_steps_gather_and_dock(self):
         tuning = load_contract()["tuning"]
-        s = Session("gather", tuning, {"hold": ["ca_loc"]}, 1)
+        s = Session("gather", tuning, {"hold": [{"id": "I1", "kind": "ca_loc", "fresh": 100}]}, 1)  # v1.2
         self.assertEqual(s.snapshot()["tick"], 0)
         li = LiveInputs()
         self.assertEqual(s.step(li.advance()), [])

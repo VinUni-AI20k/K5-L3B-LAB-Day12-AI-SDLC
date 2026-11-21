@@ -25,45 +25,73 @@ def build_sim(mode, tuning, scenario, seed, inventory):
     return QuanSim(tuning, scenario, streams, ids, inventory=inventory)
 
 
-def _common(sim, tick, sim_tick, phase_tick, tuning, state):
+def common_snapshot(sim, tick, sim_tick, phase_tick, tuning, state, mode=None):
     mult = tuning["score"]["reputation_multiplier"]
     return {
-        "type": "snapshot", "tick": tick, "sim_tick": sim_tick, "mode": sim.mode, "phase": sim.phase,
+        "type": "snapshot", "tick": tick, "sim_tick": sim_tick, "mode": mode or sim.mode, "phase": sim.phase,
         "phase_tick": phase_tick, "state": state, "time_left_ticks": sim.time_left_ticks,
         "money": sim.money, "earned": sim.earned, "reputation": sim.reputation,
         "score": sim.earned + mult * math.floor(sim.reputation),
     }
 
 
-class Session:
-    """Một lượt chơi: dựng sim, bước từng tick, lấy snapshot / dòng end."""
+_common = common_snapshot  # tên cũ
+
+
+class PauseMixin:
+    """Pause (v1.1 mục 4.2): xét cạnh pause trước. Vào pause chỉ tăng tick ngoài và phát `paused`;
+    còn pause thì bỏ qua cạnh hành động và buy; sim_tick, phase_tick, lịch và timer đứng yên.
+    Cạnh pause tiếp theo phát `resumed` và chạy gameplay ngay trong bước đó."""
+
+    paused = False
+
+    def _pause_gate(self, inp):
+        """Trả (chạy gameplay?, các event pause)."""
+        if inp.pressed("pause"):
+            self.paused = not self.paused
+            return (not self.paused), [("paused" if self.paused else "resumed", {})]
+        return (not self.paused), []
+
+
+class Session(PauseMixin):
+    """Một lượt chơi một mode (gather/quan): dựng sim, bước từng tick, lấy snapshot / dòng end."""
 
     def __init__(self, mode, tuning, scenario, seed, inventory=None):
         self.mode = mode
         self.tuning = tuning
         self.sim = build_sim(mode, tuning, scenario, seed, inventory)
         self.tick = 0
+        self.sim_tick = 0
 
     @property
     def done(self) -> bool:
         return self.sim.done
 
+    def initial_events(self) -> list:
+        return []
+
+    def _state(self):
+        return "finished" if self.sim.done else ("paused" if self.paused else "playing")
+
     def snapshot(self) -> dict:
-        s = _common(self.sim, self.tick, self.tick, self.tick, self.tuning, "finished" if self.sim.done else "playing")
+        s = common_snapshot(self.sim, self.tick, self.sim_tick, self.sim_tick, self.tuning, self._state())
         s.update(self.sim.snapshot())
         return s
 
     def step(self, inp) -> list:
         """Chạy một bước với `inp` (chonoi.inputs.InputState); trả các dòng event (tick = k + 1)."""
-        events = self.sim.step(inp)
+        run_it, events = self._pause_gate(inp)
+        if run_it:
+            events += self.sim.step(inp)
+            self.sim_tick += 1
         self.tick += 1
         return [{"type": "event", "tick": self.tick, "phase": self.sim.phase, "name": name, "data": data}
                 for name, data in events]
 
     def end_row(self) -> dict:
         sim = self.sim
-        score = _common(sim, self.tick, self.tick, self.tick, self.tuning, "")["score"]
-        return {"type": "end", "ticks": self.tick, "sim_tick": self.tick, "mode": sim.mode,
+        score = common_snapshot(sim, self.tick, self.sim_tick, self.sim_tick, self.tuning, "")["score"]
+        return {"type": "end", "ticks": self.tick, "sim_tick": self.sim_tick, "mode": sim.mode,
                 "state": "finished" if sim.done else "playing",
                 "reason": sim.reason if sim.done else "tick_limit",
                 "money": sim.money, "earned": sim.earned, "reputation": sim.reputation, "score": score}
@@ -74,18 +102,30 @@ class Session:
             write_inventory(inventory_out, self.sim.inventory_items())
 
 
-def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None):
-    sess = Session(mode, tuning, scenario, seed, inventory)
+def make_session(mode, tuning, scenario, seed, inventory=None, days=1, pantry=False):
+    if mode == "day":
+        from .day import DaySession
+        return DaySession(tuning, scenario, seed, days, pantry=pantry)
+    return Session(mode, tuning, scenario, seed, inventory)
+
+
+def run(mode, tuning, scenario, seed, frames, ticks, out_path, snapshot_every, inventory=None, inventory_out=None,
+        days=1):
+    sess = make_session(mode, tuning, scenario, seed, inventory, days)
     player = InputPlayer(frames)
     w = JsonlWriter(out_path)
     try:
+        for row in sess.initial_events():  # day: day_start, day_plan, phase_start ở tick 0
+            w.write(row)
         w.write(sess.snapshot())  # tick 0: sau khi dựng scenario, trước mọi input
         last_snapped = 0
         while sess.tick < ticks and not sess.done:
             inp = player.advance(sess.tick)  # bước k đọc input có tick == k
-            for row in sess.step(inp):
+            rows = sess.step(inp)
+            for row in rows:
                 w.write(row)
-            if sess.tick % snapshot_every == 0 or sess.done:
+            phase_changed = any(r["name"] == "phase_start" for r in rows)
+            if sess.tick % snapshot_every == 0 or sess.done or phase_changed:
                 w.write(sess.snapshot())
                 last_snapped = sess.tick
         if last_snapped != sess.tick:
