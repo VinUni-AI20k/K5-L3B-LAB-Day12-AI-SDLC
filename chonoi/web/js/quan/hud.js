@@ -17,7 +17,9 @@
     text("Tiền ca " + shift + "k", 150, 35, { size: 20, base: "middle", weight: "700", color: COLOR.gold });
     const rep = snap.reputation ?? 0;
     text(stars(rep) + " " + rep.toFixed(1), 320, 35, { size: 20, base: "middle", color: COLOR.gold });
-    text("Điểm " + (snap.score ?? 0), 556, 35, { size: 18, base: "middle", align: "right" });
+    // Chế độ day: điểm/tiền tổng chỉ cộng khi đóng ca (DaySim), nên trong ca chỉ hiện tiền ca để khỏi hiểu nhầm.
+    if (snap.day === undefined) text("Điểm " + (snap.score ?? 0), 556, 35, { size: 18, base: "middle", align: "right" });
+    else text("Ví " + (snap.money ?? 0) + "k", 556, 35, { size: 18, base: "middle", align: "right", color: COLOR.muted });
     if (snap.day !== undefined) { ui.panel(w - 130, 8, 120, 52); text("Ngày " + snap.day, w - 70, 35, { size: 20, align: "center", base: "middle", weight: "800", color: COLOR.gold }); }
 
     // kho khả dụng

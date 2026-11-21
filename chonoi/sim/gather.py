@@ -25,30 +25,21 @@ from dataclasses import dataclass
 from fractions import Fraction
 
 from ..ids import sort_by_id
-from ..inventory import hold_to_items
+from ..inventory import Item, hold_to_items
+from .monsters import MonsterSystem
 from .ramp import ramp_velocity
 
 TICK = 60.0
 AXES = ("x", "d")
 
-
-@dataclass
-class _HoldItem:
-    """Kiểu tạm cho Gather trong lúc chờ Item của adapter kho."""
-
-    id: str
-    kind: str
-    fresh: Fraction
-
-    def snapshot(self):
-        return {"id": self.id, "kind": self.kind, "fresh": float(self.fresh)}
+_HoldItem = Item
 
 
 class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids):
+    def __init__(self, tuning, scenario, streams, ids, day=1):
         t = tuning["gather"]
         self.t = t
         self.rng = streams
@@ -102,6 +93,19 @@ class GatherSim:
                 for spawn in t.get("fish_spawn_schedule", ()):
                     self.fish_spawn_by_tick.setdefault(spawn["tick"], []).append(spawn)
         self.elapsed_ticks = 0
+        monster_tuning = t.get("monsters")
+        monster_spawns = scenario.get("monsters")
+        if monster_spawns is None and monster_tuning:
+            monster_spawns = [
+                spawn for spawn in monster_tuning.get("spawns", [])
+                if spawn.get("day", 1) <= day
+            ]
+        self.monsters = MonsterSystem(
+            monster_tuning or {"species": {}},
+            monster_spawns or [],
+            t["bounds"],
+            tuning["tick_hz"],
+        )
         for coll in (self.nodes, self.fish):
             for e in coll:
                 ids.reserve(e["id"])
@@ -110,6 +114,8 @@ class GatherSim:
             initial_rng = self.rng.get("fish_initial")
             for pos in initial_rng.sample(positions, initial):
                 self._add_random_fish(pos, initial_rng)
+        for monster in self.monsters.monsters:
+            ids.reserve(monster["id"])
         self.money = 0
         self.earned = 0
         self.reputation = tuning["quan"]["reputation_initial"]
@@ -138,12 +144,14 @@ class GatherSim:
             "fish": [{"id": f["id"], "pos": f["pos"], "kind": f["kind"],
                       "heading_deg": f["heading_deg"], "age_ticks": f["age_ticks"]}
                      for f in sort_by_id(self.fish)],
+            "monsters": self.monsters.snapshot(),
         }
 
     # --- một bước ---------------------------------------------------------------
     def step(self, inp):
         events = []
         self.elapsed_ticks += 1
+        invulnerable_at_start = self.invuln_ticks > 0
         # 1. đồng hồ và hàng có sẵn: giảm bộ đếm, nút mọc lại
         self.time_left_ticks = max(0, self.time_left_ticks - 1)
         self.invuln_ticks = max(0, self.invuln_ticks - 1)
@@ -167,6 +175,13 @@ class GatherSim:
         events.extend(oxygen_events)
         if self.done:
             return events
+        monster = self.monsters.step(
+            self.pos, not invulnerable_at_start and self.invuln_ticks <= 0
+        )
+        if monster is not None:
+            events.extend(self._hit_by_monster(monster))
+            if self.done:
+                return events
         # 3. interact: bến trước, rồi hái
         if inp.pressed("interact"):
             if self._in_dock():
@@ -303,10 +318,36 @@ class GatherSim:
                 self.invuln_ticks = int(self.t["choke_interval_ticks"])
                 events.append(("choke", {"hp": self.hp, "pos": list(self.pos)}))
                 if self.hp <= 0:
-                    self.hold.clear()
-                    events.append(("faint", {"pos": list(self.pos)}))
+                    lost = self._lose_all_hold()
+                    events.append(("faint", {"cause": "choke", "lost": lost,
+                                             "hp": 0, "pos": list(self.pos)}))
                     self._finish("fainted", events)
         return events
+
+    def _hit_by_monster(self, monster):
+        monster_config = self.t["monsters"]
+        lost_count = int(len(self.hold) * monster_config["loss_ratio"])
+        lost = [self.hold.pop() for _ in range(lost_count)]
+        self.hp = max(0, self.hp - 1)
+        self.invuln_ticks = int(monster_config["invuln_ticks"])
+        self.monsters.start_recoil(monster, self.pos)
+        events = [("monster_hit", {
+            "monster_id": monster["id"], "hp": self.hp, "lost": lost,
+            "pos": list(self.pos),
+        })]
+        if self.hp == 0:
+            faint_lost = self._lose_all_hold()
+            events.append(("faint", {
+                "cause": "monster", "lost": faint_lost, "hp": 0, "pos": list(self.pos),
+            }))
+            self._finish("fainted", events)
+        return events
+
+    def _lose_all_hold(self):
+        lost = []
+        while self.hold:
+            lost.append(self.hold.pop())
+        return lost
 
     def _try_harvest(self):
         events = []
