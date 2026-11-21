@@ -266,9 +266,7 @@ class QuanSim:
     def _pay_customers(self, events):
         """Khách ăn xong trả tiền và rời bàn. Hết ca: khách còn ăn trả ngay với closing."""
         closing = self.time_left_ticks <= 0
-        for c in sort_by_id(self.customers):
-            if c["state"] != "eating":
-                continue
+        for c in self._by_table([c for c in self.customers if c["state"] == "eating"]):  # theo id bàn
             done_eating = c["eat_ticks_left"] <= 0
             if not (done_eating or closing):
                 continue
