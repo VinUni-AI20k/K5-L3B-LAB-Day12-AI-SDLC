@@ -18,6 +18,7 @@ Phase 2 (lát 3): `menu_filter` = id món trong day_plan[day].dishes (--mode day
 import math
 
 from ..ids import id_key, sort_by_id
+from ..items import ItemIds
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -31,7 +32,9 @@ class QuanSim:
     phase = "quan"
 
     def __init__(self, tuning, scenario, streams, ids, inventory=None, menu_filter=None,
-                 money=0, earned=0, reputation=None):
+                 money=0, earned=0, reputation=None, item_ids=None):
+        # v1.2: bộ cấp id cá thể dùng chung cả lượt (`day` truyền vào; chạy riêng thì tự tạo)
+        self.item_ids = item_ids if item_ids is not None else ItemIds()
         """menu_filter: id món trong day_plan[day].dishes (chỉ dùng ở --mode day; None = quán độc lập, đủ menu).
         money/earned/reputation: trạng thái xuyên Ngày do runner day truyền vào (hợp đồng mục 5.3)."""
         t = tuning["quan"]

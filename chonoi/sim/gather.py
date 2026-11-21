@@ -24,6 +24,7 @@ import math
 
 from ..ids import id_key, sort_by_id
 from ..inventory import hold_to_items
+from ..items import ItemIds
 from .ramp import ramp_velocity
 
 TICK = 60.0
@@ -34,7 +35,9 @@ class GatherSim:
     mode = "gather"
     phase = "gather"
 
-    def __init__(self, tuning, scenario, streams, ids, day=1):
+    def __init__(self, tuning, scenario, streams, ids, day=1, item_ids=None):
+        # v1.2: bộ cấp id cá thể I1, I2, … dùng chung cả lượt (`day` truyền vào; chạy riêng thì tự tạo)
+        self.item_ids = item_ids if item_ids is not None else ItemIds()
         t = tuning["gather"]
         self.t = t
         self.tick_hz = tuning["tick_hz"]
