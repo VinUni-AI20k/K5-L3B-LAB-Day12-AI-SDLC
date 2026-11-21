@@ -163,3 +163,85 @@ kbd { display: inline-block; vertical-align: .03em; border: 1px solid #678273; b
 @media (prefers-reduced-motion: reduce) {
   *, *::after { animation: none !important; }
 }
+
+/* Bố cục chiến dịch ở 1280 × 720. */
+.phase-two { font-size: 18px; line-height: 1.2; }
+.phase-two h1, .phase-two .brand { font-family: system-ui, sans-serif; }
+.phase-two :is(.button, .preview-label, .mode small, .controls, .eyebrow, .stat > span, .stat.oxygen b,
+  .world-label, .prompt, .toasts > div, .oxygen-alert, h2, .panel-title > span, .panel-title > strong,
+  .ingredients, .dishes li, .dishes li .eligibility, .station, .station p, .station .station-timer, .file-status, .totals dt) { font-size: 18px; }
+.phase-two kbd { font-size: 18px; line-height: 1.15; padding-block: 2px; }
+.phase-two .eyebrow { letter-spacing: .07em; }
+.phase-two .topbar { height: auto; min-height: 53px; margin-bottom: 12px; }
+.phase-two .menu { padding-block: 12px 22px; align-items: start; }
+.phase-two .menu h1 { font-size: clamp(38px, 5vw, 72px); margin-bottom: 12px; }
+.phase-two .menu .intro { line-height: 1.4; }
+.phase-two .menu-art { height: clamp(365px, 77vh, 570px); }
+.phase-two .mode-list { margin-block: 15px; }
+.phase-two .mode { padding: 9px 11px; }
+.phase-two #exit { justify-self: start; }
+.phase-two .scene-head { margin-bottom: 9px; }
+.phase-two .scene-head h1 { font-size: clamp(34px, 4.2vw, 49px); }
+.phase-two .stat { min-width: 82px; padding: 5px 9px; }
+.phase-two .stat > strong { font-size: 22px; }
+.phase-two .time-low { color: var(--rose); }
+.phase-two .oxygen .meter.alert { border-color: var(--rose); animation: status-pulse .8s ease-in-out infinite alternate; }
+.phase-two .oxygen:has(.meter.alert) b { color: var(--rose); }
+.phase-two .game-grid { grid-template-columns: minmax(0, 1fr) 360px; gap: 10px; }
+.phase-two .stage { height: clamp(305px, 63vh, 510px); }
+.phase-two #game[data-mode="quan"] .stage { height: clamp(260px, 41vh, 410px); }
+.phase-two #game[data-mode="quan"] .prompt { left: 12px; transform: none; }
+.phase-two .stage.monster-near { box-shadow: 0 0 0 3px #d598ee; border-color: #e9b4f4; }
+.monster-alert { position: absolute; top: 52px; left: 12px; color: #fff1ff; background: #513264; border: 1px solid #e6acef; padding: 5px 9px; border-radius: 7px; }
+.phase-two .stage .toasts { max-width: min(56%, 380px); }
+.phase-two .sidebar { gap: 8px; }
+.phase-two .panel { padding: 8px 10px; }
+.phase-two .panel-title { margin-bottom: 6px; }
+.phase-two .hand .panel-title { margin: 0; }
+.phase-two .slots { grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 3px; }
+.phase-two .sidebar .ingredients { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 10px; }
+.phase-two #goal-items { grid-template-columns: 1fr; }
+.phase-two .ingredients > div { padding-top: 3px; }
+.phase-two .ingredients dd { white-space: nowrap; }
+.phase-two .dishes li { padding: 4px 6px; }
+.phase-two .station-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.phase-two .station { padding: 5px 7px; }
+.phase-two .station.ready { border-color: var(--gold); animation: status-pulse .8s ease-in-out infinite alternate; }
+@keyframes status-pulse { to { box-shadow: inset 0 0 0 2px #fbc78b82; } }
+.phase-two .play-controls { margin-block: 8px 12px; gap: 6px 14px; }
+
+.journey { padding: 18px 0 30px; }
+.journey-card { width: min(100%, 1010px); margin-inline: auto; border: 1px solid var(--line); border-radius: 16px; padding: clamp(14px, 3vw, 33px); background: radial-gradient(ellipse at 90% 0%, #314b3a, var(--panel) 78%); }
+.journey-head h1 { margin-bottom: 8px; }
+.journey-head .intro { line-height: 1.35; }
+.journey .toasts { position: static; max-width: 100%; margin-top: 7px; display: flex; flex-wrap: wrap; }
+.journey .toasts:empty { display: none; }
+.journey .toasts > div { padding-block: 4px; }
+.journey-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+.journey-columns:has(> :only-child), .journey[data-screen="shop"] .journey-columns:not(#shop-upgrades) { grid-template-columns: 1fr; }
+.journey[data-screen="shop"] { padding-bottom: 14px; }
+.journey[data-screen="shop"] .journey-card { padding-block: 23px; }
+.journey[data-screen="shop"] .result-actions { margin-top: 12px; }
+.journey[data-screen="shop"] .ingredients { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 16px; }
+.journey-columns:not(:has(> :not([hidden]))) { display: none; }
+.journey-list { margin: 6px 0; padding-left: 24px; display: grid; gap: 4px; }
+.journey-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(134px, 1fr)); gap: 6px; margin-top: 10px; }
+.journey-stats > div { border-radius: 8px; padding: 7px; background: #142820; }
+.journey-stats dt, .upgrade-current { color: var(--muted); }
+.journey-stats dd { font-weight: 800; color: var(--gold); }
+.upgrade-card button:disabled { cursor: default; }
+.upgrade-card p { margin-top: 3px; }
+.result-end { display: flex; flex-wrap: wrap; gap: 8px; }
+.pause-overlay { position: fixed; inset: 0; z-index: 5; display: grid; place-items: center; padding: 16px; background: #121b19ce; backdrop-filter: blur(4px); }
+.campaign-paused :is(#game, #journey) *, .campaign-paused #stage::after { animation-play-state: paused !important; }
+
+@media (max-width: 900px) {
+  .phase-two .game-grid { grid-template-columns: minmax(0, 1fr) 280px; }
+  .phase-two .sidebar .ingredients { grid-template-columns: 1fr; }
+  .phase-two .station-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 690px) {
+  .phase-two .game-grid, .journey-columns { grid-template-columns: 1fr; }
+  .phase-two .sidebar .ingredients { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .phase-two .menu-art { height: 310px; }
+}

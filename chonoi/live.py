@@ -32,8 +32,9 @@ from .scenario import load_scenario
 
 WEB_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "web")
 SAMPLE_INVENTORY = os.path.join(os.path.dirname(DEFAULT_PATH), "docs", "contracts", "inventory.sample.json")
-WEB_FILES = {"index.html": "text/html", "styles.css": "text/css",
-             **dict.fromkeys(("app.js", "adapter.js", "scenes.js", "art.js", "preview.js"), "text/javascript")}
+WEB_FILES = {"index.html": "text/html", "styles.css": "text/css", "phase2.preview.json": "application/json",
+             **dict.fromkeys(("app.js", "adapter.js", "scenes.js", "art.js", "preview.js",
+                              "campaign.js", "phase2-preview.js"), "text/javascript")}
 MAX_BODY = 4096
 RECENT_EVENTS = 40
 

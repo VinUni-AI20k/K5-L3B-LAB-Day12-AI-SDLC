@@ -1,4 +1,4 @@
-import { shore, river, deck, dockArt, plant, school, utSen, stoveArt, tableArt, mealArt, coverArt } from "./art.js";
+import { shore, river, deck, dockArt, plant, school, crocodile, utSen, stoveArt, tableArt, mealArt, coverArt } from "./art.js";
 
 const tau = Math.PI * 2;
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
@@ -64,13 +64,15 @@ function fit(canvas) {
 }
 
 function label(ctx, name, x, y, options = {}) {
-  ctx.font = "700 11px system-ui, sans-serif";
+  const size = options.size ?? 11;
+  const height = size + 7;
+  ctx.font = "700 " + size + "px system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   const width = ctx.measureText(name).width + 12;
   ctx.fillStyle = options.background ?? "#192c24e8";
   ctx.beginPath();
-  ctx.roundRect(x - width / 2, y - 9, width, 18, 5);
+  ctx.roundRect(x - width / 2, y - height / 2, width, height, 5);
   ctx.fill();
   ctx.fillStyle = options.color ?? "#fff0d4";
   ctx.fillText(name, x, y);
@@ -94,16 +96,16 @@ function progressRing(ctx, x, y, size, fraction) {
   ctx.stroke();
 }
 
-function highlight(ctx, action, x, y, scale, w, h) {
+function highlight(ctx, action, x, y, scale, w, h, v2) {
   if (!action) return;
   const ax = x(action.pos[0]);
   const ay = y(action.pos[1]);
   ring(ctx, ax, ay, Math.max(13, action.radius * scale), "#ffdc8d", true);
   label(ctx, action.key, clamp(ax, 24, w - 24), clamp(ay - Math.max(25, action.radius * scale + 12), 13, h - 15),
-    { color: "#302419", background: "#f4bd70" });
+    { color: "#302419", background: "#f4bd70", size: v2 ? 18 : 11 });
 }
 
-function worldGather(ctx, w, h, state, action, t, hz) {
+function worldGather(ctx, w, h, state, action, t, hz, v2) {
   const { meta, player } = state;
   const [[left, right], [surface, bottom]] = [meta.bounds.x, meta.bounds.d];
   const depth = bottom - surface;
@@ -118,7 +120,20 @@ function worldGather(ctx, w, h, state, action, t, hz) {
   const y = (pos) => horizon + (pos - surface) * scale;
 
   shore(ctx, w, h, horizon, viewX * scale, t);
-  river(ctx, w, h, horizon, y(bottom), viewX * scale, t);
+  const tiers = v2 && Number.isFinite(meta.danger_depth) && Number.isFinite(meta.deep_depth)
+    ? [y(meta.danger_depth), y(meta.deep_depth)] : undefined;
+  river(ctx, w, h, horizon, y(bottom), viewX * scale, t, tiers);
+  const tag = { size: v2 ? 18 : 11 };
+  if (tiers) {
+    ctx.strokeStyle = "#e1b1e9b8";
+    ctx.setLineDash([8, 6]);
+    ctx.beginPath();
+    ctx.moveTo(0, tiers[0]);
+    ctx.lineTo(w, tiers[0]);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (tiers[0] > 55 && tiers[0] < h - 25) label(ctx, meta.danger_depth + " m · Vùng nguy hiểm", 112, tiers[0], tag);
+  }
   ctx.fillStyle = "#b8e3a063";
   ctx.fillRect(0, horizon, w, meta.surface_depth * scale);
   ctx.fillStyle = "#d7dcb2";
@@ -131,20 +146,20 @@ function worldGather(ctx, w, h, state, action, t, hz) {
   const [dockX, dockD] = meta.dock_pos;
   ring(ctx, x(dockX), y(dockD), scale * meta.dock_radius, "#ffdfa7b5", true);
   dockArt(ctx, x(dockX), y(dockD), scale);
-  if (x(dockX) >= 0 && x(dockX) < w) label(ctx, "Bến", Math.max(25, x(dockX)), y(dockD) + 28);
+  if (x(dockX) >= 0 && x(dockX) < w) label(ctx, "Bến", Math.max(25, x(dockX)), y(dockD) + 28, tag);
 
   for (const node of state.nodes) {
     const nx = x(node.pos[0]);
     if (nx < -35 || nx > w + 35) continue;
     const ny = y(node.pos[1]);
     plant(ctx, nx, ny, node.kind, node.ready, scale);
-    label(ctx, node.id, nx, ny + 15);
+    label(ctx, node.id, nx, ny + (v2 ? 19 : 15), tag);
     if (!node.ready) {
       const seconds = Math.ceil(node.regrow_ticks / hz);
-      progressRing(ctx, nx, ny - 20, 10, 1 - node.regrow_ticks / (meta.regrow_s * hz));
-      ctx.font = "700 9px system-ui";
+      progressRing(ctx, nx, ny - (v2 ? 25 : 20), v2 ? 15 : 10, 1 - node.regrow_ticks / (meta.regrow_s * hz));
+      ctx.font = "700 " + (v2 ? 18 : 9) + "px system-ui, sans-serif";
       ctx.fillStyle = "#fff2d7";
-      ctx.fillText(String(seconds), nx, ny - 20);
+      ctx.fillText(String(seconds), nx, ny - (v2 ? 25 : 20));
     }
   }
   for (const fish of state.fish) {
@@ -152,9 +167,19 @@ function worldGather(ctx, w, h, state, action, t, hz) {
     const fy = y(fish.pos[1]);
     if (fx < -45 || fx > w + 45) continue;
     school(ctx, fx, fy, fish, scale, t);
-    label(ctx, fish.id, fx, fy + 16);
+    if (fx > 10 && fx < w - 10 && fy > 0 && fy < h) {
+      label(ctx, fish.id, clamp(fx, 22, w - 22), clamp(fy + (v2 ? 21 : 16), 14, h - 14), tag);
+    }
   }
-  highlight(ctx, action, x, y, scale, w, h);
+  for (const monster of state.monsters ?? []) {
+    const mx = x(monster.pos[0]);
+    const my = y(monster.pos[1]);
+    if (mx < -72 || mx > w + 72) continue;
+    crocodile(ctx, mx, my, scale, monster, t);
+    const condition = { patrol: "Tuần tra", chase: "Đuổi", recoil: "Choáng" }[monster.state];
+    label(ctx, monster.id + (condition ? " · " + condition : ""), clamp(mx, 65, w - 65), my - 23, tag);
+  }
+  highlight(ctx, action, x, y, scale, w, h, v2);
   const [px, pd] = player.pos;
   const p = [x(px), y(pd)];
   if (!player.at_surface) {
@@ -167,10 +192,13 @@ function worldGather(ctx, w, h, state, action, t, hz) {
       }
     }
   }
+  ctx.save();
+  if (v2 && player.invuln_ticks > 0 && Math.floor(t * 9) % 2 === 0) ctx.globalAlpha = .32;
   utSen(ctx, ...p, scale, player.heading_deg * Math.PI / 180, player.vel, t, true, !player.at_surface);
+  ctx.restore();
 }
 
-function worldQuan(ctx, w, h, state, action, t) {
+function worldQuan(ctx, w, h, state, action, t, v2) {
   const [[left, right], [south, north]] = [state.meta.bounds.x, state.meta.bounds.z];
   const pad = Math.min(w, h) * .15;
   const scale = Math.min((w - 2 * pad) / (right - left), (h - 1.5 * pad) / (north - south));
@@ -181,21 +209,23 @@ function worldQuan(ctx, w, h, state, action, t) {
   const x = (pos) => ox + (pos - left) * scale;
   const y = (pos) => oy + (north - pos) * scale;
   deck(ctx, w, h, ox, oy, width, height, t);
+  const tag = { size: v2 ? 18 : 11 };
   for (const stove of state.stoves) {
     const sx = x(stove.pos[0]);
     const sy = y(stove.pos[1]);
     stoveArt(ctx, sx, sy, scale, stove.state, t);
-    label(ctx, "Bếp " + stove.id, sx, sy + .63 * scale + 11);
+    label(ctx, v2 ? stove.id : "Bếp " + stove.id, sx, sy + .63 * scale + 11, tag);
   }
   for (const table of state.tables) {
     const customer = state.customers.find((item) => item.id === table.customer_id);
     const tx = x(table.pos[0]);
     const ty = y(table.pos[1]);
     tableArt(ctx, tx, ty, scale, customer);
-    label(ctx, "Bàn " + table.id, tx, ty + .65 * scale + 12);
+    label(ctx, "Bàn " + table.id, tx, ty + .65 * scale + 12, tag);
+    if (v2 && customer?.state === "eating") label(ctx, "Ngon quá!", tx, ty - 37, { ...tag, background: "#754b33" });
   }
 
-  highlight(ctx, action, x, y, scale, w, h);
+  highlight(ctx, action, x, y, scale, w, h, v2);
   const p = state.player;
   const px = x(p.pos[0]);
   const py = y(p.pos[1]);
@@ -209,6 +239,10 @@ export function createRenderer(cover, canvas) {
   let current;
   let action;
   let tuning;
+  let frozen = false;
+  let dirty = true;
+  let previousMs;
+  let time = 0;
   const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)");
 
   function drawCover() {
@@ -217,22 +251,28 @@ export function createRenderer(cover, canvas) {
   }
 
   function draw(ms) {
-    if (current && tuning) {
+    if (!frozen && previousMs !== undefined) time += Math.min(100, ms - previousMs) / 1000;
+    previousMs = ms;
+    if (current && tuning && (!frozen || dirty)) {
       const frame = fit(canvas);
       if (frame) {
         const { ctx, w, h } = frame;
-        const t = reducedMotion.matches ? 0 : ms / 1000;
-        if (current.mode === "gather") worldGather(ctx, w, h, current, action, t, tuning.tick_hz);
-        else worldQuan(ctx, w, h, current, action, t);
+        const t = reducedMotion.matches ? 0 : time;
+        const v2 = Boolean(tuning.shop);
+        if (current.mode === "gather") worldGather(ctx, w, h, current, action, t, tuning.tick_hz, v2);
+        else worldQuan(ctx, w, h, current, action, t, v2);
+        dirty = false;
       }
     }
     requestAnimationFrame(draw);
   }
 
   new ResizeObserver(drawCover).observe(cover);
+  new ResizeObserver(() => { dirty = true; }).observe(canvas);
   requestAnimationFrame(draw);
   return {
     configure(config) { tuning = config; },
+    freeze(value) { if (value !== frozen) dirty = true; frozen = value; },
     state(snapshot, target) {
       action = target;
       const previous = current;
