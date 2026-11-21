@@ -132,6 +132,9 @@ class GatherSim:
         # 2b. lát 1: dive/surface, oxy, ngạt, ngất. True = đã ngất (gather_end đã phát) -> dừng bước.
         if self._update_oxygen(events, was_surface):
             return events
+        # 2c. lát 1 (v1.1): Cá Sấu theo id, rồi xét tối đa một hit. True = đã ngất -> dừng bước.
+        if self._update_monsters(events):
+            return events
         # 3. interact: bến trước, rồi hái (lát 2)
         if inp.pressed("interact"):
             if self._in_dock():
@@ -180,11 +183,89 @@ class GatherSim:
         events.append(("choke", {"hp": self.hp}))
         if self.hp > 0:
             return False
+        self._faint("choke", events)
+        return True
+
+    def _faint(self, cause, events):
+        """Máu về 0: bỏ toàn bộ giỏ theo LIFO, faint {cause, lost, hp: 0} rồi gather_end("fainted") với kho rỗng."""
         lost = list(reversed(self.hold))  # nhặt sau bỏ trước
         self.hold = []
-        events.append(("faint", {"cause": "choke", "lost": lost, "hp": 0}))
+        events.append(("faint", {"cause": cause, "lost": lost, "hp": 0}))
         self._finish("fainted", events)
+
+    def _update_monsters(self, events) -> bool:
+        """Cá Sấu (Ticket-02 mục 1.2, thứ tự mục 4.5). Gọi SAU oxy/ngạt. Trả True nếu người chơi vừa ngất.
+
+        Từng con theo id:
+          - recoil: lùi recoil_dist/recoil_ticks mỗi bước theo recoil_dir (chặn mép), không gây hit; hết timer về
+            patrol và chỉ xét phát hiện/chạm từ bước kế.
+          - stunned (mở rộng Lao): đứng yên tới hết timer rồi về patrol.
+          - patrol <-> chase: chase khi người chơi ở d >= ngưỡng loài (depths[0]) và cách <= detect_radius;
+            về patrol khi cách > exit_radius hoặc người chơi lên trên ngưỡng. Khoảng cách xét TRƯỚC khi con di chuyển.
+          - patrol đi patrol_speed tới waypoints[target_idx], tới nơi thì đổi mục tiêu cho bước sau;
+            chase bơi chase_speed về phía người chơi. Chặn theo biên map và dải độ sâu của loài.
+        Sau khi cả hai di chuyển: tối đa MỘT hit — con gần nhất (hòa theo id) trong hit_radius, người chơi ở
+        d >= ngưỡng, hết bất tử. Hit: -1 Máu, bỏ floor(số đang mang × loss_ratio) theo LIFO, bất tử invuln_ticks,
+        con đó vào recoil recoil_ticks bước (từ bước sau) theo hướng xa người chơi chốt lúc chạm (trùng tâm: +x).
+        """
+        mon = self.t["monsters"]
+        species = mon["species"]
+        b = self.t["bounds"]
+        can_hit = []
+        for m in sort_by_id(self.monsters):
+            s = species[m["kind"]]
+            if m["state"] in ("recoil", "stunned"):
+                if m["state"] == "recoil":
+                    step = s["recoil_dist"] / s["recoil_ticks"]
+                    self._clamp_monster(m, [m["pos"][0] + m["recoil_dir"][0] * step,
+                                            m["pos"][1] + m["recoil_dir"][1] * step], s, b)
+                m["state_ticks_left"] -= 1
+                if m["state_ticks_left"] <= 0:
+                    m["state"], m["state_ticks_left"], m["recoil_dir"] = "patrol", 0, None
+                continue
+            deep = self.pos[1] >= s["depths"][0]
+            dist = math.dist(m["pos"], self.pos)
+            if m["state"] == "patrol" and deep and dist <= s["detect_radius"]:
+                m["state"] = "chase"
+            elif m["state"] == "chase" and (not deep or dist > s["exit_radius"]):
+                m["state"] = "patrol"
+            if m["state"] == "chase":
+                self._clamp_monster(m, _toward(m["pos"], self.pos, s["chase_speed"] / TICK), s, b)
+            else:
+                wp = m["waypoints"][m["target_idx"]]
+                self._clamp_monster(m, _toward(m["pos"], wp, s["patrol_speed"] / TICK), s, b)
+                if math.dist(m["pos"], wp) <= 1e-9:
+                    m["target_idx"] = 1 - m["target_idx"]
+            can_hit.append(m)
+        if self.invuln_ticks > 0:
+            return False
+        best = None
+        for m in can_hit:  # đã theo thứ tự id -> hòa khoảng cách giữ con id nhỏ
+            s = species[m["kind"]]
+            d = math.dist(m["pos"], self.pos)
+            if self.pos[1] >= s["depths"][0] and d <= s["hit_radius"] and (best is None or d < best[0]):
+                best = (d, m)
+        if best is None:
+            return False
+        m = best[1]
+        s = species[m["kind"]]
+        self.hp = max(0, self.hp - 1)
+        n_lost = math.floor(len(self.hold) * mon["loss_ratio"])
+        lost = [self.hold.pop() for _ in range(n_lost)]  # nhặt sau mất trước
+        self.invuln_ticks = mon["invuln_ticks"]
+        dx, dd = m["pos"][0] - self.pos[0], m["pos"][1] - self.pos[1]
+        n = math.hypot(dx, dd)
+        m["recoil_dir"] = [dx / n, dd / n] if n > 0 else [1.0, 0.0]
+        m["state"], m["state_ticks_left"] = "recoil", s["recoil_ticks"]
+        events.append(("monster_hit", {"monster_id": m["id"], "hp": self.hp, "lost": lost, "pos": list(self.pos)}))
+        if self.hp > 0:
+            return False
+        self._faint("monster", events)
         return True
+
+    def _clamp_monster(self, m, pos, s, b):
+        lo_d, hi_d = max(b["d"][0], s["depths"][0]), min(b["d"][1], s["depths"][1])
+        m["pos"] = [min(max(pos[0], b["x"][0]), b["x"][1]), min(max(pos[1], lo_d), hi_d)]
 
     # --- lát 2 (sở hữu: người làm gather lát 2) ---------------------------------
     def _try_gather(self, events):
@@ -354,3 +435,12 @@ def _apply_upgrades(g, shop, active):
     if lv:
         hp_max = ups["hp"][lv - 1]["hp_max"]
     return oxygen_s, hp_max
+
+
+def _toward(src, dst, step):
+    """Đi tối đa `step` từ src về dst, không vượt quá đích."""
+    dx, dy = dst[0] - src[0], dst[1] - src[1]
+    n = math.hypot(dx, dy)
+    if n <= step:
+        return [float(dst[0]), float(dst[1])]
+    return [src[0] + dx / n * step, src[1] + dy / n * step]

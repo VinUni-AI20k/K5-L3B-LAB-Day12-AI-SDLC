@@ -14,3 +14,5 @@
 | 10 | Phase 2 | Snapshot cá có xuất `age_ticks` không? Ticket chỉ nói scenario có. | Có: `fish[] = {id, pos, kind, heading_deg, age_ticks}`; trường thừa không vỡ UI, giúp kiểm lịch đổi hướng. | PO + mhoo40 (contracts I-2) |
 | 11 | Phase 2 | Cá Sấu có dùng số ngẫu nhiên? | Không: Ticket 1.2 chỉ mô tả luật cố định (patrol/chase/recoil), không nhắc seed. | PO + s0ra1n0 (contracts I-3) |
 | 12 | Phase 2 | Mode `day` đặt lại id/RNG mỗi Ngày? | Không: một `Streams` + một `IdAllocator` cho cả lượt; id khách nối tiếp qua Ngày (Ticket D: "trong lượt"). | PO + tiepnnk01-10 (contracts I-4) |
+| 13 | Phase 2 | Cá Sấu xét `patrol` ↔ `chase` theo khoảng cách trước hay sau khi nó di chuyển trong bước? | Giả định: **trước** khi di chuyển (người chơi đã di chuyển xong). Hit xét sau khi cả hai di chuyển như Ticket nói. | s0ra1n0 (lát 1) |
+| 14 | Phase 2 | `recoil_dist` là tổng quãng lùi hay mỗi bước? Hướng ban đầu cá "theo seed" lấy thế nào? | `recoil_dist = 2.0` là tổng trong `recoil_ticks = 60` (2/60 m/bước, khớp Ticket). Hướng cá: tạm số nguyên 0–359 qua stream `fish_spawn`, lát 2 chốt. | s0ra1n0 (lát 0/1) |
