@@ -1,0 +1,6 @@
+Command argv: ['python3', '-m', 'chonoi.headless', '--mode', 'day', '--seed', '11', '--ticks', '22200', '--out', 'D:\\Document_D\\Vin_AI\\K5-L3B-LAB-Day12-AI-SDLC-Nicecentt\\docs\\proof\\phase-2\\harness\\20261121-153002-657367\\day-run1.jsonl', '--days', '1', '--snapshot-every', '600']
+Exit code: 0
+Duration: 0.487s
+STDOUT:
+
+STDERR:
