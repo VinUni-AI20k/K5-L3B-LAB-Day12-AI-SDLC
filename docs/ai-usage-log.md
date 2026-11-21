@@ -28,6 +28,7 @@
 
 | Phase | Công cụ / model | Việc | Token / chi phí ước tính | Ghi chú (AI sai ở đâu?) |
 |---|---|---|---|---|
+| 1 | Codex | Đọc PRD-0, viết test tích hợp hộp đen, chạy unittest, thử các nhánh luật đang phát triển và ghi bằng chứng | Chưa đo | Giữ kỳ vọng theo PRD-0 mục E–G khi bảng sự kiện nội bộ khác đề. Trên Windows, đổi alias `python3` của tiến trình test thành đường dẫn Python đã cài. |
 
 ## linkiewinkie
 
