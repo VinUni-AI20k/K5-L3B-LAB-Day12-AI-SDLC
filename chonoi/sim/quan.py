@@ -157,6 +157,9 @@ class QuanSim:
                 raise BadInput(f"customers.{c['id']}.patience_ticks_left vượt kiên nhẫn tối đa")
             if cu["state"] not in CUSTOMER_STATES or cu["order_status"] not in ORDER_STATUSES:
                 raise BadInput(f"customers.{c['id']}: state/order_status không hợp lệ")
+            if self.freshness is not None:  # v1.2: reserved là mảng id, kiểm sau vòng lặp
+                out.append(cu)
+                continue
             if cu["reserved"] is not None and (not isinstance(cu["reserved"], dict) or any(
                     isinstance(n, bool) or not isinstance(n, int) or n < 0 for n in cu["reserved"].values())):
                 raise BadInput(f"customers.{c['id']}.reserved phải là map kind -> số nguyên không âm")
@@ -167,6 +170,8 @@ class QuanSim:
             elif cu["reserved"]:
                 raise BadInput(f"customers.{c['id']}: đơn {cu['order_status']} phải có phần giữ rỗng")
             out.append(cu)
+        if self.freshness is not None:
+            return self._init_reserved_v12(out)
         # cấp phần giữ còn thiếu theo (order_tick, id bàn), rồi kiểm tổng giữ không vượt tồn
         for cu in sorted(out, key=lambda x: (x["order_tick"], *sort_key_table(x["table_id"]))):
             if cu["reserved"] is None:
@@ -175,6 +180,66 @@ class QuanSim:
         if any(n < 0 for n in self._available().values()):
             raise BadInput("customers: tổng nguyên liệu giữ chỗ vượt tồn kho")
         return out
+
+    def _init_reserved_v12(self, out):
+        """v1.2 (Ticket-03 Scenario): `reserved` là mảng id cá thể. Kiểm lại ở sim vì kho có thể đến từ
+        --inventory (scenario.py chỉ kiểm được khi fixture khai quan.stock): id phải có trong kho, chưa ươn,
+        không trùng / không dùng chung, đủ đúng công thức; đơn khác `reserved` không giữ gì.
+        Đơn `reserved` bỏ trống `reserved` -> cấp theo (order_tick, id bàn), cá thể tươi nhất rồi id nhỏ;
+        không đủ -> mã 2."""
+        from ..items import is_spoiled
+        by_id = {i["id"]: i for i in self.stock}
+        used = set()
+        for cu in out:
+            r = cu["reserved"]
+            name = f"customers.{cu['id']}"
+            if r is None:
+                continue
+            if not isinstance(r, list) or any(not isinstance(i, str) or not i for i in r):
+                raise BadInput(f"{name}.reserved v1.2 phải là mảng id cá thể")
+            if cu["order_status"] != "reserved":
+                if r:
+                    raise BadInput(f"{name}: đơn {cu['order_status']} phải có phần giữ rỗng")
+                continue
+            if len(set(r)) != len(r) or used & set(r):
+                raise BadInput(f"{name}.reserved: id trùng hoặc dùng chung với đơn khác")
+            used.update(r)
+            got = {}
+            for ident in r:
+                item = by_id.get(ident)
+                if item is None:
+                    raise BadInput(f"{name}.reserved: id {ident} không có trong kho")
+                if is_spoiled(item, self.tuning):
+                    raise BadInput(f"{name}.reserved: id {ident} đã ươn")
+                got[item["kind"]] = got.get(item["kind"], 0) + 1
+            if got != self.menu[cu["dish_id"]]["recipe"]:
+                raise BadInput(f"{name}.reserved: không khớp công thức món {cu['dish_id']}")
+        self.customers = out
+        for cu in sorted(out, key=lambda x: (x["order_tick"], *sort_key_table(x["table_id"]))):
+            if cu["reserved"] is None:
+                if cu["order_status"] != "reserved":
+                    cu["reserved"] = []
+                elif not self._reserve(cu, cu["dish_id"]):
+                    raise BadInput(f"customers.{cu['id']}: kho không đủ cá thể chưa ươn để giữ chỗ")
+        return out
+
+    def _retry_spoiled(self, events):
+        """v1.2, ngay sau khi kho hao và phát hết `spoiled` (Ticket-03 "Thứ tự trong tick").
+        Đơn `reserved` có cá thể vừa ươn: nhả TOÀN BỘ phần giữ của mọi đơn bị ảnh hưởng, rồi thử giữ lại
+        đúng một lần theo (order_tick, id bàn). Không đủ -> `unfulfillable`, phần giữ rỗng, khách vẫn chờ
+        tới hết kiên nhẫn. Không phát event riêng (Ticket không có)."""
+        from ..items import is_spoiled
+        by_id = {i["id"]: i for i in self.stock}
+        hit = [c for c in self.customers
+               if c["order_status"] == "reserved" and isinstance(c["reserved"], list)
+               and any(ident in by_id and is_spoiled(by_id[ident], self.tuning) for ident in c["reserved"])]
+        if not hit:
+            return
+        for c in hit:
+            self._release(c)
+        for c in sorted(hit, key=lambda x: (x["order_tick"], *sort_key_table(x["table_id"]))):
+            if not self._reserve(c, c["dish_id"]):
+                c["order_status"] = "unfulfillable"
 
     def _tick_patience(self):
         """Bước 1: khách đang chờ (chưa được giao món) mất 1 tick kiên nhẫn, kẹp 0."""
@@ -225,8 +290,9 @@ class QuanSim:
         table = free_tables[0]
         c = {"id": self.ids.new("C"), "table_id": table["id"], "dish_id": dish, "order_tick": self.phase_tick,
              "state": "waiting", "patience_ticks_left": self.patience_full, "eat_ticks_left": 0,
-             "order_status": "reserved", "reserved": {}, "base_price": None, "tip": None}
-        self._reserve(c, dish)
+             "order_status": "reserved", "reserved": [] if self.freshness is not None else {},
+             "base_price": None, "tip": None}
+        self._reserve(c, dish)  # luôn đủ: món đã lọc theo _available()
         self.customers.append(c)
         events.append(("customer_arrived", {"order_id": c["id"], "table_id": table["id"], "dish_id": dish}))
 
@@ -453,13 +519,29 @@ class QuanSim:
                 free[k] = free.get(k, 0) - n
         return free
 
-    def _reserve(self, customer, dish):
-        """Giữ chỗ nguyên liệu của món `dish` cho khách (chưa trừ stock; trừ khi cook_started)."""
-        customer["reserved"] = dict(self.menu[dish]["recipe"])
+    def _reserve(self, customer, dish) -> bool:
+        """Giữ chỗ nguyên liệu của món `dish` cho khách (chưa trừ stock; trừ khi cook_started). Trả True nếu đủ.
+        v1.2: mỗi loại trong công thức lấy cá thể chưa ươn, chưa bị đơn khác giữ, tươi nhất rồi id nhỏ
+        (items.pick_freshest); `reserved` là mảng id sắp theo id. Thiếu -> không giữ gì, trả False."""
+        if self.freshness is None:
+            customer["reserved"] = dict(self.menu[dish]["recipe"])
+            return True
+        from ..items import pick_freshest
+        held = {i for c in self.customers if c is not customer and isinstance(c.get("reserved"), list)
+                for i in c["reserved"]}
+        chosen = []
+        for kind, n in sorted(self.menu[dish]["recipe"].items()):
+            ids = pick_freshest(self.stock, kind, n, held | set(chosen), self.tuning)
+            if ids is None:
+                customer["reserved"] = []
+                return False
+            chosen.extend(ids)
+        customer["reserved"] = sorted(chosen, key=id_key)
+        return True
 
     def _release(self, customer):
-        """Bỏ giữ chỗ (khách bỏ đi trước khi nấu)."""
-        customer["reserved"] = {}
+        """Bỏ giữ chỗ (khách bỏ đi trước khi nấu, hoặc giữ lại sau khi hàng ươn)."""
+        customer["reserved"] = [] if self.freshness is not None else {}
 
     def _move(self, inp):
         speed = self.t["walk_speed"]
