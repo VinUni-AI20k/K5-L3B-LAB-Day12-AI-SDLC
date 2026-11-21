@@ -5,8 +5,8 @@
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
 | Nguyễn Lâm Tùng | nlamtung | `sim/gather` | Integrator | `sim/quan` |
-| Nguyễn Lê Trọng Mạnh | Tiberu2611 | `sim/quan` (Lát 3 & Validation) | PO | `sim/gather` |
-| Vũ Duy Khánh | khanhduyvu1 | `sim/quan` (Lát 4 & Tích hợp) | Dev | `qa` |
+| Vũ Duy Khánh | khanhduyvu1 | `sim/quan` (Lát 3 & Validation) | PO | `sim/gather` |
+| Nguyễn Lê Trọng Mạnh | Tiberu2611 | `sim/quan` (Lát 4 & Tích hợp) | Dev | `qa` |
 | Đỗ Duy Tùng | Presceltooo | `client/ui` | Scrum/Release | `sim/quan` |
 | Nguyễn Tùng Dương | nguyenduong43 | `qa` | QA lead | `client/ui` |
 
