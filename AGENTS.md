@@ -26,4 +26,5 @@
 - Sáng tạo thêm được khuyến khích nhưng phải tắt ở headless (xem README, mục "Tự do sáng tạo").
 
 ## Skills / hooks của nhóm
-- (Ghi tên và khi nào dùng; tối thiểu 2 skill/hook/command nhóm tự viết, đặt ở `.agents/skills/` hoặc tương đương.)
+- `python-fact-grounded-coding`: dùng trước khi sửa logic Python; phải lấy bằng chứng từ test/runtime trước rồi mới chốt thay đổi.
+- `phase-1-verification`: chạy toàn bộ unittest, headless gather/quán và cập nhật `docs/verification/phase-1.md`; đặt tại `.agents/skills/` khi nhóm đóng gói skill riêng.
