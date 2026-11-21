@@ -38,6 +38,8 @@ Một **change request làm vỡ schema**: kho đếm theo loại (`{"items": {"
 | AC-P3-06 | Smoke bàn giao kho ở phút 20 (fresh 100 và fresh 30, hai tiến trình) | D | AC-P3-02, AC-P3-03 |
 | AC-P3-07 | Hồi quy P1–P2, `CHANGELOG.md`, bằng chứng, `docs/verification/phase-3.md`, tag | D | tất cả |
 
+Việc dùng chung (tab "Phân công", đã giao một người chủ để cân tải): P3-01 re-planning do B chủ trì, P3-10 retro do A gom và nộp (mỗi người vẫn tự ghi một dòng), P3-11 mở rộng tùy chọn do C.
+
 Lịch (theo Ticket-03): phút 0–7 phân tích và chốt quyết định (bản này), 7–25 viết schema/adapter, gather, quán, HUD song song (smoke phút 20), 25–32 bật v1.2, smoke `day`, hồi quy, CHANGELOG, tag, retro nhanh, 32–35 dự phòng; `phase-3` chậm nhất 2:30.
 
 ## Rủi ro

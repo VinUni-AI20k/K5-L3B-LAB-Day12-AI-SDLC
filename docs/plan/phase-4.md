@@ -39,6 +39,8 @@ Không đổi luật chơi. Phase 4 yêu cầu: **đo hiệu năng cảnh lặn*
 | AC-P4-07 | Retro rà hành động Phase 2, hồ sơ cá nhân đủ người, đánh giá chéo | C điều phối, cả nhóm | không |
 | AC-P4-08 | Hồi quy P1–P3, `docs/verification/phase-4.md`, tag `phase-4`, Release `v1.0.0` | D | tất cả |
 
+Việc dùng chung (tab "Phân công", đã giao một người chủ để cân tải): P4-01 re-planning do B chủ trì, P4-08 retro, hồ sơ, nhật ký AI, standup do C điều phối và gom nộp (mỗi người vẫn tự điền phần của mình), P4-10 demo do A chủ trì và chơi (D ma trận và test, B và C bằng chứng đóng góp), P4-11 mở rộng tùy chọn do B.
+
 Lịch (theo Ticket-04): phút 0–15 đo bench, cảnh báo, thử clone sạch, hồi quy, chuẩn bị Release song song; 15–25 retro và phản tư cá nhân, standup phút 20; 25–30 dự phòng và kiểm commit, artifact, tag, Release; hạn `phase-4` và `v1.0.0` là 3:00. Sau 3:00: demo.
 
 ## Demo sau 3:00 (checklist của đề)
