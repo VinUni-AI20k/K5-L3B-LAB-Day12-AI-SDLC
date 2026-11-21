@@ -1,13 +1,13 @@
 # TEAM
 
-**Tên nhóm:** …  **Số người:** …  (khớp `team_size` trong `game.contract.json`)
+**Tên nhóm:** 6667  **Số người:** 4  (khớp `team_size` trong `game.contract.json`)
 
 | Thành viên | GitHub handle | Module chính | Vai quy trình | Người dự phòng cho |
 |---|---|---|---|---|
-| Le Quy Toan | ToanLee5433 | `sim/gather` |Integrator | |
-| Nguyễn Thành Nam | Ishodayo | `sim/quan` | PO| |
-| Dam Hong Thai | itsbra1vo | `client/ui` | Scrum/Release| |
-| Dư Văn Hùng| czx04 | `qa` |QA lead | |
+| Le Quy Toan | ToanLee5433 | `sim/gather` |Integrator |  `sim/quan`|
+| Nguyễn Thành Nam | Ishodayo | `sim/quan` | PO| `sim/gather`|
+| Dam Hong Thai | itsbra1vo | `client/ui` | Scrum/Release|`qa`|
+| Dư Văn Hùng| czx04 | `qa` |QA lead | `client/ui` |
 
 **Vai quy trình:** PO (đầu mối hỏi giảng viên, giữ `docs/clarify.md`) · Integrator (giữ `docs/contracts/`, gắn tag) · QA lead · Scrum/Release. Có thể kiêm.
 
