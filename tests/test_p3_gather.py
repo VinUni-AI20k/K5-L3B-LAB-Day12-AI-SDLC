@@ -42,8 +42,8 @@ class GatherFreshnessTests(unittest.TestCase):
         initial = sim.snapshot()["hold"]
         result = run_steps(sim, 3)
         just_below = F.to_points(F.spoil_units - F.decay("gather"))
-        self.assertEqual(result, [(2, "spoiled", item(2, fresh=just_below)),
-                                  (2, "spoiled", item(4, fresh=just_below))])
+        self.assertEqual(result, [(2, "spoiled", {"item_id": "I2", "kind": "ca_linh", "location": "hold"}),
+                                  (2, "spoiled", {"item_id": "I4", "kind": "ca_linh", "location": "hold"})])
         self.assertEqual(sim.snapshot()["hold_count"], 3)
         self.assertEqual([it["id"] for it in sim.inventory_items()], ["I4", "I2", "I11"])
         self.assertEqual(sim.inventory_items()[-1]["fresh"], 0)

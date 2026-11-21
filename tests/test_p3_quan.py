@@ -91,6 +91,21 @@ class FreshnessAndReservation(unittest.TestCase):
         self.assertEqual(s.customers[0]["reserved"], ["I2"])
         self.assertEqual(s.snapshot()["customers"][0]["reserved"], ["I2"])
 
+    def test_scenario_orders_without_reserved_are_served_by_order_tick_then_table(self):
+        """Ticket-03: bỏ `reserved` cho đơn reserved thì cấp theo order_tick rồi id bàn, lấy tươi nhất rồi id nhỏ."""
+        t = copy.deepcopy(TUNING)
+        t["quan"]["tables"] += [{"id": "T2", "pos": [13, 2]}]
+        stock = [item("I1", fresh=90), item("I2", fresh=70)]
+        late_first_in_list = {"id": "K2", "table_id": "T2", "dish_id": "ca_loc_nuong_trui", "order_tick": 1}
+        early = {"id": "K1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "order_tick": 5}
+        s = sim({"random_customers": False, "customers": [early, late_first_in_list]}, [item("I1", fresh=90), item("I3", fresh=70)], t)
+        by_id = {c["id"]: c["reserved"] for c in s.customers}
+        self.assertEqual((by_id["K2"], by_id["K1"]), (["I1"], ["I3"]))  # order_tick nhỏ hơn (K2, đứng sau trong danh sách) giữ cá thể tươi nhất
+        same_tick = [dict(early, order_tick=0), dict(late_first_in_list, order_tick=0)]
+        s = sim({"random_customers": False, "customers": same_tick}, stock + [item("I9", fresh=60)], t)
+        by_id = {c["id"]: c["reserved"] for c in s.customers}
+        self.assertEqual((by_id["K1"], by_id["K2"]), (["I1"], ["I2"]))  # hòa order_tick thì theo id bàn T1 rồi T2
+
     def test_reservation_prefers_the_fresher_item_even_with_a_larger_id(self):
         """Bổ sung theo phá thử của D: giữ chỗ chọn cũ nhất thay vì tươi nhất không bị test cũ (hai cá thể cùng độ tươi) bắt."""
         s = sim(stock=[item("I1", fresh=50), item("I9", fresh=90)])

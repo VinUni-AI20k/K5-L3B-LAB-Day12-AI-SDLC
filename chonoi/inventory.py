@@ -71,7 +71,7 @@ FRESH_DEFAULT = 100  # độ tươi cá thể mới vào kho (khớp tuning.fres
 
 
 def validate_individuals(items, fresh_max=FRESH_DEFAULT, kinds=KINDS):
-    """Mảng cá thể {id, kind, fresh}: id dạng I<n> không trùng, kind hợp lệ, fresh số trong [0, fresh_max].
+    """Mảng cá thể {id, kind, fresh}: id là chuỗi khác rỗng không trùng (Ticket-03), kind hợp lệ, fresh số hữu hạn trong [0, fresh_max].
 
     Giữ nguyên thứ tự mảng (thứ tự vào kho; mất hàng theo LIFO dùng thứ tự này). Trả bản sao đã chuẩn hóa khóa.
     """
@@ -82,7 +82,7 @@ def validate_individuals(items, fresh_max=FRESH_DEFAULT, kinds=KINDS):
         if not isinstance(it, dict) or set(it) != INDIVIDUAL_KEYS:
             raise BadInput("cá thể phải có đúng id, kind, fresh")
         i, kind, fresh = it["id"], it["kind"], it["fresh"]
-        if not isinstance(i, str) or not ID_RE.match(i) or i in seen:
+        if not isinstance(i, str) or not i or i in seen:
             raise BadInput(f"id cá thể không hợp lệ hoặc trùng: {i!r}")
         seen.add(i)
         if kind not in kinds:
@@ -153,5 +153,5 @@ def hold_to_individuals(hold: list, fresh=FRESH_DEFAULT, start_id=1) -> list:
 
 
 def next_individual_id(items: list) -> int:
-    """Số n nhỏ nhất lớn hơn mọi id I<n> đang có (id tăng xuyên pha; id đã dùng không được cấp lại trong một lượt)."""
-    return max((int(it["id"][1:]) for it in items), default=0) + 1
+    """Số n nhỏ nhất lớn hơn mọi id dạng I<n> đang có (id khác dạng được bỏ qua) (id tăng xuyên pha; id đã dùng không được cấp lại trong một lượt)."""
+    return max((int(it["id"][1:]) for it in items if ID_RE.match(it["id"])), default=0) + 1

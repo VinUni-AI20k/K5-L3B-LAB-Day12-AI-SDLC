@@ -74,7 +74,7 @@ def main(argv=None) -> int:
         if inventory is not None and "stock" in scenario:
             raise BadInput("vừa có quan.stock vừa có --inventory")
         if inventory is not None:  # PRD-0 mục D: giữ chỗ quá tồn là mã 2, kiểm trước khi ghi JSONL
-            check_reserved_within_stock(scenario, inventory)
+            check_reserved_within_stock(scenario, inventory, tuning)
     except BadInput as e:
         sys.stderr.write(f"đầu vào sai: {e}\n")
         return 2

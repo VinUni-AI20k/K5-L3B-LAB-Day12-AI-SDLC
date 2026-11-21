@@ -67,7 +67,19 @@ class GatherInventoryOut(unittest.TestCase):
         code, rows, _, err = gather([item(1, "ca_loc", 30)], ticks=1, frames=[{"tick": 0, "interact": True}])
         self.assertEqual(code, 0, err)
         spoiled = events(rows, "spoiled")
-        self.assertEqual([(e["tick"], e["data"]["id"], e["data"]["kind"]) for e in spoiled], [(1, "I1", "ca_loc")])
+        self.assertEqual([(e["tick"], e["data"]) for e in spoiled], [(1, {"item_id": "I1", "kind": "ca_loc", "location": "hold"})])
+
+    def test_ticket_scenario_spoils_at_tick_one_with_item_id_kind_location(self):
+        """Mẫu của Ticket-03: gather một bước không input, cá thể bắt đầu đúng fresh 30 nên ươn ở bước đầu."""
+        with Workdir() as w:
+            sc = write_json(w.path("s.json"), {"gather": {"hold": [item(1, "ca_linh", 30)], "random_fish": False, "monsters": []}})
+            code, err = run_headless("--mode", "gather", "--seed", "1", "--ticks", "1", "--scenario", sc,
+                                     "--out", w.path("o.jsonl"), v12=True)
+            self.assertEqual(code, 0, err)
+            rows = read_jsonl(w.path("o.jsonl"))
+        e = events(rows, "spoiled")
+        self.assertEqual([(x["tick"], x["phase"], x["data"]) for x in e],
+                         [(1, "gather", {"item_id": "I1", "kind": "ca_linh", "location": "hold"})])
 
     def test_just_above_threshold_does_not_spoil_on_first_tick(self):
         above = F.to_points(F.spoil_units + F.decay("gather"))  # sau 1 tick hao đúng bằng ngưỡng: chưa ươn
@@ -183,6 +195,20 @@ class ScenarioV12(unittest.TestCase):
                           [{**base, "reserved": ["I1"]}, {**base, "id": "C2", "table_id": "T2", "reserved": ["I1"]}]):
             with self.assertRaises(BadInput, msg=str(customers)):
                 self.quan(stock=stock, customers=customers)
+
+    def test_reservation_pointing_at_a_spoiled_item_is_rejected(self):
+        stock = [item(1, "ca_loc", 10)]  # dưới ngưỡng 30: đã ươn
+        customers = [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I1"]}]
+        with self.assertRaises(BadInput):
+            self.quan(stock=stock, customers=customers)
+
+    def test_inventory_file_reservations_must_be_unspoiled_and_match_recipe(self):
+        customers = [{"id": "C1", "table_id": "T1", "dish_id": "ca_loc_nuong_trui", "reserved": ["I1"]}]
+        block = self.quan(customers=customers)
+        check_reserved_within_stock(block, [item(1, "ca_loc", 80)], T)
+        for stock in ([item(1, "ca_loc", 10)], [item(1, "bong_sung", 80)]):  # ươn; sai công thức
+            with self.assertRaises(BadInput, msg=str(stock)):
+                check_reserved_within_stock(block, stock, T)
 
     def test_v11_counting_stock_rejected_at_v12(self):
         with self.assertRaises(BadInput):

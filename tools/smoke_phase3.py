@@ -60,7 +60,7 @@ def main():
             check("gather_end.inventory là kho cá thể đúng file", ok and ev and ev[-1]["data"]["inventory"] == {"items": kho})
             sp = names(rows(p("g1.jsonl")), "spoiled")
             check("cá thể fresh 30 ươn ở tick đầu (xuống dưới ngưỡng), cá thể fresh 100 thì chưa",
-                  ok and [e["data"]["id"] for e in sp] == ["I2"], str([e["data"] for e in sp]))
+                  ok and [e["data"]["item_id"] for e in sp] == ["I2"] and sp[0]["data"]["location"] == "hold", str([e["data"] for e in sp]))
     check("bàn giao: file kho và JSONL quán giống từng byte qua 2 lần", hashes[0] is not None and hashes[0] == hashes[1])
 
     # 2. Quán đọc đúng fresh 100 và fresh 30 từ file kho dựng sẵn
