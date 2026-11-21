@@ -22,19 +22,23 @@ def load(data, mode="day"):
 
 class DayScenario(unittest.TestCase):
     def test_vi_du_tren_board_hop_le(self):
-        sc = load({"day": {"money": 200, "earned": 200},
-                   "gather": {"hold": ["ca_loc", "bong_sung", "bong_sung"], "random_fish": False}})
+        hold = [{"id": "I1", "kind": "ca_loc", "fresh": 100}, {"id": "I2", "kind": "bong_sung", "fresh": 100},
+                {"id": "I3", "kind": "bong_sung", "fresh": 100}]  # v1.2: giỏ là mảng cá thể
+        sc = load({"day": {"money": 200, "earned": 200}, "gather": {"hold": hold, "random_fish": False}})
         self.assertEqual(sc["day"], {"money": 200, "earned": 200})
-        self.assertEqual(sc["gather"]["hold"], ["ca_loc", "bong_sung", "bong_sung"])
+        self.assertEqual(sc["gather"]["hold"], hold)
         self.assertEqual(sc["quan"], {})
 
     def test_cam_quan_stock_va_reputation(self):
-        for key, val in (("stock", {"ca_loc": 1}), ("reputation", 4.0)):
+        for key, val in (("stock", [{"id": "I1", "kind": "ca_loc", "fresh": 100}]), ("reputation", 4.0)):
             with self.subTest(key=key), self.assertRaises(BadInput):
                 load({"quan": {key: val}})
 
     def test_quan_stock_van_hop_le_khi_chay_quan(self):
-        self.assertEqual(load({"quan": {"stock": {"ca_keo": 2}}}, mode="quan"), {"stock": {"ca_keo": 2}})
+        stock = [{"id": "I1", "kind": "ca_keo", "fresh": 100}, {"id": "I2", "kind": "ca_keo", "fresh": 100}]
+        self.assertEqual(load({"quan": {"stock": stock}}, mode="quan"), {"stock": stock})
+        with self.assertRaises(BadInput):  # kho đếm kiểu v1.1 bị từ chối ở v1.2
+            load({"quan": {"stock": {"ca_keo": 2}}}, mode="quan")
 
     def test_tien_dau_ky(self):
         bad = [{"money": 100},                     # có tiền đầu kỳ mà không khai earned
