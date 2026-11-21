@@ -12,7 +12,7 @@ from chonoi.inputs import InputPlayer
 from chonoi.rng import Streams
 from chonoi.runner import Session
 from chonoi.sim.gather import GatherSim
-from helpers import Workdir, events, frames, read_jsonl, run_headless, snapshots, write_json
+from helpers import Workdir, events, frames, run_headless, snapshots, write_json
 
 TUNING = load_contract()["tuning"]
 G = TUNING["gather"]

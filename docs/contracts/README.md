@@ -5,7 +5,7 @@ Nguồn sự thật cho số liệu là `game.contract.json`. Luật chỉ đọ
 
 ## 1. Schema file kho
 
-File kho do `gather` ghi một lần khi có `gather_end`, `quan` đọc khi mở quán.
+File kho do `gather` ghi một lần khi có `gather_end`, `quan` đọc khi mở quán. **Từ contract 1.2 kho là kho cá thể (xem mục "Kho cá thể" ở cuối phần này); dạng kho đếm ngay dưới đây chỉ dành cho contract 1.0 và 1.1.**
 
 ```json
 {"items": {"ca_loc": 1, "bong_sung": 2}}
