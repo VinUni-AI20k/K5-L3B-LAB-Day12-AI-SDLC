@@ -11,7 +11,7 @@ phải có đúng một món, khách eating thiếu giá/tip...) — xem PRD-0 m
 import json
 
 from .errors import BadInput
-from .contract import FISH_KINDS, NODE_KINDS
+from .contract import FISH_KINDS, NODE_KINDS, plan_ingredients
 from .inventory import KINDS_P1, validate_items
 
 GATHER_KEYS = {"player", "hold", "nodes", "fish", "random_fish", "time_left_ticks", "monsters"}
@@ -96,13 +96,83 @@ def _load_day(data, tuning):
     extra = set(day) - DAY_KEYS
     if extra:
         raise BadInput(f"trường lạ/chưa hỗ trợ trong day: {sorted(extra)}")
-    # TODO(C, Ticket-02 mục 4.3): kiểm giá trị khối day:
-    #   - money, earned số nguyên không âm; 0 <= money <= earned; có tiền đầu kỳ thì khai cả hai
-    #   - reputation trong [reputation_min, reputation_max]; upgrades là map oxygen/hp -> cấp hợp lệ
-    #   - day_plan ghi đè theo số Ngày, mỗi mục có dishes; tính lại ingredients (contract.plan_ingredients) và so
-    #     với giá trị khai nếu có
-    #   - mâu thuẫn kho/khách/bếp với kho thực lúc mở quán -> mã 2
-    out["day"] = day
+    # Mâu thuẫn kho/khách/bếp với kho thực lúc mở quán: QuanSim kiểm khi dựng với kho bàn giao (BadInput -> mã 2).
+    out["day"] = _validate_day(day, tuning)
+    return out
+
+
+def effective_day_plan(tuning, day_block=None):
+    """Kế hoạch 5 Ngày khi chạy: preset tuning.day_plan, ghi đè theo số Ngày bằng day.day_plan của scenario."""
+    plan = {p["day"]: dict(p) for p in tuning["day_plan"]}
+    for p in (day_block or {}).get("day_plan", []):
+        plan[p["day"]] = dict(p)
+    return [plan[d] for d in sorted(plan)]
+
+
+def _validate_day(b, tuning):
+    """Giá trị khối day (Ticket-02 mục 4.3). Mâu thuẫn -> BadInput (mã 2)."""
+    for key in ("money", "earned"):
+        if key in b:
+            _nonneg_int(f"day.{key}", b[key])
+    if "money" in b and "earned" not in b:
+        raise BadInput("day: có tiền đầu kỳ (money) thì phải khai cả earned")
+    if b.get("money", 0) > b.get("earned", 0):
+        raise BadInput("day: cần 0 <= money <= earned")
+    q = tuning["quan"]
+    if "reputation" in b:
+        r = b["reputation"]
+        if not _num(r) or not (q["reputation_min"] <= r <= q["reputation_max"]):
+            raise BadInput(f"day.reputation phải trong [{q['reputation_min']}, {q['reputation_max']}]")
+    if "upgrades" in b:
+        up = b["upgrades"]
+        if not isinstance(up, dict):
+            raise BadInput("day.upgrades phải là object {id nâng cấp: cấp}")
+        levels = {k: len(v) for k, v in tuning["shop"]["upgrades"].items()}
+        for k, lv in up.items():
+            if k not in levels:
+                raise BadInput(f"day.upgrades.{k}: không có trong shop.upgrades {sorted(levels)}")
+            _nonneg_int(f"day.upgrades.{k}", lv)
+            if lv > levels[k]:
+                raise BadInput(f"day.upgrades.{k}: cấp {lv} vượt cấp tối đa {levels[k]}")
+    if "day_plan" in b:
+        b["day_plan"] = _validate_day_plan_override(b["day_plan"], tuning)
+    return b
+
+
+DAY_PLAN_KEYS = {"day", "dishes", "ingredients"}
+
+
+def _validate_day_plan_override(plan, tuning):
+    """day.day_plan ghi đè theo số Ngày; ingredients luôn tính lại, khai mà khác thì báo lỗi."""
+    if not isinstance(plan, list):
+        raise BadInput("day.day_plan phải là mảng")
+    menu = tuning["menu"]
+    n_days = len(tuning["day_plan"])
+    seen, out = set(), []
+    for p in plan:
+        if not isinstance(p, dict) or set(p) - DAY_PLAN_KEYS:
+            raise BadInput(f"day.day_plan: mỗi mục chỉ có {sorted(DAY_PLAN_KEYS)}")
+        d = p.get("day")
+        if isinstance(d, bool) or not isinstance(d, int) or not (1 <= d <= n_days):
+            raise BadInput(f"day.day_plan.day phải là số nguyên trong [1, {n_days}]")
+        if d in seen:
+            raise BadInput(f"day.day_plan: Ngày {d} khai hai lần")
+        seen.add(d)
+        dishes = p.get("dishes")
+        if not isinstance(dishes, dict) or not dishes:
+            raise BadInput(f"day.day_plan Ngày {d}: dishes phải là object không rỗng")
+        for dish_id, n in dishes.items():
+            if dish_id not in menu:
+                raise BadInput(f"day.day_plan Ngày {d}: món ngoài menu {dish_id!r}")
+            if isinstance(n, bool) or not isinstance(n, int) or n < 1:
+                raise BadInput(f"day.day_plan Ngày {d}: số suất {dish_id} phải là số nguyên dương")
+        ing = plan_ingredients(menu, dishes)
+        ing = {k: ing[k] for k in sorted(ing)}
+        if "ingredients" in p:
+            declared = p["ingredients"]
+            if not isinstance(declared, dict) or {k: v for k, v in declared.items() if v} != ing:
+                raise BadInput(f"day.day_plan Ngày {d}: ingredients khác tổng công thức × số suất {ing}")
+        out.append({"day": d, "dishes": dict(dishes), "ingredients": ing})
     return out
 
 
